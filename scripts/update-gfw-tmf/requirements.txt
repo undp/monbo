@@ -1,0 +1,4 @@
+earthengine-api>=0.1.375
+geemap>=0.28.0
+GDAL>=3.6.0
+tenacity>=8.2.0,<9.0.0

@@ -1,0 +1,45 @@
+{
+  "title": "Análisis de deforestación",
+  "searchPlaceholder": "Buscar por polígono o productor",
+  "deforestation": "Deforestación",
+  "deforestationMapFooter": "Línea base de {{baselineYear}} comparada con datos de {{comparedToYear}}",
+  "uploadDataPage": {
+    "loadingText": "Cargando los datos",
+    "title": "Carga de polígonos y/o puntos",
+    "templateStep": {
+      "stepTitle": "Paso 1: Descarga la plantilla",
+      "title": "Plantilla para cargar los polígonos y/o puntos",
+      "description": "Completa la tabla con toda la información correspondiente a un polígono o punto para realizar el análisis de deforestación. Las columnas marcadas con asterisco son requeridas para efectuar la validación.",
+      "buttonText": "Descargar"
+    },
+    "mapSelectionStep": {
+      "stepTitle": "Paso 2: Selecciona las capas de mapas para el análisis"
+    },
+    "uploadStep": {
+      "stepTitle": "Paso 3: Carga la plantilla para el análisis de deforestación",
+      "inactiveDragzoneCallToAction": "Sube tu archivo",
+      "activeDragzoneCallToAction": "Suelta el archivo aquí",
+      "dragzoneButtonText": "Click para cargar",
+      "dragzoneText": "o arrastra y suelta el archivo"
+    }
+  },
+  "deforestationFree": "Libre Def.",
+  "withDeforestation": "Deforestados",
+  "euOfficialMap": "Oficial UE",
+  "map": "Mapa",
+  "deforestationLevel": "Nivel def.",
+  "buttons": {
+    "createReport": "Crear Reporte",
+    "createLot": "Crear Lote"
+  },
+  "mapsInfoModal": {
+    "title": "Detalles de mapas",
+    "coverage": "Cobertura",
+    "details": "Detalles",
+    "resolution": "Resolución",
+    "contentDate": "Fecha contenido",
+    "updateFrequency": "Frecuencia de actualización",
+    "source": "Fuente",
+    "disclaimer": "Precaución"
+  }
+}

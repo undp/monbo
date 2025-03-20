@@ -1,0 +1,63 @@
+{
+  "title": "Validación de polígonos",
+  "validPolygons": "Polígonos validados",
+  "inconsistentPolygons": {
+    "singular": "polígono inconsistente",
+    "plural": "polígonos inconsistentes"
+  },
+  "inconsistentPolygonsFound": {
+    "singular": "Se encontró {{count}} polígono inconsistente",
+    "plural": "Se encontraron {{count}} polígonos inconsistentes"
+  },
+  "errorPolygons": "Polígonos con error",
+  "searchPlaceholder": "Buscar polígono o productor",
+  "analize": "Analizar Deforestación",
+  "noResults": "No se encontraron resultados",
+  "noInconsistencies": "No hay inconsistencias",
+  "manualValidation": {
+    "snackbarAlert": {
+      "included": "incluido en la validación manual",
+      "excluded": "excluido de la validación manual"
+    },
+    "tableHeader": "Validación manual"
+  },
+  "deforestationModal": {
+    "title": "Análisis deforestación",
+    "polygonSelection": "Selecciona los polígonos a considerar",
+    "all": "Todos",
+    "valid": "Polígonos validados",
+    "mapsSelection": "Selecciona capas de mapas",
+    "continue": "Continuar"
+  },
+  "uploadDataPage": {
+    "loadingText": "Cargando los datos",
+    "title": "Carga de polígonos o puntos",
+    "templateStep": {
+      "stepTitle": "Paso 1: Descarga la plantilla",
+      "title": "Plantilla para cargar los polígonos y/o puntos",
+      "description": "Completa la tabla con toda la información correspondiente a un polígono o punto para realizar la validación de polígonos. Las columnas marcadas con asterisco son requeridas para efectuar la validación.",
+      "buttonText": "Descargar"
+    },
+    "uploadStep": {
+      "stepTitle": "Paso 2: Carga la plantilla",
+      "inactiveDragzoneCallToAction": "Sube tu archivo",
+      "activeDragzoneCallToAction": "Suelta el archivo aquí",
+      "dragzoneButtonText": "Click para cargar",
+      "dragzoneText": "o arrastra y suelta tu archivo aquí",
+      "allowedExtensions": ".xlsx o .xls"
+    }
+  },
+  "overlapModal": {
+    "title": "Análisis de traslape",
+    "producers": "productores",
+    "area": "Superficie en conflicto",
+    "headers": {
+      "producer": "Productor",
+      "producerId": "ID Productor",
+      "type": "Tipo",
+      "id": "ID",
+      "area": "Superficie (ha)"
+    },
+    "callToAction": "Guardar Cambios"
+  }
+}

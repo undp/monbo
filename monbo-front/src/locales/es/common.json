@@ -1,0 +1,54 @@
+{
+  "validatedManually": "Validado manualmente",
+  "header": {
+    "home": "Inicio",
+    "validation": "Validación polígonos",
+    "deforestation": "Análisis deforestación",
+    "batches": "Creación de lotes",
+    "report": "Generación reporte DD"
+  },
+  "language": {
+    "select": "Idioma",
+    "es": "Español",
+    "en": "Inglés"
+  },
+  "cancel": "Cancelar",
+  "close": "Cerrar",
+  "all": "Todos",
+  "step": "Paso",
+  "surface": "Área",
+  "devWarning": "Estás en un ambiente de pruebas, los análisis arrojados podrían no ser los oficiales",
+  "polygon": "Polígono",
+  "polygons": "Polígonos",
+  "point": "Punto",
+  "latitude": "Latitud",
+  "longitude": "Longitud",
+  "fileErrors": {
+    "file-invalid-type": "Tipo de archivo inválido",
+    "too-many-files": "Solo se permite subir un archivo"
+  },
+  "na": "N/D",
+  "_or": "o",
+  "tableColumns": {
+    "type": "Tipo",
+    "producer": "Productor",
+    "cropType": "Tipo cultivo",
+    "production": "Producción (q)",
+    "overlap": "Traslape",
+    "overlapArea": "Área traslapada (ha)"
+  },
+  "snackbarAlerts": {
+    "parsingFarmsDataError": "Ocurrió un error al procesar los datos de fincas",
+    "performingAnalysisError": "Ocurrió un error al realizar el análisis",
+    "dataAnalizedSuccessfully": "Datos analizados correctamente",
+    "notValidFileContent": "El contenido del archivo no es válido",
+    "errorParsingDataForExcel": "Ocurrió un error al procesar los datos para generar el archivo Excel",
+    "errorGeneratingExcelFile": "Ocurrió un error al generar el archivo Excel",
+    "errorParsingDataForGeoJson": "Ocurrió un error al procesar los datos para generar el archivo GeoJSON",
+    "errorGeneratingGeoJsonFile": "Ocurrió un error al generar el archivo GeoJSON"
+  },
+  "parseFileError": {
+    "mandatoryDataMissing": "Falta dato obligatorio ({{header}}) en la fila {{row}}",
+    "invalidCoordinates": "Coordenadas inválidas en la fila {{row}}"
+  }
+}

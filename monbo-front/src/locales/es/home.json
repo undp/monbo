@@ -1,0 +1,36 @@
+{
+  "title": "Aplicación para la producción sostenible",
+  "subtitle": "Analiza, valida y documenta que tu producción está libre de deforestación y cumplir normativas locales y EUDR",
+  "validation": {
+    "title": "Validación de polígonos y puntos",
+    "description": "Descarga la plantilla, completa los datos y cárgala para validar traslapes o duplicidades automáticamente.",
+    "button": "Validar polígonos"
+  },
+  "deforestation": {
+    "title": "Análisis de deforestación",
+    "description": "Identifica el riesgo de perturbación de una o más fincas, compara con fuentes de datos globales.",
+    "button": "Analizar deforestación"
+  },
+  "batches": {
+    "title": "Creación de lotes",
+    "description": "Facilita el control de trazabilidad y conformidad con estándares de sostenibilidad.",
+    "button": "Crear lotes"
+  },
+  "report": {
+    "title": "Generación de debida diligencia",
+    "description": "Respalda la información de tu producción para cumplir con las normativas internacionales.",
+    "button": "Crear reporte"
+  },
+  "sameDataModal": {
+    "polygonValidation": {
+      "title": "Se utilizarán los mismos datos para validar",
+      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+    },
+    "deforestationAnalysis": {
+      "title": "Se utilizarán los mismos datos para el análisis de deforestación",
+      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+    },
+    "uploadNewData": "Subir nuevos datos",
+    "sameData": "Continuar con los mismos datos"
+  }
+}

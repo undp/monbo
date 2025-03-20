@@ -1,0 +1,54 @@
+{
+  "validatedManually": "Validated manually",
+  "header": {
+    "home": "Home",
+    "validation": "Polygon Validation",
+    "deforestation": "Deforestation Analysis",
+    "batches": "Batches Creation",
+    "report": "DD Report Generation"
+  },
+  "language": {
+    "select": "Language",
+    "es": "Spanish",
+    "en": "English"
+  },
+  "cancel": "Cancel",
+  "close": "Close",
+  "all": "All",
+  "step": "Step",
+  "surface": "Area",
+  "devWarning": "You are in a testing environment; the analyses provided may not be official.",
+  "polygon": "Polygon",
+  "polygons": "Polygons",
+  "point": "Point",
+  "latitude": "Latitude",
+  "longitude": "Longitude",
+  "fileErrors": {
+    "file-invalid-type": "Invalid file type",
+    "too-many-files": "Only one file is allowed to be uploaded"
+  },
+  "na": "N/A",
+  "_or": "or",
+  "tableColumns": {
+    "type": "Type",
+    "producer": "Producer",
+    "cropType": "Crop Type",
+    "production": "Production (q)",
+    "overlap": "Overlap",
+    "overlapArea": "Overlap Area (ha)"
+  },
+  "snackbarAlerts": {
+    "parsingFarmsDataError": "An error occurred while processing the farms data",
+    "performingAnalysisError": "An error occurred while performing the analysis",
+    "dataAnalizedSuccessfully": "Data analized successfully",
+    "notValidFileContent": "The file content is not valid",
+    "errorParsingDataForExcel": "There was an error parsing the data to generate the Excel file",
+    "errorGeneratingExcelFile": "There was an error generating the Excel file",
+    "errorParsingDataForGeoJson": "There was an error parsing the data to generate the GeoJSON file",
+    "errorGeneratingGeoJsonFile": "There was an error generating the GeoJSON file"
+  },
+  "parseFileError": {
+    "mandatoryDataMissing": "Missing mandatory data ({{header}}) in row {{row}}",
+    "invalidCoordinates": "Invalid coordinates in row {{row}}"
+  }
+}

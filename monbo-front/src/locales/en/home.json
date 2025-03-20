@@ -1,0 +1,36 @@
+{
+  "title": "Application for Sustainable Production",
+  "subtitle": "Analyze, validate, and document that your production is deforestation-free and complies with local regulations and EUDR.",
+  "validation": {
+    "title": "Polygon and Point Validation",
+    "description": "Download the template, fill in the data, and upload it to automatically validate overlaps or duplicates.",
+    "button": "Validate Polygons"
+  },
+  "deforestation": {
+    "title": "Deforestation Analysis",
+    "description": "Identify the risk of disturbance for one or more farms, and compare it with global data sources.",
+    "button": "Analyze Deforestation"
+  },
+  "batches": {
+    "title": "Batch Creation",
+    "description": "Facilitate traceability control and compliance with sustainability standards.",
+    "button": "Create Batches"
+  },
+  "report": {
+    "title": "Due Diligence Generation",
+    "description": "Support your production information to meet international regulations.",
+    "button": "Create Report"
+  },
+  "sameDataModal": {
+    "polygonValidation": {
+      "title": "The same data will be used for validation",
+      "description": "You can view the already uploaded information or upload new data."
+    },
+    "deforestationAnalysis": {
+      "title": "The same data will be used for the deforestation analysis",
+      "description": "You can view the already uploaded information or upload new data."
+    },
+    "uploadNewData": "Upload new data",
+    "sameData": "Continue with the same data"
+  }
+}

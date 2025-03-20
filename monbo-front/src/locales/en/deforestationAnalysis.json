@@ -1,0 +1,46 @@
+{
+  "title": "Deforestation Analysis",
+  "searchPlaceholder": "Search by polygon or producer",
+  "deforestation": "Deforestation",
+  "deforestationMapFooter": "{{baselineYear}} baseline compared to {{comparedToYear}} data",
+  "uploadDataPage": {
+    "loadingText": "Loading the data",
+    "title": "Upload Polygons or Points",
+    "templateStep": {
+      "stepTitle": "Step 1: Download the Template",
+      "title": "Template for Uploading Polygons and/or Points",
+      "description": "Fill out the table with all the corresponding information for a polygon or point to perform the deforestation analysis. Columns marked with an asterisk are required.",
+      "buttonText": "Download"
+    },
+    "mapSelectionStep": {
+      "stepTitle": "Step 2: Select the map layers for the analysis"
+    },
+    "uploadStep": {
+      "stepTitle": "Step 3: Upload the Template",
+      "inactiveDragzoneCallToAction": "Upload your file",
+      "activeDragzoneCallToAction": "Drop the file here",
+      "dragzoneButtonText": "Click to upload",
+      "dragzoneText": "or drag and drop your file here",
+      "allowedExtensions": ".xlsx or .xls"
+    }
+  },
+  "deforestationFree": "Def. Free",
+  "withDeforestation": "Deforested",
+  "euOfficialMap": "EU Official",
+  "map": "Map",
+  "deforestationLevel": "Def. Level",
+  "buttons": {
+    "createReport": "Create Report",
+    "createLot": "Create Lot"
+  },
+  "mapsInfoModal": {
+    "title": "Map details",
+    "coverage": "Coverage",
+    "details": "Details",
+    "resolution": "Resolution",
+    "contentDate": "Content date",
+    "updateFrequency": "Update frequency",
+    "source": "Source",
+    "disclaimer": "Disclaimer"
+  }
+}

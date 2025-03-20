@@ -1,0 +1,63 @@
+{
+  "title": "Polygon Validation",
+  "validPolygons": "Validated Polygons",
+  "inconsistentPolygons": {
+    "singular": "inconsistent polygon",
+    "plural": "inconsistent polygons"
+  },
+  "inconsistentPolygonsFound": {
+    "singular": "{{count}} inconsistent polygon was found",
+    "plural": "{{count}} inconsistent polygons were found"
+  },
+  "errorPolygons": "Polygons with Errors",
+  "searchPlaceholder": "Search polygon or producer",
+  "analize": "Analyze Deforestation",
+  "noResults": "No results found",
+  "noInconsistencies": "No inconsistencies found",
+  "manualValidation": {
+    "snackbarAlert": {
+      "included": "included in manual validation",
+      "excluded": "excluded from manual validation"
+    },
+    "tableHeader": "Manual validation"
+  },
+  "deforestationModal": {
+    "title": "Deforestation Analysis",
+    "polygonSelection": "Select the polygons to consider",
+    "all": "All",
+    "valid": "Validated polygons",
+    "mapsSelection": "Select map layers",
+    "continue": "Continue"
+  },
+  "uploadDataPage": {
+    "loadingText": "Loading the data",
+    "title": "Upload Polygons or Points",
+    "templateStep": {
+      "stepTitle": "Step 1: Download the Template",
+      "title": "Template for Uploading Polygons and/or Points",
+      "description": "Fill out the table with all the necessary information for a polygon or point to validate polygons. Columns marked with an asterisk are required for validation.",
+      "buttonText": "Download"
+    },
+    "uploadStep": {
+      "stepTitle": "Step 2: Upload the Template",
+      "inactiveDragzoneCallToAction": "Upload your file",
+      "activeDragzoneCallToAction": "Drop the file here",
+      "dragzoneButtonText": "Click to upload",
+      "dragzoneText": "or drag and drop your file here",
+      "allowedExtensions": ".xlsx or .xls"
+    }
+  },
+  "overlapModal": {
+    "title": "Overlap Analysis",
+    "producers": "producers",
+    "area": "Overlapping Area",
+    "headers": {
+      "producer": "Producer",
+      "producerId": "Producer ID",
+      "type": "Type",
+      "id": "ID",
+      "area": "Area (ha)"
+    },
+    "callToAction": "Save Changes"
+  }
+}
