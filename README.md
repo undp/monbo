@@ -19,23 +19,21 @@
 
 ![](/docs/frontend-en.png)
 
-Monbo is ...
+Monbo is an application developed to facilitate deforestation analysis and produce due diligence reports for organizations and coffee producers who need to comply with regulations such as the European Union Deforestation Regulation (EUDR). Monbo streamlines the entire process of recieving geospatial information, validating farm boundaries, monitoring deforestation risk, and generating evidence-based compliance documents. It is aimed at producers, cooperatives, exporters, and any other stakeholders needing transparent and reliable analysis for sustainable supply chains.
 
-### Module: Polygon and Point Validation
+### Module 1: Polygon and Point Validation
 
-TBD
+This module ensures the accuracy of geolocated farm plots and points of interest. Users can upload/import shape data (polygons or single coordinates) representing production areas. The module verifies geometry consistency, checks for duplicate or overlapping areas, and flags potential issues (e.g., incorrectly formatted coordinates). By guaranteeing reliable and validated geospatial data, this module establishes a solid foundation for subsequent deforestation analysis and due diligence.
 
-### Module: Deforestation Analysis
+### Module 2: Deforestation Analysis
 
-TBD
+Once the polygons and points have been validated, the Deforestation Analysis module compares them against satellite imagery and up-to-date forest cover datasets. It detects signs  forest loss over a baseline timeframe (from December 2020 onward) and highlights areas of concern. This functionality provides a time series review to confirm whether farm boundaries encroach on recently deforested zones (compared to baseline year), helping users document and prove that their production areas remain free of deforestation. Technical teams can also upload multiple map layers—such as official maps from governmental ministries or open-source platforms like Global Forest Watch.
 
-### Module: Batch Creation
+### Module 3: Due Diligence Report Generation
 
-TBD
+Based on the validated geospatial data and the deforestation analysis results, this module automatically consolidates the required documentation to comply with EUDR. It generates downloadable reports or GEOJSON files that include farm coordinates, timeframes of analysis, evidence of zero deforestation (compared to baseline year), and any additional legal or sustainability documentation provided by the user. This ensures that any stakeholder can produce verifiable proof of compliance for audits, buyers or governmental authorities in the context of the EUDR.
 
-### Module: Due Diligence Generation
-
-TBD
+These modules work together to give users a complete view of their supply chain’s environmental impact, significantly reducing manual processes in data collection, verification, and reporting. By using Monbo, organizations can focus on producing sustainable commodities, confident that their deforestation and compliance checks are both accurate and straightforward.
 
 ## Project Structure
 
