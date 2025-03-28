@@ -63,7 +63,7 @@ The API is containerized using Docker for consistent deployment across environme
 
 Check the API [README](monbo-api/README.md) for more detailed instructions on how to use.
 
-### Docs (!!!!)
+### Docs 
 
 This folder contains comprehensive documentation covering various aspects of the project beyond the main README. This includes detailed technical specifications, architectural decisions (ADRs), setup guides, and maintenance procedures.
 
