@@ -91,6 +91,4 @@ The project can be run in two different ways:
 
 Both approaches provide hot-reload functionality, with the Docker approach offering a more containerized and consistent development environment.
 
-## Suggested Infrastructure
 
-TBD
