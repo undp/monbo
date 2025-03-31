@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "docker:build": "docker build -t undp-coffee-front ."
+    "docker:build": "docker build -t monbo-front ."
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
