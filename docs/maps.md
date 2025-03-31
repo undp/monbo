@@ -19,7 +19,7 @@ En los recursos actuales se han incluído datos para **Ecuador**, **Colombia** y
 - Para **GFW** se lee la banda `loss_year`, que indica el año en que ocurrió la pérdida forestal.
 - Para **TMF** se lee el recurso `DeforestationYear`, que indica el año de la deforestación.
 
-Los scripts Python utilizados en este pre-procesamiento utilizan la API de **Google Earth Engine**. Se adjuntan como anexos en esta documentación.
+Los scripts Python utilizados en este pre-procesamiento utilizan la API de **Google Earth Engine**. Se pueden encontrar en la carpeta `scripts/update-gfw-tmf`.
 
 ## Estructura de Metadata
 
