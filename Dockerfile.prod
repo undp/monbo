@@ -1,5 +1,5 @@
 # Build stage for frontend
-FROM node:20-alpine AS frontend-builder
+FROM --platform=linux/amd64 node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 # Install pnpm
 RUN npm install -g pnpm
@@ -10,7 +10,7 @@ COPY monbo-front/ .
 RUN pnpm run build
 
 # Build stage for backend
-FROM python:3.11-slim AS backend-builder
+FROM --platform=linux/amd64 python:3.11-slim AS backend-builder
 WORKDIR /app/backend
 RUN apt-get update && apt-get install -y \
     gdal-bin \
@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY monbo-api/ .
 
 # Final stage
-FROM python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
