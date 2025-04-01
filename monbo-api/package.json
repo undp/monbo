@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "FastAPI application",
   "scripts": {
-    "install": "pip install -r requirements.txt",
+    "install": "pip install --no-cache-dir -r requirements.txt",
     "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "dev": "fastapi dev ./app/main.py",
     "test": "pytest",
