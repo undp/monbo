@@ -1,20 +1,15 @@
+# Only development overrides
 version: '3.8'
 services:
   app:
+    container_name: monbo-dev
     build:
       context: .
       dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"  # Frontend
-      - "8000:8000"  # Backend API
     volumes:
       - ./monbo-front:/app/frontend
       - ./monbo-api:/app/backend
     environment:
       - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - CHOKIDAR_USEPOLLING=true   # Better hot-reload in Docker
+      - WATCHPACK_POLLING=true     # Better Next.js watching in Docker

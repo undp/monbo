@@ -1,11 +1,13 @@
 # Build stage for frontend
 FROM --platform=linux/amd64 node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
-# Install pnpm
 RUN npm install -g pnpm
+
+# Copy only package files first for better caching
 COPY monbo-front/package*.json monbo-front/pnpm-lock.yaml ./
-# Use pnpm instead of npm ci
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy source and build
 COPY monbo-front/ .
 RUN pnpm run build
 
@@ -33,6 +35,9 @@ COPY monbo-api/ .
 FROM --platform=linux/amd64 python:3.11-slim
 WORKDIR /app
 
+# Create non-root user first
+RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gdal-bin \
@@ -42,6 +47,8 @@ RUN apt-get update && apt-get install -y \
     npm \
     # Install pnpm instead of npm
     && npm install -g pnpm \
+    # Clean up apt cache to reduce image size
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend
@@ -54,11 +61,18 @@ COPY --from=frontend-builder /app/frontend/.next/standalone /app/frontend
 COPY --from=frontend-builder /app/frontend/.next/static /app/frontend/.next/static
 COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 
-# Create start script
-RUN echo '#!/bin/bash\n\
-    cd /app/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 | stdbuf -oL sed "s/^/[API] /" & \n\
-    cd /app/frontend && HOSTNAME="0.0.0.0" node server.js 2>&1 | stdbuf -oL sed "s/^/[FRONT] /" & \n\
-    wait' > /app/start.sh && chmod +x /app/start.sh
+# Copy the unified entrypoint script
+COPY /entrypoint.prod.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set correct permissions
+RUN chown -R appuser:appuser /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 3000 8000
-CMD ["/app/start.sh"]
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
