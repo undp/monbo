@@ -84,7 +84,11 @@ const parseRows = (
   }));
 };
 
-export const DeforestationResultsTable: React.FC = () => {
+interface Props {
+  tableProps?: Partial<TableProps<FarmData>>;
+}
+
+export const DeforestationResultsTable: React.FC<Props> = ({ tableProps }) => {
   const { availableMaps, polygonsValidationResults } = useContext(DataContext);
   const { farmsData, deforestationAnalysisResults } =
     useVisibleDataForDeforestationPage();
@@ -161,6 +165,7 @@ export const DeforestationResultsTable: React.FC = () => {
   // TODO: search some nice message into Table when no results found of text searching
   return (
     <Table
+      {...tableProps}
       headerStyle={{ backgroundColor: "#FFFFFF" }}
       headers={[
         {
