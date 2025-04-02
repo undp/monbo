@@ -1,0 +1,8 @@
+{
+  "title": "Report Generation",
+  "searchPlaceholder": "Search by polygon or producer",
+  "buttons": {
+    "preview": "Preview",
+    "download": "Download"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Generación de reportes",
+  "searchPlaceholder": "Buscar por polígono o productor",
+  "buttons": {
+    "preview": "Previsualizar",
+    "download": "Descargar"
+  }
+}
