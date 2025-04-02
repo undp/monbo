@@ -48,7 +48,7 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
           <DeforestationResultsTable />
         </SectionBackground>
       </Box>
-      <PageFooter locale={locale} />
+      <PageFooter />
     </TranslationsProvider>
   );
 }

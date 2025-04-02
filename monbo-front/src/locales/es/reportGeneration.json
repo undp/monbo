@@ -3,6 +3,7 @@
   "searchPlaceholder": "Buscar por polígono o productor",
   "buttons": {
     "preview": "Previsualizar",
-    "download": "Descargar"
+    "downloadCompleteReport": "Descargar reporte completo",
+    "downloadSeparatedReports": "Descargar por separado"
   }
 }
