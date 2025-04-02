@@ -1,7 +1,8 @@
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { Footer } from "@/components/reusable/Footer";
 import initTranslations from "@/utils/i18n";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { NavigationButton } from "@/components/reusable/NavigationButton";
 
 const namespaces = ["common", "deforestationAnalysis"];
 
@@ -14,12 +15,10 @@ export async function PageFooter({ locale }: { locale: string }) {
       >
         <DevEnvWarning />
         <Box sx={{ display: "flex", gap: 2 }}>
-          <Button variant="contained" disabled>
-            {t("deforestationAnalysis:buttons:createReport")}
-          </Button>
-          <Button variant="contained" disabled>
-            {t("deforestationAnalysis:buttons:createLot")}
-          </Button>
+          <NavigationButton
+            label={t("deforestationAnalysis:buttons:createReport")}
+            route="/report-generation"
+          />
         </Box>
       </Box>
     </Footer>
