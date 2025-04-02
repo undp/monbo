@@ -57,8 +57,9 @@ export const Header = async ({ locale }: HeaderProps) => {
               <HeaderButton path="/deforestation-analysis">
                 {t("home:header:deforestation")}
               </HeaderButton>
-              <HeaderButton>{t("home:header:batches")}</HeaderButton>
-              <HeaderButton>{t("home:header:report")}</HeaderButton>
+              <HeaderButton path="/report-generation">
+                {t("home:header:report")}
+              </HeaderButton>
               <Suspense>
                 <LanguageMenu />
               </Suspense>

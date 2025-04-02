@@ -4,8 +4,7 @@
     "home": "Home",
     "validation": "Polygon Validation",
     "deforestation": "Deforestation Analysis",
-    "batches": "Batches Creation",
-    "report": "DD Report Generation"
+    "report": "Report Generation"
   },
   "language": {
     "select": "Language",
@@ -17,7 +16,7 @@
   "all": "All",
   "step": "Step",
   "surface": "Area",
-  "devWarning": "You are in a testing environment; the analyses provided may not be official.",
+  "devWarning": "You are in a testing environment; the analyses may not be official.",
   "polygon": "Polygon",
   "polygons": "Polygons",
   "point": "Point",

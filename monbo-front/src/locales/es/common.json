@@ -4,8 +4,7 @@
     "home": "Inicio",
     "validation": "Validación polígonos",
     "deforestation": "Análisis deforestación",
-    "batches": "Creación de lotes",
-    "report": "Generación reporte DD"
+    "report": "Generación reporte"
   },
   "language": {
     "select": "Idioma",
@@ -17,7 +16,7 @@
   "all": "Todos",
   "step": "Paso",
   "surface": "Área",
-  "devWarning": "Estás en un ambiente de pruebas, los análisis arrojados podrían no ser los oficiales",
+  "devWarning": "Estás en un ambiente de pruebas, los análisis podrían no ser los oficiales",
   "polygon": "Polígono",
   "polygons": "Polígonos",
   "point": "Punto",

@@ -1,7 +1,6 @@
 import {
   PolygonValidationModuleCard,
   DeforestationModuleCard,
-  BatchCreationModuleCard,
   ReportCreationModuleCard,
 } from "@/components/page/home";
 import TranslationsProvider from "@/context/TranslationProvider";
@@ -75,16 +74,13 @@ export default async function HomePage({ params }: BasePageProps) {
           </Typography>
 
           <Grid2 container spacing={3}>
-            <Grid2 size={6}>
+            <Grid2 size={4}>
               <PolygonValidationModuleCard />
             </Grid2>
-            <Grid2 size={6}>
+            <Grid2 size={4}>
               <DeforestationModuleCard />
             </Grid2>
-            <Grid2 size={6}>
-              <BatchCreationModuleCard />
-            </Grid2>
-            <Grid2 size={6}>
+            <Grid2 size={4}>
               <ReportCreationModuleCard />
             </Grid2>
           </Grid2>

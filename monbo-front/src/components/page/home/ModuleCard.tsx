@@ -49,8 +49,10 @@ export const ModuleCard: React.FC<Props> = ({
         padding: "24px 40px",
         display: "flex",
         flexDirection: "column",
+        justifyContent: "space-between",
         gap: 3,
         opacity: disabled ? 0.7 : 1,
+        minHeight: 356,
       }}
       elevation={10}
     >
@@ -112,7 +114,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
       endIcon={<TrendingFlatIcon />}
       disabled={disabled}
       sx={{
-        width: 272,
+        width: "100%",
         justifyContent: "space-between",
         fontSize: 20,
         lineHeight: "19px",

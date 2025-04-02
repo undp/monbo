@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useContext, useMemo } from "react";
 import { DataContext } from "@/context/DataContext";
 import { useTranslation } from "react-i18next";
+
 interface HeaderButtonProps {
   children: React.ReactNode;
   path?: string;
@@ -38,7 +39,8 @@ export const HeaderButton: React.FC<HeaderButtonProps> = ({
     (!path ||
       (path.includes("polygons-validation") && !polygonsValidationResults) ||
       (path.includes("deforestation-analysis") &&
-        !deforestationAnalysisResults));
+        !deforestationAnalysisResults) ||
+      path.includes("report-generation"));
 
   return (
     <Button
