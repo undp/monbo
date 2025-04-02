@@ -83,7 +83,7 @@ export interface TableProps<T> {
   selectAllCellComponent?: React.ReactNode;
   selectAllCellStyle?: SxProps<Theme>;
   onRowSelected?: (row: RowData<T>, idx: number) => void;
-  onAllRowsSelected?: () => void;
+  onAllRowsSelected?: (rows: RowData<T>[]) => void;
   isRowSelected?: (row: RowData<T>, idx: number) => boolean;
   areAllSelected?: boolean;
   sortedBy?: SortBy | null;
@@ -131,7 +131,7 @@ export function Table<T>({
               >
                 {selectAllCellComponent ?? (
                   <Checkbox
-                    onClick={onAllRowsSelected}
+                    onClick={() => onAllRowsSelected?.(rows)}
                     checked={areAllSelected}
                   />
                 )}
