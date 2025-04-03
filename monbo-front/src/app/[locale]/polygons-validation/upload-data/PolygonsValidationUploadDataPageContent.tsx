@@ -60,6 +60,12 @@ const keyMapping: Record<string, string> = {
   "Coordenadas finca": "farmCoordinates",
   "Tipo de cultivo": "cropType",
   Asociación: "association",
+  "Nombre documento 1": "documentName1",
+  "Link documento 1": "documentUrl1",
+  "Nombre documento 2": "documentName2",
+  "Link documento 2": "documentUrl2",
+  "Nombre documento 3": "documentName3",
+  "Link documento 3": "documentUrl3",
 };
 
 export function PolygonsValidationUploadDataPageContent() {
@@ -158,9 +164,18 @@ export function PolygonsValidationUploadDataPageContent() {
 
       setLoading(true);
       const remappedData = data.map((row) => {
-        const newRow: Record<string, unknown> = {};
+        const newRow: Record<string, unknown> & {
+          documents?: Array<{ name: string; url: string }>;
+          documentName1?: string;
+          documentUrl1?: string;
+          documentName2?: string;
+          documentUrl2?: string;
+          documentName3?: string;
+          documentUrl3?: string;
+        } = {};
         for (const [key, value] of Object.entries(row)) {
-          newRow[keyMapping[key]] = value;
+          const trimmedValue = typeof value === "string" ? value.trim() : value;
+          newRow[keyMapping[key]] = trimmedValue;
         }
         return newRow;
       });
@@ -172,6 +187,31 @@ export function PolygonsValidationUploadDataPageContent() {
         if (row.productionDate instanceof Date) {
           row.productionDate = row.productionDate.toISOString();
         }
+        row.documents = [];
+        if (row.documentUrl1) {
+          row.documents.push({
+            name: row.documentName1 ?? "",
+            url: row.documentUrl1,
+          });
+        }
+        if (row.documentUrl2) {
+          row.documents.push({
+            name: row.documentName2 ?? "",
+            url: row.documentUrl2,
+          });
+        }
+        if (row.documentUrl3) {
+          row.documents.push({
+            name: row.documentName3 ?? "",
+            url: row.documentUrl3,
+          });
+        }
+        delete row.documentName1;
+        delete row.documentUrl1;
+        delete row.documentName2;
+        delete row.documentUrl2;
+        delete row.documentName3;
+        delete row.documentUrl3;
       });
 
       performFarmsGeneration(remappedData);

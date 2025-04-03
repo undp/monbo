@@ -23,6 +23,7 @@ class FarmData(BaseModel):
     country: str
     region: str
     association: str
+    documents: list[dict[Literal["name", "url"], str]]
     polygon: Polygon | None
 
 
@@ -37,6 +38,7 @@ class UnprocessedFarmData(BaseModel):
     farmCoordinates: str
     cropType: str
     association: str
+    documents: list[dict[Literal["name", "url"], str]]
 
 
 class FarmPolygon(BaseModel):

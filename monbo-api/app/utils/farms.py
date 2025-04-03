@@ -60,6 +60,9 @@ def parse_base_information(farm: UnprocessedFarmData):
         - country (str): The country of the farm.
         - region (str): The region of the farm.
         - association (str): The association of the farm.
+        - documents (list): A list of documents with the following keys:
+            - name (str): The name of the document.
+            - url (str): The URL of the document.
         - polygon (dict): A dictionary containing the polygon details with the
         following keys:
             - type (str): The type of the polygon ("polygon" or other).
@@ -89,6 +92,7 @@ def parse_base_information(farm: UnprocessedFarmData):
         "country": farm.country,
         "region": farm.region,
         "association": farm.association,
+        "documents": farm.documents,
     }
     try:
         (poly_type, polygon) = generate_polygon(farm.farmCoordinates)
