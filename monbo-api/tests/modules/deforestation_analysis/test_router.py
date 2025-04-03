@@ -53,7 +53,6 @@ def test_get_maps(mock_get_all_maps):
     response = client.get("/deforestation_analysis/get-maps")
     assert response.status_code == 200
     json_response = response.json()
-    print(json_response)
     assert json_response == EXPECTED_MAPS_DATA
 
 
