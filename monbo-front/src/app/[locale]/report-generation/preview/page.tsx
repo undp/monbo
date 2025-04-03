@@ -1,19 +1,25 @@
-"use client";
-
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
-import { PDFViewer } from "@react-pdf/renderer";
-import { Box } from "@mui/material";
-import { useDeforestationCompleteReportDocument } from "@/hooks/useDeforestationCompleteReportDocument";
+import TranslationsProvider from "@/context/TranslationProvider";
+import { ReportGenerationPreviewPageContent } from "@/components/page/reportGeneration/preview/ReportGenerationPreviewPageContent";
+import initTranslations from "@/utils/i18n";
+import { PageWithSearchParams } from "@/interfaces";
 
-export default function DeforestationAnalysis() {
-  const document = useDeforestationCompleteReportDocument();
+const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
+
+export default async function ReportGenerationPreviewPage({
+  params,
+}: PageWithSearchParams<{ locale: string }>) {
+  const { locale } = await params;
+  const { resources } = await initTranslations(locale, namespaces);
 
   return (
-    <Box sx={{ width: "100%", height: "100vh" }}>
+    <TranslationsProvider
+      locale={locale}
+      namespaces={namespaces}
+      resources={resources}
+    >
       <NavigateHomepageWhenEmptyData />
-      <PDFViewer style={{ width: "100%", height: "100%" }} showToolbar>
-        {document}
-      </PDFViewer>
-    </Box>
+      <ReportGenerationPreviewPageContent />
+    </TranslationsProvider>
   );
 }
