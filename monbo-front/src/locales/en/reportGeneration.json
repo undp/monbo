@@ -1,9 +1,37 @@
 {
-  "title": "Report Generation",
+  "title": "Select the polygons you want to include in the report",
   "searchPlaceholder": "Search by polygon or producer",
+  "words": {
+    "association": "Association",
+    "polygon": "Polygon",
+    "product": "Product",
+    "deforestation": "Deforestation",
+    "map": "Map",
+    "coordinates": "Coordinates",
+    "documentation": "Documentation"
+  },
+  "phrases": {
+    "deforestationAnalysis": "Deforestation Analysis",
+    "deforestationFree": "Deforestation Free",
+    "downloadGeojson": "Download GeoJSON",
+    "analysisPerformedBy": "Analysis performed by",
+    "originCountry": "Origin country",
+    "reportDate": "Report date"
+  },
   "buttons": {
     "preview": "Preview",
-    "downloadCompleteReport": "Download Complete Report",
-    "downloadSeparatedReports": "Download Separated Reports"
+    "downloadCompleteReport": "DOWNLOAD COMBINED",
+    "downloadSeparatedReports": "DOWNLOAD SEPARATELY"
+  },
+  "attributes": {
+    "id": "ID",
+    "producer": "Producer",
+    "cropType": "Crop Type",
+    "production": "Production",
+    "productionQuantity": "Production (q)",
+    "productionDate": "Production Date",
+    "country": "Country",
+    "region": "Region",
+    "totalArea": "Total Area (ha)"
   }
 }
