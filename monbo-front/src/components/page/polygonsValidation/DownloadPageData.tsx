@@ -14,7 +14,6 @@ import { formatOverlapPercentage } from "@/utils/numbers";
 import {
   COMMON_HEADERS,
   getRowCommonDataAsArray,
-  getRowCommonDataAsObject,
   MANDATORY_HEADERS,
 } from "@/utils/download";
 import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
@@ -22,6 +21,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
+import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
 
 const parseData = (
   farmsData: FarmData[],
@@ -119,29 +119,11 @@ export const DownloadPageData = () => {
   const onDownloadAsGeoJsonClick = useCallback(async () => {
     if (isDisabled) return;
     try {
-      const geoJsonData: GeoJsonData = {
-        type: "FeatureCollection",
-        features: farmsData.map((farm) => ({
-          type: "Feature",
-          properties: {
-            ...getRowCommonDataAsObject(farm),
-            status:
-              polygonsValidationResults?.farmResults.find(
-                (f) => f.farmId === farm.id
-              )?.status || "",
-          },
-          geometry: {
-            type: farm.polygon.type === "point" ? "Point" : "Polygon",
-            coordinates:
-              farm.polygon.type === "point"
-                ? [
-                    farm.polygon.details.center.lng,
-                    farm.polygon.details.center.lat,
-                  ]
-                : [farm.polygon.details.path.map(({ lng, lat }) => [lng, lat])],
-          },
-        })),
-      };
+      const geoJsonData: GeoJsonData =
+        generateGeoJsonFarmsDataWithPolygonsValidation(
+          farmsData,
+          polygonsValidationResults
+        );
       downloadAsGeoJson(geoJsonData, "step1-results.geojson");
     } catch (error) {
       console.error("Error generating GeoJSON:", error);

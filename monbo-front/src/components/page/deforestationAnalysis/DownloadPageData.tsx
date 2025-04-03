@@ -9,7 +9,6 @@ import {
   COMMON_HEADERS,
   MANDATORY_HEADERS,
   getRowCommonDataAsArray,
-  getRowCommonDataAsObject,
 } from "@/utils/download";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import {
@@ -21,6 +20,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
+import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "@/utils/geojson";
 
 const parseData = (
   farmsData: FarmData[],
@@ -98,43 +98,13 @@ export const DownloadPageData = () => {
     if (isDisabled) return;
 
     try {
-      // Convert farmsData to GeoJSON format
-      const geoJsonData: GeoJsonData = {
-        type: "FeatureCollection",
-        features: farmsData.map((farm) => ({
-          type: "Feature",
-          properties: {
-            ...getRowCommonDataAsObject(farm),
-            ...deforestationAnalysisResults.reduce(
-              (acc, { mapId, farmResults }) => {
-                const map = availableMaps.find((map) => map.id === mapId);
-                const farmMapResult = farmResults.find(
-                  ({ farmId }) => farmId === farm.id
-                );
-                if (!map || !farmMapResult) return acc;
-                return {
-                  ...acc,
-                  [`Deforestation according to ${map.alias}`]:
-                    !farmMapResult || farmMapResult.value === null
-                      ? "N/A"
-                      : formatDeforestationPercentage(farmMapResult.value),
-                };
-              },
-              {}
-            ),
-          },
-          geometry: {
-            type: farm.polygon.type === "point" ? "Point" : "Polygon",
-            coordinates:
-              farm.polygon.type === "point"
-                ? [
-                    farm.polygon.details.center.lng,
-                    farm.polygon.details.center.lat,
-                  ]
-                : [farm.polygon.details.path.map(({ lng, lat }) => [lng, lat])],
-          },
-        })),
-      };
+      const geoJsonData: GeoJsonData =
+        generateGeoJsonFarmsDataWithDeforestationAnalysis(
+          farmsData,
+          deforestationAnalysisResults,
+          availableMaps,
+          i18n.language
+        );
       downloadAsGeoJson(geoJsonData, "step2-results.geojson");
     } catch (error) {
       console.error("Error generating GeoJSON:", error);
@@ -151,6 +121,7 @@ export const DownloadPageData = () => {
     deforestationAnalysisResults,
     downloadAsGeoJson,
     t,
+    i18n.language,
   ]);
 
   return (
