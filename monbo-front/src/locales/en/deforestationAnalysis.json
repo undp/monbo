@@ -31,7 +31,7 @@
   "map": "Map",
   "deforestationLevel": "Def. Level",
   "buttons": {
-    "createReport": "Create Report"
+    "createReport": "Go to Report Generation"
   },
   "mapsInfoModal": {
     "title": "Map details",
