@@ -3,19 +3,41 @@ import {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import { FarmData } from "@/interfaces/Farm";
-import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
+import { Font, Document } from "@react-pdf/renderer";
+import { TFunction } from "i18next";
+import {
+  CoverPage,
+  DeforestationCalculationPage,
+  FarmMapPage,
+  MapDescriptionPage,
+} from "./deforestationReport/sections";
+import { flatten } from "lodash";
 
-// Create styles
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: "row",
-    backgroundColor: "#E4E4E4",
-  },
-  section: {
-    margin: 10,
-    padding: 10,
-    flexGrow: 1,
-  },
+// Register Roboto font
+Font.register({
+  family: "Roboto",
+  fonts: [
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOjCnqEu92Fr1Mu51TjASc6CsQ.ttf",
+      fontWeight: 300, // Light ✅
+    },
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf",
+      fontWeight: 400, // Regular ✅
+    },
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc9.ttf",
+      fontWeight: 500, // Medium ✅
+    },
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf",
+      fontWeight: 700, // Bold (Roboto has no 600 weight) ✅
+    },
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu7GxK.ttf",
+      fontWeight: 900, // Black (Optional, if you need heavier text) ✅
+    },
+  ],
 });
 
 // Create Document Component
@@ -23,64 +45,62 @@ export const DeforestationReportDocument = ({
   farmsData,
   deforestationAnalysisResults,
   mapsData,
+  t,
+  language,
 }: {
   farmsData: FarmData[];
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
   mapsData: MapData[];
-}) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <Text>PORTADA</Text>
-      </View>
-    </Page>
-    {farmsData.map((farm) =>
-      deforestationAnalysisResults.map((mapResults) => {
-        const farmResult = mapResults.farmResults.find(
-          (r) => r.farmId === farm.id
-        );
-        if (!farmResult) return null;
-        const map = mapsData.find((m) => m.id === mapResults.mapId);
+  t: TFunction;
+  language?: string;
+}) => {
+  return (
+    <Document>
+      {/* COVER PAGE */}
+      <CoverPage farmsData={farmsData} t={t} language={language} />
 
-        return (
-          <Page
-            key={`${farm.id}-${mapResults.mapId}`}
-            size="A4"
-            style={styles.page}
-          >
-            <View style={styles.section}>
-              <Text>ID: {farm.id}</Text>
-              <Text>Productor: {farm.producer}</Text>
-              <Text>Fecha de producción: {farm.productionDate}</Text>
-              <Text>Producción: {farm.production}</Text>
-              <Text>Cantidad de producción: {farm.productionQuantityUnit}</Text>
-              <Text>País: {farm.country}</Text>
-              <Text>Región: {farm.region}</Text>
-              <Text>Tipo de cultivo: {farm.cropType}</Text>
-              <Text>Asociación: {farm.association}</Text>
+      {/* FARM-MAP PAGES */}
+      {flatten(
+        farmsData.map((farm) =>
+          deforestationAnalysisResults.map((mapResults) => {
+            const farmMapResult = mapResults.farmResults.find(
+              (r) => r.farmId === farm.id
+            );
+            if (!farmMapResult)
+              throw new Error(
+                `Map results not found for farm ${farm.id} and map ${mapResults.mapId}`
+              );
 
-              <Text>Mapa: {map?.name}</Text>
-              <Text>Deforestación: {farmResult.value}%</Text>
-            </View>
-          </Page>
-        );
-      })
-    )}
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <Text>CÁLCULO DE DEFORESTACIÓN</Text>
-      </View>
-    </Page>
-    {deforestationAnalysisResults.map((mapResults) => {
-      const map = mapsData.find((m) => m.id === mapResults.mapId)!;
-      return (
-        <Page size="A4" style={styles.page} key={mapResults.mapId}>
-          <View style={styles.section}>
-            <Text>Mapas utilizados para el análisis de deforestación</Text>
-            <Text>{map.name}</Text>
-          </View>
-        </Page>
-      );
-    })}
-  </Document>
-);
+            const map = mapsData.find((m) => m.id === mapResults.mapId);
+            if (!map)
+              throw new Error(`Map data not found for map ${mapResults.mapId}`);
+
+            farm.documents.forEach((document) => {
+              document.name = null as unknown as string;
+            });
+
+            return (
+              <FarmMapPage
+                key={`${farm.id}-${mapResults.mapId}`}
+                farm={farm}
+                map={map}
+                result={farmMapResult}
+                t={t}
+                language={language}
+              />
+            );
+          })
+        )
+      ).filter(Boolean)}
+
+      {/* EXPLANATION OF THE DEFORESTATION CALCULATION */}
+      <DeforestationCalculationPage />
+
+      {/* EXPLANATION OF THE MAPS USED FOR THE DEFORESTATION ANALYSIS */}
+      <MapDescriptionPage
+        deforestationAnalysisResults={deforestationAnalysisResults}
+        mapsData={mapsData}
+      />
+    </Document>
+  );
+};
