@@ -7,17 +7,54 @@ from PIL import Image
 client = TestClient(app)
 
 
+MAPS_MOCK_DATA = [
+    {
+        "id": 0,
+        "name": "Global Forest Watch",
+        "alias": "GFW 2020-2023",
+        "asset": {
+            "name": "gfw",
+            "deforestation_values": [1],
+            "pixel_size": 30,
+            "baseline": "2020",
+            "compared_against": "2023",
+            "coverage": "Superficie terrestre global (excluyendo la Antártida y otras islas del Ártico)",
+            "details": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
+            "resolution": "30 x 30 metros",
+            "contentDate": "Cambio forestal mundial entre 2000 y 2023",
+            "updateFrequency": "Anual",
+            "source": "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;",
+            "disclaimer": "Definiciones y Limitaciones de los Datos\n\n  * Definición de bosque: GFW usa la definición de la Universidad de Maryland (UMD), que considera bosques como áreas con un dosel de al menos 30% y árboles de más de 5 metros de altura. Esto puede no coincidir con definiciones legales o ecológicas en algunos países.\n* Deforestación ≠ conversión de uso de suelo: La pérdida de cobertura arbórea detectada no siempre implica conversión permanente, ya que incluye tala selectiva, incendios temporales y otros disturbios naturales o humanos.\n* No distingue causas de deforestación: GFW detecta pérdida de bosque, pero no diferencia entre agricultura, incendios, minería, urbanización u otros factores sin un análisis complementario.\n\nDatos Satelitales Utilizados\n* Imágenes Landsat (NASA/USGS) con resolución de 30 metros.\n* Sentinel-2 (ESA) para alertas de mayor precisión.\n* Datos de radar como GEDI (NASA) y Radar de Apertura Sintética (SAR).\n\nDetección de Pérdida y Ganancia de Bosque\n* Pérdida de bosque: Se refiere a la eliminación completa de la cobertura arbórea con base en el modelo de la Universidad de Maryland (UMD) liderado por Matthew Hansen.\n* Ganancia de bosque: Representa áreas donde la cobertura forestal se ha expandido.\n* Alertas de deforestación en tiempo casi real:\n* GLAD (UMD): Detecta cambios semanales con Landsat y Sentinel-2.\n* RADD (Wageningen University): Alertas específicas para los trópicos con datos de radar.\n\nAlgoritmos de análisis\n* Modelos de aprendizaje automático para diferenciar entre deforestación natural y causada por el hombre.\n* Comparación de imágenes satelitales de diferentes fechas para identificar cambios abruptos.\n* Filtros de corrección para evitar falsas alarmas debido a nubes o errores de sensor.\n\nValidación y Refinamiento\n* Los datos son validados con estudios de campo, imágenes de mayor resolución y otros conjuntos de datos (ej. GEDI de la NASA para estructura de bosque).\n* Se integran fuentes adicionales como FIRMS de NASA para monitorear incendios forestales.\n\nTemporalidad y Actualización\n* Alertas de deforestación (GLAD, RADD): Se generan semanalmente o cada pocos días, pero pueden requerir validación adicional.\n* Mapas anuales de pérdida de bosque: Se actualizan cada año con datos históricos desde el 2000, pero tienen un rezago de varios meses.\n* Datos de incendios y degradación: Se deben complementar con información de sistemas como FIRMS de NASA."
+        }
+    }
+]
+
+EXPECTED_MAPS_DATA = [
+    {
+        "id": 0,
+        "name": "Global Forest Watch",
+        "alias": "GFW 2020-2023",
+        "baseline": 2020,
+        "comparedAgainst": 2023,
+        "coverage": "Superficie terrestre global (excluyendo la Antártida y otras islas del Ártico)",
+        "details": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
+        "resolution": "30 x 30 metros",
+        "contentDate": "Cambio forestal mundial entre 2000 y 2023",
+        "updateFrequency": "Anual",
+        "source": "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;",
+        "disclaimer": "Definiciones y Limitaciones de los Datos\n\n  * Definición de bosque: GFW usa la definición de la Universidad de Maryland (UMD), que considera bosques como áreas con un dosel de al menos 30% y árboles de más de 5 metros de altura. Esto puede no coincidir con definiciones legales o ecológicas en algunos países.\n* Deforestación ≠ conversión de uso de suelo: La pérdida de cobertura arbórea detectada no siempre implica conversión permanente, ya que incluye tala selectiva, incendios temporales y otros disturbios naturales o humanos.\n* No distingue causas de deforestación: GFW detecta pérdida de bosque, pero no diferencia entre agricultura, incendios, minería, urbanización u otros factores sin un análisis complementario.\n\nDatos Satelitales Utilizados\n* Imágenes Landsat (NASA/USGS) con resolución de 30 metros.\n* Sentinel-2 (ESA) para alertas de mayor precisión.\n* Datos de radar como GEDI (NASA) y Radar de Apertura Sintética (SAR).\n\nDetección de Pérdida y Ganancia de Bosque\n* Pérdida de bosque: Se refiere a la eliminación completa de la cobertura arbórea con base en el modelo de la Universidad de Maryland (UMD) liderado por Matthew Hansen.\n* Ganancia de bosque: Representa áreas donde la cobertura forestal se ha expandido.\n* Alertas de deforestación en tiempo casi real:\n* GLAD (UMD): Detecta cambios semanales con Landsat y Sentinel-2.\n* RADD (Wageningen University): Alertas específicas para los trópicos con datos de radar.\n\nAlgoritmos de análisis\n* Modelos de aprendizaje automático para diferenciar entre deforestación natural y causada por el hombre.\n* Comparación de imágenes satelitales de diferentes fechas para identificar cambios abruptos.\n* Filtros de corrección para evitar falsas alarmas debido a nubes o errores de sensor.\n\nValidación y Refinamiento\n* Los datos son validados con estudios de campo, imágenes de mayor resolución y otros conjuntos de datos (ej. GEDI de la NASA para estructura de bosque).\n* Se integran fuentes adicionales como FIRMS de NASA para monitorear incendios forestales.\n\nTemporalidad y Actualización\n* Alertas de deforestación (GLAD, RADD): Se generan semanalmente o cada pocos días, pero pueden requerir validación adicional.\n* Mapas anuales de pérdida de bosque: Se actualizan cada año con datos históricos desde el 2000, pero tienen un rezago de varios meses.\n* Datos de incendios y degradación: Se deben complementar con información de sistemas como FIRMS de NASA."
+    }
+]
+
 @patch("app.modules.deforestation_analysis.router.get_all_maps")
 def test_get_maps(mock_get_all_maps):
-    mock_data = [
-        {"id": 1, "name": "Map A", "alias": "Alpha"},
-        {"id": 2, "name": "Map B", "alias": "Bravo"},
-    ]
-    mock_get_all_maps.return_value = mock_data
+    mock_get_all_maps.return_value = MAPS_MOCK_DATA
 
     response = client.get("/deforestation_analysis/get-maps")
     assert response.status_code == 200
-    assert response.json() == mock_data
+    json_response = response.json()
+    print(json_response)
+    assert json_response == EXPECTED_MAPS_DATA
 
 
 @patch("app.modules.deforestation_analysis.router.get_map_by_id")
@@ -46,6 +83,12 @@ def test_parse_farms():
             "farmCoordinates": "[(-50.456, 10.123)]",
             "cropType": "Soy",
             "association": "GreenFarmers",
+            "documents": [
+                {
+                    "name": "Document 1",
+                    "url": "https://example.com/document1.pdf",
+                }
+            ],
         },
     ]
 
@@ -61,6 +104,12 @@ def test_parse_farms():
             "country": "Brazil",
             "region": "Amazon",
             "association": "GreenFarmers",
+            "documents": [
+                {
+                    "name": "Document 1",
+                    "url": "https://example.com/document1.pdf",
+                }
+            ],
             "polygon": {
                 "type": "point",
                 "details": {"center": {"lat": 10.123, "lng": -50.456}, "radius": 100.0},
