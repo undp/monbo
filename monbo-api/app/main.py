@@ -32,7 +32,7 @@ async def download_geojson(content: str | None = None):
             decoded_str = unquote(content)
             geojson_data = json.loads(decoded_str)
         except json.JSONDecodeError:
-            return Response(content="Invalid GeoJSON format", status_code=400)
+            raise HTTPException(status_code=400, detail="Invalid GeoJSON format")
     else:
         raise HTTPException(status_code=400, detail="Missing GeoJSON content")
 
