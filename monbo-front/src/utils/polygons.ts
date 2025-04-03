@@ -8,14 +8,17 @@ import { formatNumber } from "./numbers";
  * @param {number} area - The area to be parsed, in square meters.
  * @returns {string} - The formatted area string in either hectares or square meters.
  */
-export const parsePolygonArea = (area: number): string => {
+export const parsePolygonArea = (
+  area: number,
+  language: string = "es"
+): string => {
   const transformedArea =
     area > 5000
       ? Math.round((area / 10000 + Number.EPSILON) * 100) / 100
       : area;
   return area > 5000
-    ? `${formatNumber(transformedArea)} ha`
-    : `${formatNumber(transformedArea, 0)} m²`;
+    ? `${formatNumber(transformedArea, 2, language)} ha`
+    : `${formatNumber(transformedArea, 0, language)} m²`;
 };
 
 /**
@@ -28,10 +31,13 @@ export const parsePolygonArea = (area: number): string => {
 export const parseAreaToHectares = (
   area: number,
   decimals: number = 2,
-  withUnit: boolean = true
+  withUnit: boolean = true,
+  language: string = "es"
 ): string => {
   const hectares = area / 10000;
-  return `${formatNumber(hectares, decimals)}${withUnit ? " ha" : ""}`;
+  return `${formatNumber(hectares, decimals, language)}${
+    withUnit ? " ha" : ""
+  }`;
 };
 
 /**

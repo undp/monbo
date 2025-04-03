@@ -25,7 +25,8 @@ import { useTranslation } from "react-i18next";
 const parseData = (
   farmsData: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[],
-  availableMaps: MapData[]
+  availableMaps: MapData[],
+  language: string
 ): Record<string, SheetData> => {
   const mapsHeaders = deforestationAnalysisResults.map(({ mapId }) => {
     const map = availableMaps.find((map) => map.id === mapId);
@@ -40,7 +41,7 @@ const parseData = (
           ({ farmId }) => farmId === farm.id
         );
         if (!farmMapResult || farmMapResult.value === null) return "N/D";
-        return formatDeforestationPercentage(farmMapResult.value);
+        return formatDeforestationPercentage(farmMapResult.value, language);
       }
     );
     return [...getRowCommonDataAsArray(farm), ...deforestationPercentages];
@@ -60,7 +61,7 @@ export const DownloadPageData = () => {
   const { openSnackbar } = useContext(SnackbarContext);
   const downloadAsExcel = useExcelDownload();
   const downloadAsGeoJson = useGeoJsonDownload();
-  const { t } = useTranslation(["common"]);
+  const { t, i18n } = useTranslation(["common"]);
 
   const isDisabled = !farmsData || !deforestationAnalysisResults;
 
@@ -71,7 +72,8 @@ export const DownloadPageData = () => {
       const parsedData = parseData(
         farmsData,
         deforestationAnalysisResults,
-        availableMaps
+        availableMaps,
+        i18n.language
       );
       downloadAsExcel(parsedData, "step2-results.xlsx");
     } catch (error) {
@@ -89,6 +91,7 @@ export const DownloadPageData = () => {
     openSnackbar,
     downloadAsExcel,
     t,
+    i18n.language,
   ]);
 
   const onDownloadAsGeoJsonClick = useCallback(async () => {

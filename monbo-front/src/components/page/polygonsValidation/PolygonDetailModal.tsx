@@ -78,10 +78,10 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
   row,
 }) => {
   const { polygonsValidationResults } = useContext(DataContext);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const data = row?.data;
-  const area = parsePolygonArea(data?.polygon.area || 0);
+  const area = parsePolygonArea(data?.polygon.area || 0, i18n.language);
 
   const isManuallyValidated = useMemo(
     () =>

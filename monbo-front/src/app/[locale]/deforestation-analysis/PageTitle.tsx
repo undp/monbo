@@ -12,7 +12,6 @@ import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDef
 export const PageTitle: React.FC = () => {
   const { t } = useTranslation();
   const { farmsData } = useVisibleDataForDeforestationPage();
-
   const [open, setOpen] = useState(false);
 
   return (
@@ -20,7 +19,7 @@ export const PageTitle: React.FC = () => {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Text variant="h3" bold>
           {t("deforestationAnalysis:title")} (
-          {formatNumber(farmsData?.length ?? 0)})
+          {formatNumber(farmsData?.length ?? 0, 0)})
         </Text>
         <IconButton onClick={() => setOpen(true)}>
           <InfoOutlined />

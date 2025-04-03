@@ -34,7 +34,8 @@ const parseRows = (
     DataContextValue["deforestationAnalysisResults"]
   >,
   polygonsValidationResults: DataContextValue["polygonsValidationResults"],
-  t: TFunction<"translation", undefined>
+  t: TFunction<"translation", undefined>,
+  language: string
 ): RowData<FarmData>[] => {
   return data.map((farm) => ({
     cells: {
@@ -65,8 +66,11 @@ const parseRows = (
                 farmResultValue === null
                   ? t("common:na")
                   : farmResultValue === 0
-                  ? t("deforestationAnalysis:deforestationFree")
-                  : `${formatDeforestationPercentage(farmResultValue)} Def.`,
+                  ? t("deforestationAnalysis:deforestationFreeShortText")
+                  : `${formatDeforestationPercentage(
+                      farmResultValue,
+                      language
+                    )} Def.`,
               chipStyle: {
                 width: 100,
                 color: getDeforestationPercentageChipColor(farmResultValue),
@@ -95,7 +99,7 @@ export const DeforestationResultsTable: React.FC<Props> = ({ tableProps }) => {
 
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [sortedBy, setSortedBy] = useSortedTable();
 
@@ -221,7 +225,8 @@ export const DeforestationResultsTable: React.FC<Props> = ({ tableProps }) => {
         sortedData,
         deforestationAnalysisResults,
         polygonsValidationResults,
-        t
+        t,
+        i18n.language
       )}
       footerStyle={{ backgroundColor: "#FFFFFF70" }}
       footerCellStyle={{ backgroundColor: "#FFFFFF70" }}

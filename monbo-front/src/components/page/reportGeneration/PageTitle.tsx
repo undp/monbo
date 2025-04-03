@@ -14,7 +14,8 @@ export const PageTitle: React.FC = () => {
     <>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Text variant="h3" bold>
-          {t("reportGeneration:title")} ({formatNumber(farmsData?.length ?? 0)})
+          {t("reportGeneration:title")} (
+          {formatNumber(selectedFarmsForReport.length)})
         </Text>
       </Box>
     </>

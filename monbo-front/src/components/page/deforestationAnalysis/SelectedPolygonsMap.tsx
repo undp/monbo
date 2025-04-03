@@ -27,7 +27,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
   setSelectedPolygonIdAtMap,
 }) => {
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const { id: selectedMapId, alias: selectedMapAlias } = useSelectedMap();
@@ -144,7 +144,10 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Text variant="body1">{t("common:surface")}:</Text>
             <Text variant="body1" sx={{ marginLeft: 1, textAlign: "right" }}>
-              {parsePolygonArea(selectedFarmData?.polygon.area || 0)}
+              {parsePolygonArea(
+                selectedFarmData?.polygon.area || 0,
+                i18n.language
+              )}
             </Text>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -177,7 +180,10 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
             >
               {deforestationLevel !== undefined && deforestationLevel !== null
                 ? isDeforestationAboveThreshold(deforestationLevel)
-                  ? `${formatDeforestationPercentage(deforestationLevel)} Def.`
+                  ? `${formatDeforestationPercentage(
+                      deforestationLevel,
+                      i18n.language
+                    )} Def.`
                   : t("deforestationAnalysis:deforestationFree")
                 : t("common:na")}
             </Text>

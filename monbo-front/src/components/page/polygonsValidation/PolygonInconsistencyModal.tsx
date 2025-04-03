@@ -75,7 +75,8 @@ const generateRows = (
   farmsData: FarmData[],
   selectedRows: string[],
   openedRows: string[],
-  t: TFunction<"translation", undefined>
+  t: TFunction<"translation", undefined>,
+  language: string
 ) => {
   const foldedCellsStyle: SxProps = {
     backgroundColor: "#f9f9f9",
@@ -117,7 +118,9 @@ const generateRows = (
           ),
         },
         id: { value: farm.id },
-        area: { value: parseAreaToHectares(farm.polygon.area, 2, false) },
+        area: {
+          value: parseAreaToHectares(farm.polygon.area, 2, false, language),
+        },
       },
       data,
       isOpen: openedRows.includes(farm.id),
@@ -229,7 +232,7 @@ const OverlapModal: React.FC<PolygonDetailModalProps> = ({
   handleClose,
   row,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [openedRows, setOpenedRows] = useState<string[]>([]);
   const { farmsData, polygonsValidationResults, setPolygonsValidationResults } =
     useContext(DataContext);
@@ -258,7 +261,7 @@ const OverlapModal: React.FC<PolygonDetailModalProps> = ({
   const polygonsAmount = row?.data?.farmIds.length || 0;
   const overlapArea = row?.data?.data.area || 0;
 
-  const area = parsePolygonArea(overlapArea);
+  const area = parsePolygonArea(overlapArea, i18n.language);
 
   const headers = generateHeaders(t);
 
@@ -334,7 +337,14 @@ const OverlapModal: React.FC<PolygonDetailModalProps> = ({
       row={row}
       handleClose={handleModalClose}
       rowsGenerator={(row) =>
-        generateRows(row, farmsData ?? [], selectedRows, openedRows, t)
+        generateRows(
+          row,
+          farmsData ?? [],
+          selectedRows,
+          openedRows,
+          t,
+          i18n.language
+        )
       }
       mapObjectsGenerator={(row) => generateMapObjects(row, farmsData ?? [])}
       mapCenter={row?.data?.data.center || { lat: 0, lng: 0 }}

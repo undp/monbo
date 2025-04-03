@@ -34,7 +34,8 @@ const dataParser = (
   data: InconsistentPolygonData[],
   farmsData: FarmData[],
   polygonsValidationResults: ValidateFarmsResponse,
-  hasTheSameProductionUnit: boolean
+  hasTheSameProductionUnit: boolean,
+  language: string
 ): RowData<InconsistentPolygonData>[] => {
   const rows = flatMap(data, (item) =>
     item.farmIds.map((farmId, idx) => {
@@ -80,7 +81,7 @@ const dataParser = (
           ...(idx === 0
             ? {
                 overlapPercentage: {
-                  value: formatOverlapPercentage(percentage),
+                  value: formatOverlapPercentage(percentage, language),
                   rowSpan: item.farmIds.length,
                   chipStyle: {
                     color: areAllFarmsValidManually ? "#3A3541" : "#fff",
@@ -96,7 +97,12 @@ const dataParser = (
                   },
                 },
                 overlapArea: {
-                  value: parseAreaToHectares(item.data.area, 2, false),
+                  value: parseAreaToHectares(
+                    item.data.area,
+                    2,
+                    false,
+                    language
+                  ),
                   rowSpan: item.farmIds.length,
                   cellStyle: {
                     paddingRight: "calc(5% + 26px)",
@@ -129,7 +135,7 @@ export const InconsistentFarmsTable: React.FC = () => {
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search")?.toString() || "";
 
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [sortedBy, setSortedBy] = useSortedTable();
 
   const hasTheSameProductionUnit = useMemo(
@@ -273,7 +279,8 @@ export const InconsistentFarmsTable: React.FC = () => {
           sortedPolygons,
           farmsData ?? [],
           polygonsValidationResults!,
-          hasTheSameProductionUnit
+          hasTheSameProductionUnit,
+          i18n.language
         )}
         onRowClick={(row) => {
           setSelectedPolygon(row);
