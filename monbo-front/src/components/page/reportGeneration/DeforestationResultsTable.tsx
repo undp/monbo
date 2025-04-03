@@ -2,37 +2,41 @@
 
 import { DeforestationResultsTable as DeforestationResultsTableComponent } from "@/app/[locale]/deforestation-analysis/DeforestationResultsTable";
 import { RowData } from "@/components/reusable/Table";
+import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { FarmData } from "@/interfaces/Farm";
-import { useCallback, useState } from "react";
+import { useCallback, useContext } from "react";
 
 export const DeforestationResultsTable: React.FC = () => {
   const { farmsData } = useVisibleDataForDeforestationPage();
+  const { selectedFarmsForReport, setSelectedFarmsForReport } =
+    useContext(DataContext);
 
-  const [selectedRows, setSelectedRows] = useState<RowData<FarmData>[]>([]);
+  const onAllRowsSelected = useCallback(() => {
+    setSelectedFarmsForReport((prev) =>
+      prev.length === farmsData.length ? [] : farmsData
+    );
+  }, [setSelectedFarmsForReport, farmsData]);
 
-  const onAllRowsSelected = useCallback(
-    (rows: RowData<FarmData>[]) => {
-      setSelectedRows((prev) => (prev.length === farmsData.length ? [] : rows));
+  const onRowSelected = useCallback(
+    (row: RowData<FarmData>) => {
+      const rowValue = row.cells.id.value;
+      setSelectedFarmsForReport((prev) => {
+        const isSelected = prev.some((r) => r.id === rowValue);
+        if (isSelected) {
+          return prev.filter((r) => r.id !== rowValue);
+        }
+        const farmData = farmsData.find((r) => r.id === rowValue)!;
+        return [...prev, farmData];
+      });
     },
-    [farmsData.length]
+    [setSelectedFarmsForReport, farmsData]
   );
-
-  const onRowSelected = useCallback((row: RowData<FarmData>) => {
-    const rowValue = row.cells.id.value;
-    setSelectedRows((prev) => {
-      const isSelected = prev.some((r) => r.cells.id.value === rowValue);
-      if (isSelected) {
-        return prev.filter((r) => r.cells.id.value !== rowValue);
-      }
-      return [...prev, row];
-    });
-  }, []);
 
   const isRowSelected = useCallback(
     (row: RowData<FarmData>) =>
-      selectedRows.some((r) => r.cells.id.value === row.cells.id.value),
-    [selectedRows]
+      selectedFarmsForReport.some(({ id }) => id === row.cells.id.value),
+    [selectedFarmsForReport]
   );
 
   return (
@@ -42,7 +46,7 @@ export const DeforestationResultsTable: React.FC = () => {
         onAllRowsSelected,
         onRowSelected,
         isRowSelected,
-        areAllSelected: selectedRows.length === farmsData.length,
+        areAllSelected: selectedFarmsForReport.length === farmsData.length,
       }}
     />
   );
