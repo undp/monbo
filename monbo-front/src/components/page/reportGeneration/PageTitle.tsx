@@ -4,11 +4,12 @@ import { Text } from "@/components/reusable/Text";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "@/utils/numbers";
 import { Box } from "@mui/material";
-import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
+import { useContext } from "react";
+import { DataContext } from "@/context/DataContext";
 
 export const PageTitle: React.FC = () => {
   const { t } = useTranslation("reportGeneration");
-  const { farmsData } = useVisibleDataForDeforestationPage();
+  const { selectedFarmsForReport } = useContext(DataContext);
 
   return (
     <>
