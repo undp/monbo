@@ -23,7 +23,8 @@
       "dragzoneText": "o arrastra y suelta el archivo"
     }
   },
-  "deforestationFree": "Libre Def.",
+  "deforestationFreeShortText": "Libre Def.",
+  "deforestationFreeLongText": "Libre de deforestación",
   "withDeforestation": "Deforestados",
   "euOfficialMap": "Oficial UE",
   "map": "Mapa",

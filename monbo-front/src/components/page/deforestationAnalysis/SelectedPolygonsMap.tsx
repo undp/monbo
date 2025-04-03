@@ -184,7 +184,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
                       deforestationLevel,
                       i18n.language
                     )} Def.`
-                  : t("deforestationAnalysis:deforestationFree")
+                  : t("deforestationAnalysis:deforestationFreeShortText")
                 : t("common:na")}
             </Text>
           </Box>

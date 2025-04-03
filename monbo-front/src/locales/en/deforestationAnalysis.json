@@ -24,7 +24,8 @@
       "allowedExtensions": ".xlsx or .xls"
     }
   },
-  "deforestationFree": "Def. Free",
+  "deforestationFreeShortText": "Def. Free",
+  "deforestationFreeLongText": "Deforestation Free",
   "withDeforestation": "Deforested",
   "euOfficialMap": "EU Official",
   "map": "Map",

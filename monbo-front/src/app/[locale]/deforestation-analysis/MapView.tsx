@@ -90,7 +90,7 @@ export const MapView: React.FC = () => {
       },
       {
         id: 2,
-        title: `${t("deforestationAnalysis:deforestationFree")} (${
+        title: `${t("deforestationAnalysis:deforestationFreeShortText")} (${
           freeDeforestationFarms.length
         })`,
         content: (
