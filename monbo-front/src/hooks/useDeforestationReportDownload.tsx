@@ -5,37 +5,52 @@ import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDef
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { DeforestationReportDocument } from "@/utils/deforestationReport";
+import { useTranslation } from "react-i18next";
+import { useParams } from "next/navigation";
 
 export const useDeforestationReportDownload = () => {
-  const { farmsData, deforestationAnalysisResults } =
-    useVisibleDataForDeforestationPage();
+  const { t } = useTranslation(["deforestationAnalysis", "common"]);
+  const params = useParams();
+  const locale = params.locale as string;
+  const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
   const {
+    selectedFarmsForReport,
     deforestationAnalysisParams: { selectedMaps },
   } = useContext(DataContext);
 
   const downloadCompleteReport = useCallback(async () => {
     const pdfBlob = await pdf(
       <DeforestationReportDocument
-        farmsData={farmsData}
+        farmsData={selectedFarmsForReport}
         deforestationAnalysisResults={deforestationAnalysisResults}
         mapsData={selectedMaps}
+        t={t}
+        language={locale}
       />
     ).toBlob();
     // TODO: internationalize filename
     saveAs(pdfBlob, "deforestation-complete-report.pdf");
-  }, [farmsData, deforestationAnalysisResults, selectedMaps]);
+  }, [
+    selectedFarmsForReport,
+    deforestationAnalysisResults,
+    selectedMaps,
+    t,
+    locale,
+  ]);
 
   const downloadSeparatedReports = useCallback(async () => {
     const zip = new JSZip();
 
     // Generate PDFs and add them to zip
-    for (let i = 0; i < farmsData.length; i++) {
-      const farm = farmsData[i];
+    for (let i = 0; i < selectedFarmsForReport.length; i++) {
+      const farm = selectedFarmsForReport[i];
       const pdfBlob = await pdf(
         <DeforestationReportDocument
           farmsData={[farm]}
           deforestationAnalysisResults={deforestationAnalysisResults}
           mapsData={selectedMaps}
+          t={t}
+          language={locale}
         />
       ).toBlob();
 
@@ -46,7 +61,13 @@ export const useDeforestationReportDownload = () => {
     const zipBlob = await zip.generateAsync({ type: "blob" });
     // TODO: internationalize filename
     saveAs(zipBlob, "deforestation-reports.zip");
-  }, [farmsData, deforestationAnalysisResults, selectedMaps]);
+  }, [
+    selectedFarmsForReport,
+    deforestationAnalysisResults,
+    selectedMaps,
+    t,
+    locale,
+  ]);
 
   return { downloadCompleteReport, downloadSeparatedReports };
 };
