@@ -14,6 +14,8 @@ RUN pnpm run build
 # Build stage for backend
 FROM --platform=linux/amd64 python:3.11-slim AS backend-builder
 WORKDIR /app/backend
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gdal-bin \
     libgdal-dev \
@@ -27,12 +29,15 @@ RUN apt-get update && apt-get install -y \
 ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
 ENV C_INCLUDE_PATH=/usr/include/gdal
 
+# Copy only package files first for better caching
 COPY monbo-api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source
 COPY monbo-api/ .
 
 # Final stage
-FROM --platform=linux/amd64 python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim as final-stage
 WORKDIR /app
 
 # Create non-root user first
