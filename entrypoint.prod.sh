@@ -2,7 +2,7 @@
 set -e
 
 # Colors
-BLUE="\033[34m"       # API messages
+BLUE="\033[94m"       # API messages
 GREEN="\033[32m"      # Frontend messages
 RED="\033[31m"        # Errors
 CYAN="\033[36m"       # Info messages
@@ -30,21 +30,22 @@ if [ -n "$GOOGLE_SERVICE_API_KEY" ]; then
 fi
 echo "${CYAN}✓ Environment variables replacement completed${RESET}"
 
-# Trap signals for graceful shutdown
-trap 'echo "${CYAN}Received shutdown signal...${RESET}"; kill $(jobs -p); echo "${CYAN}✓ Graceful shutdown completed${RESET}"' SIGTERM SIGINT
-
 # Start services
 echo "${CYAN}Starting services...${RESET}"
 echo "${CYAN}► Starting FastAPI backend...${RESET}"
 cd /app/backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 | stdbuf -oL sed "s/^/${BLUE}[API]${RESET} /" &
+uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 | while read -r line; do
+  printf "${BLUE}[API] %s${RESET}\n" "$line"
+done &
 
 echo "${CYAN}► Starting Next.js frontend...${RESET}"
 cd /app/frontend
-HOSTNAME="0.0.0.0" node server.js 2>&1 | stdbuf -oL sed "s/^/${GREEN}[FRONT]${RESET} /" &
+HOSTNAME="0.0.0.0" node server.js 2>&1 | while read -r line; do
+  printf "${GREEN}[FRONT] %s${RESET}\n" "$line"
+done &
 
-# Wait for any process to exit
-wait -n
+# Wait for all background processes
+wait
 
 # Exit with status of process that exited first
 echo "${RED}One of the processes exited unexpectedly${RESET}"
