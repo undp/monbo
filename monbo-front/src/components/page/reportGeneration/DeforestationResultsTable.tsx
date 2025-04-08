@@ -9,28 +9,41 @@ import { useCallback, useContext } from "react";
 
 export const DeforestationResultsTable: React.FC = () => {
   const { farmsData } = useVisibleDataForDeforestationPage();
-  const { selectedFarmsForReport, setSelectedFarmsForReport } =
-    useContext(DataContext);
+  const {
+    reportGenerationParams: {
+      selectedMaps: selectedMapsForReport,
+      selectedFarms: selectedFarmsForReport,
+    },
+    setReportGenerationParams,
+  } = useContext(DataContext);
 
   const onAllRowsSelected = useCallback(() => {
-    setSelectedFarmsForReport((prev) =>
-      prev.length === farmsData.length ? [] : farmsData
-    );
-  }, [setSelectedFarmsForReport, farmsData]);
+    setReportGenerationParams((prev) => ({
+      ...prev,
+      selectedFarms:
+        prev.selectedFarms.length === farmsData.length ? [] : farmsData,
+    }));
+  }, [setReportGenerationParams, farmsData]);
 
   const onRowSelected = useCallback(
     (row: RowData<FarmData>) => {
       const rowValue = row.cells.id.value;
-      setSelectedFarmsForReport((prev) => {
-        const isSelected = prev.some((r) => r.id === rowValue);
+      setReportGenerationParams((prev) => {
+        const isSelected = prev.selectedFarms.some((r) => r.id === rowValue);
         if (isSelected) {
-          return prev.filter((r) => r.id !== rowValue);
+          return {
+            ...prev,
+            selectedFarms: prev.selectedFarms.filter((r) => r.id !== rowValue),
+          };
         }
         const farmData = farmsData.find((r) => r.id === rowValue)!;
-        return [...prev, farmData];
+        return {
+          ...prev,
+          selectedFarms: [...prev.selectedFarms, farmData],
+        };
       });
     },
-    [setSelectedFarmsForReport, farmsData]
+    [setReportGenerationParams, farmsData]
   );
 
   const isRowSelected = useCallback(

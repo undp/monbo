@@ -11,7 +11,7 @@ export const useDeforestationCompleteReportDocument = () => {
   const locale = params.locale as string;
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
   const {
-    selectedFarmsForReport,
+    reportGenerationParams: { selectedFarms: selectedFarmsForReport },
     deforestationAnalysisParams: { selectedMaps },
   } = useContext(DataContext);
 

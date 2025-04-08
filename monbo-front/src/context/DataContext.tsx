@@ -36,9 +36,13 @@ export interface DataContextValue {
   setDeforestationAnalysisResults: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisResults"]>
   >;
-  selectedFarmsForReport: FarmData[];
-  setSelectedFarmsForReport: Dispatch<
-    SetStateAction<DataContextValue["selectedFarmsForReport"]>
+  reportGenerationParams: {
+    initialFarmSelection: "all" | "select";
+    selectedMaps: MapData[];
+    selectedFarms: FarmData[];
+  };
+  setReportGenerationParams: Dispatch<
+    SetStateAction<DataContextValue["reportGenerationParams"]>
   >;
   availableMaps: MapData[];
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
@@ -56,8 +60,12 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisParams: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
-  selectedFarmsForReport: [],
-  setSelectedFarmsForReport: () => {},
+  reportGenerationParams: {
+    initialFarmSelection: "all",
+    selectedMaps: [],
+    selectedFarms: [],
+  },
+  setReportGenerationParams: () => {},
   availableMaps: [],
   setAvailableMaps: () => {},
 });
@@ -80,9 +88,13 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
     useState<DataContextValue["deforestationAnalysisResults"]>(null);
 
-  const [selectedFarmsForReport, setSelectedFarmsForReport] = useState<
-    DataContextValue["selectedFarmsForReport"]
-  >([]);
+  const [reportGenerationParams, setReportGenerationParams] = useState<
+    DataContextValue["reportGenerationParams"]
+  >({
+    initialFarmSelection: "all",
+    selectedMaps: [],
+    selectedFarms: [],
+  });
 
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
@@ -116,8 +128,8 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setDeforestationAnalysisParams,
       deforestationAnalysisResults,
       setDeforestationAnalysisResults,
-      selectedFarmsForReport,
-      setSelectedFarmsForReport,
+      reportGenerationParams,
+      setReportGenerationParams,
       availableMaps,
       setAvailableMaps,
     };
@@ -130,8 +142,8 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setDeforestationAnalysisParams,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
-    selectedFarmsForReport,
-    setSelectedFarmsForReport,
+    reportGenerationParams,
+    setReportGenerationParams,
     availableMaps,
     setAvailableMaps,
   ]);

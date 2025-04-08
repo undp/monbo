@@ -9,7 +9,9 @@ import { DataContext } from "@/context/DataContext";
 
 export const PageTitle: React.FC = () => {
   const { t } = useTranslation("reportGeneration");
-  const { selectedFarmsForReport } = useContext(DataContext);
+  const {
+    reportGenerationParams: { selectedFarms: selectedFarmsForReport },
+  } = useContext(DataContext);
 
   return (
     <>
