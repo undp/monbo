@@ -95,7 +95,7 @@ export default async function DeforestationAnalysis({
           {selectedView == "map" ? <MapView /> : <DeforestationResultsTable />}
         </SectionBackground>
       </Box>
-      <PageFooter locale={locale} />
+      <PageFooter />
     </TranslationsProvider>
   );
 }
