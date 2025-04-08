@@ -1,10 +1,29 @@
 # Only production overrides
 version: '3.8'
 services:
-  app:
-    container_name: monbo-prod
+  frontend:
+    container_name: monbo-frontend-prod
     build:
-      context: .
+      context: monbo-front
       dockerfile: Dockerfile.prod
-    environment:
-      - NODE_ENV=production
+    depends_on:
+      - api
+    ports:
+      - "3000"  # Only expose to internal network, not host
+
+  api:
+    container_name: monbo-api-prod
+    build:
+      context: monbo-api
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8000"  # Only expose to internal network, not host
+  
+  proxy:
+    container_name: monbo-proxy-prod
+    build:
+      context: monbo-proxy
+      dockerfile: Dockerfile.prod
+    depends_on:
+      - frontend
+      - api
