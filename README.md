@@ -27,7 +27,7 @@ This module ensures the accuracy of geolocated farm plots and points of interest
 
 ### Module 2: Deforestation Analysis
 
-Once the polygons and points have been validated, the Deforestation Analysis module compares them against satellite imagery and up-to-date forest cover datasets. It detects signs  forest loss over a baseline timeframe (from December 2020 onward) and highlights areas of concern. This functionality provides a time series review to confirm whether farm boundaries encroach on recently deforested zones (compared to baseline year), helping users document and prove that their production areas remain free of deforestation. Technical teams can also upload multiple map layers—such as official maps from governmental ministries or open-source platforms like Global Forest Watch.
+Once the polygons and points have been validated, the Deforestation Analysis module compares them against satellite imagery and up-to-date forest cover datasets. It detects signs forest loss over a baseline timeframe (from December 2020 onward) and highlights areas of concern. This functionality provides a time series review to confirm whether farm boundaries encroach on recently deforested zones (compared to baseline year), helping users document and prove that their production areas remain free of deforestation. Technical teams can also upload multiple map layers—such as official maps from governmental ministries or open-source platforms like Global Forest Watch.
 
 ### Module 3: Due Diligence Report Generation
 
@@ -63,7 +63,7 @@ The API is containerized using Docker for consistent deployment across environme
 
 Check the API [README](monbo-api/README.md) for more detailed instructions on how to use.
 
-### Docs 
+### Docs
 
 This folder contains comprehensive documentation covering various aspects of the project beyond the main README. This includes detailed technical specifications, architectural decisions (ADRs), setup guides, and maintenance procedures.
 
@@ -81,14 +81,24 @@ Other scripts in this directory follow similar patterns of being self-contained,
 
 ## How to run
 
-The project can be run in two different ways:
+The project (Frontend and API) can be run in two different ways:
 
-1. Using Docker Compose with the development configuration (**docker-compose.dev.yml**), which runs both the frontend and backend in the same container but on different ports (frontend on 3000, backend on 8000) with hot-reload enabled for both services. This is achieved by mounting the source code directories as volumes and running the development servers.
+1. Using Docker Compose
 
-2. Alternatively, you can run each service independently by navigating to their respective directories and using the development commands
-   - for the frontend, you can use `pnpm dev` in the **monbo-front** directory (as specified in **package.json**)
-   - for the API, we added a package.json file in the **monbo-api** directory with the same `pnpm dev` development command, to make it easier to run the API independently.
+   You can run the project using Docker Compose, which will run both the frontend and API in the same container, but on different ports (frontend at 3000, api at 8000). The env-based configurations are overrides of the base configuration (**docker-compose.yml**).
+
+   The development configuration (**docker-compose.dev.yml**) provides hot-reload enabled for both services. This is achieved by mounting the source code directories as volumes and running the development servers.
+
+   The production configuration (**docker-compose.prod.yml**) does not provide hot-reload, but is optimized for production environments.
+
+   For any of the configurations, you need first to create a file at the root of the project containing the environment variables (you can use the `.env.example` file as a template), and then execute the following command:
+
+   ```bash
+   docker compose --env-file <env-file> -f docker-compose.yml -f docker-compose.<ENV>.yml up
+   ```
+
+2. Running each service independently
+
+   Navigate to each service's directory and follow the instructions in their respective README files.
 
 Both approaches provide hot-reload functionality, with the Docker approach offering a more containerized and consistent development environment.
-
-
