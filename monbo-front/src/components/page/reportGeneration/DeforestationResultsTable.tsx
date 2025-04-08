@@ -5,7 +5,8 @@ import { RowData } from "@/components/reusable/Table";
 import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { FarmData } from "@/interfaces/Farm";
-import { useCallback, useContext } from "react";
+import { map } from "lodash";
+import { useCallback, useContext, useMemo } from "react";
 
 export const DeforestationResultsTable: React.FC = () => {
   const { farmsData } = useVisibleDataForDeforestationPage();
@@ -16,6 +17,11 @@ export const DeforestationResultsTable: React.FC = () => {
     },
     setReportGenerationParams,
   } = useContext(DataContext);
+
+  const mapsSubset = useMemo(
+    () => new Set(map(selectedMapsForReport, "id")),
+    [selectedMapsForReport]
+  );
 
   const onAllRowsSelected = useCallback(() => {
     setReportGenerationParams((prev) => ({
@@ -61,6 +67,7 @@ export const DeforestationResultsTable: React.FC = () => {
         isRowSelected,
         areAllSelected: selectedFarmsForReport.length === farmsData.length,
       }}
+      mapsSubset={mapsSubset}
     />
   );
 };
