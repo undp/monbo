@@ -90,12 +90,18 @@ const parseRows = (
 
 interface Props {
   tableProps?: Partial<TableProps<FarmData>>;
+  mapsSubset?: Set<number>;
 }
 
-export const DeforestationResultsTable: React.FC<Props> = ({ tableProps }) => {
+export const DeforestationResultsTable: React.FC<Props> = ({
+  tableProps,
+  mapsSubset,
+}) => {
   const { availableMaps, polygonsValidationResults } = useContext(DataContext);
-  const { farmsData, deforestationAnalysisResults } =
-    useVisibleDataForDeforestationPage();
+  const {
+    farmsData,
+    deforestationAnalysisResults: originalDeforestationAnalysisResults,
+  } = useVisibleDataForDeforestationPage();
 
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
@@ -109,6 +115,13 @@ export const DeforestationResultsTable: React.FC<Props> = ({ tableProps }) => {
   const filteredData = useSearch(farmsData, searchValue ?? "", {
     keys: ["id", "producer"],
   });
+
+  const deforestationAnalysisResults = useMemo(() => {
+    if (!mapsSubset) return originalDeforestationAnalysisResults;
+    return originalDeforestationAnalysisResults?.filter((m) =>
+      mapsSubset.has(m.mapId)
+    );
+  }, [originalDeforestationAnalysisResults, mapsSubset]);
 
   const sortedData: FarmData[] = useMemo(() => {
     if (!sortedBy) return filteredData;
