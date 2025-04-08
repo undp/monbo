@@ -1,6 +1,14 @@
 {
   "title": "Selecciona los polígonos que quieres incluir en el reporte",
   "searchPlaceholder": "Buscar por polígono o productor",
+  "modal": {
+    "title": "Generación del reporte",
+    "selectFarmsTitle": "Selecciona los polígonos a incluir",
+    "allFarms": "Todos ({{amount}})",
+    "selectFarms": "Seleccionar",
+    "selectMapsTitle": "Selecciona capas de mapas a considerar",
+    "button": "Continuar"
+  },
   "words": {
     "association": "Asociación",
     "polygon": "Polígono",

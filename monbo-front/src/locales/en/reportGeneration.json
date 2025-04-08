@@ -1,6 +1,14 @@
 {
   "title": "Select the polygons you want to include in the report",
   "searchPlaceholder": "Search by polygon or producer",
+  "modal": {
+    "title": "Report generation",
+    "selectFarmsTitle": "Select the polygons to include",
+    "allFarms": "All ({{amount}})",
+    "selectFarms": "Select",
+    "selectMapsTitle": "Select map layers to consider",
+    "button": "Continue"
+  },
   "words": {
     "association": "Association",
     "polygon": "Polygon",
