@@ -1,6 +1,8 @@
 # Build stage for frontend
 FROM --platform=linux/amd64 node:20-alpine AS frontend-builder
 WORKDIR /app
+
+# Install pnpm
 RUN npm install -g pnpm
 
 # Copy only package files first for better caching

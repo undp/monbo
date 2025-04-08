@@ -1,15 +1,30 @@
-# Only development overrides
+# Development configuration with hot reloading
 version: '3.8'
 services:
-  app:
-    container_name: monbo-dev
+  frontend:
+    container_name: monbo-frontend-dev
     build:
-      context: .
+      context: monbo-front
       dockerfile: Dockerfile.dev
     volumes:
-      - ./monbo-front:/app/frontend
-      - ./monbo-api:/app/backend
+      - ./monbo-front:/app
+      - monbo_frontend_node_modules:/app/node_modules
     environment:
       - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true   # Better hot-reload in Docker
-      - WATCHPACK_POLLING=true     # Better Next.js watching in Docker
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  api:
+    container_name: monbo-api-dev
+    build:
+      context: monbo-api
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./monbo-api:/app
+
+
+volumes:
+  monbo_frontend_node_modules:

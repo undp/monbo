@@ -35,19 +35,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
-  
-  proxy:
-    ports:
-      - "80:80"
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: curl -f http://localhost:80 || exit 1
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
