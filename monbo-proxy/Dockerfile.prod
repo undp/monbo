@@ -1,0 +1,18 @@
+# Use NGINX Alpine image
+FROM --platform=linux/amd64 nginx:alpine as proxy-runner
+
+# Copy your nginx configuration files
+COPY nginx.conf /etc/nginx/nginx.conf
+
+WORKDIR /app
+
+# Copy the entrypoint script
+COPY entrypoint.sh ./entrypoint.sh
+
+# Make sure the scripts are executable
+RUN chmod +x ./entrypoint.sh
+
+# Set the entrypoint script
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
+
+# The CMD is not needed as the entrypoint script already runs nginx
