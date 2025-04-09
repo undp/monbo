@@ -14,12 +14,3 @@ services:
     build:
       context: monbo-api
       dockerfile: Dockerfile.prod
-  
-  proxy:
-    container_name: monbo-proxy-prod
-    build:
-      context: monbo-proxy
-      dockerfile: Dockerfile.prod
-    depends_on:
-      - frontend
-      - api
