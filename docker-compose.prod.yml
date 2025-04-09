@@ -8,16 +8,12 @@ services:
       dockerfile: Dockerfile.prod
     depends_on:
       - api
-    ports:
-      - "3000"  # Only expose to internal network, not host
 
   api:
     container_name: monbo-api-prod
     build:
       context: monbo-api
       dockerfile: Dockerfile.prod
-    ports:
-      - "8000"  # Only expose to internal network, not host
   
   proxy:
     container_name: monbo-proxy-prod
