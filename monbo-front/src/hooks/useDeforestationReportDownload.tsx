@@ -1,5 +1,5 @@
 import { DataContext } from "@/context/DataContext";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import JSZip from "jszip";
@@ -14,16 +14,24 @@ export const useDeforestationReportDownload = () => {
   const locale = params.locale as string;
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
   const {
-    reportGenerationParams: { selectedFarms: selectedFarmsForReport },
-    deforestationAnalysisParams: { selectedMaps },
+    reportGenerationParams: {
+      selectedMaps: selectedMapsForReport,
+      selectedFarms: selectedFarmsForReport,
+    },
   } = useContext(DataContext);
+
+  const filteredDeforestationAnalysisResults = useMemo(() => {
+    return deforestationAnalysisResults?.filter((m) =>
+      selectedMapsForReport.some((map) => map.id === m.mapId)
+    );
+  }, [deforestationAnalysisResults, selectedMapsForReport]);
 
   const downloadCompleteReport = useCallback(async () => {
     const pdfBlob = await pdf(
       <DeforestationReportDocument
         farmsData={selectedFarmsForReport}
-        deforestationAnalysisResults={deforestationAnalysisResults}
-        mapsData={selectedMaps}
+        deforestationAnalysisResults={filteredDeforestationAnalysisResults}
+        mapsData={selectedMapsForReport}
         t={t}
         language={locale}
       />
@@ -32,8 +40,8 @@ export const useDeforestationReportDownload = () => {
     saveAs(pdfBlob, "deforestation-complete-report.pdf");
   }, [
     selectedFarmsForReport,
-    deforestationAnalysisResults,
-    selectedMaps,
+    filteredDeforestationAnalysisResults,
+    selectedMapsForReport,
     t,
     locale,
   ]);
@@ -47,8 +55,8 @@ export const useDeforestationReportDownload = () => {
       const pdfBlob = await pdf(
         <DeforestationReportDocument
           farmsData={[farm]}
-          deforestationAnalysisResults={deforestationAnalysisResults}
-          mapsData={selectedMaps}
+          deforestationAnalysisResults={filteredDeforestationAnalysisResults}
+          mapsData={selectedMapsForReport}
           t={t}
           language={locale}
         />
@@ -63,8 +71,8 @@ export const useDeforestationReportDownload = () => {
     saveAs(zipBlob, "deforestation-reports.zip");
   }, [
     selectedFarmsForReport,
-    deforestationAnalysisResults,
-    selectedMaps,
+    filteredDeforestationAnalysisResults,
+    selectedMapsForReport,
     t,
     locale,
   ]);

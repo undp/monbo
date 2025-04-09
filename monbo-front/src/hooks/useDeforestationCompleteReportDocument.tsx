@@ -11,24 +11,32 @@ export const useDeforestationCompleteReportDocument = () => {
   const locale = params.locale as string;
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
   const {
-    reportGenerationParams: { selectedFarms: selectedFarmsForReport },
-    deforestationAnalysisParams: { selectedMaps },
+    reportGenerationParams: {
+      selectedMaps: selectedMapsForReport,
+      selectedFarms: selectedFarmsForReport,
+    },
   } = useContext(DataContext);
+
+  const filteredDeforestationAnalysisResults = useMemo(() => {
+    return deforestationAnalysisResults?.filter((m) =>
+      selectedMapsForReport.some((map) => map.id === m.mapId)
+    );
+  }, [deforestationAnalysisResults, selectedMapsForReport]);
 
   return useMemo(
     () => (
       <DeforestationReportDocument
         farmsData={selectedFarmsForReport}
-        deforestationAnalysisResults={deforestationAnalysisResults}
-        mapsData={selectedMaps}
+        deforestationAnalysisResults={filteredDeforestationAnalysisResults}
+        mapsData={selectedMapsForReport}
         t={t}
         language={locale}
       />
     ),
     [
       selectedFarmsForReport,
-      deforestationAnalysisResults,
-      selectedMaps,
+      selectedMapsForReport,
+      filteredDeforestationAnalysisResults,
       t,
       locale,
     ]
