@@ -22,46 +22,69 @@ monbo-api/
 
 ## Running the Application
 
-There are three ways to run the backend application:
+There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`. You can check the API is running by accessing the healthcheck endpoint: `http://localhost:8000/health`.
 
-### 1. Using Docker Compose (API + Frontend)
+The API does not need any enviromental variables to run.
 
-This method runs both the backend and frontend services in separate containers.
+### 1. Using Docker Compose
 
-**Command:**
+This method runs the API (also the frontend) in a separate containers. The detailed instructions are available in the [parent README](../README.md) file.
+
+### 2. Using Docker for development mode
+
+You can run the API in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
 
 ```sh
-docker-compose -f docker-compose.dev.yml up
+cd monbo-api
+docker build -f Dockerfile.dev -t monbo-api-dev .
+docker run -d -p 8000:8000 --name monbo-api-dev-container -v $(pwd):/app monbo-api-dev
 ```
 
-- The backend will be available at http://localhost:8000
-- The frontend will be available at http://localhost:3000
+### 3. Using Docker for production mode
 
-### 2. Using Development Mode (API Only)
+You can build and run the API image in a Docker container. Note that this approach does not support hot-reloading.
 
-We use pnpm to standardize command execution, similar to the frontend.
+```sh
+cd monbo-api
+docker build -f Dockerfile.prod -t monbo-api-prod .
+docker run -d -p 8000:8000 --name monbo-api-prod-container monbo-api-prod
+```
 
-**Commands:**
+### 4. Run FastAPI in development mode <span style="color: red">(Pending tests without system packages, like gdal)</span>
+
+We use `pnpm` to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI development server with hot-reloading.
+
+First, we recommend to create a virtual environment with Python 3.11:
+
+```sh
+python3.11 -m venv .venv
+source .venv/bin/activate
+```
+
+Then, install the dependencies and run the development server:
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-This will start the FastAPI development server with hot-reloading. The API will be available at `http://localhost:8000`
+### 5. Run FastAPI in production mode
 
-### 3. Using Docker (API Only)
+We use pnpm to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI production server.
 
-You can build and run the backend in a Docker container.
-
-**Commands:**
+First, we recommend to create a virtual environment with Python 3.11:
 
 ```sh
-pnpm build
-docker run -p 8000:8000 fastapi
+python3.11 -m venv .venv
+source .venv/bin/activate
 ```
 
-The API will be available at `http://localhost:8000 `. However, note that this approach does not support hot-reloading.
+Then, install the dependencies and run the production server:
+
+```sh
+pnpm install
+pnpm start
+```
 
 ## Dependencies
 
@@ -81,12 +104,6 @@ The API requires the following dependencies:
 
 You can install dependencies manually using:
 
-**Command:**
-
-```sh
-pip install -r requirements.txt
-```
-
 ## Available Scripts
 
 The `package.json` file is used to standardize the execution of commands across environments, making it easier to work with both frontend and backend using pnpm.
@@ -99,7 +116,7 @@ The `package.json` file is used to standardize the execution of commands across 
 
 ## Environment Variables
 
-No enviromental variables are needes
+No enviromental variables are needed for the API.
 
 ## Development Guidelines
 

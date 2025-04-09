@@ -21,41 +21,79 @@ monbo-front/
 
 ## Running the Application
 
-There are three ways to run the frontend application:
+There are many ways to run the frontend application. In any case the frontend will be available at `http://localhost:3000`.
 
-### 1. Using Docker Compose (Frontend + API)
+### 1. Using Docker Compose
 
-This method runs both the frontend and backend services at different ports:
+This method runs the frontend (and the API) in a separate containers. The detailed instructions are available in the [parent README](../README.md) file.
+
+### 2. Using Docker for development mode
+
+You can run the frontend in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
+
+First, you need to create a `.env` or `.env.development` file at the `monbo-front` directory containing the environment variables (please use the `.env.development.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+Then, execute the following command:
 
 ```sh
-docker-compose -f docker-compose.dev.yml up
+cd monbo-front
+docker build -f Dockerfile.dev -t monbo-front-dev .
+docker run -d -p 3000:3000 --name monbo-front-dev-container -v $(pwd):/app monbo-front-dev
 ```
 
-The frontend will be available at `http://localhost:3000` and the backend will be available at `http://localhost:8000`.
+### 3. Using Docker for production mode
 
-The file `docker-compose.dev.yml` is located in the root of the project (outside the `monbo-front` folder).
+You can build and run the image in a Docker container. Note that this approach does not support hot-reloading.
 
-### 2. Using development mode (Frontend Only)
+First, you need to create a file at the `monbo-front` directory containing the environment variables (please use the `.env.production.example` file as a template). In this case, the file name convention is not required. Then, execute the following command:
 
-Using `pnpm` for local development:
+```sh
+cd monbo-front
+docker build -f Dockerfile.prod -t monbo-front-prod .
+docker run -d --env-file <env-file-relative-path> -p 3000:3000 --name monbo-front-prod-container monbo-front-prod
+```
+
+### 4. Run Next.js in development mode
+
+This will start the NextJS development server with hot-reloading.
+
+First, you need to create a `.env` or `.env.development` file at the `monbo-front` directory containing the environment variables (you can use the `.env.development.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and run the development server:
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+### 5. Start the Next.js production server
 
-### 3. Using docker container (Frontend Only)
+This will start the NextJS production server.
 
-Build and run the frontend container:
+First, you need to create a `.env` or `.env.production` file at the `monbo-front` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and run the production server:
 
 ```sh
-docker build -t monbo-frontend .
-docker run -p 3000:3000 monbo-frontend
+pnpm install
+pnpm build
+pnpm start
 ```
 
-The frontend will be available at `http://localhost:3000`. The downside of this approach is there will be no hot reloading, so any changes to the code will require a rebuild and restart of the container.
+This will start the NextJS production server.
+
+First, you need to create a `.env` or `.env.production` file at the `monbo-front` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and run the production server:
+
+```sh
+pnpm install
+pnpm build
+pnpm start:standalone
+```
 
 ## Dependencies
 
@@ -129,6 +167,8 @@ Each JSON file corresponds to a specific page or feature:
 - `deforestationAnalysis.json`: Translations for the deforestation analysis module
 - `home.json`: Home page translations
 - `polygonValidation.json`: Translations for polygon validation module
+
+If you want to add a new language, please follow the instructions in the [New Language Documentation](docs/new_language.md) file.
 
 ## Development Guidelines
 

@@ -79,26 +79,38 @@ A notable component is the `update-gfw-tmf` tool, which provides a robust Python
 
 Other scripts in this directory follow similar patterns of being self-contained, well-documented tools that serve specific data processing or automation needs within the project.
 
-## How to run
+## Running the project
 
-The project (Frontend and API) can be run in two different ways:
+The project can be run in different ways.
 
-1. Using Docker Compose
+The easiest way to run the project is using Docker Compose with the provided `*.yml` files, which will run both the frontend and API on its own containers. The env-based files are configurations overrides of the base configuration (`docker-compose.yml`).
 
-   You can run the project using Docker Compose, which will run both the frontend and API in the same container, but on different ports (frontend at 3000, api at 8000). The env-based configurations are overrides of the base configuration (**docker-compose.yml**).
+In any case, the backend will be available at `http://localhost:8000` and the frontend will be available at `http://localhost:3000`.
 
-   The development configuration (**docker-compose.dev.yml**) provides hot-reload enabled for both services. This is achieved by mounting the source code directories as volumes and running the development servers.
+If you want to run only one of the services but still use the Docker Compose configuration, you can remove the section for the other service at the specific `*.yml` file.
 
-   The production configuration (**docker-compose.prod.yml**) does not provide hot-reload, but is optimized for production environments.
+### 1. Using Docker Compose for development mode
 
-   For any of the configurations, you need first to create a file at the root of the project containing the environment variables (you can use the `.env.example` file as a template), and then execute the following command:
+The development configuration (`docker-compose.dev.yml`) provides hot-reload for both services by mounting the source code directories as volumes and running the development servers.
 
-   ```bash
-   docker compose --env-file <env-file> -f docker-compose.yml -f docker-compose.<ENV>.yml up
-   ```
+First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
 
-2. Running each service independently
+```sh
+docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.<env>.yml up
+```
 
-   Navigate to each service's directory and follow the instructions in their respective README files.
+### 2. Using Docker Compose for production mode
 
-Both approaches provide hot-reload functionality, with the Docker approach offering a more containerized and consistent development environment.
+The production configuration (`docker-compose.prod.yml`) does not provide hot-reload, but is optimized for production environments. This is useful for testing the project in a production environment before deploying it.
+
+First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
+
+```sh
+docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.<env>.yml up
+```
+
+### 3. Running each service independently
+
+Navigate to each service's directory and follow the instructions in their respective README files.
+
+We recommend using the Docker approach offering a more containerized and consistent development environment.
