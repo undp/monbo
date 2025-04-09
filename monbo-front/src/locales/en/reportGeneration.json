@@ -27,9 +27,14 @@
     "reportDate": "Report date"
   },
   "buttons": {
-    "preview": "Preview",
-    "downloadCompleteReport": "DOWNLOAD COMBINED",
-    "downloadSeparatedReports": "DOWNLOAD SEPARATELY"
+    "generateReport": "Generate report",
+    "download": "Download"
+  },
+  "downloadTypeSelectionModal": {
+    "title": "How do you want to download the report?",
+    "combinedOptionText": "1 single PDF with the {{amount}} selected polygons",
+    "separatedOptionText": "{{amount}} PDFs, one document per polygon",
+    "button": "Download"
   },
   "attributes": {
     "id": "ID",

@@ -40,6 +40,7 @@ export interface DataContextValue {
     initialFarmSelection: "all" | "select";
     selectedMaps: MapData[];
     selectedFarms: FarmData[];
+    downloadType: "combined" | "separated" | null;
   };
   setReportGenerationParams: Dispatch<
     SetStateAction<DataContextValue["reportGenerationParams"]>
@@ -64,6 +65,7 @@ export const DataContext = createContext<DataContextValue>({
     initialFarmSelection: "all",
     selectedMaps: [],
     selectedFarms: [],
+    downloadType: null,
   },
   setReportGenerationParams: () => {},
   availableMaps: [],
@@ -94,6 +96,7 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     initialFarmSelection: "all",
     selectedMaps: [],
     selectedFarms: [],
+    downloadType: null,
   });
 
   // TODO: fetch API for available maps

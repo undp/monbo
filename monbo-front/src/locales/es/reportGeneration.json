@@ -27,9 +27,14 @@
     "reportDate": "Fecha reporte"
   },
   "buttons": {
-    "preview": "Previsualizar",
-    "downloadCompleteReport": "DESCARGAR AGRUPADO",
-    "downloadSeparatedReports": "DESCARGAR POR SEPARADO"
+    "generateReport": "Generar reporte",
+    "download": "Descargar"
+  },
+  "downloadTypeSelectionModal": {
+    "title": "¿Cómo quieres descargar el reporte?",
+    "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",
+    "separatedOptionText": "{{amount}} PDFs, un documento por polígono",
+    "button": "Descargar"
   },
   "attributes": {
     "id": "ID",
