@@ -20,8 +20,8 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 COPY ./requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source
-COPY . .
+# Copy source code
+COPY ./app ./app
 
 # Final stage
 FROM --platform=linux/amd64 python:3.11-slim AS api-runner
@@ -41,11 +41,11 @@ RUN apt-get update && apt-get install -y \
 # Copy installed packages and application code
 COPY --from=api-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=api-builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
-COPY --from=api-builder /app /app
+COPY --from=api-builder /app/app ./app
 
 # Set correct permissions
-RUN chown -R appuser:appuser /app && \
-    chmod -R 755 /app
+RUN chown -R appuser:appuser ./app && \
+    chmod -R 755 ./app
 
 # Switch to non-root user
 USER appuser
