@@ -83,7 +83,7 @@ Other scripts in this directory follow similar patterns of being self-contained,
 
 The project can be run in different ways.
 
-The easiest way to run the project is using Docker Compose with the provided `*.yml` files, which will run both the frontend and API on its own containers. The env-based files are configurations overrides of the base configuration (`docker-compose.yml`).
+The easiest way to run the project is using [Docker Compose](https://docs.docker.com/compose/) with the provided `*.yml` files, which will run both the frontend and API on its own containers. The env-based files are configurations overrides of the base configuration (`docker-compose.yml`).
 
 In any case, the backend will be available at `http://localhost:8000` and the frontend will be available at `http://localhost:3000`.
 
