@@ -67,7 +67,6 @@ The API will be available at `http://localhost:8000 `. However, note that this a
 
 The API requires the following dependencies:
 
-- doit==0.36.0
 - fastapi==0.115.6
 - fastapi[standard]==0.115.6
 - shapely==2.0.6

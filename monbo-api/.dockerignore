@@ -1,0 +1,80 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development environments
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Build outputs
+dist/
+build/
+coverage/
+*.log
+
+# Docker files
+Dockerfile*
+docker-compose*
+.docker/
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Test files
+tests/
+__tests__/
+*.test.js
+*.spec.js
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+*~ 
+
+# Next.js
+.next/
+
+# PNPM
+.pnpm-store/
+node_modules/
+
+# Pytest
+.pytest_cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# TOML and YAML
+*.toml
+*.yml
+
+# Virtual environment
+venv/

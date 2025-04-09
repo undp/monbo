@@ -1,20 +1,25 @@
+# Development configuration with hot reloading
 version: '3.8'
 services:
-  app:
+  frontend:
+    container_name: monbo-frontend-dev
     build:
-      context: .
+      context: monbo-front
       dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"  # Frontend
-      - "8000:8000"  # Backend API
     volumes:
-      - ./monbo-front:/app/frontend
-      - ./monbo-api:/app/backend
+      - ./monbo-front:/app
     environment:
       - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  api:
+    container_name: monbo-api-dev
+    build:
+      context: monbo-api
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./monbo-api:/app

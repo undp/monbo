@@ -1,0 +1,37 @@
+# Base configuration shared between dev and prod
+version: '3.8'
+services:
+  frontend:
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=${API_URL}
+      - GOOGLE_SERVICE_API_KEY=${GOOGLE_SERVICE_API_KEY}
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: curl -f http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  api:
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: curl -f http://localhost:8000/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

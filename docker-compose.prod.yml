@@ -1,12 +1,16 @@
+# Only production overrides
 version: '3.8'
 services:
-  app:
+  frontend:
+    container_name: monbo-frontend-prod
     build:
-      context: .
+      context: monbo-front
       dockerfile: Dockerfile.prod
-    ports:
-      - "3000:3000"  # Frontend
-      - "8000:8000"  # Backend API
-    environment:
-      - NODE_ENV=production
-      - NEXT_TELEMETRY_DISABLED=1 
+    depends_on:
+      - api
+
+  api:
+    container_name: monbo-api-prod
+    build:
+      context: monbo-api
+      dockerfile: Dockerfile.prod

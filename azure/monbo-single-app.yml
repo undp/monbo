@@ -1,0 +1,128 @@
+name: monbo-app
+type: Microsoft.App/ContainerApps
+location: westus2
+resourceGroup: test-deploy
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      transport: auto
+      allowInsecure: false
+      targetPort: 80
+      traffic:
+        - latestRevision: true
+          weight: 100
+  template:
+    containers:
+      - name: proxy
+        image: kevinjohnsongebauer/undp-monbo-proxy:latest
+        imagePullPolicy: Always
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+        ports:
+          - containerPort: 80
+        probes:
+          - type: startup
+            httpGet:
+              path: /nginx-health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 10
+          - type: readiness
+            httpGet:
+              path: /nginx-health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          - type: liveness
+            httpGet:
+              path: /nginx-health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      - name: frontend
+        image: kevinjohnsongebauer/undp-monbo-frontend:latest
+        env:
+          - name: API_URL
+            value: the_url_here
+          - name: GOOGLE_SERVICE_API_KEY
+            value: the_api_key_here
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        ports:
+          - containerPort: 3000
+        probes:
+          - type: startup
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 10
+          - type: readiness
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          - type: liveness
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      - name: api
+        image: kevinjohnsongebauer/undp-monbo-api:latest
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        ports:
+          - containerPort: 8000
+        probes:
+          - type: startup
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 10
+          - type: readiness
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          - type: liveness
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
