@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "next build",
     "start": "next start",
+    "build": "next build",
+    "postbuild": "cp -r public .next/standalone/ && mkdir -p .next/standalone/.next/static && cp -r .next/static .next/standalone/.next/",
+    "start:standalone": "node .next/standalone/server.js",
     "lint": "next lint",
     "docker:build": "docker build -t monbo-front ."
   },
