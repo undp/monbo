@@ -37,6 +37,7 @@ CHANGELOG.md
 docs/
 
 # Test files
+tests/
 __tests__/
 *.test.js
 *.spec.js
@@ -58,8 +59,22 @@ Thumbs.db
 # Next.js
 .next/
 
-# PNPM store
+# PNPM
 .pnpm-store/
+node_modules/
 
 # Pytest
 .pytest_cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# TOML and YAML
+*.toml
+*.yml
+
+# Virtual environment
+venv/
