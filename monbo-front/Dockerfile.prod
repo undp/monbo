@@ -32,8 +32,8 @@ COPY --from=frontend-builder /app/.next/static /app/.next/static
 COPY --from=frontend-builder /app/public /app/public
 
 # Copy frontend entrypoint script
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY ./entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 # Set correct permissions
 RUN chown -R appuser:appuser /app && \
@@ -45,4 +45,4 @@ USER appuser
 EXPOSE 3000
 
 # Set the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
