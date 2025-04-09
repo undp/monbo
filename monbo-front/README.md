@@ -82,12 +82,14 @@ pnpm build
 pnpm start
 ```
 
-This will start the NextJS production server.
+### 6. Run the compiled Next.js in production mode
+
+This will build the NextJS standalone application and run the generated Node server.
 
 First, you need to create a `.env` or `.env.production` file at the `monbo-front` directory containing the environment variables (you can use the `.env.production.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
 
-Install the dependencies and run the production server:
+Install the dependencies and start the server:
 
 ```sh
 pnpm install
