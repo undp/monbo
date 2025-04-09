@@ -15,14 +15,8 @@ properties:
           weight: 100
   template:
     containers:
-      - name: debug-tools
-        image: busybox
-        command: ["sh", "-c", "while true; do sleep 3600; done"]
-        resources:
-          cpu: 0.25
-          memory: 0.5Gi
       - name: proxy
-        image: kevinjohnsongebauer/undp-monbo-proxy:v1.0.12
+        image: kevinjohnsongebauer/undp-monbo-proxy:latest
         imagePullPolicy: Always
         resources:
           cpu: 0.25
