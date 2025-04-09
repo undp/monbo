@@ -1,7 +1,7 @@
 {
   "title": "Selecciona los polígonos que quieres incluir en el reporte",
   "searchPlaceholder": "Buscar por polígono o productor",
-  "modal": {
+  "paramsSelectionModal": {
     "title": "Generación del reporte",
     "selectFarmsTitle": "Selecciona los polígonos a incluir",
     "allFarms": "Todos ({{amount}})",

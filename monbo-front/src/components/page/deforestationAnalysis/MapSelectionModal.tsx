@@ -86,19 +86,19 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
     <BaseModal
       isOpen={isOpen}
       handleClose={handleClose}
-      title={t("reportGeneration:modal:title")}
+      title={t("reportGeneration:paramsSelectionModal:title")}
       maxWidth="sm"
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Text variant="h3" bold>
-            {t("reportGeneration:modal:selectFarmsTitle")}
+            {t("reportGeneration:paramsSelectionModal:selectFarmsTitle")}
           </Text>
           <RadioGroup value={initialFarmSelection} row sx={{ gap: 5 }}>
             <FormControlLabel
               value="all"
               control={<Radio />}
-              label={t("reportGeneration:modal:allFarms", {
+              label={t("reportGeneration:paramsSelectionModal:allFarms", {
                 amount: allFarmsAmount,
               })}
               onChange={() => onInitialFarmSelectionChange("all")}
@@ -106,7 +106,7 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
             <FormControlLabel
               value="select"
               control={<Radio />}
-              label={t("reportGeneration:modal:selectFarms", {
+              label={t("reportGeneration:paramsSelectionModal:selectFarms", {
                 amount: allFarmsAmount,
               })}
               onChange={() => onInitialFarmSelectionChange("select")}
@@ -115,7 +115,7 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
         </Box>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Text variant="h3" bold>
-            {t("reportGeneration:modal:selectMapsTitle")}
+            {t("reportGeneration:paramsSelectionModal:selectMapsTitle")}
           </Text>
           <MultiSelectionStep
             sx={{ flexDirection: "column", gap: 1 }}
@@ -141,7 +141,7 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
           disabled={selectedMapsForReport.length == 0}
           onClick={handleContinueWrapper}
         >
-          {t("reportGeneration:modal:button")}
+          {t("reportGeneration:paramsSelectionModal:button")}
         </Button>
       </Box>
     </BaseModal>
