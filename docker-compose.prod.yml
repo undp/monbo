@@ -6,6 +6,9 @@ services:
     build:
       context: monbo-front
       dockerfile: Dockerfile.prod
+    environment:
+      - API_URL=${API_URL}
+      - GOOGLE_SERVICE_API_KEY=${GOOGLE_SERVICE_API_KEY}
     depends_on:
       - api
 

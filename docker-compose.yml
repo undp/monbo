@@ -4,9 +4,6 @@ services:
   frontend:
     ports:
       - "3000:3000"
-    environment:
-      - API_URL=${API_URL}
-      - GOOGLE_SERVICE_API_KEY=${GOOGLE_SERVICE_API_KEY}
     restart: unless-stopped
     logging:
       driver: "json-file"

@@ -96,7 +96,7 @@ The development configuration (`docker-compose.dev.yml`) provides hot-reload for
 First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
 
 ```sh
-docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.<env>.yml up
+docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
 ### 2. Using Docker Compose for production mode
@@ -106,7 +106,7 @@ The production configuration (`docker-compose.prod.yml`) does not provide hot-re
 First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
 
 ```sh
-docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.<env>.yml up
+docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.prod.yml up
 ```
 
 ### 3. Running each service independently

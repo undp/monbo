@@ -10,6 +10,8 @@ services:
       - ./monbo-front:/app
     environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=${API_URL}
+      - NEXT_PUBLIC_GOOGLE_SERVICE_API_KEY=${GOOGLE_SERVICE_API_KEY}
     deploy:
       resources:
         limits:
