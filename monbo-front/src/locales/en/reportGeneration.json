@@ -36,6 +36,11 @@
     "separatedOptionText": "{{amount}} PDFs, one document per polygon",
     "button": "Download"
   },
+  "emptyFarmsSelectionModal": {
+    "title": "Report generation",
+    "description": "Please select at least one farm to generate a report",
+    "button": "Accept"
+  },
   "attributes": {
     "id": "ID",
     "producer": "Producer",

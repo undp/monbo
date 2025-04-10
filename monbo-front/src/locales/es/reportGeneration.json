@@ -36,6 +36,11 @@
     "separatedOptionText": "{{amount}} PDFs, un documento por polígono",
     "button": "Descargar"
   },
+  "emptyFarmsSelectionModal": {
+    "title": "Generación del reporte",
+    "description": "Por favor selecciona al menos un polígono para generar un reporte",
+    "button": "Aceptar"
+  },
   "attributes": {
     "id": "ID",
     "producer": "Productor",
