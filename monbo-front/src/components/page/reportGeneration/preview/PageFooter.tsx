@@ -3,15 +3,33 @@
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { Footer } from "@/components/reusable/Footer";
 import { Box, Button } from "@mui/material";
-import { useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DownloadTypeSelectionModal } from "./DownloadTypeSelectionModal";
-
-const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
+import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
+import { DataContext } from "@/context/DataContext";
 
 export function PageFooter() {
-  const { t } = useTranslation(namespaces);
+  const { t } = useTranslation();
+  const {
+    reportGenerationParams: { selectedFarms: selectedFarmsForReport },
+  } = useContext(DataContext);
+  const { downloadCompleteReport } = useDeforestationReportDownload();
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+
+  const onDownloadReportClick = useCallback(async () => {
+    // If there is only 1 farm selected, download inmediatly
+    if (selectedFarmsForReport.length === 1) {
+      setIsDownloading(true);
+      await downloadCompleteReport();
+      setIsDownloading(false);
+      return;
+    }
+
+    // If there are more than 1 farm selected, open the download type selection modal
+    setIsDownloadModalOpen(true);
+  }, [selectedFarmsForReport, downloadCompleteReport]);
 
   return (
     <>
@@ -28,7 +46,8 @@ export function PageFooter() {
             <Button
               variant="contained"
               color="primary"
-              onClick={() => setIsDownloadModalOpen(true)}
+              onClick={onDownloadReportClick}
+              loading={isDownloading}
             >
               {t("reportGeneration:buttons:download")}
             </Button>
