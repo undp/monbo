@@ -7,9 +7,11 @@ import { saveAs } from "file-saver";
 import { DeforestationReportDocument } from "@/utils/deforestationReport";
 import { useTranslation } from "react-i18next";
 import { useParams } from "next/navigation";
+import { SnackbarContext } from "@/context/SnackbarContext";
 
 export const useDeforestationReportDownload = () => {
   const { t } = useTranslation(["deforestationAnalysis", "common"]);
+  const { openSnackbar } = useContext(SnackbarContext);
   const params = useParams();
   const locale = params.locale as string;
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
@@ -26,7 +28,7 @@ export const useDeforestationReportDownload = () => {
     );
   }, [deforestationAnalysisResults, selectedMapsForReport]);
 
-  const downloadCompleteReport = useCallback(async () => {
+  const downloadCompleteReportToFile = useCallback(async () => {
     const pdfBlob = await pdf(
       <DeforestationReportDocument
         farmsData={selectedFarmsForReport}
@@ -46,7 +48,7 @@ export const useDeforestationReportDownload = () => {
     locale,
   ]);
 
-  const downloadSeparatedReports = useCallback(async () => {
+  const downloadSeparatedReportsToFile = useCallback(async () => {
     const zip = new JSZip();
 
     // Generate PDFs and add them to zip
@@ -77,5 +79,32 @@ export const useDeforestationReportDownload = () => {
     locale,
   ]);
 
-  return { downloadCompleteReport, downloadSeparatedReports };
+  const downloadSeparatedReportsWrapper = useCallback(async () => {
+    try {
+      await downloadSeparatedReportsToFile();
+    } catch (error) {
+      console.error("Error downloading separated reports:", error);
+      openSnackbar({
+        message: t("common:snackbarAlerts:errorDownloadingSeparatedReports"),
+        type: "error",
+      });
+    }
+  }, [downloadSeparatedReportsToFile, openSnackbar, t]);
+
+  const downloadCompleteReportWrapper = useCallback(async () => {
+    try {
+      await downloadCompleteReportToFile();
+    } catch (error) {
+      console.error("Error downloading complete report:", error);
+      openSnackbar({
+        message: t("common:snackbarAlerts:errorDownloadingCompleteReport"),
+        type: "error",
+      });
+    }
+  }, [downloadCompleteReportToFile, openSnackbar, t]);
+
+  return {
+    downloadCompleteReport: downloadCompleteReportWrapper,
+    downloadSeparatedReports: downloadSeparatedReportsWrapper,
+  };
 };

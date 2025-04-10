@@ -2,7 +2,6 @@
 
 import { BaseModal, BaseModalProps } from "@/components/reusable/BaseModal";
 import { DataContext } from "@/context/DataContext";
-import { SnackbarContext } from "@/context/SnackbarContext";
 import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
 import {
   Box,
@@ -18,7 +17,6 @@ export const DownloadTypeSelectionModal: React.FC<
   Pick<BaseModalProps, "isOpen" | "handleClose">
 > = ({ isOpen, handleClose }) => {
   const { t } = useTranslation();
-  const { openSnackbar } = useContext(SnackbarContext);
   const {
     reportGenerationParams: {
       selectedFarms: selectedFarmsForReport,
@@ -47,34 +45,16 @@ export const DownloadTypeSelectionModal: React.FC<
   );
 
   const downloadSeparatedReportsWrapper = useCallback(async () => {
-    try {
-      setIsDownloading(true);
-      await downloadSeparatedReports();
-    } catch (error) {
-      console.error("Error downloading separated reports:", error);
-      openSnackbar({
-        message: t("common:snackbarAlerts:errorDownloadingSeparatedReports"),
-        type: "error",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [downloadSeparatedReports, openSnackbar, t]);
+    setIsDownloading(true);
+    await downloadSeparatedReports();
+    setIsDownloading(false);
+  }, [downloadSeparatedReports]);
 
   const downloadCompleteReportWrapper = useCallback(async () => {
-    try {
-      setIsDownloading(true);
-      await downloadCompleteReport();
-    } catch (error) {
-      console.error("Error downloading complete report:", error);
-      openSnackbar({
-        message: t("common:snackbarAlerts:errorDownloadingCompleteReport"),
-        type: "error",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [downloadCompleteReport, openSnackbar, t]);
+    setIsDownloading(true);
+    await downloadCompleteReport();
+    setIsDownloading(false);
+  }, [downloadCompleteReport]);
 
   const handleDownloadButtonClick = useCallback(async () => {
     if (isDownloading) return;
