@@ -118,6 +118,11 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
+    () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
+    [deforestationAnalysisParams.selectedMaps]
+  );
+
   const currentState = useMemo(() => {
     return {
       farmsData,
@@ -126,7 +131,7 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setPolygonsValidationResults,
       deforestationAnalysisParams: {
         ...deforestationAnalysisParams,
-        selectedMaps: orderBy(deforestationAnalysisParams.selectedMaps, "id"),
+        selectedMaps: sortedDeforestationAnalysisParamsSelectedMaps,
       },
       setDeforestationAnalysisParams,
       deforestationAnalysisResults,
@@ -142,6 +147,7 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     polygonsValidationResults,
     setPolygonsValidationResults,
     deforestationAnalysisParams,
+    sortedDeforestationAnalysisParamsSelectedMaps,
     setDeforestationAnalysisParams,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
