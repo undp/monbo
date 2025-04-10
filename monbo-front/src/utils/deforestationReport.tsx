@@ -7,11 +7,12 @@ import { Font, Document } from "@react-pdf/renderer";
 import { TFunction } from "i18next";
 import {
   CoverPage,
-  DeforestationCalculationPage,
+  DeforestationExplanationPage,
   FarmMapPage,
   MapDescriptionPage,
 } from "./deforestationReport/sections";
 import { flatten } from "lodash";
+import { styles } from "./deforestationReport/styles";
 
 // Register Roboto font
 Font.register({
@@ -55,7 +56,7 @@ export const DeforestationReportDocument = ({
   language?: string;
 }) => {
   return (
-    <Document>
+    <Document style={styles.document}>
       {/* COVER PAGE */}
       <CoverPage farmsData={farmsData} t={t} language={language} />
 
@@ -94,7 +95,7 @@ export const DeforestationReportDocument = ({
       ).filter(Boolean)}
 
       {/* EXPLANATION OF THE DEFORESTATION CALCULATION */}
-      <DeforestationCalculationPage />
+      <DeforestationExplanationPage t={t} />
 
       {/* EXPLANATION OF THE MAPS USED FOR THE DEFORESTATION ANALYSIS */}
       <MapDescriptionPage

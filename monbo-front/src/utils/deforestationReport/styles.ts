@@ -1,11 +1,13 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
 export const styles = StyleSheet.create({
-  coverPage: {
+  document: {
     fontFamily: "Roboto",
+    letterSpacing: 0.15,
+  },
+  coverPage: {
     fontSize: 16,
     fontWeight: 500,
-    letterSpacing: 0.15,
     color: "#3A3541",
     position: "relative",
   },
@@ -82,18 +84,13 @@ export const styles = StyleSheet.create({
     fontWeight: 500,
   },
   farmMapPage: {
-    // ok
-    fontFamily: "Roboto",
     fontSize: 12,
     padding: "30px",
-    letterSpacing: 0.15,
   },
   farmMapPageSection: {
-    // ok
     marginBottom: 12,
   },
   farmMapPageTable: {
-    //ok
     display: "flex",
     flexDirection: "column",
     backgroundColor: "#FAFAFA",
@@ -124,7 +121,6 @@ export const styles = StyleSheet.create({
     width: "50%", // Adjust to fit the spacing
   },
   farmMapPageTitleText: {
-    // ok
     fontSize: 16,
     fontWeight: 500,
     color: "#3A3541",
@@ -159,6 +155,68 @@ export const styles = StyleSheet.create({
     width: "100%", // Adjust as needed
     height: "100%", // Fills the container
     objectFit: "cover", // Ensures the image scales properly
+  },
+  deforestationExplanationPage: {
+    padding: "30px",
+    fontSize: 12,
+    color: "#3A3541",
+  },
+  deforestationExplanationPageTitleContainer: {},
+  deforestationExplanationPageTitleText: {
+    fontSize: 20,
+    fontWeight: 500,
+  },
+  deforestationExplanationPageBodyContainer: {
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+  deforestationExplanationPageSubtitleText: {
+    fontWeight: 500,
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  deforestationExplanationPageBodyText: {
+    fontWeight: 400,
+    lineHeight: "23px",
+  },
+  deforestationExplanationPageTableRow: {
+    border: "0.8px solid #DEDEDE",
+    borderRadius: 5,
+    display: "flex",
+    flexDirection: "row",
+    minHeight: 92,
+  },
+  deforestationExplanationPageTableFirstRow: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  deforestationExplanationPageTableLastRow: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  deforestationExplanationPageTableLeftCellChip: {
+    width: "100%",
+    height: 24,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+  },
+  deforestationExplanationPageTableLeftCell: {
+    backgroundColor: "#F9F9F9",
+    padding: "8px",
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 500,
+  },
+  deforestationExplanationPageTableRightCell: {
+    padding: "8px",
+    flex: 2,
+    display: "flex",
+    justifyContent: "center",
+    lineHeight: "19px",
   },
   footer: {
     position: "absolute",

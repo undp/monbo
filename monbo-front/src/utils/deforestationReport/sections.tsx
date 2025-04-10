@@ -5,7 +5,10 @@ import {
 import { FarmData } from "@/interfaces/Farm";
 import { Page, Text, View, Link, Image as ImagePDF } from "@react-pdf/renderer";
 import { formatPercentage } from "../numbers";
-import { getDeforestationPercentageChipColor } from "../styling";
+import {
+  getDeforestationPercentageChipBackgroundColor,
+  getDeforestationPercentageChipColor,
+} from "../styling";
 import { upperCase, map } from "lodash";
 import { TFunction } from "i18next";
 import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "../geojson";
@@ -335,12 +338,91 @@ export const FarmMapPage = ({
   );
 };
 
-export const DeforestationCalculationPage = () => {
+export const DeforestationExplanationPage = ({ t }: { t: TFunction }) => {
+  const withoutDeforestationColor = getDeforestationPercentageChipColor(0);
+  const withDeforestationColor = getDeforestationPercentageChipColor(1);
+
+  const withoutDeforestationBackgroundColor =
+    getDeforestationPercentageChipBackgroundColor(0);
+  const withDeforestationBackgroundColor =
+    getDeforestationPercentageChipBackgroundColor(1);
+
   return (
-    <Page size="A4" style={styles.farmMapPage}>
-      <View style={styles.farmMapPageSection}>
-        <Text>CÁLCULO DE DEFORESTACIÓN</Text>
+    <Page size="A4" style={styles.deforestationExplanationPage}>
+      <View style={styles.deforestationExplanationPageTitleContainer}>
+        <Text style={styles.deforestationExplanationPageTitleText}>
+          Cálculo de deforestación
+        </Text>
       </View>
+      <View style={styles.deforestationExplanationPageBodyContainer}>
+        <Text style={styles.deforestationExplanationPageSubtitleText}>
+          Fórmula utilizada
+        </Text>
+        <Text style={styles.deforestationExplanationPageBodyText}>
+          La fórmula para calcular el porcentaje de deforestación considera la
+          razón entre el área de un polígono y lorem ipsum dolor sit amet,
+          consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+          labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
+          exercitation
+        </Text>
+        <Text style={styles.deforestationExplanationPageSubtitleText}>
+          Estados de deforestación
+        </Text>
+        <View
+          style={[
+            styles.deforestationExplanationPageTableRow,
+            styles.deforestationExplanationPageTableFirstRow,
+          ]}
+        >
+          <View style={[styles.deforestationExplanationPageTableLeftCell]}>
+            <View
+              style={[
+                styles.deforestationExplanationPageTableLeftCellChip,
+                { backgroundColor: withoutDeforestationBackgroundColor },
+              ]}
+            >
+              <Text style={[{ color: withoutDeforestationColor }]}>
+                LIBRE DEFORESTACIÓN
+              </Text>
+            </View>
+          </View>
+          <View style={styles.deforestationExplanationPageTableRightCell}>
+            <Text>
+              Indica que no ha habido intervención que haya provocado la
+              reducción del bosque natural dentro del polígono evaluado, de
+              acuerdo con los mapas oficiales o metodologías reconocidas.
+            </Text>
+          </View>
+        </View>
+        <View
+          style={[
+            styles.deforestationExplanationPageTableRow,
+            styles.deforestationExplanationPageTableLastRow,
+          ]}
+        >
+          <View style={styles.deforestationExplanationPageTableLeftCell}>
+            <View
+              style={[
+                styles.deforestationExplanationPageTableLeftCellChip,
+                { backgroundColor: withDeforestationBackgroundColor },
+              ]}
+            >
+              <Text style={[{ color: withDeforestationColor }]}>
+                XX% DEFORESTACIÓN
+              </Text>
+            </View>
+          </View>
+          <View style={styles.deforestationExplanationPageTableRightCell}>
+            <Text>
+              Cuantifica el grado de deforestación o pérdida de cobertura
+              boscosa del polígono evaluado, de acuerdo con el mapa de
+              referencia utilizado
+            </Text>
+          </View>
+        </View>
+      </View>
+      {/* Footer */}
+      <Footer t={t} />
     </Page>
   );
 };
