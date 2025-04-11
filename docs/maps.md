@@ -36,12 +36,12 @@ El archivo `maps.json` contiene un listado de objetos JSON, cada uno representan
   "baseline": "2020",
   "compared_against": "2023",
   "coverage": "Superficie terrestre global (excluyendo la Antártida y otras islas del Ártico)",
-  "details": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
+  "source": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
   "resolution": "30 x 30 metros",
   "contentDate": "Cambio forestal mundial entre 2000 y 2023",
   "updateFrequency": "Anual",
-  "source": "https://glad.earthengine.app/view/global-forest-change",
-  "disclaimer": "TBD"
+  "reference": "https://glad.earthengine.app/view/global-forest-change",
+  "considerations": "### Definición de Bosque en TMF\n* TMF se enfoca en bosques húmedos tropicales..."
 }
 ```
 
@@ -56,12 +56,12 @@ El archivo `maps.json` contiene un listado de objetos JSON, cada uno representan
 - **baseline**: Año base para comparación.
 - **compared_against**: Año final de comparación.
 - **coverage**: Cobertura geográfica de la capa.
-- **details**: Descripción detallada de la fuente.
+- **source**: Origen de la capa.
 - **resolution**: Resolución espacial.
 - **contentDate**: Período cubierto por los datos.
 - **updateFrequency**: Frecuencia de actualización.
-- **source**: URL de referencia.
-- **disclaimer**: Aviso legal o términos de uso.
+- **reference**: URL de referencia.
+- **considerations**: Consideraciones adicionales sobre la capa, en formato Markdown.
 
 ## Agregar una Nueva Capa
 

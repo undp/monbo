@@ -35,12 +35,12 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
 
   const attributes = [
     "coverage",
-    "details",
+    "source",
     "resolution",
     "contentDate",
     "updateFrequency",
-    "source",
-    "disclaimer",
+    "reference",
+    "considerations",
   ] as (keyof MapData)[];
 
   if (!selectedMap) return null;
@@ -85,6 +85,8 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
             zIndex: 1000,
             paddingTop: 1,
             paddingBottom: 1,
+            flexWrap: "wrap",
+            maxWidth: "100%",
           }}
         >
           {selectedMaps.map((map) => (
@@ -103,8 +105,9 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
               <DetailItem
                 key={keyword}
                 label={t(`deforestationAnalysis:mapsInfoModal.${keyword}`)}
+                isMarkdown={keyword === "considerations"}
                 value={
-                  keyword === "source" ? (
+                  keyword === "reference" ? (
                     selectedMap[keyword] ? (
                       <Link
                         href={selectedMap[keyword] as string}
@@ -117,11 +120,20 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
                     ) : (
                       t("common:na")
                     )
-                  ) : keyword === "disclaimer" ? (
+                  ) : keyword === "considerations" ? (
                     selectedMap[keyword] ? (
                       <Box sx={{ marginTop: -1.5 }}>
                         <ReactMarkdown
                           components={{
+                            p: ({ children }) => (
+                              <Typography
+                                variant="body2"
+                                component="div"
+                                sx={{ mb: 2 }} // Added margin bottom for paragraph spacing
+                              >
+                                {children}
+                              </Typography>
+                            ),
                             ol: ({ children }) => (
                               <ol style={{ paddingLeft: 0 }}>{children}</ol>
                             ),
@@ -152,9 +164,14 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
 interface DetailItemProps {
   label: string;
   value: React.ReactNode;
+  isMarkdown?: boolean;
 }
 
-const DetailItem: React.FC<DetailItemProps> = ({ label, value }) => (
+const DetailItem: React.FC<DetailItemProps> = ({
+  label,
+  value,
+  isMarkdown,
+}) => (
   <Grid container spacing={2}>
     <Grid size={3}>
       <Text
@@ -169,6 +186,7 @@ const DetailItem: React.FC<DetailItemProps> = ({ label, value }) => (
     <Grid size={9}>
       <Typography
         variant="body2"
+        component={isMarkdown ? "div" : "p"}
         sx={{
           wordBreak: "break-word",
         }}

@@ -8,12 +8,12 @@ class BaseMapData(BaseModel):
     baseline: int
     comparedAgainst: int
     coverage: str
-    details: str
+    source: str
     resolution: str
     contentDate: str
     updateFrequency: str
-    source: str
-    disclaimer: str
+    reference: str
+    considerations: str
 
 
 class MapData(BaseMapData):

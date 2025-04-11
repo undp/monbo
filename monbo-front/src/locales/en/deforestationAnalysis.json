@@ -36,11 +36,11 @@
   "mapsInfoModal": {
     "title": "Map details",
     "coverage": "Coverage",
-    "details": "Details",
+    "source": "Source",
     "resolution": "Resolution",
     "contentDate": "Content date",
     "updateFrequency": "Update frequency",
-    "source": "Source",
-    "disclaimer": "Disclaimer"
+    "reference": "Reference",
+    "considerations": "Considerations"
   }
 }

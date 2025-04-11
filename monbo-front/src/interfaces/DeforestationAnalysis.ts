@@ -5,12 +5,12 @@ export interface MapData {
   baseline: number;
   comparedAgainst: number;
   coverage: string;
-  details: string;
+  source: string;
   resolution: string;
   contentDate: string;
   updateFrequency: string;
-  source: string;
-  disclaimer: string;
+  reference: string;
+  considerations: string;
 }
 
 export interface DeforestationAnalysisMapResults {
