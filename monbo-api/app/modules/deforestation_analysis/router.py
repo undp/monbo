@@ -120,7 +120,6 @@ def analize(body: AnalizeBody):
                         loss_year_data = get_map_pixels_inside_polygon(polygon, src)
                         pixel_area = get_pixel_area(map_data)
                         deforested_percentage = get_deforestation_percentage(
-                            map_data,
                             loss_year_data,
                             get_polygon_area(polygon),
                             pixel_area,
@@ -155,7 +154,7 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     asset_path = f"app/map_assets/{map['asset']['name']}.tif"
 
     try:
-        img = get_tile(asset_path, map["asset"]["deforestation_values"], z, x, y)
+        img = get_tile(asset_path, z, x, y)
         img_io = io.BytesIO()
         img.save(img_io, format="PNG", compress_level=1)
         img_io.seek(0)

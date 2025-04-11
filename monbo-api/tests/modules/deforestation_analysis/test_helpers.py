@@ -61,14 +61,13 @@ def test_create_empty_tile():
 
 
 def test_get_deforestation_percentage_valid():
-    map_data = {"asset": {"deforestation_values": [1]}}  # Example deforestation values
     # Mock pixel data (example: 10 pixels, with 6 deforested)
     pixels = np.array([1, 0, 3, 1, 0, 2, 0, 0, 1, 3])
     pixel_area = 5  # Example area per pixel
     polygon_area = 100  # Example polygon area
 
     # Call the function
-    result = get_deforestation_percentage(map_data, pixels, polygon_area, pixel_area)
+    result = get_deforestation_percentage(pixels, polygon_area, pixel_area)
 
     # Expected: (3 deforested pixels * 5 pixel area) / 100 polygon area = 0.15 (15%)
     assert result == 0.15

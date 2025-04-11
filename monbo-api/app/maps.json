@@ -5,7 +5,6 @@
     "alias": "GFW 2020-2023",
     "asset": {
       "name": "gfw",
-      "deforestation_values": [1],
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",
@@ -24,7 +23,6 @@
     "alias": "MAATE 2020-2022",
     "asset": {
       "name": "ecuador",
-      "deforestation_values": [1],
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2022",
@@ -43,7 +41,6 @@
     "alias": "IDEAM 2020-2023",
     "asset": {
       "name": "ideam",
-      "deforestation_values": [2],
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",
@@ -62,7 +59,6 @@
     "alias": "TMF 2020-2023",
     "asset": {
       "name": "tmf_deforestation",
-      "deforestation_values": [1],
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",

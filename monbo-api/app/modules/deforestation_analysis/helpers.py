@@ -67,8 +67,8 @@ def get_pixel_area(map_data):
     return pixel_size * pixel_size  # Pixel area in square kilometers
 
 
-def get_deforestation_percentage(map_data, pixels, polygon_area, pixel_area):
-    deforested_pixels = np.isin(pixels, map_data["asset"]["deforestation_values"])
+def get_deforestation_percentage(pixels, polygon_area, pixel_area):
+    deforested_pixels = np.equal(pixels, 1)
     deforested_pixels_sum = np.sum(deforested_pixels)
     deforested_area = float(deforested_pixels_sum * pixel_area)
     return deforested_area / polygon_area
@@ -80,7 +80,7 @@ def create_empty_tile():
     return img
 
 
-def get_tile(tif_path, red_tile_values, z, x, y):
+def get_tile(tif_path, z, x, y):
     """Dynamically extract and reproject a tile (PNG) for the specified z/x/y."""
     try:
         # Open the GeoTIFF
@@ -122,9 +122,7 @@ def get_tile(tif_path, red_tile_values, z, x, y):
                     data = data.squeeze()  # Flatten single-band data
 
                 # Convert data to a binary mask (True/False)
-                mask = np.isin(data, red_tile_values).astype(
-                    np.uint8
-                )  # 1 for True, 0 for False
+                mask = np.equal(data, 1).astype(np.uint8)  # 1 for True, 0 for False
 
                 # Create an RGBA array
                 rgba_data = np.zeros((256, 256, 4), dtype=np.uint8)
