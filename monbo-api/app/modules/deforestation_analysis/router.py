@@ -113,7 +113,7 @@ def analize(body: AnalizeBody):
         farmsResults = []
         asset_name = map_data["asset"]["name"]
         try:
-            with rasterio.open(f"app/map_assets/{asset_name}.tif") as src:
+            with rasterio.open(f"app/map_assets/{asset_name}") as src:
                 for farm in farms:
                     try:
                         polygon = farm.get_polygon()
@@ -151,7 +151,7 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     if map is None:
         raise HTTPException(status_code=404, detail="Map not found")
 
-    asset_path = f"app/map_assets/{map['asset']['name']}.tif"
+    asset_path = f"app/map_assets/{map['asset']['name']}"
 
     try:
         img = get_tile(asset_path, z, x, y)

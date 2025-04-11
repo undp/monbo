@@ -4,7 +4,7 @@
     "name": "Global Forest Watch",
     "alias": "GFW 2020-2023",
     "asset": {
-      "name": "gfw",
+      "name": "gfw.tif",
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",
@@ -22,7 +22,7 @@
     "name": "Mapa de Ecuador",
     "alias": "MAATE 2020-2022",
     "asset": {
-      "name": "ecuador",
+      "name": "ecuador.tif",
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2022",
@@ -40,7 +40,7 @@
     "name": "Mapa de Colombia",
     "alias": "IDEAM 2020-2023",
     "asset": {
-      "name": "ideam",
+      "name": "ideam.tif",
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",
@@ -58,7 +58,7 @@
     "name": "Tropical Moist Forests",
     "alias": "TMF 2020-2023",
     "asset": {
-      "name": "tmf_deforestation",
+      "name": "tmf.tif",
       "pixel_size": 30,
       "baseline": "2020",
       "compared_against": "2023",
