@@ -30,20 +30,18 @@ El archivo `maps.json` contiene un listado de objetos JSON, cada uno representan
   "id": 0,
   "name": "Global Forest Watch",
   "alias": "GFW 2020-2023",
-  "asset": {
-    "name": "gfw",
-    "deforestation_values": [1],
-    "pixel_size": 30,
-    "baseline": "2020",
-    "compared_against": "2023",
-    "coverage": "Superficie terrestre global (excluyendo la Antártida y otras islas del Ártico)",
-    "details": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
-    "resolution": "30 x 30 metros",
-    "contentDate": "Cambio forestal mundial entre 2000 y 2023",
-    "updateFrequency": "Anual",
-    "source": "https://glad.earthengine.app/view/global-forest-change",
-    "disclaimer": "TBD"
-  }
+  "asset_name": "gfw",
+  "deforestation_values": [1],
+  "pixel_size": 30,
+  "baseline": "2020",
+  "compared_against": "2023",
+  "coverage": "Superficie terrestre global (excluyendo la Antártida y otras islas del Ártico)",
+  "details": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
+  "resolution": "30 x 30 metros",
+  "contentDate": "Cambio forestal mundial entre 2000 y 2023",
+  "updateFrequency": "Anual",
+  "source": "https://glad.earthengine.app/view/global-forest-change",
+  "disclaimer": "TBD"
 }
 ```
 
@@ -52,19 +50,18 @@ El archivo `maps.json` contiene un listado de objetos JSON, cada uno representan
 - **id**: Identificador único de la capa.
 - **name**: Nombre completo de la capa.
 - **alias**: Nombre corto o referencia.
-- **asset**: Información detallada:
-  - **name**: Nombre interno del archivo `.tiff` (sin extensión).
-  - **deforestation_values**: Lista de valores que indican deforestación en el raster.
-  - **pixel_size**: Tamaño del pixel (en metros).
-  - **baseline**: Año base para comparación.
-  - **compared_against**: Año final de comparación.
-  - **coverage**: Cobertura geográfica de la capa.
-  - **details**: Descripción detallada de la fuente.
-  - **resolution**: Resolución espacial.
-  - **contentDate**: Período cubierto por los datos.
-  - **updateFrequency**: Frecuencia de actualización.
-  - **source**: URL de referencia.
-  - **disclaimer**: Aviso legal o términos de uso.
+- **asset_name**: Nombre interno del archivo `.tiff` (con extensión).
+- **deforestation_values**: Lista de valores que indican deforestación en el raster.
+- **pixel_size**: Tamaño del pixel (en metros).
+- **baseline**: Año base para comparación.
+- **compared_against**: Año final de comparación.
+- **coverage**: Cobertura geográfica de la capa.
+- **details**: Descripción detallada de la fuente.
+- **resolution**: Resolución espacial.
+- **contentDate**: Período cubierto por los datos.
+- **updateFrequency**: Frecuencia de actualización.
+- **source**: URL de referencia.
+- **disclaimer**: Aviso legal o términos de uso.
 
 ## Agregar una Nueva Capa
 

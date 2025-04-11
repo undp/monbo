@@ -63,7 +63,7 @@ def get_map_pixels_inside_polygon(polygon, map_asset):
 
 
 def get_pixel_area(map_data):
-    pixel_size = map_data["asset"]["pixel_size"]  # Pixel size in meters
+    pixel_size = map_data["pixel_size"]  # Pixel size in meters
     return pixel_size * pixel_size  # Pixel area in square kilometers
 
 

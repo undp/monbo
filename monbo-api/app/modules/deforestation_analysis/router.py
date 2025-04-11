@@ -47,15 +47,15 @@ def get_maps():
                 id=x["id"],
                 name=x["name"],
                 alias=x["alias"],
-                baseline=int(x["asset"]["baseline"]),
-                comparedAgainst=int(x["asset"]["compared_against"]),
-                coverage=x["asset"]["coverage"],
-                details=x["asset"]["details"],
-                resolution=x["asset"]["resolution"],
-                contentDate=x["asset"]["contentDate"],
-                updateFrequency=x["asset"]["updateFrequency"],
-                source=x["asset"]["source"],
-                disclaimer=x["asset"]["disclaimer"],
+                baseline=int(x["baseline"]),
+                comparedAgainst=int(x["compared_against"]),
+                coverage=x["coverage"],
+                details=x["details"],
+                resolution=x["resolution"],
+                contentDate=x["contentDate"],
+                updateFrequency=x["updateFrequency"],
+                source=x["source"],
+                disclaimer=x["disclaimer"],
             ),
             maps,
         )
@@ -111,7 +111,7 @@ def analize(body: AnalizeBody):
 
     for map_data in requested_maps:
         farmsResults = []
-        asset_name = map_data["asset"]["name"]
+        asset_name = map_data["asset_name"]
         try:
             with rasterio.open(f"app/map_assets/{asset_name}") as src:
                 for farm in farms:
