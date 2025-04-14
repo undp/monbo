@@ -17,4 +17,4 @@ class BaseMapData(BaseModel):
 
 
 class MapData(BaseMapData):
-    asset_name: str
+    raster_filename: str

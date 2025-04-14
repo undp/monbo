@@ -98,12 +98,12 @@ def test_analize(
         {
             "id": 1,
             "name": "Deforestation Map A",
-            "asset": {"name": "deforestation_map_a"},
+            "raster_filename": "deforestation_map_a",
         },
         {
             "id": 2,
             "name": "Deforestation Map B",
-            "asset": {"name": "deforestation_map_b"},
+            "raster_filename": "deforestation_map_b",
         },
     ]
 
@@ -174,7 +174,7 @@ def test_serve_tile(mock_get_tile, mock_get_map_by_id):
     mock_get_map_by_id.return_value = {
         "id": 1,
         "name": "Deforestation Map A",
-        "asset": {"name": "deforestation_map_a", "deforestation_values": [2020, 2021]},
+        "raster_filename": "deforestation_map_a",
     }
     mock_get_tile.side_effect = lambda a, b, c, d, e: Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)

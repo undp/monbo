@@ -1,0 +1,9 @@
+{
+  "name": "Map of Ecuador",
+  "alias": "MAATE 2020-2022",
+  "coverage": "Ecuador",
+  "source": "Map developed by the Ministry of Environment, Water and Ecological Transition of Ecuador (MAATE)",
+  "resolution": "30 x 30 meters",
+  "contentDate": "Forest change between 2020 and 2022",
+  "updateFrequency": "Biannual"
+}

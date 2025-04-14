@@ -1,0 +1,9 @@
+{
+  "name": "IDEAM Forest Cover Change Map",
+  "alias": "IDEAM 2020-2023",
+  "coverage": "Colombia",
+  "source": "Map produced by the Institute of Hydrology, Meteorology and Environmental Studies (IDEAM) of Colombia",
+  "resolution": "30 x 30 meters",
+  "contentDate": "Data between 1990 and 2023",
+  "updateFrequency": "Annual (January to December)"
+}

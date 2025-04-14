@@ -50,7 +50,7 @@ def test_get_map_by_id(mock_get_all_maps):
 
 
 def test_get_pixel_area():
-    map_data = {"asset": {"pixel_size": 10}}
+    map_data = {"pixel_size": 10}
     response = get_pixel_area(map_data)
     assert response == 100
 

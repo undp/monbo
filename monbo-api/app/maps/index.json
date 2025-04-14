@@ -1,0 +1,42 @@
+[
+  {
+    "id": 0,
+    "raster_filename": "gfw.tif",
+    "attributes_filename": "gfw.json",
+    "considerations_filename": "gfw.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2023",
+    "reference": "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;"
+  },
+  {
+    "id": 1,
+    "raster_filename": "ecuador.tif",
+    "attributes_filename": "ecuador.json",
+    "considerations_filename": "ecuador.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2022",
+    "reference": "http://ide.ambiente.gob.ec/mapainteractivo"
+  },
+  {
+    "id": 2,
+    "raster_filename": "ideam.tif",
+    "attributes_filename": "ideam.json",
+    "considerations_filename": "ideam.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2023",
+    "reference": "https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Geoservicios-Institucionales"
+  },
+  {
+    "id": 3,
+    "raster_filename": "tmf.tif",
+    "attributes_filename": "tmf.json",
+    "considerations_filename": "tmf.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2023",
+    "reference": "https://forobs.jrc.ec.europa.eu/TMF"
+  }
+]

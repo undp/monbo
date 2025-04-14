@@ -21,65 +21,63 @@ import rasterio
 from app.utils.polygons import (
     get_polygon_area,
 )
+from app.utils.maps import read_attributes, read_considerations
+
 
 router = APIRouter()
 
 
 @router.get("/get-maps", response_model=list[BaseMapData])
-def get_maps():
+def get_maps(language: str = "en"):
     """
-    Retrieve a list of maps with specific attributes.
+    Retrieve a list of maps with their metadata and attributes.
 
-    This function reads a JSON file containing map data and returns a list of maps,
-    each represented by a BaseMapData object with the following attributes:
-    - id: The unique identifier of the map.
-    - name: The name of the map.
-    - alias: An alias for the map.
+    This endpoint reads the maps index file and their corresponding metadata files to return
+    detailed information about each available map layer.
+
+    Args:
+        language (str, optional): Language code for the metadata. Defaults to "en".
 
     Returns:
-        list[BaseMapData]: A list of BaseMapData objects containing the 'id', 'name', and 'alias' of each map.
+        list[BaseMapData]: A list of maps with the following attributes:
+        - id: Unique identifier for the map layer
+        - name: Complete name of the layer (e.g., "Global Forest Watch")
+        - alias: Short name or reference (e.g., "GFW 2020-2023")
+        - baseline: Base year for comparison
+        - comparedAgainst: Final year for comparison
+        - coverage: Geographic coverage of the layer
+        - source: Origin of the layer data
+        - resolution: Spatial resolution (e.g., "30 x 30 meters")
+        - contentDate: Period covered by the data
+        - updateFrequency: How often the data is updated
+        - reference: Reference URL for the data source
+        - considerations: Special considerations and notes about the layer (in Markdown format)
     """
     maps = get_all_maps()
 
-    return list(
-        map(
-            lambda x: BaseMapData(
-                id=x["id"],
-                name=x["name"],
-                alias=x["alias"],
-                baseline=int(x["baseline"]),
-                comparedAgainst=int(x["compared_against"]),
-                coverage=x["coverage"],
-                source=x["source"],
-                resolution=x["resolution"],
-                contentDate=x["contentDate"],
-                updateFrequency=x["updateFrequency"],
-                reference=x["reference"],
-                considerations=x["considerations"],
-            ),
-            maps,
+    parsed_maps = []
+    for map in maps:
+        attributes_dict = read_attributes(map["attributes_filename"], language)
+        considerations_text = read_considerations(map["considerations_filename"], language)
+
+        parsed_maps.append(
+            BaseMapData(
+                id=map["id"],
+                name=attributes_dict.get("name") if attributes_dict else None,
+                alias=attributes_dict.get("alias") if attributes_dict else None,
+                baseline=int(map["baseline"]) if map["baseline"] else None,
+                comparedAgainst=int(map["compared_against"]) if map["compared_against"] else None,
+                coverage=attributes_dict.get("coverage") if attributes_dict else None,
+                source=attributes_dict.get("source") if attributes_dict else None,
+                resolution=attributes_dict.get("resolution") if attributes_dict else None,
+                contentDate=attributes_dict.get("contentDate") if attributes_dict else None,
+                updateFrequency=attributes_dict.get("updateFrequency") if attributes_dict else None,
+                reference=map.get("reference"),
+                considerations=considerations_text,
+            )
         )
-    )
 
-
-@router.get("/get-maps/{mapId}")
-def get_map(mapId: int):
-    """
-    Retrieve a map by its ID.
-    Args:
-        mapId (int): The ID of the map to retrieve.
-    Returns:
-        dict: The map data corresponding to the provided ID.
-    Raises:
-        HTTPException: If no map with the given ID is found.
-    This endpoint reads from a JSON file containing map data and returns the map
-    that matches the provided ID. If no such map is found, a 404 HTTP exception
-    is raised with the message "Map not found".
-    """
-    requested_map = get_map_by_id(mapId)
-    if requested_map is None:
-        raise HTTPException(status_code=404, detail="Map not found")
-    return requested_map
+    return parsed_maps
 
 
 @router.post("/parse-farms", response_model=list[FarmData])
@@ -111,9 +109,8 @@ def analize(body: AnalizeBody):
 
     for map_data in requested_maps:
         farmsResults = []
-        asset_name = map_data["asset_name"]
         try:
-            with rasterio.open(f"app/map_assets/{asset_name}") as src:
+            with rasterio.open(f"app/maps/layers/rasters/{map_data['raster_filename']}") as src:
                 for farm in farms:
                     try:
                         polygon = farm.get_polygon()
@@ -151,7 +148,7 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     if map is None:
         raise HTTPException(status_code=404, detail="Map not found")
 
-    asset_path = f"app/map_assets/{map['asset']['name']}"
+    asset_path = f"app/maps/layers/rasters/{map['raster_filename']}"
 
     try:
         img = get_tile(asset_path, z, x, y)

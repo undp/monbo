@@ -7,12 +7,20 @@ This is the backend API for Monbo, built with FastAPI, a modern web framework fo
 ```
 monbo-api/
 ├── app/
-│  ├── map_assets/  # Map assets (.tiff)
+│  ├── maps/
+│  │   ├── index.json  # Map index with metadata
+│  │   ├── layers/rasters/  # Map assets (.tiff)
+│  │   ├── metadata/
+│  │   │   ├── attributes/  # Map attributes
+│  │   │   │   ├── en/  # English attributes
+│  │   │   │   └── es/  # Spanish attributes
+│  │   │   └── considerations/  # Map considerations
+│  │   │       ├── en/  # English considerations
+│  │   │       └── es/  # Spanish considerations
 │  ├── models/  # Request and response models
 │  ├── modules/  # Route handlers for the application, organized by feature
 │  ├── utils/  # Utility functions
 │  ├── main.py  # FastAPI application entry point
-│  └── maps.json  # Maps metadata
 ├── tests/  # Additional test cases
 ├── requirements.txt  # Python dependencies
 ├── package.json  # Node.js package file to manage commands

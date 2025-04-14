@@ -23,7 +23,7 @@ def get_all_maps() -> list[dict]:
     Returns:
         list[dict]: A list of dictionaries containing the 'id', 'name', and 'alias' of each map.
     """
-    maps = read_json_file("app/maps.json")
+    maps = read_json_file("app/maps/index.json")
     if maps is None:
         raise HTTPException(status_code=500, detail="Failed to read map data")
 

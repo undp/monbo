@@ -1,0 +1,9 @@
+{
+  "name": "Tropical Moist Forests",
+  "alias": "TMF 2020-2023",
+  "coverage": "Tropical and subtropical regions of the world, with emphasis on Latin America, Africa and Southeast Asia",
+  "source": "TBD",
+  "resolution": "30 x 30 meters (corresponding to Landsat resolution)",
+  "contentDate": "Data between 1990 and 2023",
+  "updateFrequency": "Generally updated every 1-2 years, depending on Landsat imagery availability"
+}

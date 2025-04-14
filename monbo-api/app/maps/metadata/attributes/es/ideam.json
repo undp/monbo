@@ -1,0 +1,9 @@
+{
+  "name": "Mapa de cambio superficie de bosque IDEAM",
+  "alias": "IDEAM 2020-2023",
+  "coverage": "Colombia",
+  "source": "Mapa elaborado por el Instituto de Hidrología, Meteorología y Estudios Ambientales (IDEAM) de Colombia",
+  "resolution": "30 x 30 metros",
+  "contentDate": "Datos entre 1990 y 2023",
+  "updateFrequency": "Anual (enero a diciembre)"
+}

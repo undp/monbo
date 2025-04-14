@@ -1,0 +1,9 @@
+{
+  "name": "Global Forest Watch",
+  "alias": "GFW 2020-2023",
+  "coverage": "Global land surface (excluding Antarctica and other Arctic islands)",
+  "source": "Global Forest Watch, in collaboration with NASA, University of Maryland and Google",
+  "resolution": "30 x 30 meters",
+  "contentDate": "Data between 2000 and 2023",
+  "updateFrequency": "Annual"
+}
