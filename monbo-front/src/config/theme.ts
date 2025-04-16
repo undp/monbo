@@ -27,8 +27,18 @@ const theme = createTheme({
   },
 });
 
-export const baseMapColor = "#FFEB3B";
+export const baseMapColor = "#FFFF33";
 export const issueMapColor = "#E2231A";
-export const multipleObjectsMapColors = [baseMapColor, "#9747FF"];
+export const multipleObjectsMapColors = [
+  baseMapColor,
+  "#FF33CC",
+  "#00FFFF",
+  "#FF9900",
+  "#0084FF",
+  "#33FF57",
+  "#E6E6E6",
+  "#CC33FF",
+  "#1CC83A",
+];
 
 export default theme;
