@@ -14,6 +14,12 @@ import {
 import { flatten } from "lodash";
 import { styles } from "./deforestationReport/styles";
 
+export interface DeforestationReportImage {
+  mapId: number;
+  farmId: string;
+  url: string | null;
+}
+
 // Register Roboto font
 Font.register({
   family: "Roboto",
@@ -46,17 +52,21 @@ export const DeforestationReportDocument = ({
   farmsData,
   deforestationAnalysisResults,
   mapsData,
+  images,
   t,
   language,
+  onRender,
 }: {
   farmsData: FarmData[];
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
   mapsData: MapData[];
+  images: DeforestationReportImage[];
   t: TFunction;
   language?: string;
+  onRender?: () => void;
 }) => {
   return (
-    <Document style={styles.document}>
+    <Document style={styles.document} onRender={onRender}>
       {/* COVER PAGE */}
       <CoverPage farmsData={farmsData} t={t} language={language} />
 
@@ -80,6 +90,11 @@ export const DeforestationReportDocument = ({
               document.name = null as unknown as string;
             });
 
+            const imageBlobUrl =
+              images.find(
+                (i) => i.mapId === mapResults.mapId && i.farmId === farm.id
+              )?.url ?? null;
+
             return (
               <FarmMapPage
                 key={`${farm.id}-${mapResults.mapId}`}
@@ -88,6 +103,7 @@ export const DeforestationReportDocument = ({
                 result={farmMapResult}
                 t={t}
                 language={language}
+                imageBlobUrl={imageBlobUrl}
               />
             );
           })

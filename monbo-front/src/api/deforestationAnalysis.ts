@@ -2,6 +2,7 @@ import {
   GET_MAPS_URL,
   DEFORESTATION_ANALYSIS_URL,
   DEFORESTATION_ANALYSIS_PARSER_URL,
+  DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL,
 } from "@/config/env";
 import {
   DeforestationAnalysisMapResults,
@@ -9,6 +10,7 @@ import {
 } from "@/interfaces/DeforestationAnalysis";
 import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
+import { GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
 
 export const getMaps = async (): Promise<MapData[]> => {
   const response = await fetch(GET_MAPS_URL);
@@ -60,4 +62,25 @@ export const analizeDeforestation = async (
   }
 
   return response.json();
+};
+
+export const generatePolygonDeforestationImage = async (
+  mapId: number,
+  feature: GeoJsonFeature
+): Promise<Blob> => {
+  const response = await fetch(DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mapId,
+      feature,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Error on generate polygon deforestation image");
+  }
+
+  return response.blob();
 };

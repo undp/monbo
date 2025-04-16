@@ -1,4 +1,5 @@
 from app.utils.json import read_json_file
+import os
 
 
 def read_attributes(filename: str, language: str) -> dict | None:
@@ -18,3 +19,10 @@ def read_considerations(filename: str, language: str) -> str | None:
     except Exception as e:
         print(f"Cannot read Considerations file at '{filepath}': {e}")
         return None
+
+
+def get_map_raster_path(raster_filename: str) -> str:
+    filepath = f"app/maps/layers/rasters/{raster_filename}"
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Raster file not found at '{filepath}'")
+    return filepath
