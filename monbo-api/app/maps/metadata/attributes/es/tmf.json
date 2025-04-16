@@ -2,7 +2,7 @@
   "name": "Tropical Moist Forests",
   "alias": "TMF 2020-2023",
   "coverage": "Regiones tropicales y subtropicales del mundo, con énfasis en América Latina, África y el sudeste asiático",
-  "source": "TBD",
+  "source": "Mapa global que identifica bosques húmedos tropicales y su cambio en el tiempo, gracias al análisis de imágenes satelitales con algoritmos de detección de cambios en la cobertura forestal. Desarrollado por European Commission's Joint Research Centre.",
   "resolution": "30 x 30 metros (correspondiente a la resolución de Landsat)",
   "contentDate": "Datos entre 1990 y 2023",
   "updateFrequency": "Generalmente actualizado cada 1-2 años, dependiendo de la disponibilidad de imágenes Landsat"
