@@ -33,7 +33,8 @@ const colorByCritically: Record<
 const dataParser = (
   data: InconsistentPolygonData[],
   farmsData: FarmData[],
-  polygonsValidationResults: ValidateFarmsResponse
+  polygonsValidationResults: ValidateFarmsResponse,
+  hasTheSameProductionUnit: boolean
 ): RowData<InconsistentPolygonData>[] => {
   const rows = flatMap(data, (item) =>
     item.farmIds.map((farmId, idx) => {
@@ -71,7 +72,11 @@ const dataParser = (
           id: { value: farmId },
           producer: { value: farm.producer },
           cropType: { value: farm.cropType },
-          production: { value: farm.production },
+          production: {
+            value: hasTheSameProductionUnit
+              ? farm.production
+              : `${farm.production} ${farm.productionQuantityUnit}`,
+          },
           ...(idx === 0
             ? {
                 overlapPercentage: {
@@ -126,6 +131,15 @@ export const InconsistentFarmsTable: React.FC = () => {
 
   const { t } = useTranslation();
   const [sortedBy, setSortedBy] = useSortedTable();
+
+  const hasTheSameProductionUnit = useMemo(
+    () =>
+      farmsData?.every(
+        (farm) =>
+          farm.productionQuantityUnit === farmsData?.[0].productionQuantityUnit
+      ) ?? false,
+    [farmsData]
+  );
 
   const inconsistencies = useMemo(
     () =>
@@ -230,7 +244,11 @@ export const InconsistentFarmsTable: React.FC = () => {
             type: "label",
           },
           {
-            name: t("common:tableColumns:production"),
+            name: hasTheSameProductionUnit
+              ? `${t("common:tableColumns:production")} (${
+                  farmsData?.[0].productionQuantityUnit
+                })`
+              : t("common:tableColumns:production"),
             attr: "production",
             type: "label",
             columnStyle: { textAlign: "right" },
@@ -254,7 +272,8 @@ export const InconsistentFarmsTable: React.FC = () => {
         rows={dataParser(
           sortedPolygons,
           farmsData ?? [],
-          polygonsValidationResults!
+          polygonsValidationResults!,
+          hasTheSameProductionUnit
         )}
         onRowClick={(row) => {
           setSelectedPolygon(row);

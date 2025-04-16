@@ -32,7 +32,7 @@
     "type": "Tipo",
     "producer": "Productor",
     "cropType": "Tipo cultivo",
-    "production": "Producción (q)",
+    "production": "Producción",
     "overlap": "Traslape",
     "overlapArea": "Área traslapada (ha)"
   },

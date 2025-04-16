@@ -23,7 +23,8 @@ import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
 
 const dataParser = (
   data: FarmData[],
-  polygonsValidationResults: ValidateFarmsResponse
+  polygonsValidationResults: ValidateFarmsResponse,
+  hasTheSameProductionUnit: boolean
 ): RowData<FarmData>[] => {
   return data.map((farm) => {
     const isValidManually =
@@ -45,7 +46,9 @@ const dataParser = (
         producer: { value: farm.producer },
         cropType: { value: farm.cropType },
         production: {
-          value: farm.production,
+          value: hasTheSameProductionUnit
+            ? farm.production
+            : `${farm.production} ${farm.productionQuantityUnit}`,
           cellStyle: { paddingRight: "calc(5% + 26px)" },
         },
       },
@@ -67,6 +70,16 @@ export const ValidFarmsTable: React.FC = () => {
   const { t } = useTranslation();
 
   const [sortedBy, setSortedBy] = useSortedTable();
+
+  const hasTheSameProductionUnit = useMemo(
+    () =>
+      validFarmsData?.every(
+        (farm) =>
+          farm.productionQuantityUnit ===
+          validFarmsData[0].productionQuantityUnit
+      ) ?? false,
+    [validFarmsData]
+  );
 
   useEffect(() => {
     if (!validFarmsData) {
@@ -96,6 +109,8 @@ export const ValidFarmsTable: React.FC = () => {
           id: allIdsAreNumbers ? Number(item.id) : item.id,
           producer: removeDiacritics(item.producer),
           _producer: item.producer,
+          production: Number(item.production.toString().split(" ")[0]),
+          _production: item.production,
         };
       }),
       sortedBy.attr,
@@ -105,6 +120,7 @@ export const ValidFarmsTable: React.FC = () => {
       ...item,
       id: String(item.id),
       producer: item._producer,
+      production: item._production,
     }));
   }, [filteredPolygons, sortedBy]);
 
@@ -156,7 +172,11 @@ export const ValidFarmsTable: React.FC = () => {
             sortable: true,
           },
           {
-            name: t("common:tableColumns:production"),
+            name: hasTheSameProductionUnit
+              ? `${t("common:tableColumns:production")} (${
+                  validFarmsData?.[0].productionQuantityUnit
+                })`
+              : t("common:tableColumns:production"),
             attr: "production",
             type: "label",
             sortable: true,
@@ -164,7 +184,11 @@ export const ValidFarmsTable: React.FC = () => {
           },
         ]}
         headerStyle={{ backgroundColor: "#fff" }}
-        rows={dataParser(sortedPolygons, polygonsValidationResults!)}
+        rows={dataParser(
+          sortedPolygons,
+          polygonsValidationResults!,
+          hasTheSameProductionUnit
+        )}
         onRowClick={(item) => {
           setIsModalOpen(true);
           setSelectedFarm(item);
