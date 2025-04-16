@@ -12,7 +12,7 @@ class BaseMapData(BaseModel):
     resolution: str | None
     contentDate: str | None
     updateFrequency: str | None
-    reference: str | None
+    references: list[str]
     considerations: str | None
 
 

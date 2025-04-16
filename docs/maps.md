@@ -21,7 +21,9 @@ El archivo `app/maps/index.json` contiene un listado de objetos JSON, cada uno r
     "pixel_size": 30,
     "baseline": "2020",
     "compared_against": "2023",
-    "reference": "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;"
+    "references": [
+      "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;"
+    ]
   }
 ]
 ```
@@ -35,7 +37,7 @@ El archivo `app/maps/index.json` contiene un listado de objetos JSON, cada uno r
 - **pixel_size**: Tamaño del pixel (en metros).
 - **baseline**: Año base para comparación.
 - **compared_against**: Año final de comparación.
-- **reference**: URL de referencia.
+- **references**: URLs de referencia.
 
 ## Estructura de los archivos de metadatos
 

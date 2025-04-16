@@ -39,7 +39,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
     "resolution",
     "contentDate",
     "updateFrequency",
-    "reference",
+    "references",
     "considerations",
   ] as (keyof MapData)[];
 
@@ -105,18 +105,38 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
               <DetailItem
                 key={keyword}
                 label={t(`deforestationAnalysis:mapsInfoModal.${keyword}`)}
-                isMarkdown={keyword === "considerations"}
+                typographyComponent={
+                  keyword === "considerations" || keyword === "references"
+                    ? "div"
+                    : "p"
+                }
                 value={
-                  keyword === "reference" ? (
-                    selectedMap[keyword] ? (
-                      <Link
-                        href={selectedMap[keyword] as string}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ wordBreak: "break-word" }}
-                      >
-                        {selectedMap[keyword]}
-                      </Link>
+                  keyword === "references" ? (
+                    selectedMap[keyword].length > 0 ? (
+                      <Box>
+                        {selectedMap[keyword].map(
+                          (reference: string, index: number) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                mb:
+                                  index < selectedMap[keyword].length - 1
+                                    ? 1
+                                    : 0,
+                              }}
+                            >
+                              <Link
+                                href={reference}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{ wordBreak: "break-word" }}
+                              >
+                                {reference}
+                              </Link>
+                            </Box>
+                          )
+                        )}
+                      </Box>
                     ) : (
                       t("common:na")
                     )
@@ -164,13 +184,13 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
 interface DetailItemProps {
   label: string;
   value: React.ReactNode;
-  isMarkdown?: boolean;
+  typographyComponent?: "p" | "div";
 }
 
 const DetailItem: React.FC<DetailItemProps> = ({
   label,
   value,
-  isMarkdown,
+  typographyComponent = "p",
 }) => (
   <Grid container spacing={2}>
     <Grid size={3}>
@@ -186,7 +206,7 @@ const DetailItem: React.FC<DetailItemProps> = ({
     <Grid size={9}>
       <Typography
         variant="body2"
-        component={isMarkdown ? "div" : "p"}
+        component={typographyComponent}
         sx={{
           wordBreak: "break-word",
         }}

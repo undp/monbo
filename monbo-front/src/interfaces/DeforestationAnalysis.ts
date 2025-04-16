@@ -9,7 +9,7 @@ export interface MapData {
   resolution: string;
   contentDate: string;
   updateFrequency: string;
-  reference: string;
+  references: string[];
   considerations: string;
 }
 
