@@ -9,6 +9,7 @@ export interface MapData {
   resolution: string;
   contentDate: string;
   updateFrequency: string;
+  publishDate: string;
   references: string[];
   considerations: string;
 }

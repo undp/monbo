@@ -5,5 +5,6 @@
   "source": "Map produced by the Institute of Hydrology, Meteorology and Environmental Studies (IDEAM) of Colombia",
   "resolution": "30 x 30 meters",
   "contentDate": "Data between 1990 and 2023",
-  "updateFrequency": "Annual (January to December)"
+  "updateFrequency": "Annual (January to December)",
+  "publishDate": "June-July of the following year, approximately"
 }

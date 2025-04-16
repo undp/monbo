@@ -48,6 +48,7 @@ def get_maps(language: str = "en"):
         - resolution: Spatial resolution (e.g., "30 x 30 meters")
         - contentDate: Period covered by the data
         - updateFrequency: How often the data is updated
+        - publishDate: When the map data was published/released
         - references: Reference URLs for the data source
         - considerations: Special considerations and notes about the layer
           (in Markdown format)
@@ -80,6 +81,9 @@ def get_maps(language: str = "en"):
                 ),
                 updateFrequency=(
                     attributes_dict.get("updateFrequency") if attributes_dict else None
+                ),
+                publishDate=(
+                    attributes_dict.get("publishDate") if attributes_dict else None
                 ),
                 references=map.get("references", []),
                 considerations=considerations_text,

@@ -5,5 +5,6 @@
   "source": "Global map that identifies tropical moist forests and it's change over time, thanks to the analysis of satellite images with algorithms for detecting changes in forest cover. Developed by European Commission's Joint Research Centre.",
   "resolution": "30 x 30 meters (corresponding to Landsat resolution)",
   "contentDate": "Data between 1990 and 2023",
-  "updateFrequency": "Generally updated every 1-2 years, depending on Landsat imagery availability"
+  "updateFrequency": "Generally updated every 1-2 years, depending on Landsat imagery availability",
+  "publishDate": null
 }

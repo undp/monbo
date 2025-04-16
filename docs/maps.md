@@ -53,7 +53,8 @@ En los archivos `app/maps/metadata/attributes/<language>/*.json` se encuentran l
   "source": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
   "resolution": "30 x 30 metros",
   "contentDate": "Datos entre 2000 y 2023",
-  "updateFrequency": "Anual"
+  "updateFrequency": "Anual",
+  "publishDate": "Enero 2024"
 }
 ```
 
@@ -66,6 +67,7 @@ En los archivos `app/maps/metadata/attributes/<language>/*.json` se encuentran l
 - **resolution**: Resolución espacial.
 - **contentDate**: Período cubierto por los datos.
 - **updateFrequency**: Frecuencia de actualización.
+- **publishDate**: Fecha de publicación o lanzamiento de la capa.
 
 ### Consideraciones de la capa
 

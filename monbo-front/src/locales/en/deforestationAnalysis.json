@@ -40,6 +40,7 @@
     "resolution": "Resolution",
     "contentDate": "Content date",
     "updateFrequency": "Update frequency",
+    "publishDate": "Publication date",
     "references": "References",
     "considerations": "Considerations"
   }

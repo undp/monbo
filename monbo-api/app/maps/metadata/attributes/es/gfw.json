@@ -5,5 +5,6 @@
   "source": "Global Forest Watch, en colaboración con Nasa, Universidad de Maryland y Google",
   "resolution": "30 x 30 metros",
   "contentDate": "Datos entre 2000 y 2023",
-  "updateFrequency": "Anual"
+  "updateFrequency": "Anual",
+  "publishDate": null
 }

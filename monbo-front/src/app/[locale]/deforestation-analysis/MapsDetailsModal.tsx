@@ -39,6 +39,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
     "resolution",
     "contentDate",
     "updateFrequency",
+    "publishDate",
     "references",
     "considerations",
   ] as (keyof MapData)[];
