@@ -1,21 +1,22 @@
+from io import BytesIO
+
+import numpy as np
+import requests
 from app.config.env import GOOGLE_SERVICE_API_KEY
 from fastapi import APIRouter
-from io import BytesIO
-from rasterio import open as rasterio_open
-from rasterio.vrt import WarpedVRT
-from rasterio.enums import Resampling
-import numpy as np
-from shapely.geometry import shape
 from PIL import Image, ImageDraw
 from pyproj import Transformer
-import requests
-
+from rasterio import open as rasterio_open
+from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
+from shapely.geometry import shape
 
 router = APIRouter()
 
 
 class NoRasterDataOverlapError(Exception):
     """Raised when the requested polygon doesn't overlap with the map's raster data"""
+
     pass
 
 
@@ -31,9 +32,11 @@ def get_google_maps_satellite_image(center, zoom, size=(500, 500)):
     # Check if the request was successful
     if response.status_code != 200:
         print(f"Error from Google Maps API: Status {response.status_code}")
-        print(f"Response content: {response.text[:200]}...")  # Print first 200 chars of response
+        print(
+            f"Response content: {response.text[:200]}..."
+        )  # Print first 200 chars of response
         # Return a fallback image
-        return Image.new('RGB', size, color=(0, 0, 0))
+        return Image.new("RGB", size, color=(0, 0, 0))
 
     try:
         # Open the image
@@ -43,7 +46,7 @@ def get_google_maps_satellite_image(center, zoom, size=(500, 500)):
         print(f"Failed to process image: {e}")
         print(f"Response headers: {response.headers}")
         # Return a fallback image
-        return Image.new('RGB', size, color=(0, 0, 0))
+        return Image.new("RGB", size, color=(0, 0, 0))
 
 
 def calculate_polygon_bounds(geom):
@@ -63,15 +66,19 @@ def calculate_polygon_center(geom):
     return center_lon, center_lat
 
 
-def generate_deforestation_image(geom, tif_path, output_size=(500, 500), padding_ratio=0.5):
+def generate_deforestation_image(
+    geom, tif_path, output_size=(500, 500), padding_ratio=0.5
+):
     with rasterio_open(tif_path) as src:
         with WarpedVRT(src, crs="EPSG:3857") as vrt:
             # Reproject polygon to EPSG:3857
             transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
             # In GeoJSON, coordinates are [longitude, latitude]
-            reprojected_coords = [transformer.transform(lon, lat) for lon, lat in geom.exterior.coords]
-            geom_proj = shape({'type': 'Polygon', 'coordinates': [reprojected_coords]})
+            reprojected_coords = [
+                transformer.transform(lon, lat) for lon, lat in geom.exterior.coords
+            ]
+            geom_proj = shape({"type": "Polygon", "coordinates": [reprojected_coords]})
 
             # Calculate padded bounds
             minx, miny, maxx, maxy = geom_proj.bounds
@@ -83,16 +90,26 @@ def generate_deforestation_image(geom, tif_path, output_size=(500, 500), padding
 
             # Check if the window intersects with the VRT's bounds
             vrt_bounds = vrt.bounds
-            if ((padded_bounds[0] > vrt_bounds[2]) or
-                    (padded_bounds[2] < vrt_bounds[0]) or
-                    (padded_bounds[1] > vrt_bounds[3]) or
-                    (padded_bounds[3] < vrt_bounds[1])):
-                raise NoRasterDataOverlapError("The requested polygon does not overlap with the requested map's raster data")
+            if (
+                (padded_bounds[0] > vrt_bounds[2])
+                or (padded_bounds[2] < vrt_bounds[0])
+                or (padded_bounds[1] > vrt_bounds[3])
+                or (padded_bounds[3] < vrt_bounds[1])
+            ):
+                raise NoRasterDataOverlapError(
+                    "The requested polygon does not overlap with the requested map's \
+                        raster data"
+                )
 
             # Read the raster window
             window = vrt.window(*padded_bounds)
-            transform = vrt.window_transform(window)
-            data = vrt.read(1, window=window, out_shape=(output_size[1], output_size[0]), resampling=Resampling.nearest)
+            vrt.window_transform(window)
+            data = vrt.read(
+                1,
+                window=window,
+                out_shape=(output_size[1], output_size[0]),
+                resampling=Resampling.nearest,
+            )
 
             # Create deforestation mask
             color = (255, 20, 20, 180)  # RGBA
@@ -153,7 +170,9 @@ def generate_satellite_image(geom, output_size, zoom_level):
     # Google Maps API expects (lat, lon) format for center
     center_lon, center_lat = calculate_polygon_center(geom)
     google_center = [center_lat, center_lon]
-    satellite_img = get_google_maps_satellite_image(google_center, zoom=zoom_level, size=output_size)
+    satellite_img = get_google_maps_satellite_image(
+        google_center, zoom=zoom_level, size=output_size
+    )
     return satellite_img
 
 
@@ -169,7 +188,7 @@ def generate_polygon_image(geom, output_size, zoom_level):
     center_lon, center_lat = calculate_polygon_center(geom)
 
     # Create a transparent overlay for the polygon
-    overlay = Image.new('RGBA', output_size, (0, 0, 0, 0))
+    overlay = Image.new("RGBA", output_size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
     # Function to convert lat/lon to pixel coordinates in our image
@@ -177,7 +196,7 @@ def generate_polygon_image(geom, output_size, zoom_level):
         """Convert lat/lon to pixel coordinates on our Google Maps image"""
         # Google Maps uses Web Mercator projection
         # First, calculate world coordinates at this zoom level
-        world_size = 256 * (2 ** zoom_level)
+        world_size = 256 * (2**zoom_level)
 
         # Calculate normalized x/y (0-1 across the world)
         norm_x = (lon + 180) / 360
@@ -192,7 +211,9 @@ def generate_polygon_image(geom, output_size, zoom_level):
         # Calculate center of the map in world coordinates
         center_x = (center_lon + 180) / 360 * world_size
         sin_center_lat = np.sin(np.radians(center_lat))
-        center_y = (0.5 - np.log((1 + sin_center_lat) / (1 - sin_center_lat)) / (4 * np.pi)) * world_size
+        center_y = (
+            0.5 - np.log((1 + sin_center_lat) / (1 - sin_center_lat)) / (4 * np.pi)
+        ) * world_size
 
         # Calculate pixel coordinates relative to our viewport
         pixel_x = int(world_x - center_x + output_size[0] / 2)
@@ -211,14 +232,16 @@ def generate_polygon_image(geom, output_size, zoom_level):
     # Create a larger image for smoother lines
     scale_factor = 3
     large_size = (output_size[0] * scale_factor, output_size[1] * scale_factor)
-    smooth_overlay = Image.new('RGBA', large_size, (0, 0, 0, 0))
+    smooth_overlay = Image.new("RGBA", large_size, (0, 0, 0, 0))
     smooth_draw = ImageDraw.Draw(smooth_overlay)
 
     # Scale up the coordinates
     scaled_coords = [(x * scale_factor, y * scale_factor) for x, y in pixel_coords]
 
     # Draw thicker line on larger canvas
-    smooth_draw.line(scaled_coords + [scaled_coords[0]], fill=(255, 235, 59, 230), width=6)
+    smooth_draw.line(
+        scaled_coords + [scaled_coords[0]], fill=(255, 235, 59, 230), width=6
+    )
 
     # Resize back down with anti-aliasing
     smooth_overlay = smooth_overlay.resize(output_size, Image.LANCZOS)
@@ -241,7 +264,7 @@ def generate_polygon_image2(geom, output_size, zoom_level):
     center_lon, center_lat = calculate_polygon_center(geom)
 
     # Create a transparent overlay for the polygon
-    overlay = Image.new('RGBA', output_size, (0, 0, 0, 0))
+    overlay = Image.new("RGBA", output_size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
     # Function to convert lat/lon to pixel coordinates in our image
@@ -249,7 +272,7 @@ def generate_polygon_image2(geom, output_size, zoom_level):
         """Convert lat/lon to pixel coordinates on our Google Maps image"""
         # Google Maps uses Web Mercator projection
         # First, calculate world coordinates at this zoom level
-        world_size = 256 * (2 ** zoom_level)
+        world_size = 256 * (2**zoom_level)
 
         # Calculate normalized x/y (0-1 across the world)
         norm_x = (lon + 180) / 360
@@ -264,7 +287,9 @@ def generate_polygon_image2(geom, output_size, zoom_level):
         # Calculate center of the map in world coordinates
         center_x = (center_lon + 180) / 360 * world_size
         sin_center_lat = np.sin(np.radians(center_lat))
-        center_y = (0.5 - np.log((1 + sin_center_lat) / (1 - sin_center_lat)) / (4 * np.pi)) * world_size
+        center_y = (
+            0.5 - np.log((1 + sin_center_lat) / (1 - sin_center_lat)) / (4 * np.pi)
+        ) * world_size
 
         # Calculate pixel coordinates relative to our viewport
         pixel_x = int(world_x - center_x + output_size[0] / 2)
@@ -281,40 +306,47 @@ def generate_polygon_image2(geom, output_size, zoom_level):
     # ENHANCED ANTIALIASING: Create a larger super-sampled image
     scale_factor = 4  # Increased from 3 to 4 for even more smoothness
     large_size = (output_size[0] * scale_factor, output_size[1] * scale_factor)
-    smooth_overlay = Image.new('RGBA', large_size, (0, 0, 0, 0))
+    smooth_overlay = Image.new("RGBA", large_size, (0, 0, 0, 0))
     smooth_draw = ImageDraw.Draw(smooth_overlay)
 
     # Scale up the coordinates
     scaled_coords = [(x * scale_factor, y * scale_factor) for x, y in pixel_coords]
 
-    # DOUBLE-LINE TECHNIQUE: Draw two lines - a thicker one underneath and a thinner one on top
+    # DOUBLE-LINE TECHNIQUE: a thicker one underneath and a thinner one on top
     # This creates a subtle edge highlight effect
     # First, draw thicker yellow outer line
-    smooth_draw.line(scaled_coords + [scaled_coords[0]], fill=(255, 235, 59, 200), width=10)
-    
+    smooth_draw.line(
+        scaled_coords + [scaled_coords[0]], fill=(255, 235, 59, 200), width=10
+    )
+
     # Then, draw thinner brighter line on top for a subtle glow effect
-    smooth_draw.line(scaled_coords + [scaled_coords[0]], fill=(255, 245, 120, 255), width=10)
-    
+    smooth_draw.line(
+        scaled_coords + [scaled_coords[0]], fill=(255, 245, 120, 255), width=10
+    )
+
     try:
         # Import optional dependencies for additional processing
         from PIL import ImageFilter
+
         print("Applying Gaussian blur")
         # Apply slight Gaussian blur for softer edges (if ImageFilter is available)
         smooth_overlay = smooth_overlay.filter(ImageFilter.GaussianBlur(radius=0.5))
     except (ImportError, AttributeError):
         # Skip blur if not available
         pass
-        
+
     # Resize back down with high-quality anti-aliasing
     smooth_overlay = smooth_overlay.resize(output_size, Image.LANCZOS)
 
     # Combine the polygon fill and anti-aliased outline
     overlay = Image.alpha_composite(overlay, smooth_overlay)
-    
+
     return overlay
 
 
-def generate_deforestation_results_image(geojson_feature, tif_path, output_size=(500, 500), padding_ratio=0.3):
+def generate_deforestation_results_image(
+    geojson_feature, tif_path, output_size=(500, 500), padding_ratio=0.3
+):
     """
     Generate an image with a polygon overlay on a Google Maps satellite image.
     Focus on correct alignment of the polygon with the satellite imagery.
@@ -335,7 +367,7 @@ def generate_deforestation_results_image(geojson_feature, tif_path, output_size=
     polygon_img = generate_polygon_image(geom, output_size, zoom_level)
 
     # Combine the layers
-    result = Image.alpha_composite(satellite_img.convert('RGBA'), mask_img)
+    result = Image.alpha_composite(satellite_img.convert("RGBA"), mask_img)
     result = Image.alpha_composite(result, polygon_img)
 
     return result

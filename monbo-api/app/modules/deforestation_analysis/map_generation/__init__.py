@@ -1,5 +1,5 @@
-from fastapi import APIRouter
 from app.modules.deforestation_analysis.map_generation.router import router
+from fastapi import APIRouter
 
 module_router = APIRouter()
 

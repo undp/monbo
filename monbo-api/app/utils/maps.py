@@ -1,5 +1,6 @@
-from app.utils.json import read_json_file
 import os
+
+from app.utils.json import read_json_file
 
 
 def read_attributes(filename: str, language: str) -> dict | None:

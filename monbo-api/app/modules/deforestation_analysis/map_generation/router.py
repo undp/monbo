@@ -1,14 +1,14 @@
+from io import BytesIO
+
+from app.modules.deforestation_analysis.helpers import get_map_by_id
+from app.modules.deforestation_analysis.map_generation.helpers import (
+    NoRasterDataOverlapError,
+    generate_deforestation_results_image,
+)
+from app.utils.maps import get_map_raster_path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from io import BytesIO
-from app.modules.deforestation_analysis.map_generation.helpers import (
-    generate_deforestation_results_image,
-    NoRasterDataOverlapError,
-)
-from app.modules.deforestation_analysis.helpers import get_map_by_id
-from app.utils.maps import get_map_raster_path
 from pydantic import BaseModel
-
 
 router = APIRouter()
 
