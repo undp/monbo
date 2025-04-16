@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 from app.main import app
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch
 from PIL import Image
 
 client = TestClient(app)

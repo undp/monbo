@@ -1,5 +1,5 @@
-from fastapi import APIRouter
 from app.modules.polygons_validation.router import router
+from fastapi import APIRouter
 
 module_router = APIRouter()
 

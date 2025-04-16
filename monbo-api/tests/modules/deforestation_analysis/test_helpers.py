@@ -1,10 +1,8 @@
-from unittest.mock import patch, MagicMock
-from fastapi import HTTPException
+from unittest.mock import MagicMock, patch
+
 import mercantile
 import numpy as np
 import pytest
-from PIL import Image
-from shapely import Polygon
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
     get_all_maps,
@@ -14,7 +12,10 @@ from app.modules.deforestation_analysis.helpers import (
     get_pixel_area,
     get_tile,
 )
+from fastapi import HTTPException
+from PIL import Image
 from rasterio.errors import WindowError
+from shapely import Polygon
 
 
 @patch("app.modules.deforestation_analysis.helpers.read_json_file")

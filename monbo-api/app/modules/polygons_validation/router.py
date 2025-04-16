@@ -1,13 +1,13 @@
-from fastapi import APIRouter
-
 from app.models.farms import FarmData, FarmPolygon, UnprocessedFarmData
 from app.utils.farms import parse_base_information
-from .models import GetOverlappingPolygonsResponse
+from app.utils.polygons import get_polygon_area
+from fastapi import APIRouter
+
 from .helpers import (
     check_polygons_overlap,
     get_polygon_coordinates,
 )
-from app.utils.polygons import get_polygon_area
+from .models import GetOverlappingPolygonsResponse
 
 router = APIRouter()
 
@@ -24,7 +24,8 @@ def parse_farms(body: list[UnprocessedFarmData]) -> list[FarmData]:
         list[FarmData]: List of processed farm data with polygon information.
 
     Raises:
-        HTTPException: If there is an error in parsing farm coordinates or generating polygons.
+        HTTPException: If there is an error in parsing farm coordinates or
+        generating polygons.
 
     The endpoint performs the following steps:
     1. Parses the farm coordinates data for each farm in the input list.
@@ -34,7 +35,8 @@ def parse_farms(body: list[UnprocessedFarmData]) -> list[FarmData]:
     Each farm data includes:
     - Basic information such as id, producer, crop type, production details, etc.
     - Polygon type (either "polygon" or "circle").
-    - Polygon details including center coordinates, points, radius (if applicable), and area.
+    - Polygon details including center coordinates, points, radius (if applicable),
+    and area.
     """
     farm_data = []
     for farm in body:
@@ -56,8 +58,10 @@ def get_overlapping_polygons(body: list[FarmPolygon]) -> GetOverlappingPolygonsR
 
     Returns:
         GetOverlappingPolygonsResponse: A response object containing:
-            - farmResults (list[dict]): A list of dictionaries with polygon IDs and their validation status.
-            - inconsistencies (list[dict]): A list of dictionaries detailing the overlapping polygons and their overlap information.
+            - farmResults (list[dict]): A list of dictionaries with polygon IDs
+            and their validation status.
+            - inconsistencies (list[dict]): A list of dictionaries detailing the
+            overlapping polygons and their overlap information.
 
     The function performs the following steps:
     1. Parses the farm coordinates data for each farm polygon.
@@ -66,7 +70,8 @@ def get_overlapping_polygons(body: list[FarmPolygon]) -> GetOverlappingPolygonsR
     4. Filters out valid polygons that do not have any issues.
     5. Checks for overlaps among the valid polygons.
     6. Collects the indices of polygons with overlap issues.
-    7. Constructs a list of inconsistent polygons with overlap details, including the area, center, and path of the overlap.
+    7. Constructs a list of inconsistent polygons with overlap details, including
+    the area, center, and path of the overlap.
     """
 
     parsed_polygons = list(

@@ -1,7 +1,38 @@
-from fastapi import HTTPException
 from app.models.farms import UnprocessedFarmData
-from app.modules.polygons_validation.helpers import parse_farm_coordinates_data
+from app.models.polygons import Point
 from app.utils.polygons import generate_polygon, get_polygon_area
+from fastapi import HTTPException
+
+
+def parse_farm_coordinates_data(farm_coordinates: str) -> list[Point]:
+    """
+    Parses a string of farm coordinates into a list of Point objects.
+
+    Args:
+        farm_coordinates (str): A string representing farm coordinates in the format
+                                "[ (x1, y1), (x2, y2), ... ]".
+
+    Returns:
+        list[Point]: A list of Point objects with x and y attributes representing
+        the coordinates.
+
+    Example:
+        farm_coordinates = "[ (1.0, 2.0), (3.0, 4.0) ]"
+        points = parse_farm_coordinates_data(farm_coordinates)
+        # points will be [Point(x=1.0, y=2.0), Point(x=3.0, y=4.0)]
+    """
+    farm_coordinates = (
+        farm_coordinates.replace("[", "").replace("]", "").replace(" ", "")
+    )
+    farm_coordinates = farm_coordinates.split(",")
+    farm_coordinates = [
+        Point(
+            x=float(farm_coordinates[i].replace("(", "")),
+            y=float(farm_coordinates[i + 1].replace(")", "")),
+        )
+        for i in range(0, len(farm_coordinates), 2)
+    ]
+    return farm_coordinates
 
 
 def parse_base_information(farm: UnprocessedFarmData):
@@ -15,7 +46,8 @@ def parse_base_information(farm: UnprocessedFarmData):
         dict: A dictionary containing the parsed base information and polygon details.
 
     Raises:
-        HTTPException: If there is an error parsing the farm coordinates or generating the polygon.
+        HTTPException: If there is an error parsing the farm coordinates or generating
+        the polygon.
 
     The returned dictionary contains the following keys:
         - id (str): The farm ID.
@@ -28,11 +60,14 @@ def parse_base_information(farm: UnprocessedFarmData):
         - country (str): The country of the farm.
         - region (str): The region of the farm.
         - association (str): The association of the farm.
-        - polygon (dict): A dictionary containing the polygon details with the following keys:
+        - polygon (dict): A dictionary containing the polygon details with the
+        following keys:
             - type (str): The type of the polygon ("polygon" or other).
             - details (dict): A dictionary containing the polygon details:
-                - center (dict): A dictionary with the longitude and latitude of the center.
-                - path (list): A list of dictionaries with the longitude and latitude of each point (if type is "polygon").
+                - center (dict): A dictionary with the longitude and latitude of the
+                center.
+                - path (list): A list of dictionaries with the longitude and latitude
+                of each point (if type is "polygon").
                 - radius (int): The radius of the polygon (if type is not "polygon").
             - area (float): The area of the polygon.
     """

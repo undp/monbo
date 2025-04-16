@@ -1,0 +1,12 @@
+{
+  "python.formatting.provider": "black",
+  "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
+  "python.linting.enabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyPath": "${workspaceFolder}/.venv/bin/mypy",
+  "python.linting.ruffPath": "${workspaceFolder}/.venv/bin/ruff",
+  "[python]": {
+    "editor.formatOnSave": true
+  }
+}

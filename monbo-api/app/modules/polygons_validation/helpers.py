@@ -1,22 +1,28 @@
-from shapely.geometry import Polygon, Point as SPoint
-from shapely import STRtree
 from typing import List
+
 from app.models.polygons import Point
+from shapely import STRtree
+from shapely.geometry import Point as SPoint
+from shapely.geometry import Polygon
 
 
 def generate_polygon(points: list[Point]) -> Polygon:
     """
     Generates a polygon or a buffered point from a list of points.
 
-    If the list contains only one point, it returns a buffered point with a small radius.
-    If the list contains multiple points, it returns a polygon created from those points.
+    If the list contains only one point, it returns a buffered point with
+    a small radius.
+    If the list contains multiple points, it returns a polygon created from
+    those points.
 
     Args:
-        points (list[Point]): A list of Point objects representing the vertices of the polygon.
+        points (list[Point]): A list of Point objects representing the
+        vertices of the polygon.
 
     Returns:
-        tuple: A tuple where the first element is a string indicating the type ('point' or 'polygon'),
-               and the second element is the corresponding Shapely geometry object (buffered point or polygon).
+        tuple: A tuple where the first element is a string indicating the type
+        ('point' or 'polygon') and the second element is the corresponding Shapely
+        geometry object (buffered point or polygon).
     """
     if len(points) == 1:
         point = SPoint(points[0].x, points[0].y)
@@ -35,7 +41,8 @@ def check_polygons_overlap(polygons: List[Polygon]):
         polygons (List[Polygon]): A list of Polygon objects to check for overlaps.
     Returns:
         List[Dict[str, Union[Polygon, int]]]: A list of dictionaries, each containing:
-            - "intersection_polygon" (Polygon): The polygon representing the intersection.
+            - "intersection_polygon" (Polygon): The polygon representing the
+            intersection.
             - "polygon1_idx" (int): The index of the first polygon in the overlap.
             - "polygon2_idx" (int): The index of the second polygon in the overlap.
     """
@@ -62,45 +69,18 @@ def check_polygons_overlap(polygons: List[Polygon]):
     return overlaps
 
 
-def parse_farm_coordinates_data(farm_coordinates: str) -> list[Point]:
-    """
-    Parses a string of farm coordinates into a list of Point objects.
-
-    Args:
-        farm_coordinates (str): A string representing farm coordinates in the format
-                                "[ (x1, y1), (x2, y2), ... ]".
-
-    Returns:
-        list[Point]: A list of Point objects with x and y attributes representing the coordinates.
-
-    Example:
-        farm_coordinates = "[ (1.0, 2.0), (3.0, 4.0) ]"
-        points = parse_farm_coordinates_data(farm_coordinates)
-        # points will be [Point(x=1.0, y=2.0), Point(x=3.0, y=4.0)]
-    """
-    farm_coordinates = (
-        farm_coordinates.replace("[", "").replace("]", "").replace(" ", "")
-    )
-    farm_coordinates = farm_coordinates.split(",")
-    farm_coordinates = [
-        Point(
-            x=float(farm_coordinates[i].replace("(", "")),
-            y=float(farm_coordinates[i + 1].replace(")", "")),
-        )
-        for i in range(0, len(farm_coordinates), 2)
-    ]
-    return farm_coordinates
-
-
 def get_polygon_coordinates(polygon: Polygon) -> list[Point]:
     """
-    Extracts the coordinates from the exterior of a given polygon and returns them as a list of points.
+    Extracts the coordinates from the exterior of a given polygon and returns
+    them as a list of points.
 
     Args:
-        polygon (Polygon): A Shapely Polygon object from which to extract the coordinates.
+        polygon (Polygon): A Shapely Polygon object from which to extract
+        the coordinates.
 
     Returns:
-        list[Point]: A list of dictionaries, each containing the longitude ('lng') and latitude ('lat') of a point.
+        list[Point]: A list of dictionaries, each containing the longitude ('lng')
+        and latitude ('lat') of a point.
     """
     return [
         {"lng": point[0], "lat": point[1]} for point in list(polygon.exterior.coords)

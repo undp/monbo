@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from app.models.farms import FarmPolygon, UnprocessedFarmData
+from pydantic import BaseModel
 
 
 class DeforestationUnprocessedFarmData(UnprocessedFarmData):

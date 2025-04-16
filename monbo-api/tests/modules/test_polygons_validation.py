@@ -1,12 +1,13 @@
-from app.modules.polygons_validation.helpers import (
-    generate_polygon,
-    check_polygons_overlap,
-    parse_farm_coordinates_data,
-    get_polygon_coordinates,
-)
 from app.models.polygons import Point
-from shapely.geometry import Polygon, Point as SPoint
+from app.modules.polygons_validation.helpers import (
+    check_polygons_overlap,
+    generate_polygon,
+    get_polygon_coordinates,
+    parse_farm_coordinates_data,
+)
 from app.utils.polygons import get_polygon_area
+from shapely.geometry import Point as SPoint
+from shapely.geometry import Polygon
 
 
 def test_generate_polygon():
@@ -19,7 +20,8 @@ def test_generate_polygon():
     generated shape ("polygon" or "point") and the generated shape itself.
     Test cases:
     1. A list of points forming a square polygon.
-       - Input: points = [Point(x=0, y=0), Point(x=0, y=1), Point(x=1, y=1), Point(x=1, y=0)]
+       - Input: points = [Point(x=0, y=0), Point(x=0, y=1), Point(x=1, y=1),
+       Point(x=1, y=0)]
        - Expected output: ("polygon", Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]))
     2. A single point.
        - Input: points = [SPoint(0, 0)]
@@ -49,14 +51,17 @@ def test_generate_polygon():
 
 def test_check_ploygons_overlap():
     """
-    Test the check_polygons_overlap function to ensure it correctly identifies overlapping polygons.
+    Test the check_polygons_overlap function to ensure it correctly identifies
+     overlapping polygons.
     This test creates three polygons:
     - polygon1: A square from (0, 0) to (1, 1)
     - polygon2: A square from (1, 0) to (2, 1), which overlaps with polygon1 at the edge
     - polygon3: A square from (2, 0) to (3, 1), which does not overlap with polygon1
     The test asserts that:
-    - The check_polygons_overlap function returns 1 overlapping polygon when given polygon1 and polygon2.
-    - The check_polygons_overlap function returns 0 overlapping polygons when given polygon1 and polygon3.
+    - The check_polygons_overlap function returns 1 overlapping polygon when given
+    polygon1 and polygon2.
+    - The check_polygons_overlap function returns 0 overlapping polygons when given
+    polygon1 and polygon3.
     """
     polygon1 = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
     polygon2 = Polygon([(1, 0), (1, 1), (2, 1), (2, 0)])
@@ -68,26 +73,32 @@ def test_check_ploygons_overlap():
 
 def test_get_polygon_area():
     """
-    Test the get_polygon_area function to ensure it correctly calculates the area of a given polygon.
-    This test uses two predefined polygons (polygon_1 and polygon_2) and compares the calculated areas with known values.
-    The test passes if the relative error between the calculated area and the known value is less than 1%.
+    Test the get_polygon_area function to ensure it correctly calculates the area
+    of a given polygon.
+    This test uses two predefined polygons (polygon_1 and polygon_2) and compares
+    the calculated areas with known values.
+    The test passes if the relative error between the calculated area and the known
+    value is less than 1%.
 
     Test cases:
     1. polygon_1:
-       - Coordinates: [(-79.131151, -4.676182), (-79.131946, -4.675285), (-79.131947, -4.675288), (-79.132001, -4.67538),
-                       (-79.132162, -4.67565), (-79.132341, -4.675759), (-79.132487, -4.676019), (-79.132547, -4.676126),
-                       (-79.132376, -4.676365), (-79.132138, -4.676403), (-79.132088, -4.67631), (-79.131598, -4.676389),
-                       (-79.131151, -4.676182)]
+       - Coordinates: [(-79.131151, -4.676182), (-79.131946, -4.675285),
+       (-79.131947, -4.675288), (-79.132001, -4.67538), (-79.132162, -4.67565),
+       (-79.132341, -4.675759), (-79.132487, -4.676019), (-79.132547, -4.676126),
+       (-79.132376, -4.676365), (-79.132138, -4.676403), (-79.132088, -4.67631),
+       (-79.131598, -4.676389), (-79.131151, -4.676182)]
        - Known area (gee_poly1_area): 10369.361754695708
     2. polygon_2:
-       - Coordinates: [(-79.134616, -4.680456), (-79.134634, -4.680454), (-79.134911, -4.680381), (-79.135198, -4.680183),
-                       (-79.135211, -4.680174), (-79.135311, -4.680152), (-79.135623, -4.680084), (-79.135629, -4.680065),
-                       (-79.135748, -4.679641), (-79.136017, -4.67945), (-79.136317, -4.680072), (-79.136587, -4.680576),
-                       (-79.136953, -4.681637), (-79.136897, -4.68166), (-79.136811, -4.68181), (-79.136367, -4.681857),
-                       (-79.13626, -4.681818), (-79.135698, -4.681882), (-79.135392, -4.682708), (-79.133598, -4.681653),
-                       (-79.133398, -4.679579), (-79.133592, -4.679552), (-79.133751, -4.679798), (-79.133753, -4.68015),
-                       (-79.13397, -4.680404), (-79.133982, -4.680417), (-79.134248, -4.680488), (-79.134287, -4.680498),
-                       (-79.134616, -4.680456)]
+       - Coordinates: [(-79.134616, -4.680456), (-79.134634, -4.680454),
+       (-79.134911, -4.680381), (-79.135198, -4.680183), (-79.135211, -4.680174),
+       (-79.135311, -4.680152), (-79.135623, -4.680084), (-79.135629, -4.680065),
+       (-79.135748, -4.679641), (-79.136017, -4.67945), (-79.136317, -4.680072),
+       (-79.136587, -4.680576), (-79.136953, -4.681637), (-79.136897, -4.68166),
+       (-79.136811, -4.68181), (-79.136367, -4.681857), (-79.13626, -4.681818),
+       (-79.135698, -4.681882), (-79.135392, -4.682708), (-79.133598, -4.681653),
+       (-79.133398, -4.679579), (-79.133592, -4.679552), (-79.133751, -4.679798),
+       (-79.133753, -4.68015), (-79.13397, -4.680404), (-79.133982, -4.680417),
+       (-79.134248, -4.680488), (-79.134287, -4.680498), (-79.134616, -4.680456)]
        - Known area (gee_poly2_area): 77167.23433934484
 
     Asserts:

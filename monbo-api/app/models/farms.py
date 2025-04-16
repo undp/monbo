@@ -1,8 +1,9 @@
 from typing import Literal, Optional
-from pydantic import BaseModel
 
 from app.utils.polygons import generate_polygon_from_coordinates
-from .polygons import Coordinates, PolygonDetails, PointDetails
+from pydantic import BaseModel
+
+from .polygons import Coordinates, PointDetails, PolygonDetails
 
 
 class Polygon(BaseModel):

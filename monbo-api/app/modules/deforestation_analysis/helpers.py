@@ -1,15 +1,14 @@
-from fastapi import HTTPException
-import numpy as np
-from app.utils.json import read_json_file
-
 import geopandas as gpd
-import rasterio
-from rasterio.mask import mask
-from PIL import Image
-from rasterio.vrt import WarpedVRT
 import mercantile
+import numpy as np
+import rasterio
+from app.utils.json import read_json_file
+from fastapi import HTTPException
+from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.errors import WindowError
+from rasterio.mask import mask
+from rasterio.vrt import WarpedVRT
 
 
 def get_all_maps() -> list[dict]:
@@ -21,7 +20,8 @@ def get_all_maps() -> list[dict]:
     - name: The name of the map.
     - alias: An alias for the map.
     Returns:
-        list[dict]: A list of dictionaries containing the 'id', 'name', and 'alias' of each map.
+        list[dict]: A list of dictionaries containing the 'id', 'name', and 'alias'
+        of each map.
     """
     maps = read_json_file("app/maps/index.json")
     if maps is None:
@@ -112,7 +112,8 @@ def get_tile(tif_path, z, x, y):
                 data = vrt.read(
                     out_shape=(vrt.count, 256, 256),
                     window=window,
-                    resampling=Resampling.nearest,  # Nearest neighbor preserves True/False
+                    # Nearest neighbor preserves True/False
+                    resampling=Resampling.nearest,
                 )
 
                 # Select the first band if there are multiple bands

@@ -1,6 +1,7 @@
-from shapely.geometry import Polygon, Point as SPoint
-from app.models.polygons import Point, Coordinates
+from app.models.polygons import Coordinates, Point
 from pyproj import CRS, Transformer
+from shapely.geometry import Point as SPoint
+from shapely.geometry import Polygon
 from shapely.ops import transform
 
 POINT_RADIUS = 0.0009
@@ -10,15 +11,19 @@ def generate_polygon(points: list[Point]) -> Polygon:
     """
     Generates a polygon or a buffered point from a list of points.
 
-    If the list contains only one point, it returns a buffered point with a small radius.
-    If the list contains multiple points, it returns a polygon created from those points.
+    If the list contains only one point, it returns a buffered point with a
+    small radius.
+    If the list contains multiple points, it returns a polygon created from
+    those points.
 
     Args:
-        points (list[Point]): A list of Point objects representing the vertices of the polygon.
+        points (list[Point]): A list of Point objects representing the vertices of
+        the polygon.
 
     Returns:
-        tuple: A tuple where the first element is a string indicating the type ('point' or 'polygon'),
-               and the second element is the corresponding Shapely geometry object (buffered point or polygon).
+        tuple: A tuple where the first element is a string indicating the type
+        ('point' or 'polygon'), and the second element is the corresponding
+        Shapely geometry object (buffered point or polygon).
     """
     if len(points) == 1:
         point = SPoint(points[0].x, points[0].y)
@@ -33,15 +38,19 @@ def generate_polygon_from_coordinates(
     """
     Generates a polygon or a buffered point from a list of coordinates.
 
-    If the list contains only one coordinate, it returns a buffered point with a small radius.
-    If the list contains multiple coordinates, it returns a polygon created from those coordinates.
+    If the list contains only one coordinate, it returns a buffered point with a
+    small radius.
+    If the list contains multiple coordinates, it returns a polygon created from those
+    coordinates.
 
     Args:
-        coordinates (list[Coordinates]): A list of Coordinates objects representing the vertices of the polygon.
+        coordinates (list[Coordinates]): A list of Coordinates objects representing
+        the vertices of the polygon.
 
     Returns:
-        tuple: A tuple where the first element is a string indicating the type ('point' or 'polygon'),
-               and the second element is the corresponding Shapely geometry object (buffered point or polygon).
+        tuple: A tuple where the first element is a string indicating the type
+        ('point' or 'polygon'), and the second element is the corresponding Shapely
+        geometry object (buffered point or polygon).
     """
     if len(coordinates) == 1:
         point = SPoint(coordinates[0].lng, coordinates[0].lat)

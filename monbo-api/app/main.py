@@ -1,8 +1,9 @@
+from app.modules import (
+    deforestation_analysis_router,
+    polygons_validation_router,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.modules import polygons_validation_router, deforestation_analysis_router
-
 
 app = FastAPI()
 app.add_middleware(

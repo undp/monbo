@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException
-
-from app.models.farms import FarmData
-from fastapi.responses import Response
+import io
 from datetime import datetime, timedelta
 
+import rasterio
+from app.models.farms import FarmData
 from app.models.maps import BaseMapData
 from app.modules.deforestation_analysis.helpers import (
     get_all_maps,
@@ -14,15 +13,14 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.utils.farms import parse_base_information
-from .models import AnalizeBody, MapData, DeforestationUnprocessedFarmData
-import io
-import rasterio
-
+from app.utils.maps import read_attributes, read_considerations
 from app.utils.polygons import (
     get_polygon_area,
 )
-from app.utils.maps import read_attributes, read_considerations
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
+from .models import AnalizeBody, DeforestationUnprocessedFarmData, MapData
 
 router = APIRouter()
 
@@ -32,8 +30,8 @@ def get_maps(language: str = "en"):
     """
     Retrieve a list of maps with their metadata and attributes.
 
-    This endpoint reads the maps index file and their corresponding metadata files to return
-    detailed information about each available map layer.
+    This endpoint reads the maps index file and their corresponding metadata
+    files to return detailed information about each available map layer.
 
     Args:
         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -51,14 +49,17 @@ def get_maps(language: str = "en"):
         - contentDate: Period covered by the data
         - updateFrequency: How often the data is updated
         - reference: Reference URL for the data source
-        - considerations: Special considerations and notes about the layer (in Markdown format)
+        - considerations: Special considerations and notes about the layer
+          (in Markdown format)
     """
     maps = get_all_maps()
 
     parsed_maps = []
     for map in maps:
         attributes_dict = read_attributes(map["attributes_filename"], language)
-        considerations_text = read_considerations(map["considerations_filename"], language)
+        considerations_text = read_considerations(
+            map["considerations_filename"], language
+        )
 
         parsed_maps.append(
             BaseMapData(
@@ -66,12 +67,20 @@ def get_maps(language: str = "en"):
                 name=attributes_dict.get("name") if attributes_dict else None,
                 alias=attributes_dict.get("alias") if attributes_dict else None,
                 baseline=int(map["baseline"]) if map["baseline"] else None,
-                comparedAgainst=int(map["compared_against"]) if map["compared_against"] else None,
+                comparedAgainst=(
+                    int(map["compared_against"]) if map["compared_against"] else None
+                ),
                 coverage=attributes_dict.get("coverage") if attributes_dict else None,
                 source=attributes_dict.get("source") if attributes_dict else None,
-                resolution=attributes_dict.get("resolution") if attributes_dict else None,
-                contentDate=attributes_dict.get("contentDate") if attributes_dict else None,
-                updateFrequency=attributes_dict.get("updateFrequency") if attributes_dict else None,
+                resolution=(
+                    attributes_dict.get("resolution") if attributes_dict else None
+                ),
+                contentDate=(
+                    attributes_dict.get("contentDate") if attributes_dict else None
+                ),
+                updateFrequency=(
+                    attributes_dict.get("updateFrequency") if attributes_dict else None
+                ),
                 reference=map.get("reference"),
                 considerations=considerations_text,
             )
@@ -86,7 +95,8 @@ def parse_farms(body: list[DeforestationUnprocessedFarmData]) -> list[FarmData]:
     Parses farm data from the provided body and returns a list of FarmData objects.
 
     Args:
-        body (list[DeforestationUnprocessedFarmData]): The body containing farm polygons and related information.
+        body (list[DeforestationUnprocessedFarmData]): The body containing farm
+        polygons and related information.
 
     Returns:
         list[FarmData]: A list of FarmData objects containing parsed farm information.
@@ -110,7 +120,9 @@ def analize(body: AnalizeBody):
     for map_data in requested_maps:
         farmsResults = []
         try:
-            with rasterio.open(f"app/maps/layers/rasters/{map_data['raster_filename']}") as src:
+            with rasterio.open(
+                f"app/maps/layers/rasters/{map_data['raster_filename']}"
+            ) as src:
                 for farm in farms:
                     try:
                         polygon = farm.get_polygon()
@@ -129,7 +141,8 @@ def analize(body: AnalizeBody):
                         )
                     except Exception as e:
                         print(
-                            f"Error processing farm {farm.id} for map {map_data['id']}: {e}"
+                            f"Error processing farm {farm.id} \
+                            for map {map_data['id']}: {e}"
                         )
                         farmsResults.append({"farmId": farm.id, "value": None})
         except Exception as e:

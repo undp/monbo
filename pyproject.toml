@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+
+[tool.ruff]
+line-length = 88
+lint.select = ["E", "F", "I"]  # E: pycodestyle, F: pyflakes, I: isort
+lint.ignore = ["E501"]  # Let Black handle line length
+exclude = ["migrations", "__pycache__"]
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+ignore_missing_imports = true

@@ -3,17 +3,17 @@ from pydantic import BaseModel
 
 class BaseMapData(BaseModel):
     id: int
-    name: str
-    alias: str
-    baseline: int
-    comparedAgainst: int
-    coverage: str
-    source: str
-    resolution: str
-    contentDate: str
-    updateFrequency: str
-    reference: str
-    considerations: str
+    name: str | None
+    alias: str | None
+    baseline: int | None
+    comparedAgainst: int | None
+    coverage: str | None
+    source: str | None
+    resolution: str | None
+    contentDate: str | None
+    updateFrequency: str | None
+    reference: str | None
+    considerations: str | None
 
 
 class MapData(BaseMapData):
