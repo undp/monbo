@@ -1,6 +1,6 @@
 import { useCallback, useContext } from "react";
 import { saveAs } from "file-saver";
-import { generateExcel, SheetData } from "@/utils/excel";
+import { generateExcel, generateExcel2, SheetData } from "@/utils/excel";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useTranslation } from "react-i18next";
 
@@ -11,7 +11,7 @@ export const useExcelDownload = () => {
   return useCallback(
     async (data: Record<string, SheetData>, filename: string) => {
       try {
-        const file = generateExcel(data);
+        const file = await generateExcel2(data);
         saveAs(file, filename);
       } catch (error) {
         console.error("Error generating Excel:", error);

@@ -11,25 +11,54 @@ import { SheetData } from "@/utils/excel";
 import { useCallback, useContext } from "react";
 import { flatten } from "lodash";
 import { formatOverlapPercentage } from "@/utils/numbers";
-import {
-  COMMON_HEADERS,
-  getRowCommonDataAsArray,
-  MANDATORY_HEADERS,
-} from "@/utils/download";
+import { getRowCommonDataAsArray } from "@/utils/download";
 import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
 import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
+import * as XLSX from "xlsx";
 
-const parseData = (
+const loadTemplateHeaders = async (): Promise<string[][]> => {
+  // Path to your template in the public directory
+  const templatePath = "/files/polygon-validation-template.xlsx";
+
+  // Fetch the template file
+  const response = await fetch(templatePath);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch template: ${response.statusText}`);
+  }
+
+  const templateArrayBuffer = await response.arrayBuffer();
+
+  // Load the template workbook
+  const templateWorkbook = XLSX.read(templateArrayBuffer, { type: "array" });
+
+  // Get the first sheet name
+  const firstSheetName = templateWorkbook.SheetNames[0];
+
+  // Get the first worksheet
+  const templateSheet = templateWorkbook.Sheets[firstSheetName];
+
+  // Convert to JSON to easily extract header rows
+  const templateData: string[][] = XLSX.utils.sheet_to_json(templateSheet, {
+    header: 1,
+  });
+
+  // Extract the first 3 rows (headers)
+  const headerRows = templateData.slice(0, 3);
+
+  return headerRows;
+};
+
+const parseData = async (
   farmsData: FarmData[],
   validFarmsData: FarmData[],
   inconsistencies: InconsistentPolygonData[],
   farmsStatus: ValidateFarmsResponse["farmResults"],
   language: string
-): Record<string, SheetData> => {
+): Promise<Record<string, SheetData>> => {
   const validatedPolygonsParsedData = validFarmsData.map((farm) => {
     const farmStatus =
       farmsStatus.find((f) => f.farmId === farm.id)?.status || "";
@@ -57,19 +86,22 @@ const parseData = (
     })
   );
 
-  const validPolygonsHeaders = [...COMMON_HEADERS, "Status"];
-  const inconsistenciesHeaders = [...COMMON_HEADERS, "Traslape"];
+  const headersRows = await loadTemplateHeaders();
+
+  const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [...headersRows];
+  validPolygonsHeaders[1].push("Resultado Validación\nValidation Result");
+  validPolygonsHeaders[2].push("VALID");
+
+  const inconsistenciesHeaders = [...headersRows];
+  inconsistenciesHeaders[1].push("Porcentaje de Traslape\nOverlap Percentage");
+  inconsistenciesHeaders[2].push("5%");
 
   return {
     "Polígonos válidos": {
-      rows: [
-        MANDATORY_HEADERS,
-        validPolygonsHeaders,
-        ...validatedPolygonsParsedData,
-      ],
+      rows: [...validPolygonsHeaders, ...validatedPolygonsParsedData],
     },
     "Polígonos inconsistentes": {
-      rows: [inconsistenciesHeaders, ...inconsistenciesParsedData],
+      rows: [...inconsistenciesHeaders, ...inconsistenciesParsedData],
       merges: percentagesMerges,
     },
   };
@@ -86,17 +118,18 @@ export const DownloadPageData = () => {
   const isDisabled =
     !farmsData || !validFarmsData || !polygonsValidationResults;
 
-  const onDownloadAsExcelClick = useCallback(() => {
+  const onDownloadAsExcelClick = useCallback(async () => {
     if (isDisabled) return;
 
     try {
-      const parsedData = parseData(
+      const parsedData = await parseData(
         farmsData,
         validFarmsData,
         polygonsValidationResults?.inconsistencies ?? [],
         polygonsValidationResults?.farmResults ?? [],
         i18n.language
       );
+      console.log(parsedData);
       downloadAsExcel(parsedData, "step1-results.xlsx");
     } catch (error) {
       console.error("Error generating Excel:", error);

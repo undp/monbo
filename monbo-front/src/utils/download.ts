@@ -1,5 +1,6 @@
 import { FarmData } from "@/interfaces/Farm";
 
+// TODO: eliminar para usar los del template
 export const MANDATORY_HEADERS = [
   "",
   "OBLIGATORIO",
@@ -12,6 +13,7 @@ export const MANDATORY_HEADERS = [
   "OBLIGATORIO",
 ];
 
+// TODO: eliminar para usar los del template
 export const COMMON_HEADERS = [
   "ID",
   "Nombre productor",
@@ -54,6 +56,7 @@ export const getRowCommonDataAsArray = (farm: FarmData): string[] => {
     farm.country || "",
     farm.region || "",
     `[${getCoordinates(farm).join(", ")}]`,
+    "999999999",
     farm.cropType,
     farm.association || "",
     "",

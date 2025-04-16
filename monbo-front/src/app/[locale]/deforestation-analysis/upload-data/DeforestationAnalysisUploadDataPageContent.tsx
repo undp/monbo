@@ -205,7 +205,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       const { data, headers, mandatoryHeaders } = parseExcelData(worksheet);
 
       try {
-        validateData({ data, headers, mandatoryHeaders, t });
+        validateData({ data, mandatoryHeaders, t });
       } catch (error) {
         const errorCode = (error as Error).message;
         openSnackbar({

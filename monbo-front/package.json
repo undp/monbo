@@ -23,6 +23,7 @@
     "@react-pdf/renderer": "^4.3.0",
     "@vis.gl/react-google-maps": "^1.4.2",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "fuse.js": "^7.0.0",
     "i18next": "^24.2.0",
