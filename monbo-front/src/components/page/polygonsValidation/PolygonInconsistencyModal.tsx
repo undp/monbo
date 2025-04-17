@@ -43,22 +43,22 @@ const generateHeaders = (t: TFunction<"translation", undefined>) => {
       columnStyle: { width: "16%" },
     },
     {
-      name: t("polygonValidation:overlapModal.headers.producer"),
-      attr: "producer",
-      type: "label",
-      columnStyle: { width: "24%" },
-    },
-    {
-      name: t("polygonValidation:overlapModal.headers.producerId"),
-      attr: "producerId",
-      type: "label",
-      columnStyle: { width: "16%" },
-    },
-    {
       name: t("polygonValidation:overlapModal.headers.id"),
       attr: "id",
       type: "label",
       columnStyle: { width: "16%" },
+    },
+    // {
+    //   name: t("polygonValidation:overlapModal.headers.producerId"),
+    //   attr: "producerId",
+    //   type: "label",
+    //   columnStyle: { width: "16%" },
+    // },
+    {
+      name: t("polygonValidation:overlapModal.headers.producer"),
+      attr: "producer",
+      type: "label",
+      columnStyle: { width: "24%" },
     },
     {
       name: t("polygonValidation:overlapModal.headers.area"),
@@ -107,7 +107,7 @@ const generateRows = (
             </Box>
           ),
         },
-        producerId: { value: farm.producerId },
+        // producerId: { value: farm.producerId },
         type: {
           icon: (
             <PolygonTypeIcon
