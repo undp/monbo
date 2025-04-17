@@ -63,6 +63,7 @@ export default async function DeforestationAnalysis({
               <>
                 <SearchBar
                   placeholder={t("deforestationAnalysis:searchPlaceholder")}
+                  style={{ minWidth: "400px" }}
                 />
               </>
             )}

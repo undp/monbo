@@ -55,6 +55,7 @@ export default async function PolygonsValidationPage({
             <Suspense>
               <SearchBar
                 placeholder={t("polygonValidation:searchPlaceholder")}
+                style={{ minWidth: "400px" }}
               />
             </Suspense>
             <DownloadPageData />
