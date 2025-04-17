@@ -56,7 +56,7 @@ def get_map_pixels_inside_polygon(polygon, map_asset):
     polygon_geometry = [polygon_gdf.geometry[0]]
 
     # Clip the raster to the polygon
-    out_image, _ = mask(map_asset, polygon_geometry, crop=True)
+    out_image, _ = mask(map_asset, polygon_geometry, crop=True, all_touched=True)
     loss_year_data = out_image[0]  # Extract the first band
 
     return loss_year_data
