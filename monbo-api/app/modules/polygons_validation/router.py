@@ -1,3 +1,4 @@
+from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
 from app.models.farms import FarmData, FarmPolygon, UnprocessedFarmData
 from app.utils.farms import parse_base_information
 from app.utils.polygons import get_polygon_area
@@ -8,6 +9,7 @@ from .helpers import (
     get_polygon_coordinates,
 )
 from .models import GetOverlappingPolygonsResponse
+
 
 router = APIRouter()
 
@@ -47,9 +49,13 @@ def parse_farms(body: list[UnprocessedFarmData]) -> list[FarmData]:
 
 
 @router.post(
-    "/validate", response_model=GetOverlappingPolygonsResponse, name="Validate Polygons"
+    "/validate",
+    response_model=GetOverlappingPolygonsResponse,
+    name="Validate Polygons",
 )
-def get_overlapping_polygons(body: list[FarmPolygon]) -> GetOverlappingPolygonsResponse:
+def get_overlapping_polygons(
+    body: list[FarmPolygon],
+) -> GetOverlappingPolygonsResponse:
     """
     Processes a list of farm polygons to identify and handle overlapping polygons.
 
@@ -89,10 +95,6 @@ def get_overlapping_polygons(body: list[FarmPolygon]) -> GetOverlappingPolygonsR
         list(map(lambda x: x["polygon"], parsed_polygons))
     )
 
-    for overlap in overlaps:
-        results[overlap["polygon1_idx"]]["status"] = "NOT_VALID"
-        results[overlap["polygon2_idx"]]["status"] = "NOT_VALID"
-
     inconsistentPolygons = []
     for overlap in overlaps:
         overlap_area = get_polygon_area(overlap["intersection_polygon"])
@@ -108,27 +110,41 @@ def get_overlapping_polygons(body: list[FarmPolygon]) -> GetOverlappingPolygonsR
             list(map(lambda x: get_polygon_area(x["polygon"]), overlap_polygons))
         )
 
-        overlap_percentage = overlap_area / (overlap_polygons_area - overlap_area)
+        # Calculate the union area (total area minus the double-counted overlap)
+        union_area = overlap_polygons_area - overlap_area
 
-        inconsistentPolygons.append(
-            {
-                "type": "overlap",
-                "farmIds": [
-                    parsed_polygons[overlap["polygon1_idx"]]["id"],
-                    parsed_polygons[overlap["polygon2_idx"]]["id"],
-                ],
-                "data": {
-                    "percentage": overlap_percentage,
-                    "criticality": "HIGH" if overlap_percentage > 0.8 else "MEDIUM",
-                    "area": overlap_area,
-                    "center": {
-                        "lng": overlap["intersection_polygon"].centroid.x,
-                        "lat": overlap["intersection_polygon"].centroid.y,
+        # Handle the case where polygons are identical or nearly identical
+        # Using a small epsilon for floating point comparison
+        if abs(overlap_area - union_area) < 1e-10:
+            overlap_percentage = 1.0  # 100% overlap
+        else:
+            overlap_percentage = min(1.0, overlap_area / union_area)  # Cap at 100%
+
+        if overlap_percentage > OVERLAP_THRESHOLD_PERCENTAGE:
+            results[overlap["polygon1_idx"]]["status"] = "NOT_VALID"
+            results[overlap["polygon2_idx"]]["status"] = "NOT_VALID"
+
+            inconsistentPolygons.append(
+                {
+                    "type": "overlap",
+                    "farmIds": [
+                        parsed_polygons[overlap["polygon1_idx"]]["id"],
+                        parsed_polygons[overlap["polygon2_idx"]]["id"],
+                    ],
+                    "data": {
+                        "percentage": overlap_percentage,
+                        "criticality": "HIGH" if overlap_percentage > 0.8 else "MEDIUM",
+                        "area": overlap_area,
+                        "center": {
+                            "lng": overlap["intersection_polygon"].centroid.x,
+                            "lat": overlap["intersection_polygon"].centroid.y,
+                        },
+                        "path": get_polygon_coordinates(
+                            overlap["intersection_polygon"]
+                        ),
                     },
-                    "path": get_polygon_coordinates(overlap["intersection_polygon"]),
-                },
-            }
-        )
+                }
+            )
 
     return {
         "farmResults": results,

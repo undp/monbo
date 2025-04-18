@@ -124,7 +124,12 @@ The `package.json` file is used to standardize the execution of commands across 
 
 ## Environment Variables
 
-No enviromental variables are needed for the API.
+The application requires the following environment variables to be set:
+
+- `GOOGLE_SERVICE_API_KEY`: Google API key for accessing Google services
+- `OVERLAP_THRESHOLD_PERCENTAGE`: Defines the minimum percentage overlap required when comparing polygons. Used to determine when two polygons should be considered being overlapping. Type: Float. Range: 0-1. Default: 0
+
+For local development, you can set the environment variables in a `.env` file.
 
 ## Development Guidelines
 
