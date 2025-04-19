@@ -1,3 +1,5 @@
+import random
+import string
 from typing import List
 
 from app.models.polygons import Point
@@ -29,6 +31,51 @@ def generate_polygon(points: list[Point]) -> Polygon:
         return ("point", point.buffer(0.0009))
     points = [(point.x, point.y) for point in points]
     return ("polygon", Polygon(points))
+
+
+def ensure_farm_ids(farms_data, original_farms):
+    """
+    Ensures all farms have appropriate IDs based on existing data patterns.
+
+    Args:
+        farms_data (list): List of processed farm data (dictionaries)
+        original_farms (list): List of original farm objects
+
+    Returns:
+        list: The updated farm data with IDs assigned where needed
+    """
+    # Check if any farms have IDs
+    farms_with_id = [
+        farm for farm in original_farms if hasattr(farm, "id") and bool(farm.id)
+    ]
+    all_have_ids = len(farms_with_id) == len(original_farms)
+    none_have_ids = len(farms_with_id) == 0
+
+    if all_have_ids:
+        # All farms have IDs, no action needed
+        return farms_data
+
+    # Generate a set of existing IDs to avoid duplicates
+    existing_ids = {str(farm.id) for farm in farms_with_id}
+
+    # Assign IDs to farms that need them
+    for i, (farm_data, original_farm) in enumerate(zip(farms_data, original_farms)):
+        if none_have_ids:
+            # If none have IDs, assign sequential numbers
+            farm_data["id"] = str(i + 1)
+        elif not hasattr(original_farm, "id") or not bool(original_farm.id):
+            # If some have IDs but this one doesn't
+            # Generate a short alphanumeric ID (6 characters)
+            while True:
+                short_id = "".join(
+                    random.choices(string.ascii_uppercase + string.digits, k=6)
+                )
+                if short_id not in existing_ids:
+                    break
+            farm_data["id"] = short_id
+            existing_ids.add(short_id)
+
+    return farms_data
 
 
 def check_polygons_overlap(polygons: List[Polygon]):
