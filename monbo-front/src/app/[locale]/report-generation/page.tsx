@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Box } from "@mui/material";
 import initTranslations from "@/utils/i18n";
 import { BasePageProps } from "@/interfaces";
@@ -40,12 +41,16 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
           }}
         >
           <PageTitle />
-          <SearchBar placeholder={t("reportGeneration:searchPlaceholder")} />
+          <Suspense>
+            <SearchBar placeholder={t("reportGeneration:searchPlaceholder")} />
+          </Suspense>
         </Box>
         <SectionBackground
           sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300, padding: 0 }}
         >
-          <DeforestationResultsTable />
+          <Suspense>
+            <DeforestationResultsTable />
+          </Suspense>
         </SectionBackground>
       </Box>
       <PageFooter />

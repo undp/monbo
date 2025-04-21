@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { SectionBackground } from "@/components/reusable/SectionBackground";
 import TranslationsProvider from "@/context/TranslationProvider";
@@ -60,12 +61,12 @@ export default async function DeforestationAnalysis({
           <PageTitle />
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             {selectedView === "table" && (
-              <>
+              <Suspense>
                 <SearchBar
                   placeholder={t("deforestationAnalysis:searchPlaceholder")}
                   style={{ minWidth: "400px" }}
                 />
-              </>
+              </Suspense>
             )}
             {selectedView === "map" && <ResultsMapSelector />}
             <ButtonGroup>

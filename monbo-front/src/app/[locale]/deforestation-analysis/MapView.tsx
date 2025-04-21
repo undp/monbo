@@ -3,7 +3,7 @@
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { Text } from "@/components/reusable/Text";
 import { Box, Divider } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { FarmsList } from "@/components/page/deforestationAnalysis/FarmsList";
 import { SelectedPolygonsMap } from "@/components/page/deforestationAnalysis/SelectedPolygonsMap";
 import { useTranslation } from "react-i18next";
@@ -131,14 +131,16 @@ export const MapView: React.FC = () => {
           {t("common:polygons")}
         </Text>
         <Divider sx={{ marginTop: 1, marginBottom: 2, ml: 2 }} />
-        <SearchBar
-          placeholder={t("deforestationAnalysis:searchPlaceholder")}
-          style={{
-            width: "calc(100% - 16px)",
-            marginLeft: 2,
-            marginRight: 2,
-          }}
-        />
+        <Suspense>
+          <SearchBar
+            placeholder={t("deforestationAnalysis:searchPlaceholder")}
+            style={{
+              width: "calc(100% - 16px)",
+              marginLeft: 2,
+              marginRight: 2,
+            }}
+          />
+        </Suspense>
 
         {!searchValue && (
           <ClassicTabs
