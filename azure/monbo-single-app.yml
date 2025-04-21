@@ -15,41 +15,6 @@ properties:
           weight: 100
   template:
     containers:
-      - name: proxy
-        image: kevinjohnsongebauer/undp-monbo-proxy:latest
-        imagePullPolicy: Always
-        resources:
-          cpu: 0.25
-          memory: 0.5Gi
-        ports:
-          - containerPort: 80
-        probes:
-          - type: startup
-            httpGet:
-              path: /nginx-health
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 2
-            failureThreshold: 10
-          - type: readiness
-            httpGet:
-              path: /nginx-health
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 3
-            successThreshold: 1
-            failureThreshold: 3
-          - type: liveness
-            httpGet:
-              path: /nginx-health
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-
       - name: frontend
         image: kevinjohnsongebauer/undp-monbo-frontend:latest
         env:
