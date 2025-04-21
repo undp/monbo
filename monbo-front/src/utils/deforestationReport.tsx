@@ -9,7 +9,7 @@ import {
   CoverPage,
   DeforestationExplanationPage,
   FarmMapPage,
-  MapDescriptionPage,
+  // MapDescriptionPage,
 } from "./deforestationReport/sections";
 import { flatten } from "lodash";
 import { styles } from "./deforestationReport/styles";
@@ -114,10 +114,10 @@ export const DeforestationReportDocument = ({
       <DeforestationExplanationPage t={t} />
 
       {/* EXPLANATION OF THE MAPS USED FOR THE DEFORESTATION ANALYSIS */}
-      <MapDescriptionPage
+      {/* <MapDescriptionPage
         deforestationAnalysisResults={deforestationAnalysisResults}
         mapsData={mapsData}
-      />
+      /> */}
     </Document>
   );
 };
