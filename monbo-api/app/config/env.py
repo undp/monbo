@@ -14,15 +14,15 @@ if raw_overlap_threshold_percentage is not None:
         threshold = float(raw_overlap_threshold_percentage)
         if not 0 <= threshold <= 100:
             raise ValueError(
-                f"OVERLAP_THRESHOLD_PERCENTAGE must be between 0 and 100, \
-                    got {threshold}"
+                f"OVERLAP_THRESHOLD_PERCENTAGE must be between 0 and 100, "
+                f"got {threshold}"
             )
         OVERLAP_THRESHOLD_PERCENTAGE = threshold
     except ValueError as e:
         if "must be between" not in str(e):
             raise ValueError(
-                f"OVERLAP_THRESHOLD_PERCENTAGE must be a valid number, \
-                    got '{raw_overlap_threshold_percentage}'"
+                f"OVERLAP_THRESHOLD_PERCENTAGE must be a valid number, "
+                f"got '{raw_overlap_threshold_percentage}'"
             )
         raise
 else:

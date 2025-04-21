@@ -144,8 +144,8 @@ def analize(body: AnalizeBody):
                         )
                     except Exception as e:
                         print(
-                            f"Error processing farm {farm.id} \
-                            for map {map_data['id']}: {e}"
+                            f"Error processing farm {farm.id} "
+                            f"for map {map_data['id']}: {e}"
                         )
                         farmsResults.append({"farmId": farm.id, "value": None})
         except Exception as e:

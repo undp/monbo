@@ -22,9 +22,11 @@ class NoRasterDataOverlapError(Exception):
 
 def get_google_maps_satellite_image(center, zoom, size=(500, 500)):
     # Construct the URL for Google Maps Static API
-    url = f"https://maps.googleapis.com/maps/api/staticmap?\
-    center={center[0]},{center[1]}&zoom={zoom}&size={size[0]}x{size[1]}\
-    &maptype=satellite&key={GOOGLE_SERVICE_API_KEY}"
+    url = (
+        f"https://maps.googleapis.com/maps/api/staticmap?"
+        f"center={center[0]},{center[1]}&zoom={zoom}&size={size[0]}x{size[1]}"
+        f"&maptype=satellite&key={GOOGLE_SERVICE_API_KEY}"
+    )
 
     # Make a request to fetch the image
     response = requests.get(url)
@@ -97,8 +99,8 @@ def generate_deforestation_image(
                 or (padded_bounds[3] < vrt_bounds[1])
             ):
                 raise NoRasterDataOverlapError(
-                    "The requested polygon does not overlap with the requested map's \
-                        raster data"
+                    "The requested polygon does not overlap with the requested map's "
+                    "raster data"
                 )
 
             # Read the raster window
