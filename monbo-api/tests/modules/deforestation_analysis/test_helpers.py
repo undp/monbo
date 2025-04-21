@@ -6,7 +6,7 @@ import pytest
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
     get_all_maps,
-    get_deforestation_percentage,
+    get_deforestation_ratio,
     get_map_by_id,
     get_map_pixels_inside_polygon,
     get_pixel_area,
@@ -68,7 +68,7 @@ def test_get_deforestation_percentage_valid():
     polygon_area = 100  # Example polygon area
 
     # Call the function
-    result = get_deforestation_percentage(pixels, polygon_area, pixel_area)
+    result = get_deforestation_ratio(pixels, polygon_area, pixel_area)
 
     # Expected: (3 deforested pixels * 5 pixel area) / 100 polygon area = 0.15 (15%)
     assert result == 0.15

@@ -79,7 +79,7 @@ def test_parse_farms():
 @patch("app.modules.deforestation_analysis.router.get_all_maps")
 @patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
 @patch("app.modules.deforestation_analysis.router.get_pixel_area")
-@patch("app.modules.deforestation_analysis.router.get_deforestation_percentage")
+@patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
 def test_analize(
     mock_get_deforestation_percentage,
     mock_get_pixel_area,

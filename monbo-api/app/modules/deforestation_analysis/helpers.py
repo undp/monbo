@@ -67,7 +67,7 @@ def get_pixel_area(map_data):
     return pixel_size * pixel_size  # Pixel area in square kilometers
 
 
-def get_deforestation_percentage(pixels, polygon_area, pixel_area):
+def get_deforestation_ratio(pixels, polygon_area, pixel_area):
     deforested_pixels = np.equal(pixels, 1)
     deforested_pixels_sum = np.sum(deforested_pixels)
     deforested_area = float(deforested_pixels_sum * pixel_area)

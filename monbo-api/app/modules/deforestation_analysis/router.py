@@ -6,7 +6,7 @@ from app.models.farms import FarmData
 from app.models.maps import BaseMapData
 from app.modules.deforestation_analysis.helpers import (
     get_all_maps,
-    get_deforestation_percentage,
+    get_deforestation_ratio,
     get_map_by_id,
     get_map_pixels_inside_polygon,
     get_pixel_area,
@@ -132,7 +132,7 @@ def analize(body: AnalizeBody):
                         polygon = farm.get_polygon()
                         loss_year_data = get_map_pixels_inside_polygon(polygon, src)
                         pixel_area = get_pixel_area(map_data)
-                        deforested_percentage = get_deforestation_percentage(
+                        deforestation_ratio = get_deforestation_ratio(
                             loss_year_data,
                             get_polygon_area(polygon),
                             pixel_area,
@@ -140,7 +140,7 @@ def analize(body: AnalizeBody):
                         farmsResults.append(
                             {
                                 "farmId": farm.id,
-                                "value": deforested_percentage,
+                                "value": deforestation_ratio,
                             }
                         )
                     except Exception as e:
