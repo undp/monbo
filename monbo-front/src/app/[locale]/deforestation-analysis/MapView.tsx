@@ -13,6 +13,7 @@ import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDef
 import { FarmData } from "@/interfaces/Farm";
 import { useSearchParams } from "next/navigation";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
+import { isDeforestationAboveThreshold } from "@/utils/deforestation";
 
 export const MapView: React.FC = () => {
   const { t } = useTranslation();
@@ -45,7 +46,7 @@ export const MapView: React.FC = () => {
       if (!deforestationResult) {
         // Farms without deforestation analysis results for this map are assumed to be deforestation-free
         deforestationFree.push(farm);
-      } else if (deforestationResult.value > 0) {
+      } else if (isDeforestationAboveThreshold(deforestationResult.value)) {
         deforested.push(farm);
       } else {
         deforestationFree.push(farm);

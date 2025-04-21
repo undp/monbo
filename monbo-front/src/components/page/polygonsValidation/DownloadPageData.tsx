@@ -10,7 +10,7 @@ import { FarmData } from "@/interfaces/Farm";
 import { SheetData } from "@/utils/excel";
 import { useCallback, useContext } from "react";
 import { flatten } from "lodash";
-import { formatPercentage } from "@/utils/numbers";
+import { formatOverlapPercentage } from "@/utils/numbers";
 import {
   COMMON_HEADERS,
   getRowCommonDataAsArray,
@@ -50,7 +50,7 @@ const parseData = (
         const farm = farmsData.find((farm) => farm.id === farmId)!;
         return [
           ...getRowCommonDataAsArray(farm),
-          formatPercentage(item.data.percentage),
+          formatOverlapPercentage(item.data.percentage),
         ];
       });
     })

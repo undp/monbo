@@ -11,7 +11,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { PolygonInconsistencyModal } from "@/components/page/polygonsValidation/PolygonInconsistencyModal";
 import { DataContext } from "@/context/DataContext";
-import { formatPercentage } from "@/utils/numbers";
+import { formatOverlapPercentage } from "@/utils/numbers";
 import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 import { Text } from "@/components/reusable/Text";
@@ -80,7 +80,7 @@ const dataParser = (
           ...(idx === 0
             ? {
                 overlapPercentage: {
-                  value: formatPercentage(percentage),
+                  value: formatOverlapPercentage(percentage),
                   rowSpan: item.farmIds.length,
                   chipStyle: {
                     color: areAllFarmsValidManually ? "#3A3541" : "#fff",

@@ -4,7 +4,7 @@ import { DownloadButton } from "@/components/reusable/DownloadButton";
 import { FarmData } from "@/interfaces/Farm";
 import { SheetData } from "@/utils/excel";
 import { useCallback, useContext } from "react";
-import { formatPercentage } from "@/utils/numbers";
+import { formatDeforestationPercentage } from "@/utils/numbers";
 import {
   COMMON_HEADERS,
   MANDATORY_HEADERS,
@@ -40,7 +40,7 @@ const parseData = (
           ({ farmId }) => farmId === farm.id
         );
         if (!farmMapResult || farmMapResult.value === null) return "N/D";
-        return formatPercentage(farmMapResult.value, 1);
+        return formatDeforestationPercentage(farmMapResult.value);
       }
     );
     return [...getRowCommonDataAsArray(farm), ...deforestationPercentages];
@@ -114,7 +114,7 @@ export const DownloadPageData = () => {
                   [`Deforestation according to ${map.alias}`]:
                     !farmMapResult || farmMapResult.value === null
                       ? "N/A"
-                      : formatPercentage(farmMapResult.value, 1),
+                      : formatDeforestationPercentage(farmMapResult.value),
                 };
               },
               {}

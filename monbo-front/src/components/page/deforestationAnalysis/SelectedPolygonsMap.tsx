@@ -5,12 +5,13 @@ import { Box, Paper, Slide } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Text } from "@/components/reusable/Text";
 import { parsePolygonArea } from "@/utils/polygons";
-import { formatPercentage } from "@/utils/numbers";
+import { formatDeforestationPercentage } from "@/utils/numbers";
 import { useTranslation } from "react-i18next";
 import { DeforestationMapOverlay } from "./DeforestationMapOverlay";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 import { FarmData } from "@/interfaces/Farm";
+import { isDeforestationAboveThreshold } from "@/utils/deforestation";
 
 interface SelectedPolygonsMapProps {
   farmsData: FarmData[];
@@ -175,8 +176,8 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
               }}
             >
               {deforestationLevel !== undefined && deforestationLevel !== null
-                ? deforestationLevel > 0
-                  ? `${formatPercentage(deforestationLevel, 1)} Def.`
+                ? isDeforestationAboveThreshold(deforestationLevel)
+                  ? `${formatDeforestationPercentage(deforestationLevel)} Def.`
                   : t("deforestationAnalysis:deforestationFree")
                 : t("common:na")}
             </Text>

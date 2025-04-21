@@ -4,7 +4,7 @@ import { DataContext } from "@/context/DataContext";
 import { useSearch } from "@/hooks/useSearch";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 import { FarmData } from "@/interfaces/Farm";
-import { formatNumber, formatPercentage } from "@/utils/numbers";
+import { formatDeforestationPercentage, formatNumber } from "@/utils/numbers";
 import {
   getDeforestationPercentageChipBackgroundColor,
   getDeforestationPercentageChipColor,
@@ -75,7 +75,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
         const deforestationParsedValue: string =
           deforestationValue === null
             ? t("common:na")
-            : formatPercentage(deforestationValue, 1);
+            : formatDeforestationPercentage(deforestationValue);
         return (
           <FormControlLabel
             key={farm.id}

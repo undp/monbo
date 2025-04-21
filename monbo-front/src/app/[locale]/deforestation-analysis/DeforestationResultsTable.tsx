@@ -11,7 +11,7 @@ import { DataContext, DataContextValue } from "@/context/DataContext";
 import { useSearch } from "@/hooks/useSearch";
 import { useSortedTable } from "@/hooks/useSortedTable";
 import { FarmData } from "@/interfaces/Farm";
-import { formatPercentage } from "@/utils/numbers";
+import { formatDeforestationPercentage } from "@/utils/numbers";
 import { removeDiacritics } from "@/utils/strings";
 import { orderBy } from "lodash";
 import { useSearchParams } from "next/navigation";
@@ -66,7 +66,7 @@ const parseRows = (
                   ? t("common:na")
                   : farmResultValue === 0
                   ? t("deforestationAnalysis:deforestationFree")
-                  : `${formatPercentage(farmResultValue, 1)} Def.`,
+                  : `${formatDeforestationPercentage(farmResultValue)} Def.`,
               chipStyle: {
                 width: 100,
                 color: getDeforestationPercentageChipColor(farmResultValue),
