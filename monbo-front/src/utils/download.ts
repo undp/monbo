@@ -65,16 +65,24 @@ export const getRowCommonDataAsArray = (farm: FarmData): string[] => {
   ];
 };
 
+/*
+This EUDR document is intended for users (Economic Operators) of the European Commission’s EUDR
+Information System (IS) and for parties interested in producing compatible geolocation files for use in
+the central EUDR information system.
+*/
 export const getRowCommonDataAsObject = (
   farm: FarmData
 ): Record<string, string> => {
   return {
     id: farm.id,
-    producer: farm.producer,
+    /* EUDR GeoJson File Description Additional Properties */
+    ProducerName: farm.producer,
+    ProducerCountry: farm.country || "", // ISO 3166-1 alpha-2 country code
+    Area: "0", // TODO: when refactoring the excel manipulation, we should have the area of the farm
+    /* Our custom properties */
     productionDate: farm.productionDate || "",
     production: farm.production.toString(),
     productionQuantityUnit: farm.productionQuantityUnit || "",
-    country: farm.country || "",
     region: farm.region || "",
     coordinates: getCoordinates(farm).join(", "),
     cropType: farm.cropType,
