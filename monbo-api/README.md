@@ -19,6 +19,7 @@ monbo-api/
 │  │   │       └── es/  # Spanish considerations
 │  ├── models/  # Request and response models
 │  ├── modules/  # Route handlers for the application, organized by feature
+│  ├── templates/  # HTML templates for responses
 │  ├── utils/  # Utility functions
 │  ├── main.py  # FastAPI application entry point
 ├── tests/  # Additional test cases

@@ -1,4 +1,5 @@
 import json
+import os
 from urllib.parse import unquote
 
 from app.modules import (
@@ -17,6 +18,29 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint that serves the API status page.
+    Returns an HTML page with a spinning gear animation indicating the API is running.
+    If the template file is not found, returns a simple fallback HTML response.
+
+    Returns:
+        Response: HTML content with status page
+    """
+    # Load HTML content from file
+    template_path = os.path.join(os.path.dirname(__file__), "templates/index.html")
+
+    try:
+        with open(template_path, "r") as file:
+            html_content = file.read()
+    except FileNotFoundError:
+        # Fallback in case the file doesn't exist
+        html_content = "<html><body><h1>Monbo API is running</h1></body></html>"
+
+    return Response(content=html_content, media_type="text/html")
 
 
 @app.get("/health")
