@@ -125,11 +125,11 @@ def get_overlapping_polygons(
         # Handle the case where polygons are identical or nearly identical
         # Using a small epsilon for floating point comparison
         if abs(overlap_area - union_area) < 1e-10:
-            overlap_percentage = 1.0  # 100% overlap
+            overlap_ratio = 1.0  # 100% overlap
         else:
-            overlap_percentage = min(1.0, overlap_area / union_area)  # Cap at 100%
+            overlap_ratio = min(1.0, overlap_area / union_area)  # Cap at 100%
 
-        if overlap_percentage > OVERLAP_THRESHOLD_PERCENTAGE:
+        if 100 * overlap_ratio > OVERLAP_THRESHOLD_PERCENTAGE:
             results[overlap["polygon1_idx"]]["status"] = "NOT_VALID"
             results[overlap["polygon2_idx"]]["status"] = "NOT_VALID"
 
@@ -141,8 +141,8 @@ def get_overlapping_polygons(
                         parsed_polygons[overlap["polygon2_idx"]]["id"],
                     ],
                     "data": {
-                        "percentage": overlap_percentage,
-                        "criticality": "HIGH" if overlap_percentage > 0.8 else "MEDIUM",
+                        "percentage": overlap_ratio,
+                        "criticality": "HIGH" if overlap_ratio > 0.8 else "MEDIUM",
                         "area": overlap_area,
                         "center": {
                             "lng": overlap["intersection_polygon"].centroid.x,

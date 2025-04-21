@@ -68,10 +68,12 @@ def get_pixel_area(map_data):
 
 
 def get_deforestation_ratio(pixels, polygon_area, pixel_area):
+    if polygon_area == 0:
+        return 0
     deforested_pixels = np.equal(pixels, 1)
     deforested_pixels_sum = np.sum(deforested_pixels)
     deforested_area = float(deforested_pixels_sum * pixel_area)
-    return deforested_area / polygon_area
+    return min(1.0, deforested_area / polygon_area)
 
 
 def create_empty_tile():
