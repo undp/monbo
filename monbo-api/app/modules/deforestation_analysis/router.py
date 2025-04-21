@@ -1,7 +1,6 @@
-import io
 from datetime import datetime, timedelta
+from io import BytesIO
 
-import rasterio
 from app.models.farms import FarmData
 from app.models.maps import BaseMapData
 from app.modules.deforestation_analysis.helpers import (
@@ -13,12 +12,13 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.utils.farms import parse_base_information
-from app.utils.maps import read_attributes, read_considerations
+from app.utils.maps import get_map_raster_path, read_attributes, read_considerations
 from app.utils.polygons import (
     get_polygon_area,
 )
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
+from rasterio import open as rasterio_open
 
 from .models import AnalizeBody, DeforestationUnprocessedFarmData, MapData
 
@@ -124,9 +124,8 @@ def analize(body: AnalizeBody):
     for map_data in requested_maps:
         farmsResults = []
         try:
-            with rasterio.open(
-                f"app/maps/layers/rasters/{map_data['raster_filename']}"
-            ) as src:
+            raster_path = get_map_raster_path(map_data["raster_filename"])
+            with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
                         polygon = farm.get_polygon()
@@ -165,11 +164,11 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     if map is None:
         raise HTTPException(status_code=404, detail="Map not found")
 
-    asset_path = f"app/maps/layers/rasters/{map['raster_filename']}"
+    asset_path = get_map_raster_path(map["raster_filename"])
 
     try:
         img = get_tile(asset_path, z, x, y)
-        img_io = io.BytesIO()
+        img_io = BytesIO()
         img.save(img_io, format="PNG", compress_level=1)
         img_io.seek(0)
 

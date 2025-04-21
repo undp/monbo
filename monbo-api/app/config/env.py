@@ -7,7 +7,6 @@ load_dotenv()
 
 GOOGLE_SERVICE_API_KEY = os.getenv("GOOGLE_SERVICE_API_KEY")
 
-
 # Overlap threshold %, between 0 and 100. Ensure the same value at frontend.
 raw_overlap_threshold_percentage = os.getenv("OVERLAP_THRESHOLD_PERCENTAGE")
 if raw_overlap_threshold_percentage is not None:

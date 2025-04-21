@@ -41,6 +41,12 @@ export const DEFORESTATION_ANALYSIS_TILES_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "__API_URL__"
   }/deforestation_analysis/tiles`;
 
+export const DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL =
+  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL ||
+  `${
+    process.env.NEXT_PUBLIC_API_URL ?? "__API_URL__"
+  }/deforestation_analysis/map-generation/generate-for-polygon`;
+
 // Values between 0 and 100. Ensure the same value at backend.
 export const OVERLAP_THRESHOLD_PERCENTAGE = (() => {
   const raw = process.env.NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE;

@@ -4,10 +4,16 @@ import { pdf } from "@react-pdf/renderer";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { DeforestationReportDocument } from "@/utils/deforestationReport";
+import {
+  DeforestationReportDocument,
+  DeforestationReportImage,
+} from "@/utils/deforestationReport";
 import { useTranslation } from "react-i18next";
 import { useParams } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
+import { flatten } from "lodash";
+import { generatePolygonDeforestationImage } from "@/api/deforestationAnalysis";
+import { generateGeoJsonFeature } from "@/utils/geojson";
 
 export const useDeforestationReportDownload = () => {
   const { t } = useTranslation(["deforestationAnalysis", "common"]);
@@ -29,11 +35,43 @@ export const useDeforestationReportDownload = () => {
   }, [deforestationAnalysisResults, selectedMapsForReport]);
 
   const downloadCompleteReportToFile = useCallback(async () => {
+    // TODO: improve the performance of fetching the images
+    const images: DeforestationReportImage[] = await Promise.all(
+      flatten(
+        selectedMapsForReport.map(({ id: mapId }) =>
+          selectedFarmsForReport.map(async (farm) => {
+            const hasResults = !!filteredDeforestationAnalysisResults
+              .find((m) => m.mapId === mapId)
+              ?.farmResults.some(
+                ({ farmId, value }) => farmId === farm.id && value !== null
+              );
+            if (!hasResults)
+              return {
+                mapId,
+                farmId: farm.id,
+                url: null,
+              };
+
+            const blob = await generatePolygonDeforestationImage(
+              mapId,
+              generateGeoJsonFeature(farm)
+            );
+            return {
+              mapId,
+              farmId: farm.id,
+              url: URL.createObjectURL(blob),
+            };
+          })
+        )
+      )
+    );
+
     const pdfBlob = await pdf(
       <DeforestationReportDocument
         farmsData={selectedFarmsForReport}
         deforestationAnalysisResults={filteredDeforestationAnalysisResults}
         mapsData={selectedMapsForReport}
+        images={images}
         t={t}
         language={locale}
       />
@@ -51,6 +89,37 @@ export const useDeforestationReportDownload = () => {
   const downloadSeparatedReportsToFile = useCallback(async () => {
     const zip = new JSZip();
 
+    // TODO: improve the performance of fetching the images
+    const images: DeforestationReportImage[] = await Promise.all(
+      flatten(
+        selectedMapsForReport.map(({ id: mapId }) =>
+          selectedFarmsForReport.map(async (farm) => {
+            const hasResults = !!filteredDeforestationAnalysisResults
+              .find((m) => m.mapId === mapId)
+              ?.farmResults.some(
+                ({ farmId, value }) => farmId === farm.id && value !== null
+              );
+            if (!hasResults)
+              return {
+                mapId,
+                farmId: farm.id,
+                url: null,
+              };
+
+            const blob = await generatePolygonDeforestationImage(
+              mapId,
+              generateGeoJsonFeature(farm)
+            );
+            return {
+              mapId,
+              farmId: farm.id,
+              url: URL.createObjectURL(blob),
+            };
+          })
+        )
+      )
+    );
+
     // Generate PDFs and add them to zip
     for (let i = 0; i < selectedFarmsForReport.length; i++) {
       const farm = selectedFarmsForReport[i];
@@ -59,6 +128,7 @@ export const useDeforestationReportDownload = () => {
           farmsData={[farm]}
           deforestationAnalysisResults={filteredDeforestationAnalysisResults}
           mapsData={selectedMapsForReport}
+          images={images}
           t={t}
           language={locale}
         />

@@ -114,12 +114,14 @@ export const FarmMapPage = ({
   result,
   t,
   language,
+  imageBlobUrl,
 }: {
   farm: FarmData;
   map: MapData;
   result: DeforestationAnalysisMapResults["farmResults"][number];
   t: TFunction;
   language?: string;
+  imageBlobUrl: string | null;
 }) => {
   const deforestationPercentage = result.value;
   // If the deforestation percentage is null, return null to avoid rendering the page
@@ -324,13 +326,11 @@ export const FarmMapPage = ({
       </View>
 
       {/* Map Image */}
-      {/* TODO: generate the image somehow */}
-      <View style={styles.farmMapPageMapImageContainer}>
-        <ImagePDF
-          src={"/images/deforestation-image-example.png"}
-          style={styles.farmMapPageMapImage}
-        />
-      </View>
+      {!!imageBlobUrl && (
+        <View style={styles.farmMapPageMapImageContainer}>
+          <ImagePDF src={imageBlobUrl} style={styles.farmMapPageMapImage} />
+        </View>
+      )}
 
       {/* Footer */}
       <Footer t={t} />

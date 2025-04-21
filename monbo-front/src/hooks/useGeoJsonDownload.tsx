@@ -3,7 +3,7 @@ import { saveAs } from "file-saver";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useTranslation } from "react-i18next";
 
-interface GeoJsonFeature {
+export interface GeoJsonFeature {
   type: "Feature";
   properties: Record<string, unknown>;
   geometry: {
