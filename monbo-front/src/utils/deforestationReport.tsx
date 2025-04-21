@@ -82,6 +82,8 @@ export const DeforestationReportDocument = ({
                 `Map results not found for farm ${farm.id} and map ${mapResults.mapId}`
               );
 
+            if (farmMapResult.value === null) return null;
+
             const map = mapsData.find((m) => m.id === mapResults.mapId);
             if (!map)
               throw new Error(`Map data not found for map ${mapResults.mapId}`);

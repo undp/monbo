@@ -86,6 +86,7 @@ export const styles = StyleSheet.create({
   farmMapPage: {
     fontSize: 12,
     padding: "30px",
+    paddingBottom: 0,
   },
   farmMapPageSection: {
     marginBottom: 12,
@@ -117,8 +118,11 @@ export const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
   },
-  farmMapPageGridItem: {
-    width: "50%", // Adjust to fit the spacing
+  farmMapPageGridLeftItem: {
+    width: "35%",
+  },
+  farmMapPageGridRightItem: {
+    width: "65%",
   },
   farmMapPageTitleText: {
     fontSize: 16,

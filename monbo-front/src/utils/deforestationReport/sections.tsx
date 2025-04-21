@@ -166,13 +166,13 @@ export const FarmMapPage = ({
         <View style={styles.farmMapPageTable}>
           <View style={styles.farmMapPageRow}>
             <View style={styles.farmMapPageGrid}>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridLeftItem}>
                 <Text style={styles.farmMapPageSectionTitleText}>
                   {upperCase(t("reportGeneration:attributes:id"))}/
                   {t("reportGeneration:attributes:producer")}
                 </Text>
               </View>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridRightItem}>
                 <Text style={styles.farmMapPageSectionTitleText}>
                   {!!farm.producerId && !!farm.producer
                     ? `${farm.producerId} / ${farm.producer}`
@@ -195,7 +195,7 @@ export const FarmMapPage = ({
           <View style={styles.farmMapPageDivider} />
           <View style={styles.farmMapPageRow}>
             <View style={styles.farmMapPageGrid}>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridLeftItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:cropType")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>
@@ -203,7 +203,7 @@ export const FarmMapPage = ({
                   </Text>
                 </Text>
               </View>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridRightItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:productionDate")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>
@@ -220,7 +220,7 @@ export const FarmMapPage = ({
           </View>
           <View style={styles.farmMapPageRow}>
             <View style={styles.farmMapPageGrid}>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridLeftItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:production")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>
@@ -231,7 +231,7 @@ export const FarmMapPage = ({
                   </Text>
                 </Text>
               </View>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridRightItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:country")}/
                   {t("reportGeneration:attributes:region")}:{" "}
@@ -266,7 +266,7 @@ export const FarmMapPage = ({
           <View style={styles.farmMapPageDivider} />
           <View style={styles.farmMapPageRow}>
             <View style={styles.farmMapPageGrid}>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridLeftItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:totalArea")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>
@@ -274,7 +274,7 @@ export const FarmMapPage = ({
                   </Text>
                 </Text>
               </View>
-              <View style={styles.farmMapPageGridItem}>
+              <View style={styles.farmMapPageGridRightItem}>
                 <Text style={styles.farmMapPageLightText}>
                   {t("deforestationAnalysis:map")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>{map.name}</Text>
