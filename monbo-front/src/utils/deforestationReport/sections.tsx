@@ -16,6 +16,7 @@ import { parseAreaToHectares } from "../polygons";
 import { longFormatDateByLanguage, shortFormatDateByLanguage } from "../dates";
 import { styles } from "./styles";
 import { getCommaSeparatedUniqueTexts } from "@/utils/strings";
+import { DOWNLOAD_GEOJSON_URL } from "@/config/env";
 
 const Footer = ({ t }: { t: TFunction }) => (
   <View style={styles.footer}>
@@ -293,7 +294,7 @@ export const FarmMapPage = ({
               {t("reportGeneration:words:coordinates")}
             </Text>
             <Link
-              src={`http://localhost:8000/download-geojson?content=${geojsonString}`}
+              src={`${DOWNLOAD_GEOJSON_URL}?content=${geojsonString}`}
               style={styles.farmMapPageBlueLink}
             >
               {t("reportGeneration:phrases:downloadGeojson").toUpperCase()}
