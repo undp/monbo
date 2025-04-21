@@ -1,4 +1,5 @@
 import { TFunction } from "i18next";
+import { isCountryCode } from "./countries";
 
 interface ValidateDataParams {
   data: Record<string, string>[];
@@ -49,6 +50,15 @@ export const validateData = ({
       /^\[\s*(\(\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*\)\s*,?\s*)*\]$/;
     if (!coordinatesRegex.test(row["Coordenadas finca"]?.trim())) {
       const errorMsg = t("common:parseFileError:invalidCoordinates", {
+        row: rowIdx,
+      });
+      throw new Error(errorMsg);
+    }
+
+    // Check the country is ISO 3166-1 alpha-2
+    const country = row["País"];
+    if (!isCountryCode(country)) {
+      const errorMsg = t("common:parseFileError:invalidCountryCode", {
         row: rowIdx,
       });
       throw new Error(errorMsg);

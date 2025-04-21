@@ -50,6 +50,7 @@
   },
   "parseFileError": {
     "mandatoryDataMissing": "Missing mandatory data ({{header}}) in row {{row}}",
-    "invalidCoordinates": "Invalid coordinates in row {{row}}"
+    "invalidCoordinates": "Invalid coordinates in row {{row}}",
+    "invalidCountryCode": "Invalid ISO 3166-1 alpha-2 country code in row {{row}}"
   }
 }
