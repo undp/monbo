@@ -36,6 +36,15 @@ export interface DataContextValue {
   setDeforestationAnalysisResults: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisResults"]>
   >;
+  reportGenerationParams: {
+    initialFarmSelection: "all" | "select";
+    selectedMaps: MapData[];
+    selectedFarms: FarmData[];
+    downloadType: "combined" | "separated" | null;
+  };
+  setReportGenerationParams: Dispatch<
+    SetStateAction<DataContextValue["reportGenerationParams"]>
+  >;
   availableMaps: MapData[];
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
 }
@@ -52,7 +61,13 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisParams: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
-  // TODO: fetch API for available maps
+  reportGenerationParams: {
+    initialFarmSelection: "all",
+    selectedMaps: [],
+    selectedFarms: [],
+    downloadType: null,
+  },
+  setReportGenerationParams: () => {},
   availableMaps: [],
   setAvailableMaps: () => {},
 });
@@ -75,6 +90,15 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
     useState<DataContextValue["deforestationAnalysisResults"]>(null);
 
+  const [reportGenerationParams, setReportGenerationParams] = useState<
+    DataContextValue["reportGenerationParams"]
+  >({
+    initialFarmSelection: "all",
+    selectedMaps: [],
+    selectedFarms: [],
+    downloadType: null,
+  });
+
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
@@ -94,6 +118,11 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
+    () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
+    [deforestationAnalysisParams.selectedMaps]
+  );
+
   const currentState = useMemo(() => {
     return {
       farmsData,
@@ -102,11 +131,13 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setPolygonsValidationResults,
       deforestationAnalysisParams: {
         ...deforestationAnalysisParams,
-        selectedMaps: orderBy(deforestationAnalysisParams.selectedMaps, "id"),
+        selectedMaps: sortedDeforestationAnalysisParamsSelectedMaps,
       },
       setDeforestationAnalysisParams,
       deforestationAnalysisResults,
       setDeforestationAnalysisResults,
+      reportGenerationParams,
+      setReportGenerationParams,
       availableMaps,
       setAvailableMaps,
     };
@@ -116,9 +147,12 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     polygonsValidationResults,
     setPolygonsValidationResults,
     deforestationAnalysisParams,
+    sortedDeforestationAnalysisParamsSelectedMaps,
     setDeforestationAnalysisParams,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
+    reportGenerationParams,
+    setReportGenerationParams,
     availableMaps,
     setAvailableMaps,
   ]);

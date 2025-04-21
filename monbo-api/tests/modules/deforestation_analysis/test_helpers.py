@@ -163,6 +163,6 @@ def test_get_tile(mock_xy_bounds, mock_warped_vrt, mock_raster_open):
     assert mock_window_error == Image.new("RGBA", (256, 256), (0, 0, 0, 0))
 
     # Simulate Exception
-    mock_vrt.window.side_effect = WindowsError("Invalid window")
+    mock_vrt.window.side_effect = OSError("Invalid window")
     with pytest.raises(HTTPException):
         get_tile(tif_path, red_tile_values, z, x, y)

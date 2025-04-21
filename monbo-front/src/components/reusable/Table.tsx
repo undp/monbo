@@ -1,4 +1,5 @@
 "use client";
+
 import { formatNumber } from "@/utils/numbers";
 import {
   TableContainer,
@@ -15,7 +16,8 @@ import {
   Theme,
   Box,
 } from "@mui/material";
-import React from "react";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface Header {
   name: React.ReactNode;
@@ -83,7 +85,7 @@ export interface TableProps<T> {
   selectAllCellComponent?: React.ReactNode;
   selectAllCellStyle?: SxProps<Theme>;
   onRowSelected?: (row: RowData<T>, idx: number) => void;
-  onAllRowsSelected?: () => void;
+  onAllRowsSelected?: (rows: RowData<T>[]) => void;
   isRowSelected?: (row: RowData<T>, idx: number) => boolean;
   areAllSelected?: boolean;
   sortedBy?: SortBy | null;
@@ -107,7 +109,8 @@ export function Table<T>({
   sortBy,
   ...props
 }: TableProps<T>) {
-  const [overRow, setOverRow] = React.useState<T | null>(null);
+  const [overRow, setOverRow] = useState<T | null>(null);
+  const { i18n } = useTranslation();
 
   return (
     <TableContainer sx={{ height: "100%" }}>
@@ -131,7 +134,7 @@ export function Table<T>({
               >
                 {selectAllCellComponent ?? (
                   <Checkbox
-                    onClick={onAllRowsSelected}
+                    onClick={() => onAllRowsSelected?.(rows)}
                     checked={areAllSelected}
                   />
                 )}
@@ -220,7 +223,11 @@ export function Table<T>({
                       >
                         {header.type === "label"
                           ? typeof r.cells[header.attr].value === "number"
-                            ? formatNumber(r.cells[header.attr].value as number)
+                            ? formatNumber(
+                                r.cells[header.attr].value as number,
+                                2,
+                                i18n.language
+                              )
                             : r.cells[header.attr].value
                           : null}
                         {header.type === "chip" ? (
@@ -266,7 +273,9 @@ export function Table<T>({
                             {header.type === "label"
                               ? typeof fr.cells[header.attr].value === "number"
                                 ? formatNumber(
-                                    fr.cells[header.attr].value as number
+                                    fr.cells[header.attr].value as number,
+                                    2,
+                                    i18n.language
                                   )
                                 : fr.cells[header.attr].value
                               : null}

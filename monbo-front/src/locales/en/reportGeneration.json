@@ -1,0 +1,55 @@
+{
+  "title": "Select the polygons you want to include in the report",
+  "searchPlaceholder": "Search by polygon or producer",
+  "paramsSelectionModal": {
+    "title": "Report generation",
+    "selectFarmsTitle": "Select the polygons to include",
+    "allFarms": "All ({{amount}})",
+    "selectFarms": "Select",
+    "selectMapsTitle": "Select map layers to consider",
+    "button": "Continue"
+  },
+  "words": {
+    "association": "Association",
+    "polygon": "Polygon",
+    "product": "Product",
+    "deforestation": "Deforestation",
+    "map": "Map",
+    "coordinates": "Coordinates",
+    "documentation": "Documentation"
+  },
+  "phrases": {
+    "deforestationAnalysis": "Deforestation Analysis",
+    "deforestationFree": "Deforestation Free",
+    "downloadGeojson": "Download GeoJSON",
+    "analysisPerformedBy": "Analysis performed by",
+    "originCountry": "Origin country",
+    "reportDate": "Report date"
+  },
+  "buttons": {
+    "generateReport": "Generate report",
+    "download": "Download"
+  },
+  "downloadTypeSelectionModal": {
+    "title": "How do you want to download the report?",
+    "combinedOptionText": "1 single PDF with the {{amount}} selected polygons",
+    "separatedOptionText": "{{amount}} PDFs, one document per polygon",
+    "button": "Download"
+  },
+  "emptyFarmsSelectionModal": {
+    "title": "Report generation",
+    "description": "Please select at least one farm to generate a report",
+    "button": "Accept"
+  },
+  "attributes": {
+    "id": "ID",
+    "producer": "Producer",
+    "cropType": "Crop Type",
+    "production": "Production",
+    "productionQuantity": "Production (q)",
+    "productionDate": "Production Date",
+    "country": "Country",
+    "region": "Region",
+    "totalArea": "Total Area (ha)"
+  }
+}

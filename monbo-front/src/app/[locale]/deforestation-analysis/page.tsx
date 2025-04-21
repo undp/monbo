@@ -16,7 +16,7 @@ import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHom
 import { ResultsMapSelector } from "./ResultsMapSelector";
 import { DownloadPageData } from "@/components/page/deforestationAnalysis/DownloadPageData";
 
-const namespaces = ["common", "deforestationAnalysis"];
+const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
 
 interface SearchParams {
   view: "table" | "map";
@@ -95,7 +95,7 @@ export default async function DeforestationAnalysis({
           {selectedView == "map" ? <MapView /> : <DeforestationResultsTable />}
         </SectionBackground>
       </Box>
-      <PageFooter locale={locale} />
+      <PageFooter />
     </TranslationsProvider>
   );
 }

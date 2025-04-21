@@ -23,5 +23,6 @@ export interface FarmData {
   country?: string;
   region?: string;
   association?: string;
+  documents: { name: string; url: string }[];
   polygon: PointTypePolygon | PolygonTypePolygon;
 }

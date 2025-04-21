@@ -7,7 +7,10 @@ import {
   isOverlapAboveThreshold,
 } from "./deforestation";
 
-const numberLocale = "es-CL";
+const languageLocale = {
+  es: "es-CL",
+  en: "en-US",
+} as Record<string, string>;
 
 const DEFAULT_DECIMAL_PLACES = 1;
 const DEFAULT_DISPLAY_THRESHOLD = Math.pow(10, -DEFAULT_DECIMAL_PLACES);
@@ -44,7 +47,12 @@ const overlapDecimalPlaces = getDecimalPlacesForThreshold(
  * @param decimals - The number of decimal places to include in the formatted string. Defaults to 2.
  * @returns The formatted number as a string.
  */
-export const formatNumber = (value: number, decimals = 2): string => {
+export const formatNumber = (
+  value: number,
+  decimals = 2,
+  language = "es"
+): string => {
+  const numberLocale = languageLocale[language];
   const formatter = new Intl.NumberFormat(numberLocale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
@@ -60,7 +68,12 @@ export const formatNumber = (value: number, decimals = 2): string => {
  * @param decimals - The number of decimal places to include in the formatted percentage. Defaults to 0.
  * @returns The formatted percentage string.
  */
-export const formatPercentage = (value: number, decimals = 0): string => {
+export const formatPercentage = (
+  value: number,
+  decimals = 0,
+  language = "es"
+): string => {
+  const numberLocale = languageLocale[language];
   const formatter = new Intl.NumberFormat(numberLocale, {
     style: "percent",
     minimumFractionDigits: 0,
@@ -68,6 +81,25 @@ export const formatPercentage = (value: number, decimals = 0): string => {
   });
 
   return formatter.format(value);
+};
+
+/**
+ * Formats the default display threshold as a percentage string with a "less than" symbol.
+ *
+ * Takes the DEFAULT_DISPLAY_THRESHOLD constant, divides it by 100 to convert to decimal,
+ * formats it as a percentage using the specified language locale and DEFAULT_DECIMAL_PLACES,
+ * and prepends a "less than" symbol.
+ *
+ * @param language - The language code to use for number formatting (e.g. "es", "en")
+ * @returns A string in the format "< X%" where X is the formatted threshold percentage
+ */
+const formattedDefaultDisplayThreshold = (language: string): string => {
+  const formattedValue = formatPercentage(
+    DEFAULT_DISPLAY_THRESHOLD / 100,
+    DEFAULT_DECIMAL_PLACES,
+    language
+  );
+  return `< ${formattedValue}`;
 };
 
 /**
@@ -83,21 +115,24 @@ export const formatPercentage = (value: number, decimals = 0): string => {
  * @param value - The overlap value to format (between 0 and 1)
  * @returns The formatted percentage string
  */
-export const formatOverlapPercentage = (value: number): string => {
+export const formatOverlapPercentage = (
+  value: number,
+  language = "es"
+): string => {
   if (value === 0) return "0%";
 
   // No threshold defined by user, so we use the default threshold for displaying deforestation
   if (OVERLAP_THRESHOLD_PERCENTAGE === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
-      return `< ${DEFAULT_DISPLAY_THRESHOLD}%`;
-    return formatPercentage(value, overlapDecimalPlaces);
+      return formattedDefaultDisplayThreshold(language);
+    return formatPercentage(value, overlapDecimalPlaces, language);
   }
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isOverlapAboveThreshold(value))
     return `< ${OVERLAP_THRESHOLD_PERCENTAGE}%`;
 
-  return formatPercentage(value, overlapDecimalPlaces);
+  return formatPercentage(value, overlapDecimalPlaces, language);
 };
 
 /**
@@ -113,19 +148,22 @@ export const formatOverlapPercentage = (value: number): string => {
  * @param value - The deforestation value to format (between 0 and 1)
  * @returns The formatted percentage string
  */
-export const formatDeforestationPercentage = (value: number): string => {
+export const formatDeforestationPercentage = (
+  value: number,
+  language = "es"
+): string => {
   if (value === 0) return "0%";
 
   // No threshold defined by user, so we use the default threshold for displaying deforestation
   if (DEFORESTATION_THRESHOLD_PERCENTAGE === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
-      return `< ${DEFAULT_DISPLAY_THRESHOLD}%`;
-    return formatPercentage(value, deforestationDecimalPlaces);
+      return formattedDefaultDisplayThreshold(language);
+    return formatPercentage(value, deforestationDecimalPlaces, language);
   }
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isDeforestationAboveThreshold(value))
     return `< ${DEFORESTATION_THRESHOLD_PERCENTAGE}%`;
 
-  return formatPercentage(value, deforestationDecimalPlaces);
+  return formatPercentage(value, deforestationDecimalPlaces, language);
 };

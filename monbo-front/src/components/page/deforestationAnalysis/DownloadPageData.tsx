@@ -9,7 +9,6 @@ import {
   COMMON_HEADERS,
   MANDATORY_HEADERS,
   getRowCommonDataAsArray,
-  getRowCommonDataAsObject,
 } from "@/utils/download";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import {
@@ -21,11 +20,13 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
+import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "@/utils/geojson";
 
 const parseData = (
   farmsData: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[],
-  availableMaps: MapData[]
+  availableMaps: MapData[],
+  language: string
 ): Record<string, SheetData> => {
   const mapsHeaders = deforestationAnalysisResults.map(({ mapId }) => {
     const map = availableMaps.find((map) => map.id === mapId);
@@ -40,7 +41,7 @@ const parseData = (
           ({ farmId }) => farmId === farm.id
         );
         if (!farmMapResult || farmMapResult.value === null) return "N/D";
-        return formatDeforestationPercentage(farmMapResult.value);
+        return formatDeforestationPercentage(farmMapResult.value, language);
       }
     );
     return [...getRowCommonDataAsArray(farm), ...deforestationPercentages];
@@ -60,7 +61,7 @@ export const DownloadPageData = () => {
   const { openSnackbar } = useContext(SnackbarContext);
   const downloadAsExcel = useExcelDownload();
   const downloadAsGeoJson = useGeoJsonDownload();
-  const { t } = useTranslation(["common"]);
+  const { t, i18n } = useTranslation(["common"]);
 
   const isDisabled = !farmsData || !deforestationAnalysisResults;
 
@@ -71,7 +72,8 @@ export const DownloadPageData = () => {
       const parsedData = parseData(
         farmsData,
         deforestationAnalysisResults,
-        availableMaps
+        availableMaps,
+        i18n.language
       );
       downloadAsExcel(parsedData, "step2-results.xlsx");
     } catch (error) {
@@ -89,49 +91,20 @@ export const DownloadPageData = () => {
     openSnackbar,
     downloadAsExcel,
     t,
+    i18n.language,
   ]);
 
   const onDownloadAsGeoJsonClick = useCallback(async () => {
     if (isDisabled) return;
 
     try {
-      // Convert farmsData to GeoJSON format
-      const geoJsonData: GeoJsonData = {
-        type: "FeatureCollection",
-        features: farmsData.map((farm) => ({
-          type: "Feature",
-          properties: {
-            ...getRowCommonDataAsObject(farm),
-            ...deforestationAnalysisResults.reduce(
-              (acc, { mapId, farmResults }) => {
-                const map = availableMaps.find((map) => map.id === mapId);
-                const farmMapResult = farmResults.find(
-                  ({ farmId }) => farmId === farm.id
-                );
-                if (!map || !farmMapResult) return acc;
-                return {
-                  ...acc,
-                  [`Deforestation according to ${map.alias}`]:
-                    !farmMapResult || farmMapResult.value === null
-                      ? "N/A"
-                      : formatDeforestationPercentage(farmMapResult.value),
-                };
-              },
-              {}
-            ),
-          },
-          geometry: {
-            type: farm.polygon.type === "point" ? "Point" : "Polygon",
-            coordinates:
-              farm.polygon.type === "point"
-                ? [
-                    farm.polygon.details.center.lng,
-                    farm.polygon.details.center.lat,
-                  ]
-                : [farm.polygon.details.path.map(({ lng, lat }) => [lng, lat])],
-          },
-        })),
-      };
+      const geoJsonData: GeoJsonData =
+        generateGeoJsonFarmsDataWithDeforestationAnalysis(
+          farmsData,
+          deforestationAnalysisResults,
+          availableMaps,
+          i18n.language
+        );
       downloadAsGeoJson(geoJsonData, "step2-results.geojson");
     } catch (error) {
       console.error("Error generating GeoJSON:", error);
@@ -148,6 +121,7 @@ export const DownloadPageData = () => {
     deforestationAnalysisResults,
     downloadAsGeoJson,
     t,
+    i18n.language,
   ]);
 
   return (

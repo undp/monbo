@@ -26,7 +26,7 @@ export const DeforestationFreeCounterChip: React.FC<
     );
   return (
     <Tooltip
-      title={t("deforestationAnalysis:deforestationFree")}
+      title={t("deforestationAnalysis:deforestationFreeShortText")}
       placement="right"
     >
       <Chip

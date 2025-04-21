@@ -7,21 +7,25 @@ import esCommon from "@/locales/es/common.json";
 import esHome from "@/locales/es/home.json";
 import esPolygonValidation from "@/locales/es/polygonValidation.json";
 import esDeforestationAnalysis from "@/locales/es/deforestationAnalysis.json";
+import esReportGeneration from "@/locales/es/reportGeneration.json";
 
 import enCommon from "@/locales/en/common.json";
 import enHome from "@/locales/en/home.json";
 import enPolygonValidation from "@/locales/en/polygonValidation.json";
 import enDeforestationAnalysis from "@/locales/en/deforestationAnalysis.json";
+import enReportGeneration from "@/locales/en/reportGeneration.json";
 
 const localeAssets: Record<string, unknown> = {
   "es-common": esCommon,
   "es-home": esHome,
   "es-polygonValidation": esPolygonValidation,
   "es-deforestationAnalysis": esDeforestationAnalysis,
+  "es-reportGeneration": esReportGeneration,
   "en-common": enCommon,
   "en-home": enHome,
   "en-polygonValidation": enPolygonValidation,
   "en-deforestationAnalysis": enDeforestationAnalysis,
+  "en-reportGeneration": enReportGeneration,
 };
 
 /**

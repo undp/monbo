@@ -24,14 +24,14 @@
       "allowedExtensions": ".xlsx or .xls"
     }
   },
-  "deforestationFree": "Def. Free",
+  "deforestationFreeShortText": "Def. Free",
+  "deforestationFreeLongText": "Deforestation Free",
   "withDeforestation": "Deforested",
   "euOfficialMap": "EU Official",
   "map": "Map",
   "deforestationLevel": "Def. Level",
   "buttons": {
-    "createReport": "Create Report",
-    "createLot": "Create Lot"
+    "createReport": "Go to Report Generation"
   },
   "mapsInfoModal": {
     "title": "Map details",

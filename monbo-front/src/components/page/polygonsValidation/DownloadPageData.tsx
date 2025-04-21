@@ -14,7 +14,6 @@ import { formatOverlapPercentage } from "@/utils/numbers";
 import {
   COMMON_HEADERS,
   getRowCommonDataAsArray,
-  getRowCommonDataAsObject,
   MANDATORY_HEADERS,
 } from "@/utils/download";
 import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
@@ -22,12 +21,14 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
+import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
 
 const parseData = (
   farmsData: FarmData[],
   validFarmsData: FarmData[],
   inconsistencies: InconsistentPolygonData[],
-  farmsStatus: ValidateFarmsResponse["farmResults"]
+  farmsStatus: ValidateFarmsResponse["farmResults"],
+  language: string
 ): Record<string, SheetData> => {
   const validatedPolygonsParsedData = validFarmsData.map((farm) => {
     const farmStatus =
@@ -50,7 +51,7 @@ const parseData = (
         const farm = farmsData.find((farm) => farm.id === farmId)!;
         return [
           ...getRowCommonDataAsArray(farm),
-          formatOverlapPercentage(item.data.percentage),
+          formatOverlapPercentage(item.data.percentage, language),
         ];
       });
     })
@@ -80,7 +81,7 @@ export const DownloadPageData = () => {
   const { openSnackbar } = useContext(SnackbarContext);
   const downloadAsExcel = useExcelDownload();
   const downloadAsGeoJson = useGeoJsonDownload();
-  const { t } = useTranslation(["common"]);
+  const { t, i18n } = useTranslation(["common"]);
 
   const isDisabled =
     !farmsData || !validFarmsData || !polygonsValidationResults;
@@ -93,7 +94,8 @@ export const DownloadPageData = () => {
         farmsData,
         validFarmsData,
         polygonsValidationResults?.inconsistencies ?? [],
-        polygonsValidationResults?.farmResults ?? []
+        polygonsValidationResults?.farmResults ?? [],
+        i18n.language
       );
       downloadAsExcel(parsedData, "step1-results.xlsx");
     } catch (error) {
@@ -111,34 +113,17 @@ export const DownloadPageData = () => {
     openSnackbar,
     downloadAsExcel,
     t,
+    i18n.language,
   ]);
 
   const onDownloadAsGeoJsonClick = useCallback(async () => {
     if (isDisabled) return;
     try {
-      const geoJsonData: GeoJsonData = {
-        type: "FeatureCollection",
-        features: farmsData.map((farm) => ({
-          type: "Feature",
-          properties: {
-            ...getRowCommonDataAsObject(farm),
-            status:
-              polygonsValidationResults?.farmResults.find(
-                (f) => f.farmId === farm.id
-              )?.status || "",
-          },
-          geometry: {
-            type: farm.polygon.type === "point" ? "Point" : "Polygon",
-            coordinates:
-              farm.polygon.type === "point"
-                ? [
-                    farm.polygon.details.center.lng,
-                    farm.polygon.details.center.lat,
-                  ]
-                : [farm.polygon.details.path.map(({ lng, lat }) => [lng, lat])],
-          },
-        })),
-      };
+      const geoJsonData: GeoJsonData =
+        generateGeoJsonFarmsDataWithPolygonsValidation(
+          farmsData,
+          polygonsValidationResults
+        );
       downloadAsGeoJson(geoJsonData, "step1-results.geojson");
     } catch (error) {
       console.error("Error generating GeoJSON:", error);

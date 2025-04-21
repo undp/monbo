@@ -34,7 +34,8 @@ const parseRows = (
     DataContextValue["deforestationAnalysisResults"]
   >,
   polygonsValidationResults: DataContextValue["polygonsValidationResults"],
-  t: TFunction<"translation", undefined>
+  t: TFunction<"translation", undefined>,
+  language: string
 ): RowData<FarmData>[] => {
   return data.map((farm) => ({
     cells: {
@@ -65,8 +66,11 @@ const parseRows = (
                 farmResultValue === null
                   ? t("common:na")
                   : farmResultValue === 0
-                  ? t("deforestationAnalysis:deforestationFree")
-                  : `${formatDeforestationPercentage(farmResultValue)} Def.`,
+                  ? t("deforestationAnalysis:deforestationFreeShortText")
+                  : `${formatDeforestationPercentage(
+                      farmResultValue,
+                      language
+                    )} Def.`,
               chipStyle: {
                 width: 100,
                 color: getDeforestationPercentageChipColor(farmResultValue),
@@ -84,14 +88,24 @@ const parseRows = (
   }));
 };
 
-export const DeforestationResultsTable: React.FC = () => {
+interface Props {
+  tableProps?: Partial<TableProps<FarmData>>;
+  mapsSubset?: Set<number>;
+}
+
+export const DeforestationResultsTable: React.FC<Props> = ({
+  tableProps,
+  mapsSubset,
+}) => {
   const { availableMaps, polygonsValidationResults } = useContext(DataContext);
-  const { farmsData, deforestationAnalysisResults } =
-    useVisibleDataForDeforestationPage();
+  const {
+    farmsData,
+    deforestationAnalysisResults: originalDeforestationAnalysisResults,
+  } = useVisibleDataForDeforestationPage();
 
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [sortedBy, setSortedBy] = useSortedTable();
 
@@ -101,6 +115,13 @@ export const DeforestationResultsTable: React.FC = () => {
   const filteredData = useSearch(farmsData, searchValue ?? "", {
     keys: ["id", "producer"],
   });
+
+  const deforestationAnalysisResults = useMemo(() => {
+    if (!mapsSubset) return originalDeforestationAnalysisResults;
+    return originalDeforestationAnalysisResults?.filter((m) =>
+      mapsSubset.has(m.mapId)
+    );
+  }, [originalDeforestationAnalysisResults, mapsSubset]);
 
   const sortedData: FarmData[] = useMemo(() => {
     if (!sortedBy) return filteredData;
@@ -161,6 +182,7 @@ export const DeforestationResultsTable: React.FC = () => {
   // TODO: search some nice message into Table when no results found of text searching
   return (
     <Table
+      {...tableProps}
       headerStyle={{ backgroundColor: "#FFFFFF" }}
       headers={[
         {
@@ -216,7 +238,8 @@ export const DeforestationResultsTable: React.FC = () => {
         sortedData,
         deforestationAnalysisResults,
         polygonsValidationResults,
-        t
+        t,
+        i18n.language
       )}
       footerStyle={{ backgroundColor: "#FFFFFF70" }}
       footerCellStyle={{ backgroundColor: "#FFFFFF70" }}

@@ -27,7 +27,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
 }) => {
   const searchParams = useSearchParams();
   const { deforestationAnalysisResults } = useContext(DataContext);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const searchValue = searchParams.get("search")?.toString() || "";
   const filteredData = useSearch<FarmData>(farmsData || [], searchValue, {
@@ -75,7 +75,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
         const deforestationParsedValue: string =
           deforestationValue === null
             ? t("common:na")
-            : formatDeforestationPercentage(deforestationValue);
+            : formatDeforestationPercentage(deforestationValue, i18n.language);
         return (
           <FormControlLabel
             key={farm.id}

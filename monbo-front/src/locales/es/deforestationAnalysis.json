@@ -23,14 +23,14 @@
       "dragzoneText": "o arrastra y suelta el archivo"
     }
   },
-  "deforestationFree": "Libre Def.",
+  "deforestationFreeShortText": "Libre Def.",
+  "deforestationFreeLongText": "Libre de deforestación",
   "withDeforestation": "Deforestados",
   "euOfficialMap": "Oficial UE",
   "map": "Mapa",
   "deforestationLevel": "Nivel def.",
   "buttons": {
-    "createReport": "Crear Reporte",
-    "createLot": "Crear Lote"
+    "createReport": "Ir a creación de reporte"
   },
   "mapsInfoModal": {
     "title": "Detalles de mapas",

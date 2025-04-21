@@ -1,0 +1,55 @@
+{
+  "title": "Selecciona los polígonos que quieres incluir en el reporte",
+  "searchPlaceholder": "Buscar por polígono o productor",
+  "paramsSelectionModal": {
+    "title": "Generación del reporte",
+    "selectFarmsTitle": "Selecciona los polígonos a incluir",
+    "allFarms": "Todos ({{amount}})",
+    "selectFarms": "Seleccionar",
+    "selectMapsTitle": "Selecciona capas de mapas a considerar",
+    "button": "Continuar"
+  },
+  "words": {
+    "association": "Asociación",
+    "polygon": "Polígono",
+    "product": "Producto",
+    "deforestation": "Deforestación",
+    "map": "Mapa",
+    "coordinates": "Coordenadas",
+    "documentation": "Documentación"
+  },
+  "phrases": {
+    "deforestationAnalysis": "Análisis de deforestación",
+    "deforestationFree": "Libre de deforestación",
+    "downloadGeojson": "Descargar GeoJSON",
+    "analysisPerformedBy": "Análisis realizado por",
+    "originCountry": "País de origen",
+    "reportDate": "Fecha reporte"
+  },
+  "buttons": {
+    "generateReport": "Generar reporte",
+    "download": "Descargar"
+  },
+  "downloadTypeSelectionModal": {
+    "title": "¿Cómo quieres descargar el reporte?",
+    "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",
+    "separatedOptionText": "{{amount}} PDFs, un documento por polígono",
+    "button": "Descargar"
+  },
+  "emptyFarmsSelectionModal": {
+    "title": "Generación del reporte",
+    "description": "Por favor selecciona al menos un polígono para generar un reporte",
+    "button": "Aceptar"
+  },
+  "attributes": {
+    "id": "ID",
+    "producer": "Productor",
+    "cropType": "Tipo de cultivo",
+    "production": "Producción",
+    "productionQuantity": "Producción (q)",
+    "productionDate": "Fecha de producción",
+    "country": "País",
+    "region": "Región",
+    "totalArea": "Superficie total (ha)"
+  }
+}
