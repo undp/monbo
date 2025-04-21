@@ -162,7 +162,10 @@ def calculate_zoom_level(geom, output_size=(500, 500), padding_ratio=0.3) -> int
 
     # Apply zoom and round to integer, with limits
     zoom_level = min(int(calculated_zoom + zoom_boost), 20)  # Limit max zoom
-    zoom_level = max(zoom_level, 17)  # Set higher minimum zoom for closer detail
+
+    # For large polygons, we need to allow smaller zoom levels
+    # Remove the min zoom restriction or set a more reasonable minimum
+    zoom_level = max(zoom_level, 1)  # Allow much lower zoom levels for large areas
 
     return zoom_level
 
