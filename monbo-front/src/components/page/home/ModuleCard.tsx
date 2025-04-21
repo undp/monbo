@@ -83,14 +83,16 @@ export const ModuleCard: React.FC<Props> = ({
           )}
         </Box>
       </Box>
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-        <CustomButton
-          text={t(`${textNamespace}:button`)}
-          color={color}
-          onPress={onPress}
-          disabled={disabled}
-        />
-      </Box>
+      {!!onPress && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <CustomButton
+            text={t(`${textNamespace}:button`)}
+            color={color}
+            onPress={onPress}
+            disabled={disabled}
+          />
+        </Box>
+      )}
     </Paper>
   );
 };
