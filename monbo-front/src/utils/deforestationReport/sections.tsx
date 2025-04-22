@@ -322,6 +322,11 @@ export const FarmMapPage = ({
                 {document.name ?? `Documento ${index + 1}`}
               </Link>
             ))}
+            {!farm.documents.length && (
+              <Text style={styles.farmMapPageLightText}>
+                {t("reportGeneration:phrases:noDocumentation")}
+              </Text>
+            )}
           </View>
         </View>
       </View>

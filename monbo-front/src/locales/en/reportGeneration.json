@@ -24,7 +24,8 @@
     "downloadGeojson": "Download GeoJSON",
     "analysisPerformedBy": "Analysis performed by",
     "originCountry": "Origin country",
-    "reportDate": "Report date"
+    "reportDate": "Report date",
+    "noDocumentation": "Not available"
   },
   "buttons": {
     "generateReport": "Generate report",
