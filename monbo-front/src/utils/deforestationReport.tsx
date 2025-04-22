@@ -88,10 +88,6 @@ export const DeforestationReportDocument = ({
             if (!map)
               throw new Error(`Map data not found for map ${mapResults.mapId}`);
 
-            farm.documents.forEach((document) => {
-              document.name = null as unknown as string;
-            });
-
             const imageBlobUrl =
               images.find(
                 (i) => i.mapId === mapResults.mapId && i.farmId === farm.id
