@@ -146,7 +146,7 @@ export const styles = StyleSheet.create({
   farmMapPageDeforestationText: {
     fontWeight: 500,
   },
-  farmMapPageBlueLink: {
+  blueLink: {
     color: "#0D6EFD",
     textDecoration: "underline",
   },
@@ -160,44 +160,53 @@ export const styles = StyleSheet.create({
     height: "100%", // Fills the container
     objectFit: "cover", // Ensures the image scales properly
   },
-  deforestationExplanationPage: {
+  appendixPage: {
     padding: "30px",
     fontSize: 12,
     color: "#3A3541",
   },
-  deforestationExplanationPageTitleContainer: {},
-  deforestationExplanationPageTitleText: {
+  appendixPageTitleContainer: {},
+  appendixPageTitleText: {
     fontSize: 20,
     fontWeight: 500,
   },
-  deforestationExplanationPageBodyContainer: {
+  appendixPageBodyContainer: {
     paddingLeft: 20,
     paddingRight: 20,
   },
-  deforestationExplanationPageSubtitleText: {
+  appendixPageSubtitleText: {
+    fontSize: 14,
     fontWeight: 500,
     marginTop: 20,
     marginBottom: 12,
   },
-  deforestationExplanationPageBodyText: {
+  appendixPageBodyText: {
     fontWeight: 400,
     lineHeight: "23px",
   },
-  deforestationExplanationPageTableRow: {
+  appendixPageTableRow: {
     border: "0.8px solid #DEDEDE",
-    borderRadius: 5,
     display: "flex",
     flexDirection: "row",
+  },
+  deforestationExplanationPageTableRow: {
     minHeight: 92,
-  },
-  deforestationExplanationPageTableFirstRow: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  deforestationExplanationPageTableLastRow: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-  },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
+  mapsExplanationPageTableRow: {
+    minHeight: 60,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
+  appendixPageTableFirstRow: {
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
+  appendixPageTableLastRow: {
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
   deforestationExplanationPageTableLeftCellChip: {
     width: "100%",
     height: 24,
@@ -206,22 +215,36 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 16,
   },
-  deforestationExplanationPageTableLeftCell: {
+  appendixPageTableLeftCell: {
     backgroundColor: "#F9F9F9",
     padding: "8px",
     flex: 1,
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
     fontWeight: 500,
   },
-  deforestationExplanationPageTableRightCell: {
-    padding: "8px",
+  deforestationExplanationPageTableLeftCell: {
+    alignItems: "center",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
+  appendixPageTableRightCell: {
+    padding: "8px 10px",
     flex: 2,
     display: "flex",
     justifyContent: "center",
-    lineHeight: "19px",
+    lineHeight: "18px",
   },
+  mapsExplanationMapNameText: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginTop: 20,
+    marginBottom: 16,
+    marginLeft: 20,
+  },
+  mapsExplanationPageTableRightCell: {
+    // lineHeight: undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any,
   footer: {
     position: "absolute",
     bottom: 20, // Distance from the bottom edge

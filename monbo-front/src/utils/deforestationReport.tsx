@@ -9,7 +9,7 @@ import {
   CoverPage,
   DeforestationExplanationPage,
   FarmMapPage,
-  // MapDescriptionPage,
+  MapDescriptionPage,
 } from "./deforestationReport/sections";
 import { flatten } from "lodash";
 import { styles } from "./deforestationReport/styles";
@@ -33,12 +33,22 @@ Font.register({
       fontWeight: 400, // Regular ✅
     },
     {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOkCnqEu92Fr1Mu51xIIzc.ttf",
+      fontWeight: 400,
+      fontStyle: "italic", // Regular Italic
+    },
+    {
       src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc9.ttf",
       fontWeight: 500, // Medium ✅
     },
     {
       src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf",
       fontWeight: 700, // Bold (Roboto has no 600 weight) ✅
+    },
+    {
+      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc-.ttf",
+      fontWeight: 700,
+      fontStyle: "italic", // Bold Italic
     },
     {
       src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu7GxK.ttf",
@@ -112,10 +122,11 @@ export const DeforestationReportDocument = ({
       <DeforestationExplanationPage t={t} />
 
       {/* EXPLANATION OF THE MAPS USED FOR THE DEFORESTATION ANALYSIS */}
-      {/* <MapDescriptionPage
+      <MapDescriptionPage
         deforestationAnalysisResults={deforestationAnalysisResults}
         mapsData={mapsData}
-      /> */}
+        t={t}
+      />
     </Document>
   );
 };

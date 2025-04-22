@@ -3,7 +3,14 @@ import {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import { FarmData } from "@/interfaces/Farm";
-import { Page, Text, View, Link, Image as ImagePDF } from "@react-pdf/renderer";
+import {
+  Page,
+  Text,
+  View,
+  Link,
+  Image as ImagePDF,
+  Styles,
+} from "@react-pdf/renderer";
 import { formatPercentage } from "../numbers";
 import {
   getDeforestationPercentageChipBackgroundColor,
@@ -24,6 +31,12 @@ const Footer = ({ t }: { t: TFunction }) => (
       {t("reportGeneration:phrases:analysisPerformedBy")}{" "}
       <ImagePDF src={"/images/Logo.png"} style={styles.footerLogoImage} />
     </Text>
+  </View>
+);
+
+const AppendixPageTitle = ({ children }: { children: string }) => (
+  <View style={styles.appendixPageTitleContainer}>
+    <Text style={styles.appendixPageTitleText}>{children}</Text>
   </View>
 );
 
@@ -73,10 +86,10 @@ export const CoverPage = ({
       <View style={styles.coverPageSection}>
         <View style={styles.coverTitleSection}>
           <Text style={styles.coverTitleText}>
-            {language === "es" ? "Reporte Análisis" : "Deforestation"}
+            {t("reportGeneration:coverPage:titleFirstLine")}
           </Text>
           <Text style={styles.coverTitleText}>
-            {language === "es" ? "Deforestación" : "Analysis Report"}
+            {t("reportGeneration:coverPage:titleSecondLine")}
           </Text>
         </View>
         {!!associationText && (
@@ -295,7 +308,7 @@ export const FarmMapPage = ({
             </Text>
             <Link
               src={`${DOWNLOAD_GEOJSON_URL}?content=${geojsonString}`}
-              style={styles.farmMapPageBlueLink}
+              style={styles.blueLink}
             >
               {t("reportGeneration:phrases:downloadGeojson").toUpperCase()}
             </Link>
@@ -317,7 +330,7 @@ export const FarmMapPage = ({
               <Link
                 key={`${farm.id}-document-${index}`}
                 src={document.url}
-                style={styles.farmMapPageBlueLink}
+                style={styles.blueLink}
               >
                 {document.name ?? `Documento ${index + 1}`}
               </Link>
@@ -344,6 +357,39 @@ export const FarmMapPage = ({
   );
 };
 
+export const AppendixPageTableRow = ({
+  children,
+  extraStyles = {
+    main: [],
+    leftCell: [],
+    rightCell: [],
+  },
+}: {
+  children: [React.ReactNode, React.ReactNode];
+  extraStyles?: {
+    main?: Styles[];
+    leftCell?: Styles[];
+    rightCell?: Styles[];
+  };
+}) => {
+  if (children.length !== 2) {
+    throw new Error("AppendixPageTableRow must have exactly two children");
+  }
+
+  return (
+    <View style={[styles.appendixPageTableRow, ...(extraStyles.main ?? [])]}>
+      <View style={[styles.appendixPageTableLeftCell]}>{children[0]}</View>
+      <View style={[styles.appendixPageTableRightCell]}>{children[1]}</View>
+    </View>
+  );
+};
+
+interface Segment {
+  text: string;
+  isBold: boolean;
+  isItalic: boolean;
+}
+
 export const DeforestationExplanationPage = ({ t }: { t: TFunction }) => {
   const withoutDeforestationColor = getDeforestationPercentageChipColor(0);
   const withDeforestationColor = getDeforestationPercentageChipColor(1);
@@ -354,78 +400,80 @@ export const DeforestationExplanationPage = ({ t }: { t: TFunction }) => {
     getDeforestationPercentageChipBackgroundColor(1);
 
   return (
-    <Page size="A4" style={styles.deforestationExplanationPage}>
-      <View style={styles.deforestationExplanationPageTitleContainer}>
-        <Text style={styles.deforestationExplanationPageTitleText}>
-          Cálculo de deforestación
+    <Page size="A4" style={styles.appendixPage}>
+      <AppendixPageTitle>
+        {t("reportGeneration:appendixPages:deforestationExplanation:title")}
+      </AppendixPageTitle>
+      <View style={styles.appendixPageBodyContainer}>
+        <Text style={styles.appendixPageSubtitleText}>
+          {t(
+            "reportGeneration:appendixPages:deforestationExplanation:formulaSubtitle"
+          )}
         </Text>
-      </View>
-      <View style={styles.deforestationExplanationPageBodyContainer}>
-        <Text style={styles.deforestationExplanationPageSubtitleText}>
-          Fórmula utilizada
+        <Text style={styles.appendixPageBodyText}>
+          {t(
+            "reportGeneration:appendixPages:deforestationExplanation:formulaText"
+          )}
         </Text>
-        <Text style={styles.deforestationExplanationPageBodyText}>
-          La fórmula para calcular el porcentaje de deforestación considera la
-          razón entre el área de un polígono y lorem ipsum dolor sit amet,
-          consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
-          labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
-          exercitation
+        <Text style={styles.appendixPageSubtitleText}>
+          {t(
+            "reportGeneration:appendixPages:deforestationExplanation:deforestationStatesSubtitle"
+          )}
         </Text>
-        <Text style={styles.deforestationExplanationPageSubtitleText}>
-          Estados de deforestación
-        </Text>
-        <View
-          style={[
-            styles.deforestationExplanationPageTableRow,
-            styles.deforestationExplanationPageTableFirstRow,
-          ]}
+        <AppendixPageTableRow
+          extraStyles={{
+            main: [
+              styles.deforestationExplanationPageTableRow,
+              styles.appendixPageTableFirstRow,
+            ],
+            leftCell: [styles.deforestationExplanationPageTableLeftCell],
+          }}
         >
-          <View style={[styles.deforestationExplanationPageTableLeftCell]}>
-            <View
-              style={[
-                styles.deforestationExplanationPageTableLeftCellChip,
-                { backgroundColor: withoutDeforestationBackgroundColor },
-              ]}
-            >
-              <Text style={[{ color: withoutDeforestationColor }]}>
-                LIBRE DEFORESTACIÓN
-              </Text>
-            </View>
-          </View>
-          <View style={styles.deforestationExplanationPageTableRightCell}>
-            <Text>
-              Indica que no ha habido intervención que haya provocado la
-              reducción del bosque natural dentro del polígono evaluado, de
-              acuerdo con los mapas oficiales o metodologías reconocidas.
+          <View
+            style={[
+              styles.deforestationExplanationPageTableLeftCellChip,
+              { backgroundColor: withoutDeforestationBackgroundColor },
+            ]}
+          >
+            <Text style={[{ color: withoutDeforestationColor }]}>
+              {t(
+                "reportGeneration:appendixPages:deforestationExplanation:deforestationFreeText"
+              )}
             </Text>
           </View>
-        </View>
-        <View
-          style={[
-            styles.deforestationExplanationPageTableRow,
-            styles.deforestationExplanationPageTableLastRow,
-          ]}
+          <Text>
+            {t(
+              "reportGeneration:appendixPages:deforestationExplanation:deforestationFreeExplanation"
+            )}
+          </Text>
+        </AppendixPageTableRow>
+        <AppendixPageTableRow
+          extraStyles={{
+            main: [
+              styles.deforestationExplanationPageTableRow,
+              styles.appendixPageTableLastRow,
+            ],
+            leftCell: [styles.deforestationExplanationPageTableLeftCell],
+          }}
         >
-          <View style={styles.deforestationExplanationPageTableLeftCell}>
-            <View
-              style={[
-                styles.deforestationExplanationPageTableLeftCellChip,
-                { backgroundColor: withDeforestationBackgroundColor },
-              ]}
-            >
-              <Text style={[{ color: withDeforestationColor }]}>
-                XX% DEFORESTACIÓN
-              </Text>
-            </View>
-          </View>
-          <View style={styles.deforestationExplanationPageTableRightCell}>
-            <Text>
-              Cuantifica el grado de deforestación o pérdida de cobertura
-              boscosa del polígono evaluado, de acuerdo con el mapa de
-              referencia utilizado
+          <View
+            style={[
+              styles.deforestationExplanationPageTableLeftCellChip,
+              { backgroundColor: withDeforestationBackgroundColor },
+            ]}
+          >
+            <Text style={[{ color: withDeforestationColor }]}>
+              {t(
+                "reportGeneration:appendixPages:deforestationExplanation:withDeforestationText"
+              )}
             </Text>
           </View>
-        </View>
+          <Text>
+            {t(
+              "reportGeneration:appendixPages:deforestationExplanation:withDeforestationExplanation"
+            )}
+          </Text>
+        </AppendixPageTableRow>
       </View>
       {/* Footer */}
       <Footer t={t} />
@@ -436,9 +484,11 @@ export const DeforestationExplanationPage = ({ t }: { t: TFunction }) => {
 export const MapDescriptionPage = ({
   deforestationAnalysisResults,
   mapsData,
+  t,
 }: {
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
   mapsData: MapData[];
+  t: TFunction;
 }) => {
   return deforestationAnalysisResults
     .map((mapResults) => {
@@ -446,11 +496,263 @@ export const MapDescriptionPage = ({
       if (mapResults.farmResults.every((r) => r.value === null)) return null;
 
       const map = mapsData.find((m) => m.id === mapResults.mapId)!;
+
+      const attributes = [
+        "coverage",
+        "source",
+        "resolution",
+        "contentDate",
+        "updateFrequency",
+        "publishDate",
+        "references",
+      ] as (keyof MapData)[];
+
       return (
-        <Page size="A4" style={styles.farmMapPage} key={mapResults.mapId}>
-          <View style={styles.farmMapPageSection}>
-            <Text>Mapas utilizados para el análisis de deforestación</Text>
-            <Text>{map.name}</Text>
+        <Page size="A4" style={styles.appendixPage} key={mapResults.mapId}>
+          <AppendixPageTitle>
+            {t("reportGeneration:appendixPages:mapsExplanation:title")}
+          </AppendixPageTitle>
+          <Text style={styles.mapsExplanationMapNameText}>{map.name}</Text>
+
+          <View style={styles.appendixPageBodyContainer}>
+            {attributes.map((attribute, idx) => (
+              <AppendixPageTableRow
+                key={`${map.id}-${attribute}`}
+                extraStyles={{
+                  main: [
+                    styles.mapsExplanationPageTableRow,
+                    idx === 0
+                      ? styles.appendixPageTableFirstRow
+                      : idx === attributes.length - 1
+                      ? styles.appendixPageTableLastRow
+                      : undefined,
+                  ],
+                }}
+              >
+                <Text>
+                  {t(`deforestationAnalysis:mapsInfoModal:${attribute}`)}
+                </Text>
+                {attribute === "references" && Array.isArray(map[attribute]) ? (
+                  <View>
+                    {map[attribute].length > 0 ? (
+                      map[attribute].map((reference, idx) => (
+                        <Link
+                          key={`${map.id}-reference-${idx}`}
+                          src={reference}
+                          style={[
+                            styles.blueLink,
+                            { marginTop: idx === 0 ? 0 : 10 },
+                          ]}
+                        >
+                          {reference}
+                        </Link>
+                      ))
+                    ) : (
+                      <Text>{t("common:na")}</Text>
+                    )}
+                  </View>
+                ) : (
+                  <Text>{map[attribute] ?? t("common:na")}</Text>
+                )}
+              </AppendixPageTableRow>
+            ))}
+
+            <Text style={styles.appendixPageSubtitleText}>
+              {t(`deforestationAnalysis:mapsInfoModal:considerations`)}
+            </Text>
+            {/* Replace the ReactMarkdown component completely */}
+            <View style={styles.appendixPageBodyText}>
+              {map.considerations ? (
+                // Split the content by lines and render each line properly
+                map.considerations.split("\n").map((line, index) => {
+                  // TODO: refactor to simplify or modularize this
+                  // Check if the line is a heading (starts with ###)
+                  const isHeading = line.trim().startsWith("### ");
+
+                  // Check indentation level for list items
+                  const leadingSpaces = line.match(/^(\s*)/)?.[1]?.length ?? 0;
+                  const indentationLevel = Math.floor(leadingSpaces / 2); // Assuming 2 spaces per indentation level
+
+                  // Check if the line is a list item
+                  const isListItem =
+                    line.trim().startsWith("- ") || line.trim().match(/^\d+\./);
+
+                  // Process content based on type
+                  let content = line;
+                  if (isHeading) {
+                    content = line.trim().replace(/^### /, "");
+                  } else if (isListItem) {
+                    content = line
+                      .trim()
+                      .replace(/^- /, "")
+                      .replace(/^\d+\./, "");
+                  }
+
+                  // Function to process formatting (bold and italic)
+                  const renderFormattedText = (text: string) => {
+                    // Split the text by bold and italic markers
+                    const segments: Segment[] = [];
+                    // let currentText = text;
+
+                    // Process bold text (surrounded by **)
+                    let boldMatch;
+                    const boldRegex = /\*\*(.*?)\*\*/g;
+                    let lastIndex = 0;
+
+                    while ((boldMatch = boldRegex.exec(text)) !== null) {
+                      // Add text before the bold section
+                      if (boldMatch.index > lastIndex) {
+                        segments.push({
+                          text: text.substring(lastIndex, boldMatch.index),
+                          isBold: false,
+                          isItalic: false,
+                        });
+                      }
+
+                      // Add the bold text
+                      segments.push({
+                        text: boldMatch[1], // The text inside ** markers
+                        isBold: true,
+                        isItalic: false,
+                      });
+
+                      lastIndex = boldMatch.index + boldMatch[0].length;
+                    }
+
+                    // Add any remaining text
+                    if (lastIndex < text.length) {
+                      segments.push({
+                        text: text.substring(lastIndex),
+                        isBold: false,
+                        isItalic: false,
+                      });
+                    }
+
+                    // If no bold text was found, just use the original text
+                    if (segments.length === 0) {
+                      segments.push({
+                        text: text,
+                        isBold: false,
+                        isItalic: false,
+                      });
+                    }
+
+                    // Process each segment for italic text (surrounded by _)
+                    const finalSegments: Segment[] = [];
+                    segments.forEach((segment) => {
+                      const italicRegex = /_(.*?)_/g;
+                      let italicMatch;
+                      let italicLastIndex = 0;
+                      const italicSegments: Segment[] = [];
+
+                      while (
+                        (italicMatch = italicRegex.exec(segment.text)) !== null
+                      ) {
+                        // Add text before the italic section
+                        if (italicMatch.index > italicLastIndex) {
+                          italicSegments.push({
+                            text: segment.text.substring(
+                              italicLastIndex,
+                              italicMatch.index
+                            ),
+                            isBold: segment.isBold,
+                            isItalic: false,
+                          });
+                        }
+
+                        // Add the italic text
+                        italicSegments.push({
+                          text: italicMatch[1], // The text inside _ markers
+                          isBold: segment.isBold,
+                          isItalic: true,
+                        });
+
+                        italicLastIndex =
+                          italicMatch.index + italicMatch[0].length;
+                      }
+
+                      // Add any remaining text
+                      if (italicLastIndex < segment.text.length) {
+                        italicSegments.push({
+                          text: segment.text.substring(italicLastIndex),
+                          isBold: segment.isBold,
+                          isItalic: false,
+                        });
+                      }
+
+                      // If no italic text was found, just use the original segment
+                      if (italicSegments.length === 0) {
+                        italicSegments.push(segment);
+                      }
+
+                      finalSegments.push(...italicSegments);
+                    });
+
+                    // Render all segments with appropriate styling
+                    return finalSegments.map((segment, i) => (
+                      <Text
+                        key={i}
+                        style={{
+                          fontWeight: segment.isBold ? "bold" : "normal",
+                          fontStyle: segment.isItalic ? "italic" : "normal",
+                        }}
+                      >
+                        {segment.text}
+                      </Text>
+                    ));
+                  };
+
+                  if (isHeading) {
+                    // Render headings with appropriate style
+                    return (
+                      <Text
+                        key={index}
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 12,
+                          marginTop: 8,
+                          marginBottom: 5,
+                        }}
+                      >
+                        {renderFormattedText(content)}
+                      </Text>
+                    );
+                  } else if (isListItem) {
+                    // Render list items with proper indentation
+                    return (
+                      <View
+                        key={index}
+                        style={{
+                          flexDirection: "row",
+                          marginBottom: 3,
+                          paddingLeft: indentationLevel * 15, // Indent based on level
+                        }}
+                      >
+                        <Text style={{ width: 15, marginRight: 5 }}>
+                          {line.trim().startsWith("- ")
+                            ? "•"
+                            : line.trim().match(/^\d+\./)?.[0]
+                            ? line.trim().match(/^\d+\./)?.[0]
+                            : "•"}
+                        </Text>
+                        <Text style={{ flex: 1 }}>
+                          {renderFormattedText(content)}
+                        </Text>
+                      </View>
+                    );
+                  } else {
+                    // Render regular paragraphs
+                    return (
+                      <Text key={index} style={{ marginBottom: 5 }}>
+                        {renderFormattedText(content)}
+                      </Text>
+                    );
+                  }
+                })
+              ) : (
+                <Text>{t("common:na")}</Text>
+              )}
+            </View>
           </View>
         </Page>
       );

@@ -52,5 +52,25 @@
     "country": "Country",
     "region": "Region",
     "totalArea": "Total Area (ha)"
+  },
+  "coverPage": {
+    "titleFirstLine": "Deforestation",
+    "titleSecondLine": "Analysis Report"
+  },
+  "appendixPages": {
+    "deforestationExplanation": {
+      "title": "Deforestation Calculation",
+      "formulaSubtitle": "Formula used",
+      "formulaText": "The formula for calculating the deforestation percentage considers the ratio between the deforested area according to the reference map and the total area of the polygon.",
+      "deforestationStatesSubtitle": "Deforestation States",
+      "deforestationFreeText": "DEFORESTATION FREE",
+      "deforestationFreeExplanation": "Indicates that there has been no intervention that has caused the reduction of natural forest within the evaluated polygon, according to official maps or recognized methodologies.",
+      "withDeforestationText": "XX% DEFORESTATION",
+      "withDeforestationExplanation": "Quantifies the degree of deforestation or loss of forest cover of the evaluated polygon, according to the used reference map."
+    },
+    "mapsExplanation": {
+      "title": "Maps used for deforestation analysis",
+      "mapsText": "The maps used for deforestation analysis are:"
+    }
   }
 }

@@ -105,7 +105,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
             {attributes.map((keyword) => (
               <DetailItem
                 key={keyword}
-                label={t(`deforestationAnalysis:mapsInfoModal.${keyword}`)}
+                label={t(`deforestationAnalysis:mapsInfoModal:${keyword}`)}
                 typographyComponent={
                   keyword === "considerations" || keyword === "references"
                     ? "div"
