@@ -4,7 +4,7 @@ from shapely.geometry import Point as SPoint
 from shapely.geometry import Polygon
 from shapely.ops import transform
 
-POINT_RADIUS = 0.0009
+POINT_RADIUS = 50 / 111111
 
 
 def generate_polygon(points: list[Point]) -> Polygon:

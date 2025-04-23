@@ -113,7 +113,7 @@ def parse_base_information(farm: UnprocessedFarmData):
                     "lng": farm.farmCoordinates[0].x,
                     "lat": farm.farmCoordinates[0].y,
                 },
-                "radius": 100,
+                "radius": 50,
             }
         return {
             **base_information,

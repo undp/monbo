@@ -70,7 +70,7 @@ class MapDefaults:
 
     OUTPUT_SIZE = (500, 500)
     PADDING_RATIO = 0.3
-    DEFAULT_POINT_RADIUS = 100  # meters
+    DEFAULT_POINT_RADIUS = 50  # meters
     ZOOM_BOOST = 1.0
     MAX_ZOOM = 20
     MIN_ZOOM = 1

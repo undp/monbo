@@ -26,7 +26,7 @@ async def generate_for_polygon(body: GenerateForPolygonBody):
     try:
         # Check geometry type and pass point_radius_meters only for Point geometries
         if body.feature["geometry"]["type"] == "Point":
-            point_radius_meters = 100  # TODO: get from body when new excel is ready
+            point_radius_meters = 50  # TODO: get from body when new excel is ready
             img = generate_deforestation_results_image(
                 body.feature, raster_path, point_radius_meters=point_radius_meters
             )
