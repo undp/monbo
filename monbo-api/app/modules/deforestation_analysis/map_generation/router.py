@@ -24,7 +24,14 @@ async def generate_for_polygon(body: GenerateForPolygonBody):
     raster_path = get_map_raster_path(raster_filename)
 
     try:
-        img = generate_deforestation_results_image(body.feature, raster_path)
+        # Check geometry type and pass point_radius_meters only for Point geometries
+        if body.feature["geometry"]["type"] == "Point":
+            point_radius_meters = 100  # TODO: get from body when new excel is ready
+            img = generate_deforestation_results_image(
+                body.feature, raster_path, point_radius_meters=point_radius_meters
+            )
+        else:  # For Polygon or other geometries
+            img = generate_deforestation_results_image(body.feature, raster_path)
     except NoRasterDataOverlapError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
