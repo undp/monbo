@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from .helpers import (
     check_polygons_overlap,
     ensure_farm_ids,
-    get_polygon_coordinates,
+    get_geometry_paths,
 )
 from .models import GetOverlappingPolygonsResponse
 
@@ -148,9 +148,7 @@ def get_overlapping_polygons(
                             "lng": overlap["intersection_polygon"].centroid.x,
                             "lat": overlap["intersection_polygon"].centroid.y,
                         },
-                        "path": get_polygon_coordinates(
-                            overlap["intersection_polygon"]
-                        ),
+                        "paths": get_geometry_paths(overlap["intersection_polygon"]),
                     },
                 }
             )

@@ -202,14 +202,17 @@ const generateMapObjects = (
       };
     }
   );
-  const overlap: PolygonObject = {
-    id: "overlap",
-    type: "polygon",
-    path: data.data.path,
-    color: issueMapColor,
-    fill: true,
-  };
-  return [...objects, overlap];
+  const overlapObjects: PolygonObject[] = data.data.paths.map(
+    (path, index) => ({
+      id: `overlap-${index}`,
+      type: "polygon",
+      path: path,
+      color: issueMapColor,
+      fill: true,
+    })
+  );
+
+  return [...objects, ...overlapObjects];
 };
 
 interface PolygonDetailModalProps {

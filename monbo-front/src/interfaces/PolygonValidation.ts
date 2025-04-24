@@ -8,7 +8,7 @@ export interface InconsistentPolygonData {
     area: number;
     percentage: number;
     criticality: "HIGH" | "MEDIUM";
-    path: Coordinates[];
+    paths: Coordinates[][];
     center: Coordinates;
   };
 }

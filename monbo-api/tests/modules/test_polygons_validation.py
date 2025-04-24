@@ -2,7 +2,7 @@ from app.models.polygons import Point
 from app.modules.polygons_validation.helpers import (
     check_polygons_overlap,
     generate_polygon,
-    get_polygon_coordinates,
+    get_geometry_paths,
     parse_farm_coordinates_data,
 )
 from app.utils.polygons import get_polygon_area
@@ -206,11 +206,13 @@ def test_get_polygon_coordinates():
     """
     polygon = Polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
     expected_coordinates = [
-        {"lng": 0, "lat": 0},
-        {"lng": 0, "lat": 1},
-        {"lng": 1, "lat": 1},
-        {"lng": 1, "lat": 0},
-        {"lng": 0, "lat": 0},
+        [
+            {"lng": 0, "lat": 0},
+            {"lng": 0, "lat": 1},
+            {"lng": 1, "lat": 1},
+            {"lng": 1, "lat": 0},
+            {"lng": 0, "lat": 0},
+        ]
     ]
 
-    assert get_polygon_coordinates(polygon) == expected_coordinates
+    assert get_geometry_paths(polygon) == expected_coordinates

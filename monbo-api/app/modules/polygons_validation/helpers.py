@@ -4,8 +4,8 @@ from typing import List
 
 from app.models.polygons import Point
 from shapely import STRtree
-from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
+from shapely.geometry.base import BaseGeometry
+from shapely.geometry import Point as SPoint, Polygon
 
 
 def generate_polygon(points: list[Point]) -> Polygon:
@@ -116,19 +116,30 @@ def check_polygons_overlap(polygons: List[Polygon]):
     return overlaps
 
 
-def get_polygon_coordinates(polygon: Polygon) -> list[Point]:
+def get_geometry_paths(geometry: BaseGeometry) -> list[list[Point]]:
     """
-    Extracts the coordinates from the exterior of a given polygon and returns
-    them as a list of points.
+    Extracts the coordinates from the exterior of a given polygon or multipolygon
+    and returns them as a list of paths, where each path is a list of points.
 
     Args:
-        polygon (Polygon): A Shapely Polygon object from which to extract
-        the coordinates.
+        polygon (Polygon or MultiPolygon): A Shapely Polygon or MultiPolygon object
+        from which to extract the coordinates.
 
     Returns:
-        list[Point]: A list of dictionaries, each containing the longitude ('lng')
-        and latitude ('lat') of a point.
+        list[list[Point]]: A list of paths, each path is a list of dictionaries,
+        each containing the longitude ('lng') and latitude ('lat') of a point.
     """
-    return [
-        {"lng": point[0], "lat": point[1]} for point in list(polygon.exterior.coords)
-    ]
+    if geometry.geom_type == "MultiPolygon":
+        return [
+            [{"lng": point[0], "lat": point[1]} for point in list(poly.exterior.coords)]
+            for poly in geometry.geoms
+        ]
+    if geometry.geom_type == "Polygon":
+        return [
+            [
+                {"lng": point[0], "lat": point[1]}
+                for point in list(geometry.exterior.coords)
+            ]
+        ]
+
+    raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")

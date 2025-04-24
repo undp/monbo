@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class Overlap(BaseModel):
     area: float
     center: Coordinates
-    path: list[Coordinates]
+    paths: list[list[Coordinates]]
     percentage: float
     criticality: Literal["HIGH", "MEDIUM"]
 
