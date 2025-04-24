@@ -1,14 +1,14 @@
 import geopandas as gpd
 import mercantile
+import asyncio
 import numpy as np
-import rasterio
 from app.utils.json import read_json_file
 from fastapi import HTTPException
 from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.errors import WindowError
 from rasterio.mask import mask
-from rasterio.vrt import WarpedVRT
+from app.utils.image_generation.RasterDataContext import RasterDataContext
 
 
 def get_all_maps() -> list[dict]:
@@ -82,59 +82,55 @@ def create_empty_tile():
     return img
 
 
-def get_tile(tif_path, z, x, y):
+async def get_tile(tif_path, z, x, y):
     """Dynamically extract and reproject a tile (PNG) for the specified z/x/y."""
     try:
         # Open the GeoTIFF
-        with rasterio.open(tif_path) as src:
-            # Define the target CRS (Google Maps uses EPSG:3857)
-            target_crs = "EPSG:3857"
+        async with RasterDataContext(tif_path) as vrt:
+            # Get tile bounds in the target CRS
+            bounds = mercantile.xy_bounds(x, y, z)
 
-            # Create a Virtual Warped Dataset for the target projection
-            with WarpedVRT(src, crs=target_crs) as vrt:
-                # Get tile bounds in the target CRS
-                bounds = mercantile.xy_bounds(x, y, z)
+            # Check if the tile bounds overlap the GeoTIFF's bounds
+            tif_bounds = vrt.bounds
+            if (
+                bounds.right < tif_bounds.left  # Tile is left of the GeoTIFF
+                or bounds.left > tif_bounds.right  # Tile is right of the GeoTIFF
+                or bounds.top < tif_bounds.bottom  # Tile is below the GeoTIFF
+                or bounds.bottom > tif_bounds.top  # Tile is above the GeoTIFF
+            ):
+                return create_empty_tile()
 
-                # Check if the tile bounds overlap the GeoTIFF's bounds
-                tif_bounds = vrt.bounds
-                if (
-                    bounds.right < tif_bounds.left  # Tile is left of the GeoTIFF
-                    or bounds.left > tif_bounds.right  # Tile is right of the GeoTIFF
-                    or bounds.top < tif_bounds.bottom  # Tile is below the GeoTIFF
-                    or bounds.bottom > tif_bounds.top  # Tile is above the GeoTIFF
-                ):
-                    return create_empty_tile()
+            # Calculate the raster window for the requested bounds
+            window = vrt.window(
+                bounds.left, bounds.bottom, bounds.right, bounds.top, precision=21
+            )
 
-                # Calculate the raster window for the requested bounds
-                window = vrt.window(
-                    bounds.left, bounds.bottom, bounds.right, bounds.top, precision=21
-                )
+            # Read the data for the specified window, resampled to 256x256 pixels
+            data = await asyncio.to_thread(
+                vrt.read,
+                out_shape=(vrt.count, 256, 256),
+                window=window,
+                # Nearest neighbor preserves True/False
+                resampling=Resampling.nearest,
+            )
 
-                # Read the data for the specified window, resampled to 256x256 pixels
-                data = vrt.read(
-                    out_shape=(vrt.count, 256, 256),
-                    window=window,
-                    # Nearest neighbor preserves True/False
-                    resampling=Resampling.nearest,
-                )
+            # Select the first band if there are multiple bands
+            if data.shape[0] > 1:
+                data = data[0]  # Use the first band
+            else:
+                data = data.squeeze()  # Flatten single-band data
 
-                # Select the first band if there are multiple bands
-                if data.shape[0] > 1:
-                    data = data[0]  # Use the first band
-                else:
-                    data = data.squeeze()  # Flatten single-band data
+            # Convert data to a binary mask (True/False)
+            mask = np.equal(data, 1).astype(np.uint8)  # 1 for True, 0 for False
 
-                # Convert data to a binary mask (True/False)
-                mask = np.equal(data, 1).astype(np.uint8)  # 1 for True, 0 for False
+            # Create an RGBA array
+            rgba_data = np.zeros((256, 256, 4), dtype=np.uint8)
+            rgba_data[..., 0] = mask * 255  # Red channel (255 if True)
+            rgba_data[..., 3] = mask * 255  # Alpha channel (255 if True)
 
-                # Create an RGBA array
-                rgba_data = np.zeros((256, 256, 4), dtype=np.uint8)
-                rgba_data[..., 0] = mask * 255  # Red channel (255 if True)
-                rgba_data[..., 3] = mask * 255  # Alpha channel (255 if True)
-
-                # Create a PIL Image
-                img = Image.fromarray(rgba_data, mode="RGBA")
-                return img
+            # Create a PIL Image
+            img = Image.fromarray(rgba_data, mode="RGBA")
+            return img
     except WindowError:
         # If the window calculation fails, return an empty tile
         return create_empty_tile()

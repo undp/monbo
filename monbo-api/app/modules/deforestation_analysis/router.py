@@ -167,7 +167,7 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     asset_path = get_map_raster_path(map["raster_filename"])
 
     try:
-        img = get_tile(asset_path, z, x, y)
+        img = await get_tile(asset_path, z, x, y)
         img_io = BytesIO()
         img.save(img_io, format="PNG", compress_level=1)
         img_io.seek(0)
