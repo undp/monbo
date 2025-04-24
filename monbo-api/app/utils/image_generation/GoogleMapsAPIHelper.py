@@ -1,7 +1,7 @@
 import math
 from typing import Tuple
 from .GeoHelper import GeoHelper
-from app.config.env import GCP_MAPS_PLATFORM_API_KEY
+from app.config.env import GCP_MAPS_PLATFORM_API_KEY, GCP_MAPS_PLATFORM_SIGNATURE_SECRET
 from app.utils.image_generation.constants import MapDefaults
 from app.utils.image_generation.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.errors import GoogleMapsAPIError
@@ -9,6 +9,10 @@ from PIL import Image
 from shapely.geometry.base import BaseGeometry
 from io import BytesIO
 import httpx
+import hashlib
+import hmac
+import base64
+import urllib.parse as urlparse
 from app.config.logger import get_logger
 
 # Get logger for this module
@@ -324,6 +328,50 @@ class GoogleMapsAPIHelper:
         return (min_lat, max_lat, min_lon, max_lon)
 
     @staticmethod
+    def add_signature(input_url: str) -> str:
+        """
+        Add a digital signature to a Google Maps API URL for authentication.
+
+        This method takes a Google Maps API URL and adds a signature parameter using
+        HMAC-SHA1 signing with a secret key. The signature helps verify that the request
+        is coming from an authorized source.
+
+        Args:
+            input_url (str): The Google Maps API URL to sign
+
+        Returns:
+            str: The original URL with an added signature parameter
+
+        Note:
+            The secret key is hardcoded and should be stored securely in environment
+            variables or configuration in production.
+        """
+        if not GCP_MAPS_PLATFORM_SIGNATURE_SECRET:
+            raise GoogleMapsAPIError(
+                "'GCP_MAPS_PLATFORM_SIGNATURE_SECRET' enviromental variable is not set"
+            )
+        url = urlparse.urlparse(input_url)
+
+        # We only need to sign the path+query part of the string
+        url_to_sign = url.path + "?" + url.query
+
+        # Decode the private key into its binary format
+        # We need to decode the URL-encoded private key
+        decoded_key = base64.urlsafe_b64decode(GCP_MAPS_PLATFORM_SIGNATURE_SECRET)
+
+        # Create a signature using the private key and the URL-encoded
+        # string using HMAC SHA1. This signature will be binary.
+        signature = hmac.new(decoded_key, str.encode(url_to_sign), hashlib.sha1)
+
+        # Encode the binary signature into base64 for use within a URL
+        encoded_signature = base64.urlsafe_b64encode(signature.digest())
+
+        original_url = url.scheme + "://" + url.netloc + url.path + "?" + url.query
+
+        # Return signed URL
+        return original_url + "&signature=" + encoded_signature.decode()
+
+    @staticmethod
     async def get_google_maps_satellite_image(
         geom: BaseGeometry,
         zoom_level: int,
@@ -356,6 +404,7 @@ class GoogleMapsAPIHelper:
             f"&center={center_lat},{center_lon}&zoom={zoom_level}"
             f"&key={GCP_MAPS_PLATFORM_API_KEY}"
         )
+        url = GoogleMapsAPIHelper.add_signature(url)
         logger.debug(f"Fetching Google Maps image from URL: {url}")
 
         # Make a request to fetch the image

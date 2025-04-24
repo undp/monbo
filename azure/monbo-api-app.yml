@@ -20,6 +20,8 @@ properties:
         env:
           - name: GCP_MAPS_PLATFORM_API_KEY
             value: the_api_key_here
+          - name: GCP_MAPS_PLATFORM_SIGNATURE_SECRET
+            value: the_signature_secret_here
         resources:
           cpu: 0.5
           memory: 1Gi

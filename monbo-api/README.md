@@ -128,6 +128,7 @@ The `package.json` file is used to standardize the execution of commands across 
 The application requires the following environment variables to be set:
 
 - `GCP_MAPS_PLATFORM_API_KEY`: Google Maps Platform API key for accessing Google Maps services
+- `GCP_MAPS_PLATFORM_SIGNATURE_SECRET`: Google Maps Platform signature secret for accessing Google Maps services
 - `OVERLAP_THRESHOLD_PERCENTAGE`: Defines the minimum percentage overlap required when comparing polygons (tolerance ceiling). Used to determine when two polygons should be considered being overlapping. Type: Float. Range: 0-100. Default: 0
 
 For local development, you can set the environment variables in a `.env` file. The `.env.template` file is provided as a reference.
