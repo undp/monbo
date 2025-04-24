@@ -5,7 +5,7 @@ pytest==8.3.4
 pytest_cov==6.0.0
 pyproj==3.7.0
 uvicorn==0.34.0
-requests==2.32.3
+httpx==0.28.1
 geopandas==1.0.1
 rasterio==1.4.3
 colorlog==6.9.0
