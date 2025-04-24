@@ -19,9 +19,11 @@ properties:
         image: kevinjohnsongebauer/undp-monbo-api:latest
         env:
           - name: GCP_MAPS_PLATFORM_API_KEY
-            value: the_api_key_here
+            secretRef: gcp-maps-platform-api-key
           - name: GCP_MAPS_PLATFORM_SIGNATURE_SECRET
-            value: the_signature_secret_here
+            secretRef: gcp-maps-platform-signature-secret
+          - name: OVERLAP_THRESHOLD_PERCENTAGE
+            value: 1
         resources:
           cpu: 0.5
           memory: 1Gi
