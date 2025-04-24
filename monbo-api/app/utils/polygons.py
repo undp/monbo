@@ -1,3 +1,4 @@
+from typing import Tuple
 from app.models.polygons import Coordinates, Point
 from pyproj import CRS, Transformer
 from shapely.geometry import Point as SPoint
@@ -34,7 +35,7 @@ def generate_polygon(points: list[Point]) -> Polygon:
 
 def generate_polygon_from_coordinates(
     coordinates: list[Coordinates],
-) -> tuple[str, Polygon]:
+) -> Tuple[str, Polygon]:
     """
     Generates a polygon or a buffered point from a list of coordinates.
 
