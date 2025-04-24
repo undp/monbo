@@ -31,15 +31,13 @@ monbo-api/
 
 ## Running the Application
 
-There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`. You can check the API is running by accessing the healthcheck endpoint: `http://localhost:8000/health`.
+There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
 
-The API does not need any enviromental variables to run.
+First, you need to create a `.env` file at the `monbo-api` directory containing the environment variables (please use the `.env.template` file as a template).
 
-### 1. Using Docker Compose
+Then, execute the following command:
 
-This method runs the API (also the frontend) in a separate containers. The detailed instructions are available in the [parent README](../README.md) file.
-
-### 2. Using Docker for development mode
+### 1. Using Docker for development mode
 
 You can run the API in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
 
@@ -49,7 +47,7 @@ docker build -f Dockerfile.dev -t monbo-api-dev .
 docker run -d -p 8000:8000 --name monbo-api-dev-container -v $(pwd):/app monbo-api-dev
 ```
 
-### 3. Using Docker for production mode
+### 2. Using Docker for production mode
 
 You can build and run the API image in a Docker container. Note that this approach does not support hot-reloading.
 
@@ -59,7 +57,7 @@ docker build -f Dockerfile.prod -t monbo-api-prod .
 docker run -d -p 8000:8000 --name monbo-api-prod-container monbo-api-prod
 ```
 
-### 4. Run FastAPI in development mode <span style="color: red">(Pending tests without system packages, like gdal)</span>
+### 3. Run FastAPI in development mode
 
 We use `pnpm` to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI development server with hot-reloading.
 
@@ -77,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-### 5. Run FastAPI in production mode
+### 4. Run FastAPI in production mode
 
 We use pnpm to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI production server.
 
