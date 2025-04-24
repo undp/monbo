@@ -33,13 +33,13 @@ monbo-api/
 
 There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
 
-First, you need to create a `.env` file at the `monbo-api` directory containing the environment variables (please use the `.env.template` file as a template).
+First, you need to create a `.env` file at the `monbo-api` directory containing the environment variables (please use the `.env.template` file as a template). If you are using the Docker approach, DO NOT use string quotes for the values.
 
 Then, execute the following command:
 
 ### 1. Using Docker for development mode
 
-You can run the API in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
+You can run the API in a Docker container in development mode. The source code (including the `.env` file) will be mounted as a docker volume. This approach supports hot-reloading.
 
 ```sh
 cd monbo-api
@@ -54,7 +54,7 @@ You can build and run the API image in a Docker container. Note that this approa
 ```sh
 cd monbo-api
 docker build -f Dockerfile.prod -t monbo-api-prod .
-docker run -d -p 8000:8000 --name monbo-api-prod-container monbo-api-prod
+docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-relative-path> monbo-api-prod
 ```
 
 ### 3. Run FastAPI in development mode
