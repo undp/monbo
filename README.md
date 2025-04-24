@@ -81,36 +81,6 @@ Other scripts in this directory follow similar patterns of being self-contained,
 
 ## Running the project
 
-The project can be run in different ways.
+The way to run the project is running both the frontend and API separately. Navigate to each service's directory and follow the instructions in their respective README files.
 
-The easiest way to run the project is using [Docker Compose](https://docs.docker.com/compose/) with the provided `*.yml` files, which will run both the frontend and API on its own containers. The env-based files are configurations overrides of the base configuration (`docker-compose.yml`).
-
-In any case, the backend will be available at `http://localhost:8000` and the frontend will be available at `http://localhost:3000`.
-
-If you want to run only one of the services but still use the Docker Compose configuration, you can remove the section for the other service at the specific `*.yml` file.
-
-### 1. Using Docker Compose for development mode
-
-The development configuration (`docker-compose.dev.yml`) provides hot-reload for both services by mounting the source code directories as volumes and running the development servers.
-
-First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
-
-```sh
-docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.dev.yml up
-```
-
-### 2. Using Docker Compose for production mode
-
-The production configuration (`docker-compose.prod.yml`) does not provide hot-reload, but is optimized for production environments. This is useful for testing the project in a production environment before deploying it.
-
-First, you need to create a file at the root of the project containing the environment variables for the frontend (you can use the `.env.example` file as a template), and then execute the following command:
-
-```sh
-docker compose --env-file <env-file-relative-path> -f docker-compose.yml -f docker-compose.prod.yml up
-```
-
-### 3. Running each service independently
-
-Navigate to each service's directory and follow the instructions in their respective README files.
-
-We recommend using the Docker approach offering a more containerized and consistent development environment.
+The backend is intended to be available at `http://localhost:8000` while the frontend is intended to be available at `http://localhost:3000`.
