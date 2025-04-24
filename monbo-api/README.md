@@ -97,19 +97,24 @@ pnpm start
 
 The API requires the following dependencies:
 
-- fastapi==0.115.6
-- fastapi[standard]==0.115.6
-- shapely==2.0.6
-- pytest==8.3.4
-- pytest_cov==6.0.0
-- pyproj==3.7.0
-- uvicorn==0.34.0
-- geopandas==1.0.1
-- rasterio==1.4.3
-- mercantile==1.2.1
-- pillow==11.1.0
+| Package           | Version | Description                                                                 |
+| ----------------- | ------- | --------------------------------------------------------------------------- |
+| fastapi           | 0.115.6 | FastAPI framework for building APIs with Python                             |
+| fastapi[standard] | 0.115.6 | Standard FastAPI dependencies                                               |
+| shapely           | 2.0.6   | Geometric objects and operations                                            |
+| pyproj            | 3.7.0   | Cartographic projections and coordinate transformations                     |
+| uvicorn           | 0.34.0  | ASGI server for running FastAPI applications                                |
+| httpx             | 0.28.1  | HTTP client for Python                                                      |
+| geopandas         | 1.0.1   | Geospatial data handling in Python                                          |
+| rasterio          | 1.4.3   | Geospatial raster data access                                               |
+| colorlog          | 6.9.0   | Colored logging for Python                                                  |
+| mercantile        | 1.2.1   | Tile-based mapping utilities                                                |
+| pillow            | 11.1.0  | Image processing capabilities                                               |
+| python-dotenv     | 1.0.1   | Read key-value pairs from a .env file and set them as environment variables |
+| pytest            | 8.3.4   | Testing framework for Python                                                |
+| pytest_cov        | 6.0.0   | Coverage plugin for pytest                                                  |
 
-You can install dependencies manually using:
+You can install dependencies manually using the install script declared in the `package.json` file.
 
 ## Available Scripts
 
