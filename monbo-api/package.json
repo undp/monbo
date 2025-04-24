@@ -5,6 +5,8 @@
   "scripts": {
     "install": "pip install --no-cache-dir -r requirements.txt",
     "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 12",
+    "profile:cprofile": "python -m cProfile -o cprofile_output.prof -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
+    "profile:memory": "mprof run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
     "dev": "fastapi dev ./app/main.py",
     "test": "pytest",
     "build": "docker build -t fastapi ."
