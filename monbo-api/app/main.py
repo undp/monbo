@@ -9,6 +9,13 @@ from app.modules import (
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from app.config.logger import configure_logging
+import logging
+
+
+# Configure the logger
+configure_logging(level=logging.INFO)  # Adjust level as needed
+
 
 app = FastAPI()
 app.add_middleware(
