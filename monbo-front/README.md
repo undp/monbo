@@ -23,11 +23,7 @@ monbo-front/
 
 There are many ways to run the frontend application. In any case the frontend will be available at `http://localhost:3000`.
 
-### 1. Using Docker Compose
-
-This method runs the frontend (and the API) in a separate containers. The detailed instructions are available in the [parent README](../README.md) file.
-
-### 2. Using Docker for development mode
+### 1. Using Docker for development mode
 
 You can run the frontend in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
 
@@ -41,9 +37,9 @@ docker build -f Dockerfile.dev -t monbo-front-dev .
 docker run -d -p 3000:3000 --name monbo-front-dev-container -v $(pwd):/app monbo-front-dev
 ```
 
-### 3. Using Docker for production mode
+### 2. Using Docker for production mode
 
-You can build and run the image in a Docker container. Note that this approach does not support hot-reloading.
+You can build and run the productionimage in a Docker container. Note that this approach does not support hot-reloading.
 
 First, you need to create a file at the `monbo-front` directory containing the environment variables (please use the `.env.production.example` file as a template). In this case, the file name convention is not required. Then, execute the following command:
 
@@ -53,9 +49,9 @@ docker build -f Dockerfile.prod -t monbo-front-prod .
 docker run -d --env-file <env-file-relative-path> -p 3000:3000 --name monbo-front-prod-container monbo-front-prod
 ```
 
-### 4. Run Next.js in development mode
+### 3. Run Next.js in development mode
 
-This will start the NextJS development server with hot-reloading.
+If you don't want to use Docker, you can run the NextJS development server with hot-reloading.
 
 First, you need to create a `.env` or `.env.development` file at the `monbo-front` directory containing the environment variables (you can use the `.env.development.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
@@ -67,7 +63,7 @@ pnpm install
 pnpm dev
 ```
 
-### 5. Start the Next.js production server
+### 4. Start the Next.js production server
 
 This will start the NextJS production server.
 
@@ -82,7 +78,7 @@ pnpm build
 pnpm start
 ```
 
-### 6. Run the compiled Next.js in production mode
+### 5. Run the compiled Next.js in production mode
 
 This will build the NextJS standalone application and run the generated Node server.
 
@@ -231,7 +227,7 @@ There is no caching strategy implemented because the analysis are executed on-de
    ```
 
 2. **API connection issues**
-   - Verify API_URL in .env
+   - Verify NEXT_PUBLIC_API_URL in .env
    - Check if backend is running
    - Confirm CORS settings
 
