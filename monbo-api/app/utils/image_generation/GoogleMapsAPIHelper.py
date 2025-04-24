@@ -1,7 +1,7 @@
 import math
 from typing import Tuple
 from .GeoHelper import GeoHelper
-from app.config.env import GOOGLE_SERVICE_API_KEY
+from app.config.env import GCP_MAPS_PLATFORM_API_KEY
 from app.utils.image_generation.constants import MapDefaults
 from app.utils.image_generation.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.errors import GoogleMapsAPIError
@@ -354,7 +354,7 @@ class GoogleMapsAPIHelper:
             f"https://maps.googleapis.com/maps/api/staticmap"
             f"?maptype={MapDefaults.MAP_TYPE}&size={output_size[0]}x{output_size[1]}"
             f"&center={center_lat},{center_lon}&zoom={zoom_level}"
-            f"&key={GOOGLE_SERVICE_API_KEY}"
+            f"&key={GCP_MAPS_PLATFORM_API_KEY}"
         )
         logger.debug(f"Fetching Google Maps image from URL: {url}")
 

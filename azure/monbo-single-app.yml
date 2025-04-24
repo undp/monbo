@@ -20,7 +20,7 @@ properties:
         env:
           - name: API_URL
             value: the_url_here
-          - name: GOOGLE_SERVICE_API_KEY
+          - name: GCP_MAPS_PLATFORM_API_KEY
             value: the_api_key_here
         resources:
           cpu: 0.5

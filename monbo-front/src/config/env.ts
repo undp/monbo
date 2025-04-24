@@ -1,8 +1,8 @@
-export const GOOGLE_SERVICE_API_KEY =
-  process.env.NEXT_PUBLIC_GOOGLE_SERVICE_API_KEY ||
+export const GCP_MAPS_PLATFORM_API_KEY =
+  process.env.NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY ||
   `${
-    process.env.NEXT_PUBLIC_GOOGLE_SERVICE_API_KEY ??
-    "__GOOGLE_SERVICE_API_KEY__"
+    process.env.NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY ??
+    "__GCP_MAPS_PLATFORM_API_KEY__"
   }`;
 
 export const GET_MAPS_URL =

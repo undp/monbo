@@ -9,7 +9,7 @@ import {
   MapControl,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { GOOGLE_SERVICE_API_KEY } from "@/config/env";
+import { GCP_MAPS_PLATFORM_API_KEY } from "@/config/env";
 import { Coordinates } from "@/interfaces/Map";
 import { isEqual } from "lodash";
 import { Box, Button, ButtonGroup } from "@mui/material";
@@ -56,7 +56,7 @@ export const Map: React.FC<MapProps> = ({
   children,
 }) => {
   return (
-    <APIProvider apiKey={GOOGLE_SERVICE_API_KEY}>
+    <APIProvider apiKey={GCP_MAPS_PLATFORM_API_KEY}>
       <GoogleMap
         mapId={"test"}
         defaultZoom={zoom || 15}

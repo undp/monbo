@@ -7,8 +7,8 @@ if [ -z "$API_URL" ]; then
     exit 1
 fi
 
-if [ -z "$GOOGLE_SERVICE_API_KEY" ]; then
-    echo "Error: GOOGLE_SERVICE_API_KEY is not set"
+if [ -z "$GCP_MAPS_PLATFORM_API_KEY" ]; then
+    echo "Error: GCP_MAPS_PLATFORM_API_KEY is not set"
     exit 1
 fi
 echo "✓ All required runtime environment variables are set"
@@ -18,8 +18,8 @@ if [ -n "$API_URL" ]; then
     find /app/.next/static -type f -name '*.js' -exec sed -i "s|__API_URL__|$API_URL|g" {} +
 fi
 
-if [ -n "$GOOGLE_SERVICE_API_KEY" ]; then
-    find /app/.next/static -type f -name '*.js' -exec sed -i "s|__GOOGLE_SERVICE_API_KEY__|$GOOGLE_SERVICE_API_KEY|g" {} +
+if [ -n "$GCP_MAPS_PLATFORM_API_KEY" ]; then
+    find /app/.next/static -type f -name '*.js' -exec sed -i "s|GCP_MAPS_PLATFORM_API_KEY|$GCP_MAPS_PLATFORM_API_KEY|g" {} +
 fi
 echo "✓ Environment variables replacement completed"
 

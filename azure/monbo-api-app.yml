@@ -18,7 +18,7 @@ properties:
       - name: api
         image: kevinjohnsongebauer/undp-monbo-api:latest
         env:
-          - name: GOOGLE_SERVICE_API_KEY
+          - name: GCP_MAPS_PLATFORM_API_KEY
             value: the_api_key_here
         resources:
           cpu: 0.5

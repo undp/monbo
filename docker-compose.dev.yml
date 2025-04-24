@@ -11,7 +11,7 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=${API_URL}
-      - NEXT_PUBLIC_GOOGLE_SERVICE_API_KEY=${GOOGLE_SERVICE_API_KEY}
+      - NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=${GCP_MAPS_PLATFORM_API_KEY}
     deploy:
       resources:
         limits:

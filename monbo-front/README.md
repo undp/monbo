@@ -255,7 +255,7 @@ NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons valida
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL=  # URL to parse excel file data into valid Farm objects for deforestation analysis
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation analysis
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
-NEXT_PUBLIC_GOOGLE_SERVICE_API_KEY=             # Google Maps API key
+NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
 ```
 
 The endpoints of each module are defined as environment variables because this project is modularized and each module has its own backend service. You could use your own backend services by changing the environment variables and following the same structure for the requests and responses.
