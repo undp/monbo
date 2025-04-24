@@ -2,25 +2,22 @@
 set -e
 
 echo "Checking required runtime environment variables..."
-if [ -z "$API_URL" ]; then
-    echo "Error: API_URL is not set"
+if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+    echo "Error: NEXT_PUBLIC_API_URL is not set"
     exit 1
 fi
 
-if [ -z "$GCP_MAPS_PLATFORM_API_KEY" ]; then
-    echo "Error: GCP_MAPS_PLATFORM_API_KEY is not set"
+if [ -z "$NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY" ]; then
+    echo "Error: NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY is not set"
     exit 1
 fi
 echo "✓ All required runtime environment variables are set"
 
 echo "Replacing environment variables in frontend's built files..."
-if [ -n "$API_URL" ]; then
-    find /app/.next/static -type f -name '*.js' -exec sed -i "s|__API_URL__|$API_URL|g" {} +
-fi
-
-if [ -n "$GCP_MAPS_PLATFORM_API_KEY" ]; then
-    find /app/.next/static -type f -name '*.js' -exec sed -i "s|GCP_MAPS_PLATFORM_API_KEY|$GCP_MAPS_PLATFORM_API_KEY|g" {} +
-fi
+find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_API_URL__|$NEXT_PUBLIC_API_URL|g" {} +
+find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY__|$NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY|g" {} +
+find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE|g" {} +
+find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE|g" {} +
 echo "✓ Environment variables replacement completed"
 
 # Start service

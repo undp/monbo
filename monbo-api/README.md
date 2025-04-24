@@ -31,17 +31,15 @@ monbo-api/
 
 ## Running the Application
 
-There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`. You can check the API is running by accessing the healthcheck endpoint: `http://localhost:8000/health`.
+There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
 
-The API does not need any enviromental variables to run.
+First, you need to create a `.env` file at the `monbo-api` directory containing the environment variables (please use the `.env.template` file as a template). If you are using the Docker approach, DO NOT use string quotes for the values.
 
-### 1. Using Docker Compose
+Then, execute the following command:
 
-This method runs the API (also the frontend) in a separate containers. The detailed instructions are available in the [parent README](../README.md) file.
+### 1. Using Docker for development mode
 
-### 2. Using Docker for development mode
-
-You can run the API in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
+You can run the API in a Docker container in development mode. The source code (including the `.env` file) will be mounted as a docker volume. This approach supports hot-reloading.
 
 ```sh
 cd monbo-api
@@ -49,17 +47,17 @@ docker build -f Dockerfile.dev -t monbo-api-dev .
 docker run -d -p 8000:8000 --name monbo-api-dev-container -v $(pwd):/app monbo-api-dev
 ```
 
-### 3. Using Docker for production mode
+### 2. Using Docker for production mode
 
 You can build and run the API image in a Docker container. Note that this approach does not support hot-reloading.
 
 ```sh
 cd monbo-api
 docker build -f Dockerfile.prod -t monbo-api-prod .
-docker run -d -p 8000:8000 --name monbo-api-prod-container monbo-api-prod
+docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-relative-path> monbo-api-prod
 ```
 
-### 4. Run FastAPI in development mode <span style="color: red">(Pending tests without system packages, like gdal)</span>
+### 3. Run FastAPI in development mode
 
 We use `pnpm` to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI development server with hot-reloading.
 
@@ -77,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-### 5. Run FastAPI in production mode
+### 4. Run FastAPI in production mode
 
 We use pnpm to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI production server.
 
@@ -99,19 +97,24 @@ pnpm start
 
 The API requires the following dependencies:
 
-- fastapi==0.115.6
-- fastapi[standard]==0.115.6
-- shapely==2.0.6
-- pytest==8.3.4
-- pytest_cov==6.0.0
-- pyproj==3.7.0
-- uvicorn==0.34.0
-- geopandas==1.0.1
-- rasterio==1.4.3
-- mercantile==1.2.1
-- pillow==11.1.0
+| Package           | Version | Description                                                                 |
+| ----------------- | ------- | --------------------------------------------------------------------------- |
+| fastapi           | 0.115.6 | FastAPI framework for building APIs with Python                             |
+| fastapi[standard] | 0.115.6 | Standard FastAPI dependencies                                               |
+| shapely           | 2.0.6   | Geometric objects and operations                                            |
+| pyproj            | 3.7.0   | Cartographic projections and coordinate transformations                     |
+| uvicorn           | 0.34.0  | ASGI server for running FastAPI applications                                |
+| httpx             | 0.28.1  | HTTP client for Python                                                      |
+| geopandas         | 1.0.1   | Geospatial data handling in Python                                          |
+| rasterio          | 1.4.3   | Geospatial raster data access                                               |
+| colorlog          | 6.9.0   | Colored logging for Python                                                  |
+| mercantile        | 1.2.1   | Tile-based mapping utilities                                                |
+| pillow            | 11.1.0  | Image processing capabilities                                               |
+| python-dotenv     | 1.0.1   | Read key-value pairs from a .env file and set them as environment variables |
+| pytest            | 8.3.4   | Testing framework for Python                                                |
+| pytest_cov        | 6.0.0   | Coverage plugin for pytest                                                  |
 
-You can install dependencies manually using:
+You can install dependencies manually using the install script declared in the `package.json` file.
 
 ## Available Scripts
 

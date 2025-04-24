@@ -18,10 +18,14 @@ properties:
       - name: frontend
         image: kevinjohnsongebauer/undp-monbo-frontend:latest
         env:
-          - name: API_URL
-            value: the_url_here
-          - name: GCP_MAPS_PLATFORM_API_KEY
-            value: the_api_key_here
+          - name: NEXT_PUBLIC_API_URL
+            secretRef: monbo-api-url
+          - name: NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY
+            secretRef: gcp-maps-platform-api-key
+          - name: NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE
+            value: 1
+          - name: NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE
+            value: 1
         resources:
           cpu: 0.5
           memory: 1Gi
