@@ -67,14 +67,14 @@ const parseData = async (
   const percentagesMerges: SheetData["merges"] = [];
   const inconsistenciesParsedData = flatten(
     inconsistencies.map((item, idx) => {
-      let rowNumber = 1;
+      let rowNumber = 3;
       for (let i = 0; i < idx; i++) {
         rowNumber += inconsistencies[i].farmIds.length;
       }
 
       percentagesMerges.push({
-        s: { r: rowNumber, c: 16 },
-        e: { r: rowNumber + item.farmIds.length - 1, c: 16 },
+        s: { r: rowNumber, c: 17 },
+        e: { r: rowNumber + item.farmIds.length - 1, c: 17 },
       });
       return item.farmIds.map((farmId) => {
         const farm = farmsData.find((farm) => farm.id === farmId)!;
