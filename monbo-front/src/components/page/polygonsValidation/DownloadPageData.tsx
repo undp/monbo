@@ -88,13 +88,21 @@ const parseData = async (
 
   const headersRows = await loadTemplateHeaders();
 
-  const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [...headersRows];
-  validPolygonsHeaders[1].push("Resultado Validación\nValidation Result");
-  validPolygonsHeaders[2].push("VALID");
+  const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
+  validPolygonsHeaders[0].push(...headersRows[0]);
+  validPolygonsHeaders[1].push(
+    ...headersRows[1],
+    "Resultado Validación\nValidation Result"
+  );
+  validPolygonsHeaders[2].push(...headersRows[2], "VALID");
 
-  const inconsistenciesHeaders = [...headersRows];
-  inconsistenciesHeaders[1].push("Porcentaje de Traslape\nOverlap Percentage");
-  inconsistenciesHeaders[2].push("5%");
+  const inconsistenciesHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
+  inconsistenciesHeaders[0].push(...headersRows[0]);
+  inconsistenciesHeaders[1].push(
+    ...headersRows[1],
+    "Porcentaje de Traslape\nOverlap Percentage"
+  );
+  inconsistenciesHeaders[2].push(...headersRows[2], "5%");
 
   return {
     "Polígonos válidos": {
