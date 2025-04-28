@@ -23,7 +23,8 @@ El archivo `app/maps/index.json` contiene un listado de objetos JSON, cada uno r
     "compared_against": "2023",
     "references": [
       "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;"
-    ]
+    ],
+    "available_countries_codes": ["EC", "CO", "CR"]
   }
 ]
 ```
@@ -38,6 +39,7 @@ El archivo `app/maps/index.json` contiene un listado de objetos JSON, cada uno r
 - **baseline**: Año base para comparación.
 - **compared_against**: Año final de comparación.
 - **references**: URLs de referencia.
+- **available_countries_codes**: Lista de códigos ISO 3166-1 alpha-2 de países disponibles en la capa.
 
 ## Estructura de los archivos de metadatos
 
