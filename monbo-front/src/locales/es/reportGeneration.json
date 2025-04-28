@@ -65,7 +65,7 @@
       "deforestationStatesSubtitle": "Estados de deforestación",
       "deforestationFreeText": "LIBRE DEFORESTACIÓN",
       "deforestationFreeExplanation": "Indica que no ha habido intervención que haya provocado la reducción del bosque natural dentro del polígono evaluado, de acuerdo con los mapas oficiales o metodologías reconocidas.",
-      "withDeforestationText": "XX% DEFORESTACIÓN",
+      "withDeforestationText": "% DEFORESTACIÓN",
       "withDeforestationExplanation": "Cuantifica el grado de deforestación o pérdida de cobertura boscosa del polígono evaluado, de acuerdo con el mapa de referencia utilizado"
     },
     "mapsExplanation": {

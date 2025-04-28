@@ -13,6 +13,16 @@
   },
   {
     "id": 1,
+    "raster_filename": "tmf.tif",
+    "attributes_filename": "tmf.json",
+    "considerations_filename": "tmf.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2023",
+    "references": ["https://forobs.jrc.ec.europa.eu/TMF"]
+  },
+  {
+    "id": 2,
     "raster_filename": "ecuador.tif",
     "attributes_filename": "ecuador.json",
     "considerations_filename": "ecuador.md",
@@ -22,7 +32,7 @@
     "references": ["http://ide.ambiente.gob.ec/mapainteractivo"]
   },
   {
-    "id": 2,
+    "id": 3,
     "raster_filename": "ideam.tif",
     "attributes_filename": "ideam.json",
     "considerations_filename": "ideam.md",
@@ -33,15 +43,5 @@
       "https://experience.arcgis.com/experience/568ddab184334f6b81a04d2fe9aac262/page/Geoservicios-Institucionales",
       "https://drive.google.com/drive/folders/1_4Y_tGth6FSJl32VlAeq8kX5lhP1GUlf"
     ]
-  },
-  {
-    "id": 3,
-    "raster_filename": "tmf.tif",
-    "attributes_filename": "tmf.json",
-    "considerations_filename": "tmf.md",
-    "pixel_size": 30,
-    "baseline": "2020",
-    "compared_against": "2023",
-    "references": ["https://forobs.jrc.ec.europa.eu/TMF"]
   }
 ]

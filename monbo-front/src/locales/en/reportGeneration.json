@@ -65,7 +65,7 @@
       "deforestationStatesSubtitle": "Deforestation States",
       "deforestationFreeText": "DEFORESTATION FREE",
       "deforestationFreeExplanation": "Indicates that there has been no intervention that has caused the reduction of natural forest within the evaluated polygon, according to official maps or recognized methodologies.",
-      "withDeforestationText": "XX% DEFORESTATION",
+      "withDeforestationText": "% DEFORESTATION",
       "withDeforestationExplanation": "Quantifies the degree of deforestation or loss of forest cover of the evaluated polygon, according to the used reference map."
     },
     "mapsExplanation": {
