@@ -1,18 +1,13 @@
 "use client";
 
+import { SelectionOption } from "@/interfaces/SelectionOption";
 import { Box, Checkbox, FormControlLabel, SxProps } from "@mui/material";
 import React from "react";
 
 interface Props {
   sx?: SxProps;
-  selectedOptions: {
-    id: string;
-    label: string;
-  }[];
-  options: {
-    id: string;
-    label: string;
-  }[];
+  selectedOptions: SelectionOption[];
+  options: SelectionOption[];
   onChange: (id: string, checked: boolean) => void;
 }
 export const MultiSelectionStep: React.FC<Props> = ({
