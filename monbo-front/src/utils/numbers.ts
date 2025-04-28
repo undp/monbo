@@ -28,8 +28,7 @@ const getDecimalPlacesForThreshold = (threshold: number): number => {
   // Add 1 more place than needed to show the threshold itself
   const thresholdPlaces = Math.ceil(Math.abs(Math.log10(threshold)));
 
-  // Ensure we have at least 1 decimal places for readability
-  return Math.max(1, thresholdPlaces);
+  return thresholdPlaces;
 };
 
 const deforestationDecimalPlaces = getDecimalPlacesForThreshold(
@@ -125,7 +124,7 @@ export const formatOverlapPercentage = (
   if (OVERLAP_THRESHOLD_PERCENTAGE === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(value, overlapDecimalPlaces, language);
+    return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
   }
 
   // Threshold defined by user, so we use it for displaying deforestation
@@ -158,7 +157,7 @@ export const formatDeforestationPercentage = (
   if (DEFORESTATION_THRESHOLD_PERCENTAGE === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(value, deforestationDecimalPlaces, language);
+    return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
   }
 
   // Threshold defined by user, so we use it for displaying deforestation
