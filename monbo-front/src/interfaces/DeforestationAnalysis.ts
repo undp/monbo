@@ -12,6 +12,7 @@ export interface MapData {
   publishDate: string;
   references: string[];
   considerations: string;
+  availableCountriesCodes: string[];
 }
 
 export interface DeforestationAnalysisMapResults {
