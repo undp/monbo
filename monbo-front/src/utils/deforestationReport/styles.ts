@@ -47,19 +47,6 @@ export const styles = StyleSheet.create({
     height: "100%",
     objectFit: "cover",
   },
-  coverPageBackgroundONUImageContainer: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: "272px",
-    height: "147px",
-  },
-  coverPageBackgroundONULogoImage: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    objectFit: "fit",
-  },
   coverPageSection: {
     display: "flex",
     flex: 1,
