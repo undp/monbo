@@ -7,7 +7,7 @@ import {
   ValidateFarmsResponse,
 } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
-import { SheetData } from "@/utils/excel";
+import { SheetData, loadTemplateHeaders } from "@/utils/excel";
 import { useCallback, useContext } from "react";
 import { flatten } from "lodash";
 import { formatOverlapPercentage } from "@/utils/numbers";
@@ -19,38 +19,6 @@ import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
 import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
 import * as XLSX from "xlsx";
-
-const loadTemplateHeaders = async (): Promise<string[][]> => {
-  // Path to your template in the public directory
-  const templatePath = "/files/polygon-validation-template.xlsx";
-
-  // Fetch the template file
-  const response = await fetch(templatePath);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch template: ${response.statusText}`);
-  }
-
-  const templateArrayBuffer = await response.arrayBuffer();
-
-  // Load the template workbook
-  const templateWorkbook = XLSX.read(templateArrayBuffer, { type: "array" });
-
-  // Get the first sheet name
-  const firstSheetName = templateWorkbook.SheetNames[0];
-
-  // Get the first worksheet
-  const templateSheet = templateWorkbook.Sheets[firstSheetName];
-
-  // Convert to JSON to easily extract header rows
-  const templateData: string[][] = XLSX.utils.sheet_to_json(templateSheet, {
-    header: 1,
-  });
-
-  // Extract the first 3 rows (headers)
-  const headerRows = templateData.slice(0, 3);
-
-  return headerRows;
-};
 
 const parseData = async (
   farmsData: FarmData[],
@@ -86,23 +54,23 @@ const parseData = async (
     })
   );
 
-  const headersRows = await loadTemplateHeaders();
+  const templateHeadersRows = await loadTemplateHeaders();
 
   const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
-  validPolygonsHeaders[0].push(...headersRows[0]);
+  validPolygonsHeaders[0].push(...templateHeadersRows[0]);
   validPolygonsHeaders[1].push(
-    ...headersRows[1],
+    ...templateHeadersRows[1],
     "Resultado Validación\nValidation Result"
   );
-  validPolygonsHeaders[2].push(...headersRows[2], "VALID");
+  validPolygonsHeaders[2].push(...templateHeadersRows[2], "VALID");
 
   const inconsistenciesHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
-  inconsistenciesHeaders[0].push(...headersRows[0]);
+  inconsistenciesHeaders[0].push(...templateHeadersRows[0]);
   inconsistenciesHeaders[1].push(
-    ...headersRows[1],
+    ...templateHeadersRows[1],
     "Porcentaje de Traslape\nOverlap Percentage"
   );
-  inconsistenciesHeaders[2].push(...headersRows[2], "5%");
+  inconsistenciesHeaders[2].push(...templateHeadersRows[2], "5%");
 
   return {
     "Polígonos válidos": {

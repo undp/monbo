@@ -1,38 +1,5 @@
 import { FarmData } from "@/interfaces/Farm";
 
-// TODO: eliminar para usar los del template
-export const MANDATORY_HEADERS = [
-  "",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-];
-
-// TODO: eliminar para usar los del template
-export const COMMON_HEADERS = [
-  "ID",
-  "Nombre productor",
-  "Fecha producción",
-  "Cantidad producción",
-  "Unidad cantidad producción",
-  "País",
-  "Región",
-  "Coordenadas finca",
-  "Tipo de cultivo",
-  "Asociación",
-  "Nombre documento 1",
-  "Link documento 1",
-  "Nombre documento 2",
-  "Link documento 2",
-  "Nombre documento 3",
-  "Link documento 3",
-];
-
 export const getCoordinates = (farm: FarmData): string[] => {
   const coordinates: string[] = [];
   if (farm.polygon.type === "point") {
@@ -56,7 +23,7 @@ export const getRowCommonDataAsArray = (farm: FarmData): string[] => {
     farm.country || "",
     farm.region || "",
     `[${getCoordinates(farm).join(", ")}]`,
-    "999999999",
+    "999999999", // TODO: get area when implementing that attribute
     farm.cropType,
     farm.association || "",
     "",

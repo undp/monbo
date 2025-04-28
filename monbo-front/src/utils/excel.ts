@@ -332,3 +332,35 @@ export const generateExcel2 = async (data: Record<string, SheetData>) => {
   });
   return blob;
 };
+
+export const loadTemplateHeaders = async (): Promise<string[][]> => {
+  // Path to your template in the public directory
+  const templatePath = "/files/polygon-validation-template.xlsx";
+
+  // Fetch the template file
+  const response = await fetch(templatePath);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch template: ${response.statusText}`);
+  }
+
+  const templateArrayBuffer = await response.arrayBuffer();
+
+  // Load the template workbook
+  const templateWorkbook = XLSX.read(templateArrayBuffer, { type: "array" });
+
+  // Get the first sheet name
+  const firstSheetName = templateWorkbook.SheetNames[0];
+
+  // Get the first worksheet
+  const templateSheet = templateWorkbook.Sheets[firstSheetName];
+
+  // Convert to JSON to easily extract header rows
+  const templateData: string[][] = XLSX.utils.sheet_to_json(templateSheet, {
+    header: 1,
+  });
+
+  // Extract the first 3 rows (headers)
+  const headerRows = templateData.slice(0, 3);
+
+  return headerRows;
+};
