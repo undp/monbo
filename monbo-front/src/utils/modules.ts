@@ -96,7 +96,7 @@ export const validateData = ({
     }
 
     // Check the country is ISO 3166-1 alpha-2
-    const country = row["País"];
+    const country = row["country"] as string;
     if (!isCountryCode(country)) {
       const errorMsg = t("common:parseFileError:invalidCountryCode", {
         row: rowIdx,
