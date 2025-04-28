@@ -25,7 +25,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
 import { DownloadTemplateStep } from "@/components/page/uploadData/DownloadTemplateStep";
 import { UploadFileStep } from "@/components/page/uploadData/UploadFileStep";
-import { StepContainer } from "@/components/page/uploadData/StepContainer";
+import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import { validateData } from "@/utils/modules";
@@ -211,7 +211,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   return (
     <UploadPageContent title={t("deforestationAnalysis:uploadDataPage:title")}>
-      <StepContainer
+      <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:templateStep:stepTitle")}
       >
         <DownloadTemplateStep
@@ -224,11 +224,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           )}
           fileUrl="/files/polygon-validation-template.xlsx" // TODO: Change to deforestation analysis template
         />
-      </StepContainer>
-      <StepContainer
-        title={t(
-          "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
-        )}
+      </TextHeaderStepContainer>
       >
         <MultiSelectionStep
           selectedOptions={selectedMaps.map(({ id, name, alias }) => ({
@@ -241,8 +237,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           }))}
           onChange={onMapSelectionChange}
         />
-      </StepContainer>
-      <StepContainer
+      <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
         sx={{ flexGrow: 1, opacity: selectedMaps.length === 0 ? 0.4 : 1 }}
       >
@@ -269,7 +264,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           onDrop={onFileDropped}
           disabled={selectedMaps.length === 0}
         />
-      </StepContainer>
+      </TextHeaderStepContainer>
     </UploadPageContent>
   );
 }
