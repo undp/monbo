@@ -7,9 +7,7 @@ export const GCP_MAPS_PLATFORM_API_KEY =
 
 export const GET_MAPS_URL =
   process.env.NEXT_PUBLIC_GET_MAPS_URL ||
-  `${
-    process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/get-maps`;
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/maps`;
 
 export const POLYGON_VALIDATION_PARSER_URL =
   process.env.NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL ||
