@@ -31,7 +31,7 @@ import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import { validateData } from "@/utils/modules";
 import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
-import { MultiSelector } from "@/components/page/uploadData/MultiSelector";
+import { MultiSelector } from "@/components/reusable/selectors/MultiSelector";
 import { Box } from "@mui/material";
 import { CustomHeaderStepContainer } from "@/components/page/uploadData/CustomHeaderStepContainer";
 import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
