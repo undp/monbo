@@ -54,7 +54,6 @@ export const DeforestationModal: React.FC<
 
   const onCountrySelectionChangeEffect = useCallback(() => {
     // When the user selects a country, we need to clear the selected maps
-
     setDeforestationAnalysisParams((prev) => ({
       ...prev,
       selectedMaps: [],

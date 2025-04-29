@@ -38,7 +38,7 @@ export const MultiSelector: React.FC<Props> = ({
         </InputLabel>
         <Select
           labelId="multi-select-label"
-          multiple // <-- enable multi-select
+          multiple
           size={compact ? "small" : undefined}
           value={selectedOptions.map((opt) => opt.id)} // array of selected ids
           label={label ?? "Seleccionar"}
