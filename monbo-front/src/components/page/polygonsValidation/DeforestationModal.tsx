@@ -148,7 +148,7 @@ export const DeforestationModal: React.FC<
               {t("polygonValidation:deforestationModal:mapsSelection")}
             </Text>
             <MultiSelector
-              sx={{ width: 200 }}
+              sx={{ width: 250 }}
               selectedOptions={selectedCountries}
               options={countriesOptions}
               label={t(

@@ -3,6 +3,8 @@ import { SelectionOption } from "@/interfaces/SelectionOption";
 import { useLocalStorage } from "./useLocalStorage";
 import { flatten, map, uniq, intersection } from "lodash";
 import { MapData } from "@/interfaces/DeforestationAnalysis";
+import { getCountryName } from "@/utils/countries";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   selectedMaps: MapData[];
@@ -18,11 +20,16 @@ interface ReturnType {
   selectedMapsOptions: SelectionOption[];
 }
 
+const getMapLabel = (map: MapData): string => {
+  return `${map.name} (${map.alias})`;
+};
+
 export function useCountryAndMapsSelection({
   selectedMaps,
   availableMaps,
   onCountrySelectionChangeEffect,
 }: Props): ReturnType {
+  const { i18n } = useTranslation();
   const [selectedCountryCodes, setSelectedCountryCodes] = useLocalStorage<
     string[]
   >("deforestationAnalysis.selectedCountries", []);
@@ -32,10 +39,10 @@ export function useCountryAndMapsSelection({
       uniq(flatten(map(availableMaps, "availableCountriesCodes"))).map(
         (code) => ({
           id: code,
-          label: code,
+          label: getCountryName(code, i18n.language as "en" | "es") ?? code,
         })
       ),
-    [availableMaps]
+    [availableMaps, i18n.language]
   );
 
   const selectedCountries = useMemo<SelectionOption[]>(
@@ -53,15 +60,15 @@ export function useCountryAndMapsSelection({
 
     return map(filteredMaps, (map) => ({
       id: map.id.toString(),
-      label: `${map.name} (${map.alias})`,
+      label: getMapLabel(map),
     }));
   }, [availableMaps, selectedCountries]);
 
   const selectedMapsOptions = useMemo(
     () =>
-      selectedMaps.map(({ id, name, alias }) => ({
-        id: id.toString(),
-        label: `${name} (${alias})`,
+      selectedMaps.map((map) => ({
+        id: map.id.toString(),
+        label: getMapLabel(map),
       })),
     [selectedMaps]
   );

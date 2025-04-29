@@ -277,7 +277,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
               )}
             </Text>
             <MultiSelector
-              sx={{ width: 250 }}
+              sx={{ width: 350 }}
               selectedOptions={selectedCountries}
               options={countriesOptions}
               label={t(
