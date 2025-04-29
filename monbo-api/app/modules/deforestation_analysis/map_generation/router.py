@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from app.modules.deforestation_analysis.helpers import get_map_by_id
+from app.modules.maps.helpers import get_map_by_id
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 from app.utils.maps import get_map_raster_path

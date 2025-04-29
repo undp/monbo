@@ -13,7 +13,10 @@
       "buttonText": "Descargar"
     },
     "mapSelectionStep": {
-      "stepTitle": "Paso 2: Selecciona las capas de mapas para el análisis"
+      "stepTitle": "Paso 2: Selecciona las capas de mapas para el análisis",
+      "countrySelectorLabel": "Selecciona países",
+      "noCountriesSelected": "Seleciona uno o varios países en el selector para ver los mapas disponibles",
+      "noMapsAvailable": "No hay mapas disponibles para los países seleccionados"
     },
     "uploadStep": {
       "stepTitle": "Paso 3: Carga la plantilla para el análisis de deforestación",

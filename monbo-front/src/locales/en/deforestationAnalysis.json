@@ -13,7 +13,10 @@
       "buttonText": "Download"
     },
     "mapSelectionStep": {
-      "stepTitle": "Step 2: Select the map layers for the analysis"
+      "stepTitle": "Step 3: Select the map layers for the analysis",
+      "countrySelectorLabel": "Select countries",
+      "noCountriesSelected": "Select one or more countries in the selector to see the available maps.",
+      "noMapsAvailable": "No maps available for the selected countries"
     },
     "uploadStep": {
       "stepTitle": "Step 3: Upload the Template",

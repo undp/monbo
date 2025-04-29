@@ -14,6 +14,7 @@ import { useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
+import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
 
 interface MapSelectionModalProps
   extends Pick<BaseModalProps, "isOpen" | "handleClose"> {
@@ -35,6 +36,11 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
     },
     setReportGenerationParams,
   } = useContext(DataContext);
+
+  const { mapOptions, selectedMapsOptions } = useCountryAndMapsSelection({
+    selectedMaps: selectedMapsForReport,
+    availableMaps: selectedMapsForDeforestation,
+  });
 
   const allFarmsAmount = useMemo(() => farmsData?.length || 0, [farmsData]);
 
@@ -119,18 +125,8 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
           </Text>
           <MultiSelectionStep
             sx={{ flexDirection: "column", gap: 1 }}
-            selectedOptions={selectedMapsForReport.map(
-              ({ id, name, alias }) => ({
-                id: id.toString(),
-                label: `${name} (${alias})`,
-              })
-            )}
-            options={selectedMapsForDeforestation.map(
-              ({ id, name, alias }) => ({
-                id: id.toString(),
-                label: `${name} (${alias})`,
-              })
-            )}
+            selectedOptions={selectedMapsOptions}
+            options={mapOptions}
             onChange={onMapSelectionChange}
           />
         </Box>

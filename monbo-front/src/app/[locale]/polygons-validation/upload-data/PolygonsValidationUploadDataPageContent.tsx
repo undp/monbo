@@ -23,7 +23,7 @@ import { LoadingScreen } from "@/components/reusable/LoadingScreen";
 import { DownloadTemplateStep } from "@/components/page/uploadData/DownloadTemplateStep";
 import { UploadFileStep } from "@/components/page/uploadData/UploadFileStep";
 import { useTranslation } from "react-i18next";
-import { StepContainer } from "@/components/page/uploadData/StepContainer";
+import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { validateData } from "@/utils/modules";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
@@ -226,7 +226,7 @@ export function PolygonsValidationUploadDataPageContent() {
 
   return (
     <UploadPageContent title={t("polygonValidation:uploadDataPage:title")}>
-      <StepContainer
+      <TextHeaderStepContainer
         title={t("polygonValidation:uploadDataPage:templateStep:stepTitle")}
       >
         <DownloadTemplateStep
@@ -239,8 +239,8 @@ export function PolygonsValidationUploadDataPageContent() {
           )}
           fileUrl="/files/polygon-validation-template.xlsx"
         />
-      </StepContainer>
-      <StepContainer
+      </TextHeaderStepContainer>
+      <TextHeaderStepContainer
         title={t("polygonValidation:uploadDataPage:uploadStep:stepTitle")}
         sx={{ flexGrow: 1 }}
       >
@@ -264,7 +264,7 @@ export function PolygonsValidationUploadDataPageContent() {
           }}
           onDrop={onFileDropped}
         />
-      </StepContainer>
+      </TextHeaderStepContainer>
     </UploadPageContent>
   );
 }

@@ -15,6 +15,7 @@ class BaseMapData(BaseModel):
     publishDate: str | None
     references: list[str]
     considerations: str | None
+    availableCountriesCodes: list[str]
 
 
 class MapData(BaseMapData):

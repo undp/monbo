@@ -77,12 +77,6 @@ export const CoverPage = ({
         />
       </View>
 
-      <View style={styles.coverPageBackgroundONUImageContainer}>
-        <ImagePDF
-          src={"/images/deforestationReportCoverBackgroundOnuLogo.png"}
-          style={styles.coverPageBackgroundONULogoImage}
-        />
-      </View>
       <View style={styles.coverPageSection}>
         <View style={styles.coverTitleSection}>
           <Text style={styles.coverTitleText}>

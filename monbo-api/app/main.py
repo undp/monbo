@@ -5,6 +5,7 @@ from urllib.parse import unquote
 from app.modules import (
     deforestation_analysis_router,
     polygons_validation_router,
+    maps_router,
 )
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,3 +82,4 @@ async def download_geojson(content: str | None = None):
 
 app.include_router(polygons_validation_router)
 app.include_router(deforestation_analysis_router)
+app.include_router(maps_router)

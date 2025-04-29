@@ -16,7 +16,7 @@ import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { Suspense } from "react";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
 
-const namespaces = ["common", "polygonValidation"];
+const namespaces = ["common", "polygonValidation", "deforestationAnalysis"];
 
 export default async function PolygonsValidationPage({
   params,

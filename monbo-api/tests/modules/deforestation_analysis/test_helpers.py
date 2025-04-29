@@ -3,11 +3,10 @@ from unittest.mock import MagicMock, patch
 import mercantile
 import numpy as np
 import pytest
+from app.modules.maps.helpers import get_all_maps, get_map_by_id
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
-    get_all_maps,
     get_deforestation_ratio,
-    get_map_by_id,
     get_map_pixels_inside_polygon,
     get_pixel_area,
     get_tile,
@@ -33,7 +32,7 @@ def test_get_all_maps(mock_read_json_file):
         get_all_maps()
 
 
-@patch("app.modules.deforestation_analysis.helpers.get_all_maps")
+@patch("app.modules.maps.helpers.get_all_maps")
 def test_get_map_by_id(mock_get_all_maps):
     mock_data = [
         {"id": 1, "name": "Deforestation Map A"},

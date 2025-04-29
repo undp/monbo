@@ -15,6 +15,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
+import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
+import { MultiSelector } from "@/components/reusable/selectors/MultiSelector";
+import { MessageBox } from "@/components/reusable/MessageBox";
 
 export const DeforestationModal: React.FC<
   Pick<BaseModalProps, "isOpen" | "handleClose">
@@ -48,6 +51,27 @@ export const DeforestationModal: React.FC<
     },
     [setDeforestationAnalysisParams]
   );
+
+  const onCountrySelectionChangeEffect = useCallback(() => {
+    // When the user selects a country, we need to clear the selected maps
+
+    setDeforestationAnalysisParams((prev) => ({
+      ...prev,
+      selectedMaps: [],
+    }));
+  }, [setDeforestationAnalysisParams]);
+
+  const {
+    selectedCountries,
+    countriesOptions,
+    onCountrySelectionChange,
+    mapOptions,
+    selectedMapsOptions,
+  } = useCountryAndMapsSelection({
+    selectedMaps,
+    availableMaps,
+    onCountrySelectionChangeEffect,
+  });
 
   const onMapSelectionChange = useCallback(
     (mapId: string, checked: boolean) => {
@@ -112,24 +136,51 @@ export const DeforestationModal: React.FC<
           </RadioGroup>
         </Box>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <Text variant="h3" bold>
-            {t("polygonValidation:deforestationModal:mapsSelection")}
-          </Text>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text variant="h3" bold>
+              {t("polygonValidation:deforestationModal:mapsSelection")}
+            </Text>
+            <MultiSelector
+              sx={{ width: 250 }}
+              selectedOptions={selectedCountries}
+              options={countriesOptions}
+              label={t(
+                "deforestationAnalysis:uploadDataPage:mapSelectionStep:countrySelectorLabel"
+              )}
+              onChange={onCountrySelectionChange}
+              compact
+            />
+          </Box>
           <MultiSelectionStep
             sx={{ flexDirection: "column", gap: 1 }}
-            selectedOptions={selectedMaps.map(({ id, name, alias }) => ({
-              id: id.toString(),
-              label: `${name} (${alias})`,
-            }))}
-            options={availableMaps.map(({ id, name, alias }) => ({
-              id: id.toString(),
-              label: `${name} (${alias})`,
-            }))}
+            selectedOptions={selectedMapsOptions}
+            options={mapOptions}
             onChange={onMapSelectionChange}
           />
+          {!selectedCountries.length && (
+            <MessageBox
+              message={t(
+                "deforestationAnalysis:uploadDataPage:mapSelectionStep:noCountriesSelected"
+              )}
+            />
+          )}
+          {selectedCountries.length > 0 && !mapOptions.length && (
+            <MessageBox
+              message={t(
+                "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
+              )}
+            />
+          )}
         </Box>
       </Box>
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
         <Button
           variant="contained"
           disabled={!polygonsSubset || selectedMaps.length == 0}

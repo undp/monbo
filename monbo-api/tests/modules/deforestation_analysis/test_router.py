@@ -70,25 +70,25 @@ EXPECTED_MAPS_DATA = [
 ]
 
 
-@patch("app.modules.deforestation_analysis.router.get_all_maps")
+@patch("app.modules.maps.router.get_all_maps")
 def test_get_maps(mock_get_all_maps):
     mock_get_all_maps.return_value = MAPS_MOCK_DATA
 
-    response = client.get("/deforestation_analysis/get-maps")
+    response = client.get("/maps")
     assert response.status_code == 200
     json_response = response.json()
     assert json_response == EXPECTED_MAPS_DATA
 
 
-@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+@patch("app.modules.maps.router.get_map_by_id")
 def test_get_map_data(mock_get_map_by_id):
     mock_get_map_by_id.return_value = {"id": 1, "name": "Map A", "alias": "Alpha"}
-    response = client.get("/deforestation_analysis/get-maps/1")
+    response = client.get("/maps/1")
     assert response.status_code == 200
     assert response.json() == {"id": 1, "name": "Map A", "alias": "Alpha"}
 
     mock_get_map_by_id.return_value = None
-    response = client.get("/deforestation_analysis/get-maps/3")  # ID not in mock data
+    response = client.get("/maps/3")  # ID not in mock data
     assert response.status_code == 404
     assert response.json() == {"detail": "Map not found"}
 
@@ -148,7 +148,7 @@ def test_parse_farms():
 
 
 @patch("app.modules.deforestation_analysis.router.rasterio.open")
-@patch("app.modules.deforestation_analysis.router.get_all_maps")
+@patch("app.modules.maps.router.get_all_maps")
 @patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
 @patch("app.modules.deforestation_analysis.router.get_pixel_area")
 @patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
@@ -236,7 +236,7 @@ def test_analize(
     ]
 
 
-@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+@patch("app.modules.maps.router.get_map_by_id")
 @patch("app.modules.deforestation_analysis.router.get_tile")
 def test_serve_tile(mock_get_tile, mock_get_map_by_id):
     mock_get_map_by_id.return_value = None
