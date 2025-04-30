@@ -18,9 +18,9 @@ export interface FarmData {
   producerId: string;
   cropType: string;
   production: number;
-  productionDate?: string;
-  productionQuantityUnit?: string;
-  country?: string;
+  productionDate: string;
+  productionQuantityUnit: string;
+  country: string;
   region?: string;
   association?: string;
   documents: { name: string; url: string }[];

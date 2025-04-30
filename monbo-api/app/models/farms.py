@@ -21,14 +21,14 @@ class FarmData(BaseModel):
     production: float
     productionQuantityUnit: str
     country: str
-    region: str
-    association: str
+    region: Optional[str] = None
+    association: Optional[str] = None
     documents: list[dict[Literal["name", "url"], str]]
     polygon: Polygon | None
 
 
 class UnprocessedFarmData(BaseModel):
-    id: str
+    id: Optional[str] = None
     producerName: str
     productionDate: str
     productionQuantity: float
@@ -37,7 +37,7 @@ class UnprocessedFarmData(BaseModel):
     region: str
     farmCoordinates: str
     cropType: str
-    association: str
+    association: Optional[str] = None
     documents: list[dict[Literal["name", "url"], str]]
 
 
