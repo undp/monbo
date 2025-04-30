@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 
+// TODO: refactor to use only the exceljs library
+
 /**
  * Creates an Excel cell object with line break support and centered vertical alignment.
  *
