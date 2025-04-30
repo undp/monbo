@@ -19,18 +19,20 @@ import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
 import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
 import * as XLSX from "xlsx";
+import { TFunction } from "i18next";
 
 const parseData = async (
   farmsData: FarmData[],
   validFarmsData: FarmData[],
   inconsistencies: InconsistentPolygonData[],
   farmsStatus: ValidateFarmsResponse["farmResults"],
+  t: TFunction<"translation", undefined>,
   language: string
 ): Promise<Record<string, SheetData>> => {
   const validatedPolygonsParsedData = validFarmsData.map((farm) => {
     const farmStatus =
       farmsStatus.find((f) => f.farmId === farm.id)?.status || "";
-    return [...getRowCommonDataAsArray(farm), farmStatus];
+    return [...getRowCommonDataAsArray(farm, language), farmStatus];
   });
   const percentagesMerges: SheetData["merges"] = [];
   const inconsistenciesParsedData = flatten(
@@ -47,8 +49,11 @@ const parseData = async (
       return item.farmIds.map((farmId) => {
         const farm = farmsData.find((farm) => farm.id === farmId)!;
         return [
-          ...getRowCommonDataAsArray(farm),
-          formatOverlapPercentage(item.data.percentage, language),
+          ...getRowCommonDataAsArray(farm, language),
+          t(`polygonValidation:inconsistenciesTypes:${item.type}`),
+          item.type === "overlap"
+            ? formatOverlapPercentage(item.data.percentage, language)
+            : "",
         ];
       });
     })
@@ -68,9 +73,14 @@ const parseData = async (
   inconsistenciesHeaders[0].push(...templateHeadersRows[0]);
   inconsistenciesHeaders[1].push(
     ...templateHeadersRows[1],
+    "Tipo de Inconsistencia\nType of Inconsistency",
     "Porcentaje de Traslape\nOverlap Percentage"
   );
-  inconsistenciesHeaders[2].push(...templateHeadersRows[2], "5%");
+  inconsistenciesHeaders[2].push(
+    ...templateHeadersRows[2],
+    t(`polygonValidation:inconsistenciesTypes:overlap`),
+    "5%"
+  );
 
   return {
     "Polígonos válidos": {
@@ -103,6 +113,7 @@ export const DownloadPageData = () => {
         validFarmsData,
         polygonsValidationResults?.inconsistencies ?? [],
         polygonsValidationResults?.farmResults ?? [],
+        t,
         i18n.language
       );
       console.log(parsedData);

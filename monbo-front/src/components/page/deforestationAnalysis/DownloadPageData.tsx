@@ -40,7 +40,10 @@ const parseData = async (
         return formatDeforestationPercentage(farmMapResult.value, language);
       }
     );
-    return [...getRowCommonDataAsArray(farm), ...deforestationPercentages];
+    return [
+      ...getRowCommonDataAsArray(farm, language),
+      ...deforestationPercentages,
+    ];
   });
 
   const templateHeadersRows = await loadTemplateHeaders();
