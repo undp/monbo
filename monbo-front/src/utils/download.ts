@@ -1,35 +1,5 @@
 import { FarmData } from "@/interfaces/Farm";
-
-export const MANDATORY_HEADERS = [
-  "",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-  "OBLIGATORIO",
-];
-
-export const COMMON_HEADERS = [
-  "ID",
-  "Nombre productor",
-  "Fecha producción",
-  "Cantidad producción",
-  "Unidad cantidad producción",
-  "País",
-  "Región",
-  "Coordenadas finca",
-  "Tipo de cultivo",
-  "Asociación",
-  "Nombre documento 1",
-  "Link documento 1",
-  "Nombre documento 2",
-  "Link documento 2",
-  "Nombre documento 3",
-  "Link documento 3",
-];
+import { parseAreaToHectares } from "./polygons";
 
 export const getCoordinates = (farm: FarmData): string[] => {
   const coordinates: string[] = [];
@@ -44,7 +14,10 @@ export const getCoordinates = (farm: FarmData): string[] => {
   return coordinates;
 };
 
-export const getRowCommonDataAsArray = (farm: FarmData): string[] => {
+export const getRowCommonDataAsArray = (
+  farm: FarmData,
+  language: string
+): string[] => {
   return [
     farm.id,
     farm.producer,
@@ -54,14 +27,17 @@ export const getRowCommonDataAsArray = (farm: FarmData): string[] => {
     farm.country || "",
     farm.region || "",
     `[${getCoordinates(farm).join(", ")}]`,
+    farm.polygon.area
+      ? parseAreaToHectares(farm.polygon.area, 2, false, language)
+      : "",
     farm.cropType,
     farm.association || "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
+    farm.documents[0]?.name || "",
+    farm.documents[0]?.url || "",
+    farm.documents[1]?.name || "",
+    farm.documents[1]?.url || "",
+    farm.documents[2]?.name || "",
+    farm.documents[2]?.url || "",
   ];
 };
 

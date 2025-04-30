@@ -7,69 +7,87 @@ import {
   ValidateFarmsResponse,
 } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
-import { SheetData } from "@/utils/excel";
+import { SheetData, loadTemplateHeaders } from "@/utils/excel";
 import { useCallback, useContext } from "react";
 import { flatten } from "lodash";
 import { formatOverlapPercentage } from "@/utils/numbers";
-import {
-  COMMON_HEADERS,
-  getRowCommonDataAsArray,
-  MANDATORY_HEADERS,
-} from "@/utils/download";
+import { getRowCommonDataAsArray } from "@/utils/download";
 import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
 import { generateGeoJsonFarmsDataWithPolygonsValidation } from "@/utils/geojson";
+import * as XLSX from "xlsx";
+import { TFunction } from "i18next";
 
-const parseData = (
+const parseData = async (
   farmsData: FarmData[],
   validFarmsData: FarmData[],
   inconsistencies: InconsistentPolygonData[],
   farmsStatus: ValidateFarmsResponse["farmResults"],
+  t: TFunction<"translation", undefined>,
   language: string
-): Record<string, SheetData> => {
+): Promise<Record<string, SheetData>> => {
   const validatedPolygonsParsedData = validFarmsData.map((farm) => {
     const farmStatus =
       farmsStatus.find((f) => f.farmId === farm.id)?.status || "";
-    return [...getRowCommonDataAsArray(farm), farmStatus];
+    return [...getRowCommonDataAsArray(farm, language), farmStatus];
   });
   const percentagesMerges: SheetData["merges"] = [];
   const inconsistenciesParsedData = flatten(
     inconsistencies.map((item, idx) => {
-      let rowNumber = 1;
+      let rowNumber = 3;
       for (let i = 0; i < idx; i++) {
         rowNumber += inconsistencies[i].farmIds.length;
       }
 
       percentagesMerges.push({
-        s: { r: rowNumber, c: 16 },
-        e: { r: rowNumber + item.farmIds.length - 1, c: 16 },
+        s: { r: rowNumber, c: 17 },
+        e: { r: rowNumber + item.farmIds.length - 1, c: 17 },
       });
       return item.farmIds.map((farmId) => {
         const farm = farmsData.find((farm) => farm.id === farmId)!;
         return [
-          ...getRowCommonDataAsArray(farm),
-          formatOverlapPercentage(item.data.percentage, language),
+          ...getRowCommonDataAsArray(farm, language),
+          t(`polygonValidation:inconsistenciesTypes:${item.type}`),
+          item.type === "overlap"
+            ? formatOverlapPercentage(item.data.percentage, language)
+            : "",
         ];
       });
     })
   );
 
-  const validPolygonsHeaders = [...COMMON_HEADERS, "Status"];
-  const inconsistenciesHeaders = [...COMMON_HEADERS, "Traslape"];
+  const templateHeadersRows = await loadTemplateHeaders();
+
+  const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
+  validPolygonsHeaders[0].push(...templateHeadersRows[0]);
+  validPolygonsHeaders[1].push(
+    ...templateHeadersRows[1],
+    "Resultado Validación\nValidation Result"
+  );
+  validPolygonsHeaders[2].push(...templateHeadersRows[2], "VALID");
+
+  const inconsistenciesHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
+  inconsistenciesHeaders[0].push(...templateHeadersRows[0]);
+  inconsistenciesHeaders[1].push(
+    ...templateHeadersRows[1],
+    "Tipo de Inconsistencia\nType of Inconsistency",
+    "Porcentaje de Traslape\nOverlap Percentage"
+  );
+  inconsistenciesHeaders[2].push(
+    ...templateHeadersRows[2],
+    t(`polygonValidation:inconsistenciesTypes:overlap`),
+    "5%"
+  );
 
   return {
     "Polígonos válidos": {
-      rows: [
-        MANDATORY_HEADERS,
-        validPolygonsHeaders,
-        ...validatedPolygonsParsedData,
-      ],
+      rows: [...validPolygonsHeaders, ...validatedPolygonsParsedData],
     },
     "Polígonos inconsistentes": {
-      rows: [inconsistenciesHeaders, ...inconsistenciesParsedData],
+      rows: [...inconsistenciesHeaders, ...inconsistenciesParsedData],
       merges: percentagesMerges,
     },
   };
@@ -86,17 +104,19 @@ export const DownloadPageData = () => {
   const isDisabled =
     !farmsData || !validFarmsData || !polygonsValidationResults;
 
-  const onDownloadAsExcelClick = useCallback(() => {
+  const onDownloadAsExcelClick = useCallback(async () => {
     if (isDisabled) return;
 
     try {
-      const parsedData = parseData(
+      const parsedData = await parseData(
         farmsData,
         validFarmsData,
         polygonsValidationResults?.inconsistencies ?? [],
         polygonsValidationResults?.farmResults ?? [],
+        t,
         i18n.language
       );
+      console.log(parsedData);
       downloadAsExcel(parsedData, "step1-results.xlsx");
     } catch (error) {
       console.error("Error generating Excel:", error);

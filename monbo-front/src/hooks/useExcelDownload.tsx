@@ -11,7 +11,7 @@ export const useExcelDownload = () => {
   return useCallback(
     async (data: Record<string, SheetData>, filename: string) => {
       try {
-        const file = generateExcel(data);
+        const file = await generateExcel(data);
         saveAs(file, filename);
       } catch (error) {
         console.error("Error generating Excel:", error);
