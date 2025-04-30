@@ -241,29 +241,7 @@ export interface SheetData {
   merges?: XLSX.Range[];
 }
 
-export const generateExcel = (data: Record<string, SheetData>) => {
-  const workbook = XLSX.utils.book_new();
-  for (const sheetName in data) {
-    const worksheet = createWorksheet(
-      data[sheetName].rows,
-      data[sheetName].merges
-    );
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  }
-
-  const writeOpts: XLSX.WritingOptions = {
-    bookType: "xlsx",
-    bookSST: false,
-    type: "array",
-    cellStyles: true,
-  };
-
-  const excelBuffer = XLSX.write(workbook, writeOpts);
-  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  return blob;
-};
-
-export const generateExcel2 = async (data: Record<string, SheetData>) => {
+export const generateExcel = async (data: Record<string, SheetData>) => {
   const workbook = new ExcelJS.Workbook();
 
   Object.entries(data).forEach(([sheetName, sheetData]) => {
