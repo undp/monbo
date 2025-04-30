@@ -9,17 +9,19 @@ import { validateData } from "./modules";
 import { TFunction } from "i18next";
 
 const headerKeywordsMappings: Record<string, string[]> = {
-  // finalKey: ["keyword1", "keyword2", "keyword3"]
   id: ["id"],
-  producerName: ["productor", "producer"],
-  productionDate: ["fecha", "date"],
-  productionQuantity: ["cantidad", "quantity"],
-  productionQuantityUnit: ["unidad", "measurement"],
+  producerName: ["nombre productor", "producer name"],
+  productionDate: ["fecha producción", "production date"],
+  productionQuantity: ["cantidad producción", "production quantity"],
+  productionQuantityUnit: [
+    "unidad cantidad producción",
+    "production measurement unit",
+  ],
   country: ["país", "country"],
   region: ["región", "region"],
-  farmCoordinates: ["coordenadas", "coordinates"],
-  area: ["superficie", "area"],
-  cropType: ["cultivo", "crop"],
+  farmCoordinates: ["coordenadas finca", "land coordinates"],
+  area: ["superficie [hectáreas]", "area [hectares]"],
+  cropType: ["tipo de cultivo", "crop type"],
   association: ["asociación", "cooperative"],
   documentName1: ["nombre documento 1", "document name 1"],
   documentUrl1: ["enlace documento 1", "document link 1"],
@@ -74,13 +76,19 @@ export const loadExcelFile = async (
 
   // Create a mapping from Excel header to our internal key
   const headerToKeyMap: Record<string, string> = {};
-  Object.entries(headerKeywordsMappings).forEach(([internalKey, keywords]) => {
-    headers.forEach((header) => {
-      if (keywords.some((kw) => header.toLowerCase().includes(kw))) {
-        headerToKeyMap[header] = internalKey;
-      }
-    });
-  });
+  Object.entries(headerKeywordsMappings).forEach(
+    ([internalKey, expectedHeaders]) => {
+      headers.forEach((incomingHeader) => {
+        // Split header by newline and get the first part
+        const cleanHeaderParts = incomingHeader
+          .split(/\r?\n/)
+          .map((part) => part.toLowerCase().trim());
+        if (expectedHeaders.some((h) => cleanHeaderParts.includes(h))) {
+          headerToKeyMap[incomingHeader] = internalKey;
+        }
+      });
+    }
+  );
 
   // Remapping data based on header keywords
   const mappedData: MappedData[] = data.map((row) => {
