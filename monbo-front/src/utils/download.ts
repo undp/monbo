@@ -7,7 +7,7 @@ export const getCoordinates = (farm: FarmData): string[] => {
     const center = farm.polygon.details.center;
     coordinates.push(`(${center.lng},${center.lat})`);
   } else {
-    farm.polygon.details.path.forEach((point) => {
+    farm.polygon.details?.path?.forEach((point) => {
       coordinates.push(`(${point.lng},${point.lat})`);
     });
   }

@@ -19,7 +19,10 @@ export const generateGeoJsonFeature = (farm: FarmData): GeoJsonFeature => {
       coordinates:
         farm.polygon.type === "point"
           ? [farm.polygon.details.center.lng, farm.polygon.details.center.lat]
-          : [farm.polygon.details.path.map(({ lng, lat }) => [lng, lat])],
+          : [
+              farm.polygon.details?.path?.map(({ lng, lat }) => [lng, lat]) ??
+                [],
+            ],
     },
   };
 };

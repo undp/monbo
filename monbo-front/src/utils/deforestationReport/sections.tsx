@@ -278,7 +278,14 @@ export const FarmMapPage = ({
                 <Text style={styles.farmMapPageLightText}>
                   {t("reportGeneration:attributes:totalArea")}:{" "}
                   <Text style={styles.farmMapPageBoldText}>
-                    {parseAreaToHectares(farm.polygon.area, 2, false, language)}
+                    {farm.polygon.area
+                      ? parseAreaToHectares(
+                          farm.polygon.area,
+                          2,
+                          false,
+                          language
+                        )
+                      : t("common:na")}
                   </Text>
                 </Text>
               </View>

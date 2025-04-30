@@ -62,7 +62,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
             return {
               id: d.id,
               type: "polygon",
-              path: d.polygon.details.path,
+              path: d.polygon.details?.path ?? [],
               color: "yellow",
               fill: isDetailsOpen && selectedFarmData?.id === d.id,
               onClick: () => handlePolygonClick(d.id),
@@ -71,8 +71,8 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
             return {
               id: d.id,
               type: "circle",
-              center: d.polygon.details.center,
-              radius: d.polygon.details.radius,
+              center: d.polygon.details?.center ?? null,
+              radius: d.polygon.details?.radius ?? 0,
               color: "yellow",
               fill: isDetailsOpen && selectedFarmData?.id === d.id,
               onClick: () => handlePolygonClick(d.id),

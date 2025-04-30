@@ -31,13 +31,15 @@ const generateRows = (farm: FarmData) => {
       },
     ];
   }
-  return farm.polygon.details.path.map((point, idx) => ({
-    cells: {
-      point: { value: idx + 1 },
-      latitude: { value: parseLatitude(point.lat) },
-      longitude: { value: parseLongitude(point.lng) },
-    },
-  }));
+  return (
+    farm.polygon.details?.path?.map((point, idx) => ({
+      cells: {
+        point: { value: idx + 1 },
+        latitude: { value: parseLatitude(point.lat) },
+        longitude: { value: parseLongitude(point.lng) },
+      },
+    })) ?? []
+  );
 };
 
 const generateMapObjects = (
@@ -59,7 +61,7 @@ const generateMapObjects = (
     {
       id: farm.id,
       type: "polygon",
-      path: farm.polygon.details.path,
+      path: farm.polygon.details?.path ?? [],
       color: baseMapColor,
       showPoints: true,
     },
@@ -116,7 +118,7 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
           </Text>
         </Box>
       }
-      mapCenter={data.polygon.details.center}
+      mapCenter={data.polygon.details?.center ?? { lat: 0, lng: 0 }}
       tableTitle={
         <Box
           sx={{
