@@ -230,7 +230,8 @@ export function Table<T>({
                               )
                             : r.cells[header.attr].value
                           : null}
-                        {header.type === "chip" ? (
+                        {header.type === "chip" &&
+                        r.cells[header.attr].value !== null ? (
                           <ChipCell
                             label={r.cells[header.attr].value || ""}
                             sx={r.cells[header.attr].chipStyle}

@@ -29,6 +29,7 @@
   "na": "N/A",
   "_or": "or",
   "tableColumns": {
+    "inconsistency": "Inconsistency",
     "type": "Type",
     "producer": "Producer",
     "cropType": "Crop Type",

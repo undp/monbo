@@ -28,8 +28,8 @@ export const validatePolygons = async (
   const body = data.map(({ id, polygon }) => ({
     id,
     type: polygon.type,
-    path: polygon.type === "polygon" ? polygon.details.path : null,
-    center: polygon.details.center,
+    path: polygon.type === "polygon" ? polygon.details?.path ?? null : null,
+    center: polygon.details?.center ?? null,
   }));
   const response = await fetch(POLYGON_VALIDATION_URL, {
     method: "POST",

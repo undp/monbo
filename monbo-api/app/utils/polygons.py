@@ -1,8 +1,7 @@
 from typing import Tuple
 from app.models.polygons import Coordinates, Point
 from pyproj import CRS, Transformer
-from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
+from shapely.geometry import Point as SPoint, Polygon
 from shapely.ops import transform
 
 POINT_RADIUS = 50 / 111111
@@ -29,6 +28,10 @@ def generate_polygon(points: list[Point]) -> Polygon:
     if len(points) == 1:
         point = SPoint(points[0].x, points[0].y)
         return ("point", point.buffer(POINT_RADIUS))
+
+    if len(points) == 2:
+        return ("polygon", Polygon([]))
+
     points = [(point.x, point.y) for point in points]
     return ("polygon", Polygon(points))
 
@@ -53,6 +56,8 @@ def generate_polygon_from_coordinates(
         ('point' or 'polygon'), and the second element is the corresponding Shapely
         geometry object (buffered point or polygon).
     """
+    if not coordinates:
+        return ("polygon", Polygon([]))
     if len(coordinates) == 1:
         point = SPoint(coordinates[0].lng, coordinates[0].lat)
         return ("point", point.buffer(POINT_RADIUS))

@@ -6,6 +6,10 @@ from app.models.polygons import Point
 from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Point as SPoint, Polygon
+from app.utils.polygons import get_polygon_area
+from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
+from app.models.farms import FarmWithPolygon
+from shapely.validation import explain_validity
 
 
 def generate_polygon(points: list[Point]) -> Polygon:
@@ -78,7 +82,7 @@ def ensure_farm_ids(farms_data, original_farms):
     return farms_data
 
 
-def check_polygons_overlap(polygons: List[Polygon]):
+def detect_overlaps(polygons: List[Polygon]):
     """
     Check for overlapping polygons and return the intersections.
     This function takes a list of polygons and checks for any overlaps between them.
@@ -143,3 +147,94 @@ def get_geometry_paths(geometry: BaseGeometry) -> list[list[Point]]:
         ]
 
     raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
+
+
+def get_overlap_inconsistencies(farms: list[FarmWithPolygon]):
+    polygons = list(map(lambda x: x["polygon"], farms))
+
+    overlaps = detect_overlaps(polygons)
+
+    inconsistencies = []
+    for overlap in overlaps:
+        overlap_area = get_polygon_area(overlap["intersection_polygon"])
+
+        overlap_farms_ids = [
+            farms[overlap["polygon1_idx"]]["id"],
+            farms[overlap["polygon2_idx"]]["id"],
+        ]
+
+        overlap_polygons = [
+            polygons[overlap["polygon1_idx"]],
+            polygons[overlap["polygon2_idx"]],
+        ]
+        overlap_polygons_area = sum(list(map(get_polygon_area, overlap_polygons)))
+
+        # Calculate the union area (total area minus the double-counted overlap)
+        union_area = overlap_polygons_area - overlap_area
+
+        # Handle the case where polygons are identical or nearly identical
+        # Using a small epsilon for floating point comparison
+        if abs(overlap_area - union_area) < 1e-10:
+            overlap_ratio = 1.0  # 100% overlap
+        else:
+            overlap_ratio = min(1.0, overlap_area / union_area)  # Cap at 100%
+
+        if 100 * overlap_ratio > OVERLAP_THRESHOLD_PERCENTAGE:
+            inconsistencies.append(
+                {
+                    "type": "overlap",
+                    "farmIds": overlap_farms_ids,
+                    "data": {
+                        "percentage": overlap_ratio,
+                        "criticality": "HIGH" if overlap_ratio > 0.8 else "MEDIUM",
+                        "area": overlap_area,
+                        "center": {
+                            "lng": overlap["intersection_polygon"].centroid.x,
+                            "lat": overlap["intersection_polygon"].centroid.y,
+                        },
+                        "paths": get_geometry_paths(overlap["intersection_polygon"]),
+                    },
+                }
+            )
+    return inconsistencies
+
+
+def get_geometry_inconsistencies(farms: list[FarmWithPolygon]):
+    """
+    Check for other types of polygon inconsistencies:
+    - Invalid polygons (not valid geometry)
+
+    Args:
+        farms (list[FarmWithPolygon]): List of farms with polygon data
+
+    Returns:
+        list: List of inconsistency dictionaries for other types of issues
+    """
+    inconsistencies = []
+
+    for farm in farms:
+        polygon: BaseGeometry = farm["polygon"]
+
+        # Check if the polygon is empty
+        if polygon.is_empty:
+            inconsistencies.append(
+                {
+                    "type": "empty_polygon",
+                    "farmIds": [farm["id"]],
+                    "data": None,
+                }
+            )
+
+        # Check for invalid geometry
+        if not polygon.is_valid:
+            inconsistencies.append(
+                {
+                    "type": "invalid_geometry",
+                    "farmIds": [farm["id"]],
+                    "data": {
+                        "reason": explain_validity(polygon),
+                    },
+                }
+            )
+
+    return inconsistencies

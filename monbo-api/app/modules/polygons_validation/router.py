@@ -1,13 +1,11 @@
-from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
-from app.models.farms import FarmData, FarmPolygon, UnprocessedFarmData
+from app.models.farms import FarmData, FarmPolygon, FarmWithPolygon, UnprocessedFarmData
 from app.utils.farms import parse_base_information
-from app.utils.polygons import get_polygon_area
 from fastapi import APIRouter
 
 from .helpers import (
-    check_polygons_overlap,
     ensure_farm_ids,
-    get_geometry_paths,
+    get_geometry_inconsistencies,
+    get_overlap_inconsistencies,
 )
 from .models import GetOverlappingPolygonsResponse
 
@@ -89,7 +87,7 @@ def get_overlapping_polygons(
     the area, center, and path of the overlap.
     """
 
-    parsed_polygons = list(
+    parsed_farms: list[FarmWithPolygon] = list(
         map(
             lambda x: {
                 **x.model_dump(),
@@ -99,61 +97,30 @@ def get_overlapping_polygons(
         )
     )
 
+    # Initialize results with VALID status
     results = list(map(lambda x: {"farmId": x.id, "status": "VALID"}, body))
-    overlaps = check_polygons_overlap(
-        list(map(lambda x: x["polygon"], parsed_polygons))
-    )
 
-    inconsistentPolygons = []
-    for overlap in overlaps:
-        overlap_area = get_polygon_area(overlap["intersection_polygon"])
-        overlap_polygons_ids = [
-            parsed_polygons[overlap["polygon1_idx"]]["id"],
-            parsed_polygons[overlap["polygon2_idx"]]["id"],
-        ]
+    # Create a lookup dictionary for results for O(1) access
+    results_lookup = {result["farmId"]: result for result in results}
 
-        overlap_polygons = list(
-            filter(lambda x: x["id"] in overlap_polygons_ids, parsed_polygons)
-        )
-        overlap_polygons_area = sum(
-            list(map(lambda x: get_polygon_area(x["polygon"]), overlap_polygons))
-        )
+    # Get inconsistencies
+    overlap_inconsistencies = get_overlap_inconsistencies(parsed_farms)
+    geometry_inconsistencies = get_geometry_inconsistencies(parsed_farms)
 
-        # Calculate the union area (total area minus the double-counted overlap)
-        union_area = overlap_polygons_area - overlap_area
+    all_inconsistencies = overlap_inconsistencies + geometry_inconsistencies
 
-        # Handle the case where polygons are identical or nearly identical
-        # Using a small epsilon for floating point comparison
-        if abs(overlap_area - union_area) < 1e-10:
-            overlap_ratio = 1.0  # 100% overlap
-        else:
-            overlap_ratio = min(1.0, overlap_area / union_area)  # Cap at 100%
+    # Create a set of farm IDs involved in inconsistencies for O(1) lookup
+    invalid_farm_ids = {
+        farm_id
+        for inconsistency in all_inconsistencies
+        for farm_id in inconsistency["farmIds"]
+    }
 
-        if 100 * overlap_ratio > OVERLAP_THRESHOLD_PERCENTAGE:
-            results[overlap["polygon1_idx"]]["status"] = "NOT_VALID"
-            results[overlap["polygon2_idx"]]["status"] = "NOT_VALID"
-
-            inconsistentPolygons.append(
-                {
-                    "type": "overlap",
-                    "farmIds": [
-                        parsed_polygons[overlap["polygon1_idx"]]["id"],
-                        parsed_polygons[overlap["polygon2_idx"]]["id"],
-                    ],
-                    "data": {
-                        "percentage": overlap_ratio,
-                        "criticality": "HIGH" if overlap_ratio > 0.8 else "MEDIUM",
-                        "area": overlap_area,
-                        "center": {
-                            "lng": overlap["intersection_polygon"].centroid.x,
-                            "lat": overlap["intersection_polygon"].centroid.y,
-                        },
-                        "paths": get_geometry_paths(overlap["intersection_polygon"]),
-                    },
-                }
-            )
+    # Update status for invalid farms
+    for farm_id in invalid_farm_ids:
+        results_lookup[farm_id]["status"] = "NOT_VALID"
 
     return {
         "farmResults": results,
-        "inconsistencies": inconsistentPolygons,
+        "inconsistencies": all_inconsistencies,
     }

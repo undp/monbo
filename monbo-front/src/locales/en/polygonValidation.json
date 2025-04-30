@@ -1,6 +1,11 @@
 {
   "title": "Polygon Validation",
   "validPolygons": "Validated Polygons",
+  "inconsistenciesTypes": {
+    "overlap": "Overlap",
+    "empty_polygon": "Empty Polygon",
+    "invalid_geometry": "Invalid Geometry"
+  },
   "inconsistentPolygons": {
     "singular": "inconsistent polygon",
     "plural": "inconsistent polygons"
@@ -59,5 +64,11 @@
       "area": "Area (ha)"
     },
     "callToAction": "Save Changes"
+  },
+  "geometryInconsistencyModal": {
+    "title": "Geometry Inconsistency",
+    "tableTitle": "Polygon Information",
+    "contentTitle": "Inconsistency Information",
+    "systemFeedback": "System feedback"
   }
 }

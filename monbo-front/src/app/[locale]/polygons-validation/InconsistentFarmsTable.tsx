@@ -1,11 +1,12 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { RowData, Table } from "@/components/reusable/Table";
+import { CellData, RowData, Table } from "@/components/reusable/Table";
 import { flatMap, flatten, orderBy } from "lodash";
 import {
   FarmValidationStatus,
   InconsistentPolygonData,
+  OverlapData,
   ValidateFarmsResponse,
 } from "@/interfaces/PolygonValidation";
 import { useSearchParams } from "next/navigation";
@@ -21,13 +22,91 @@ import { parseAreaToHectares } from "@/utils/polygons";
 import { FarmData } from "@/interfaces/Farm";
 import { useSearch } from "@/hooks/useSearch";
 import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
+import { TFunction } from "i18next";
 
-const colorByCritically: Record<
-  InconsistentPolygonData["data"]["criticality"],
-  string
-> = {
+const colorByCritically: Record<OverlapData["criticality"], string> = {
   HIGH: "#C62828",
   MEDIUM: "#ED6C02",
+};
+
+const getItemInconsistencyCellValue = (
+  item: InconsistentPolygonData,
+  idx: number,
+  t: TFunction<"translation", undefined>
+): Record<string, CellData> => {
+  if (item.type === "overlap") {
+    if (idx === 0) {
+      return {
+        inconsistency: {
+          value: t(`polygonValidation:inconsistenciesTypes:${item.type}`),
+          rowSpan: item.farmIds.length,
+          cellStyle: {
+            opacity: 1,
+          },
+        },
+      };
+    }
+    return {};
+  }
+  return {
+    inconsistency: {
+      value: t(`polygonValidation:inconsistenciesTypes:${item.type}`),
+      cellStyle: {
+        opacity: 1,
+      },
+    },
+  };
+};
+
+const getOverlapColumnsCellsValue = (
+  item: InconsistentPolygonData,
+  idx: number,
+  language: string,
+  areAllFarmsValidManually: boolean
+): Record<string, CellData> => {
+  if (item.type !== "overlap")
+    return {
+      overlapPercentage: {
+        value: null,
+      },
+      overlapArea: {
+        value: null,
+      },
+    };
+  if (idx !== 0) return {};
+
+  return {
+    overlapPercentage: {
+      value: formatOverlapPercentage(item.data.percentage, language),
+      rowSpan: item.farmIds.length,
+      chipStyle: {
+        color: areAllFarmsValidManually ? "#3A3541" : "#fff",
+        backgroundColor: areAllFarmsValidManually
+          ? "#3A354150"
+          : colorByCritically[item.data.criticality],
+        width: 80,
+      },
+      cellStyle: {
+        ...(!areAllFarmsValidManually && {
+          opacity: 1,
+        }),
+      },
+    },
+    overlapArea: {
+      value: parseAreaToHectares(item.data.area, 2, false, language),
+      rowSpan: item.farmIds.length,
+      cellStyle: {
+        paddingRight: "calc(5% + 26px)",
+        ...(!areAllFarmsValidManually && {
+          color: "#3A3541",
+          opacity: 1,
+        }),
+      },
+    },
+    actions: {
+      rowSpan: item.farmIds.length,
+    },
+  };
 };
 
 const dataParser = (
@@ -35,7 +114,8 @@ const dataParser = (
   farmsData: FarmData[],
   polygonsValidationResults: ValidateFarmsResponse,
   hasTheSameProductionUnit: boolean,
-  language: string
+  language: string,
+  t: TFunction<"translation", undefined>
 ): RowData<InconsistentPolygonData>[] => {
   const rows = flatMap(data, (item) =>
     item.farmIds.map((farmId, idx) => {
@@ -50,8 +130,6 @@ const dataParser = (
             ?.status === FarmValidationStatus.VALID_MANUALLY
       );
 
-      const percentage = item.data.percentage;
-
       const entry: RowData<InconsistentPolygonData> = {
         haveActions: idx === 0,
         rowStyle: {
@@ -59,6 +137,7 @@ const dataParser = (
           opacity: isFarmValidManually ? 0.4 : 1,
         },
         cells: {
+          ...getItemInconsistencyCellValue(item, idx, t),
           type: {
             icon: (
               <PolygonTypeIcon
@@ -66,9 +145,6 @@ const dataParser = (
                 isValidManually={isFarmValidManually}
               />
             ),
-            cellStyle: {
-              opacity: 1,
-            },
           },
           id: { value: farmId },
           producer: { value: farm.producer },
@@ -78,45 +154,12 @@ const dataParser = (
               ? farm.production
               : `${farm.production} ${farm.productionQuantityUnit}`,
           },
-          ...(idx === 0
-            ? {
-                overlapPercentage: {
-                  value: formatOverlapPercentage(percentage, language),
-                  rowSpan: item.farmIds.length,
-                  chipStyle: {
-                    color: areAllFarmsValidManually ? "#3A3541" : "#fff",
-                    backgroundColor: areAllFarmsValidManually
-                      ? "#3A354150"
-                      : colorByCritically[item.data.criticality],
-                    width: 80,
-                  },
-                  cellStyle: {
-                    ...(!areAllFarmsValidManually && {
-                      opacity: 1,
-                    }),
-                  },
-                },
-                overlapArea: {
-                  value: parseAreaToHectares(
-                    item.data.area,
-                    2,
-                    false,
-                    language
-                  ),
-                  rowSpan: item.farmIds.length,
-                  cellStyle: {
-                    paddingRight: "calc(5% + 26px)",
-                    ...(!areAllFarmsValidManually && {
-                      color: "#3A3541",
-                      opacity: 1,
-                    }),
-                  },
-                },
-                actions: {
-                  rowSpan: item.farmIds.length,
-                },
-              }
-            : {}),
+          ...getOverlapColumnsCellsValue(
+            item,
+            idx,
+            language,
+            areAllFarmsValidManually
+          ),
         },
         data: item,
       };
@@ -148,14 +191,11 @@ export const InconsistentFarmsTable: React.FC = () => {
   );
 
   const inconsistencies = useMemo(
-    () =>
-      polygonsValidationResults?.inconsistencies.filter(
-        ({ type }) => type === "overlap"
-      ) ?? [],
+    () => polygonsValidationResults?.inconsistencies ?? [],
     [polygonsValidationResults]
   );
 
-  const filteredPolygons = useSearch<InconsistentPolygonData>(
+  const filteredInconsistencies = useSearch<InconsistentPolygonData>(
     inconsistencies,
     searchValue,
     {
@@ -185,25 +225,28 @@ export const InconsistentFarmsTable: React.FC = () => {
   // - Calculate overlap percentage as: overlap area / (total area - overlap area)
   // - Add overlap area as separate field for display
   // - If no sort criteria selected, return original filtered data
-  const sortedPolygons = useMemo(
+  const sortedInconsistencies = useMemo(
     () =>
       sortedBy
         ? orderBy(
-            filteredPolygons.map((item) => {
-              return {
-                ...item,
-                overlapPercentage: item.data.percentage,
-                overlapArea: item.data.area,
-              };
+            filteredInconsistencies.map((item) => {
+              if (item.type === "overlap") {
+                return {
+                  ...item,
+                  overlapPercentage: item.data.percentage,
+                  overlapArea: item.data.area,
+                };
+              }
+              return item;
             }),
             sortedBy.attr,
             sortedBy.order
           )
-        : filteredPolygons,
-    [sortedBy, filteredPolygons]
+        : filteredInconsistencies,
+    [sortedBy, filteredInconsistencies]
   );
 
-  if (sortedPolygons?.length === 0)
+  if (sortedInconsistencies?.length === 0)
     return (
       <>
         <Box
@@ -260,6 +303,11 @@ export const InconsistentFarmsTable: React.FC = () => {
             columnStyle: { textAlign: "right" },
           },
           {
+            name: t("common:tableColumns:inconsistency"),
+            attr: "inconsistency",
+            type: "label",
+          },
+          {
             name: t("common:tableColumns:overlap"),
             attr: "overlapPercentage",
             type: "chip",
@@ -271,16 +319,20 @@ export const InconsistentFarmsTable: React.FC = () => {
             attr: "overlapArea",
             type: "label",
             sortable: true,
-            columnStyle: { textAlign: "right", paddingRight: "5%" },
+            columnStyle: {
+              textAlign: "right",
+              paddingRight: "5%",
+            },
           },
         ]}
         headerStyle={{ backgroundColor: "#fff" }}
         rows={dataParser(
-          sortedPolygons,
+          sortedInconsistencies,
           farmsData ?? [],
           polygonsValidationResults!,
           hasTheSameProductionUnit,
-          i18n.language
+          i18n.language,
+          t
         )}
         onRowClick={(row) => {
           setSelectedPolygon(row);

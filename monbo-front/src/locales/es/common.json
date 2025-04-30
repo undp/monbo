@@ -29,6 +29,7 @@
   "na": "N/D",
   "_or": "o",
   "tableColumns": {
+    "inconsistency": "Inconsistencia",
     "type": "Tipo",
     "producer": "Productor",
     "cropType": "Tipo cultivo",

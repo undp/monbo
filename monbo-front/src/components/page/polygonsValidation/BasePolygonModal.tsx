@@ -38,6 +38,7 @@ interface BasePolygonModalProps<T> {
   >;
   tableTitle: React.ReactNode;
   children?: React.ReactNode;
+  footer?: React.ReactNode;
   hideCloseButton?: boolean;
 }
 
@@ -53,6 +54,7 @@ export function BasePolygonModal<T>({
   tableProps,
   tableTitle,
   children,
+  footer,
   hideCloseButton = false,
 }: BasePolygonModalProps<T>) {
   if (!row || !row.data) return null;
@@ -130,9 +132,10 @@ export function BasePolygonModal<T>({
                 {...tableProps}
               />
             </Box>
+            {children}
           </Box>
         </Box>
-        {children}
+        {footer}
       </DialogContent>
     </Dialog>
   );

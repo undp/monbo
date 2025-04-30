@@ -24,6 +24,8 @@ def parse_farm_coordinates_data(farm_coordinates: str) -> list[Point]:
     farm_coordinates = (
         farm_coordinates.replace("[", "").replace("]", "").replace(" ", "")
     )
+    if farm_coordinates == "":
+        return []
     farm_coordinates = farm_coordinates.split(",")
     farm_coordinates = [
         Point(
@@ -76,7 +78,8 @@ def parse_base_information(farm: UnprocessedFarmData):
     """
     try:
         farm.farmCoordinates = parse_farm_coordinates_data(farm.farmCoordinates)
-    except Exception:
+    except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=400,
             detail={"error": "coordinates-parsing-error", "id": farm.id},
@@ -97,7 +100,8 @@ def parse_base_information(farm: UnprocessedFarmData):
     try:
         (poly_type, polygon) = generate_polygon(farm.farmCoordinates)
         details = None
-        if poly_type == "polygon":
+        area = None
+        if poly_type == "polygon" and not polygon.is_empty:
             details = {
                 "center": {
                     "lng": polygon.centroid.x,
@@ -107,7 +111,8 @@ def parse_base_information(farm: UnprocessedFarmData):
                     {"lng": point.x, "lat": point.y} for point in farm.farmCoordinates
                 ],
             }
-        else:
+            area = get_polygon_area(polygon)
+        elif poly_type == "point":
             details = {
                 "center": {
                     "lng": farm.farmCoordinates[0].x,
@@ -115,15 +120,17 @@ def parse_base_information(farm: UnprocessedFarmData):
                 },
                 "radius": 50,
             }
+            area = 0  # TODO: use the area declared in the incoming data
         return {
             **base_information,
             "polygon": {
                 "type": poly_type,
                 "details": details,
-                "area": get_polygon_area(polygon),
+                "area": area,
             },
         }
-    except Exception:
+    except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=400,
             detail={"id": farm.id, "error": "polygon-generation-error"},

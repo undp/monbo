@@ -1,6 +1,6 @@
 from app.models.polygons import Point
 from app.modules.polygons_validation.helpers import (
-    check_polygons_overlap,
+    detect_overlap,
     generate_polygon,
     get_geometry_paths,
     parse_farm_coordinates_data,
@@ -67,8 +67,8 @@ def test_check_ploygons_overlap():
     polygon2 = Polygon([(1, 0), (1, 1), (2, 1), (2, 0)])
     polygon3 = Polygon([(2, 0), (2, 1), (3, 1), (3, 0)])
 
-    assert len(check_polygons_overlap([polygon1, polygon2])) == 1
-    assert len(check_polygons_overlap([polygon1, polygon3])) == 0
+    assert len(detect_overlap([polygon1, polygon2])) == 1
+    assert len(detect_overlap([polygon1, polygon3])) == 0
 
 
 def test_get_polygon_area():

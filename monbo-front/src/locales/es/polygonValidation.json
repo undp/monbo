@@ -1,6 +1,11 @@
 {
   "title": "Validación de polígonos",
   "validPolygons": "Polígonos validados",
+  "inconsistenciesTypes": {
+    "overlap": "Traslape",
+    "empty_polygon": "Polígono vacío",
+    "invalid_geometry": "Geometría inválida"
+  },
   "inconsistentPolygons": {
     "singular": "polígono inconsistente",
     "plural": "polígonos inconsistentes"
@@ -59,5 +64,11 @@
       "area": "Superficie (ha)"
     },
     "callToAction": "Guardar Cambios"
+  },
+  "geometryInconsistencyModal": {
+    "title": "Inconsistencia de geometría",
+    "tableTitle": "Información del polígono",
+    "contentTitle": "Información de la inconsistencia",
+    "systemFeedback": "Feedback del sistema"
   }
 }

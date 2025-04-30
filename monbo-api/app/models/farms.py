@@ -8,8 +8,8 @@ from .polygons import Coordinates, PointDetails, PolygonDetails
 
 class Polygon(BaseModel):
     type: Literal["polygon", "point"]
-    details: PolygonDetails | PointDetails
-    area: float
+    details: PolygonDetails | PointDetails | None
+    area: float | None
 
 
 class FarmData(BaseModel):
@@ -52,3 +52,7 @@ class FarmPolygon(BaseModel):
             self.path if self.type == "polygon" else [self.center]
         )
         return polygon
+
+
+class FarmWithPolygon(FarmPolygon):
+    polygon: Polygon

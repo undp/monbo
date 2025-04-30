@@ -4,7 +4,7 @@ from app.models.polygons import Coordinates
 from pydantic import BaseModel
 
 
-class Overlap(BaseModel):
+class OverlapData(BaseModel):
     area: float
     center: Coordinates
     paths: list[list[Coordinates]]
@@ -12,10 +12,14 @@ class Overlap(BaseModel):
     criticality: Literal["HIGH", "MEDIUM"]
 
 
+class InvalidGeometryInconsistencyData(BaseModel):
+    reason: str
+
+
 class PolygonInconsistency(BaseModel):
     type: str
     farmIds: list[str]
-    data: Overlap
+    data: OverlapData | InvalidGeometryInconsistencyData | None
 
 
 class PolygonError(BaseModel):

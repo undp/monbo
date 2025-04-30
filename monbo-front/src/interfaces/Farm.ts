@@ -8,8 +8,8 @@ export interface PointTypePolygon {
 
 export interface PolygonTypePolygon {
   type: "polygon";
-  details: PolygonDetails;
-  area: number;
+  details: PolygonDetails | null;
+  area: number | null;
 }
 
 export interface FarmData {
