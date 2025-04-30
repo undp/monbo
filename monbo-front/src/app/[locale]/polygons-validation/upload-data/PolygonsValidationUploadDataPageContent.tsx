@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
-import { loadExcelFile } from "@/utils/loadExcel";
+import { loadExcelFileFarmsData } from "@/utils/excel";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -101,7 +101,7 @@ export function PolygonsValidationUploadDataPageContent() {
       setLoading(true);
 
       const file = acceptedFiles[0];
-      const { data, errorMessages } = await loadExcelFile(
+      const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
         i18n.language

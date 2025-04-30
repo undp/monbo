@@ -28,7 +28,7 @@ import { Box } from "@mui/material";
 import { CustomHeaderStepContainer } from "@/components/page/uploadData/CustomHeaderStepContainer";
 import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
 import { MessageBox } from "@/components/reusable/MessageBox";
-import { loadExcelFile } from "@/utils/loadExcel";
+import { loadExcelFileFarmsData } from "@/utils/excel";
 
 export function DeforestationAnalysisUploadDataPageContent() {
   // const [file, setFile] = useState<File | null>(null);
@@ -152,7 +152,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       setLoading(true);
 
       const file = acceptedFiles[0];
-      const { data, errorMessages } = await loadExcelFile(
+      const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
         i18n.language
