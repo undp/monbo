@@ -116,7 +116,6 @@ export const DownloadPageData = () => {
         t,
         i18n.language
       );
-      console.log(parsedData);
       downloadAsExcel(parsedData, "step1-results.xlsx");
     } catch (error) {
       console.error("Error generating Excel:", error);

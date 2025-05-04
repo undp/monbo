@@ -1,8 +1,5 @@
 from datetime import datetime, timedelta
 from io import BytesIO
-
-from app.models.farms import FarmData
-
 from app.modules.deforestation_analysis.helpers import (
     get_deforestation_ratio,
     get_map_pixels_inside_polygon,
@@ -10,7 +7,6 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
-from app.utils.farms import parse_base_information
 from app.utils.maps import get_map_raster_path
 from app.utils.polygons import (
     get_polygon_area,
@@ -18,30 +14,10 @@ from app.utils.polygons import (
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from rasterio import open as rasterio_open
+from .models import AnalizeBody, MapData
 
-from .models import AnalizeBody, DeforestationUnprocessedFarmData, MapData
 
 router = APIRouter()
-
-
-@router.post("/parse-farms", response_model=list[FarmData])
-def parse_farms(body: list[DeforestationUnprocessedFarmData]) -> list[FarmData]:
-    """
-    Parses farm data from the provided body and returns a list of FarmData objects.
-
-    Args:
-        body (list[DeforestationUnprocessedFarmData]): The body containing farm
-        polygons and related information.
-
-    Returns:
-        list[FarmData]: A list of FarmData objects containing parsed farm information.
-    """
-    farm_data = []
-    for farm in body:
-        base_information = parse_base_information(farm)
-        # TODO: Add potential additional information
-        farm_data.append(base_information)
-    return farm_data
 
 
 @router.post("/analize", response_model=list[MapData])

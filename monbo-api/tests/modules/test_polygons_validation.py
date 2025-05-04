@@ -1,11 +1,13 @@
-from app.models.polygons import Point
+from app.models.polygons import Coordinates
 from app.modules.polygons_validation.helpers import (
-    detect_overlap,
-    generate_polygon,
     get_geometry_paths,
-    parse_farm_coordinates_data,
+    detect_overlaps,
 )
-from app.utils.polygons import get_polygon_area
+from app.utils.polygons import (
+    get_polygon_area,
+    generate_polygon,
+)
+from app.utils.farms import parse_farm_coordinates_string
 from shapely.geometry import Point as SPoint
 from shapely.geometry import Polygon
 
@@ -31,10 +33,10 @@ def test_generate_polygon():
     - The generated shape should be equal to the expected shape.
     """
     points = [
-        Point(x=0, y=0),
-        Point(x=0, y=1),
-        Point(x=1, y=1),
-        Point(x=1, y=0),
+        Coordinates(lng=0, lat=0),
+        Coordinates(lng=0, lat=1),
+        Coordinates(lng=1, lat=1),
+        Coordinates(lng=1, lat=0),
     ]
 
     expected_polygon = Polygon([(point.x, point.y) for point in points])
@@ -67,8 +69,8 @@ def test_check_ploygons_overlap():
     polygon2 = Polygon([(1, 0), (1, 1), (2, 1), (2, 0)])
     polygon3 = Polygon([(2, 0), (2, 1), (3, 1), (3, 0)])
 
-    assert len(detect_overlap([polygon1, polygon2])) == 1
-    assert len(detect_overlap([polygon1, polygon3])) == 0
+    assert len(detect_overlaps([polygon1, polygon2])) == 1
+    assert len(detect_overlaps([polygon1, polygon3])) == 0
 
 
 def test_get_polygon_area():
@@ -179,12 +181,12 @@ def test_parse_farm_coordinates_data():
     """
     input_coordinates = "[(0, 0), (1, 1), (2, 2)]"
     expected_points = [
-        Point(x=0, y=0),
-        Point(x=1, y=1),
-        Point(x=2, y=2),
+        Coordinates(lng=0, lat=0),
+        Coordinates(lng=1, lat=1),
+        Coordinates(lng=2, lat=2),
     ]
 
-    assert parse_farm_coordinates_data(input_coordinates) == expected_points
+    assert parse_farm_coordinates_string(input_coordinates) == expected_points
 
 
 def test_get_polygon_coordinates():

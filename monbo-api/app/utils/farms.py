@@ -1,137 +1,116 @@
-from app.models.farms import UnprocessedFarmData
-from app.models.polygons import Point
-from app.utils.polygons import generate_polygon, get_polygon_area
+from app.models.farms import PreProcessedFarmData, FarmData, Polygon as CPolygon
+from app.models.polygons import Coordinates, PolygonDetails, PointDetails
+from app.utils.polygons import (
+    generate_polygon,
+    get_point_area_and_radius,
+    get_polygon_area,
+)
 from fastapi import HTTPException
 
 
-def parse_farm_coordinates_data(farm_coordinates: str) -> list[Point]:
+def parse_farm_coordinates_string(farm_coordinates: str) -> list[Coordinates]:
     """
-    Parses a string of farm coordinates into a list of Point objects.
+    Parses a string of farm coordinates into a list of Coordinates objects.
 
     Args:
         farm_coordinates (str): A string representing farm coordinates in the format
-                                "[ (x1, y1), (x2, y2), ... ]".
+        "[ (lon, lat), (lon, lat), ... ]". The coordinates should be in decimal
+        degrees with longitude first, then latitude.
 
     Returns:
-        list[Point]: A list of Point objects with x and y attributes representing
-        the coordinates.
+        list[Coordinates]: A list of Coordinates objects with longitude (lng) and
+        latitude (lat) attributes representing the coordinates. Returns an empty
+        list if the input string is empty.
 
     Example:
         farm_coordinates = "[ (1.0, 2.0), (3.0, 4.0) ]"
-        points = parse_farm_coordinates_data(farm_coordinates)
-        # points will be [Point(x=1.0, y=2.0), Point(x=3.0, y=4.0)]
+        coords = parse_farm_coordinates_string(farm_coordinates)
+        # coords will be [Coordinates(lng=1.0, lat=2.0), Coordinates(lng=3.0, lat=4.0)]
     """
-    farm_coordinates = (
+    stripped_coordinates = (
         farm_coordinates.replace("[", "").replace("]", "").replace(" ", "")
     )
-    if farm_coordinates == "":
+    if stripped_coordinates == "":
         return []
-    farm_coordinates = farm_coordinates.split(",")
-    farm_coordinates = [
-        Point(
-            x=float(farm_coordinates[i].replace("(", "")),
-            y=float(farm_coordinates[i + 1].replace(")", "")),
+
+    separated_coordinates = stripped_coordinates.split(",")
+
+    coords = [
+        Coordinates(
+            lng=float(separated_coordinates[i].replace("(", "")),
+            lat=float(separated_coordinates[i + 1].replace(")", "")),
         )
-        for i in range(0, len(farm_coordinates), 2)
+        for i in range(0, len(separated_coordinates), 2)
     ]
-    return farm_coordinates
+    return coords
 
 
-def parse_base_information(farm: UnprocessedFarmData):
+def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
     """
     Parses the base information of a farm and generates polygon details.
 
     Args:
-        farm (UnprocessedFarmData): The unprocessed farm data.
+        farm (PreProcessedFarmData): The unprocessed farm data containing farm details
+        and coordinates.
 
     Returns:
-        dict: A dictionary containing the parsed base information and polygon details.
+        FarmData: A FarmData object containing the parsed base information and polygon
+                details. The polygon field will contain type, details
+                (center/path/radius) and area.
 
     Raises:
         HTTPException: If there is an error parsing the farm coordinates or generating
-        the polygon.
-
-    The returned dictionary contains the following keys:
-        - id (str): The farm ID.
-        - producer (str): The name of the producer.
-        - producerId (str): The producer ID (currently empty).
-        - cropType (str): The type of crop.
-        - productionDate (str): The production date.
-        - production (float): The production quantity rounded to 2 decimal places.
-        - productionQuantityUnit (str): The unit of the production quantity.
-        - country (str): The country of the farm.
-        - region (str): The region of the farm.
-        - association (str): The association of the farm.
-        - documents (list): A list of documents with the following keys:
-            - name (str): The name of the document.
-            - url (str): The URL of the document.
-        - polygon (dict): A dictionary containing the polygon details with the
-        following keys:
-            - type (str): The type of the polygon ("polygon" or other).
-            - details (dict): A dictionary containing the polygon details:
-                - center (dict): A dictionary with the longitude and latitude of the
-                center.
-                - path (list): A list of dictionaries with the longitude and latitude
-                of each point (if type is "polygon").
-                - radius (int): The radius of the polygon (if type is not "polygon").
-            - area (float): The area of the polygon.
+                      the polygon. Returns a 400 status code with error details.
     """
-    try:
-        farm.farmCoordinates = parse_farm_coordinates_data(farm.farmCoordinates)
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=400,
-            detail={"error": "coordinates-parsing-error", "id": farm.id},
-        )
-    base_information = {
-        "id": farm.id,
-        "producer": farm.producerName,
-        "producerId": "",
-        "cropType": farm.cropType,
-        "productionDate": farm.productionDate,
-        "production": round(farm.productionQuantity, 2),
-        "productionQuantityUnit": farm.productionQuantityUnit,
-        "country": farm.country,
-        "region": farm.region,
-        "association": farm.association,
-        "documents": farm.documents,
-    }
+    base_information = FarmData(
+        id=farm.id,
+        producer=farm.producerName,
+        producerId="",
+        cropType=farm.cropType,
+        productionDate=farm.productionDate,
+        production=farm.productionQuantity,
+        productionQuantityUnit=farm.productionQuantityUnit,
+        country=farm.country,
+        region=farm.region,
+        association=farm.association,
+        documents=farm.documents,
+        polygon=None,
+    )
     try:
         (poly_type, polygon) = generate_polygon(farm.farmCoordinates)
-        details = None
+        details: PolygonDetails | PointDetails | None = None
         area = None
         if poly_type == "polygon" and not polygon.is_empty:
-            details = {
-                "center": {
-                    "lng": polygon.centroid.x,
-                    "lat": polygon.centroid.y,
-                },
-                "path": [
-                    {"lng": point.x, "lat": point.y} for point in farm.farmCoordinates
-                ],
-            }
+            details = PolygonDetails(
+                center=Coordinates(
+                    lng=polygon.centroid.x,
+                    lat=polygon.centroid.y,
+                ),
+                path=farm.farmCoordinates,
+            )
             area = get_polygon_area(polygon)
         elif poly_type == "point":
-            details = {
-                "center": {
-                    "lng": farm.farmCoordinates[0].x,
-                    "lat": farm.farmCoordinates[0].y,
-                },
-                "radius": 50,
-            }
-            area = 0  # TODO: use the area declared in the incoming data
-        return {
-            **base_information,
-            "polygon": {
-                "type": poly_type,
-                "details": details,
-                "area": area,
-            },
-        }
+            area, radius = get_point_area_and_radius(float(farm.area))
+            details = PointDetails(
+                center=Coordinates(
+                    lng=farm.farmCoordinates[0].lng,
+                    lat=farm.farmCoordinates[0].lat,
+                ),
+                radius=radius,
+            )
+        base_information.polygon = CPolygon(
+            type=poly_type,
+            details=details,
+            area=area,
+        )
+        return base_information
     except Exception as e:
         print(e)
         raise HTTPException(
             status_code=400,
-            detail={"id": farm.id, "error": "polygon-generation-error"},
+            detail={
+                "id": farm.id,
+                "error": "polygon-generation-error",
+                "message": str(e),
+            },
         )

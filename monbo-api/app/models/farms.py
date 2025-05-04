@@ -12,6 +12,11 @@ class Polygon(BaseModel):
     area: float | None
 
 
+class Document(BaseModel):
+    name: str
+    url: str
+
+
 class FarmData(BaseModel):
     id: str
     producer: str
@@ -23,22 +28,38 @@ class FarmData(BaseModel):
     country: str
     region: Optional[str] = None
     association: Optional[str] = None
-    documents: list[dict[Literal["name", "url"], str]]
+    documents: list[Document]
     polygon: Polygon | None
 
 
-class UnprocessedFarmData(BaseModel):
-    id: Optional[str] = None
+class InputFarmData(BaseModel):
+    id: Optional[str | int] = None
     producerName: str
     productionDate: str
-    productionQuantity: float
+    productionQuantity: int | float | str
     productionQuantityUnit: str
     country: str
     region: str
     farmCoordinates: str
     cropType: str
     association: Optional[str] = None
-    documents: list[dict[Literal["name", "url"], str]]
+    area: int | float | str
+    documents: list[Document]
+
+
+class PreProcessedFarmData(BaseModel):
+    id: str
+    producerName: str
+    productionDate: str
+    productionQuantity: float
+    productionQuantityUnit: str
+    country: str
+    region: str
+    farmCoordinates: list[Coordinates]
+    cropType: str
+    association: Optional[str] = None
+    area: float
+    documents: list[Document]
 
 
 class FarmPolygon(BaseModel):

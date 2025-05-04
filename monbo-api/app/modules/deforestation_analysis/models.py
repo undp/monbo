@@ -1,8 +1,8 @@
-from app.models.farms import FarmPolygon, UnprocessedFarmData
+from app.models.farms import FarmPolygon, InputFarmData
 from pydantic import BaseModel
 
 
-class DeforestationUnprocessedFarmData(UnprocessedFarmData):
+class DeforestationUnprocessedFarmData(InputFarmData):
     pass
 
 

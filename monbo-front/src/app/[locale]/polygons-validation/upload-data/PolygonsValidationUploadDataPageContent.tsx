@@ -8,7 +8,8 @@ import React, {
   useState,
 } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
-import { generateFarmsData, validatePolygons } from "@/api/polygonValidation";
+import { generateFarmsData } from "@/api/farms";
+import { validatePolygons } from "@/api/polygonValidation";
 import { DataContext } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";

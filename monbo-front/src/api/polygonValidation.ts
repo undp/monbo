@@ -1,26 +1,6 @@
-import {
-  POLYGON_VALIDATION_PARSER_URL,
-  POLYGON_VALIDATION_URL,
-} from "@/config/env";
+import { POLYGON_VALIDATION_URL } from "@/config/env";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
-
-export const generateFarmsData = async (
-  data: Record<string, unknown>[]
-): Promise<FarmData[]> => {
-  const response = await fetch(POLYGON_VALIDATION_PARSER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    throw new Error("Error on analize deforestation");
-  }
-
-  return response.json();
-};
 
 export const validatePolygons = async (
   data: FarmData[]

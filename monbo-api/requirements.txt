@@ -12,3 +12,4 @@ colorlog==6.9.0
 mercantile==1.2.1
 pillow==11.1.0
 python-dotenv==1.0.1
+pycountry==24.6.1

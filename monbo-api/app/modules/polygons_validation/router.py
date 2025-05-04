@@ -1,58 +1,13 @@
-from app.models.farms import FarmData, FarmPolygon, FarmWithPolygon, UnprocessedFarmData
-from app.utils.farms import parse_base_information
+from app.models.farms import FarmPolygon, FarmWithPolygon
 from fastapi import APIRouter
-
 from .helpers import (
-    ensure_farm_ids,
     get_geometry_inconsistencies,
     get_overlap_inconsistencies,
 )
 from .models import GetOverlappingPolygonsResponse
 
+
 router = APIRouter()
-
-
-@router.post("/parse-farms", response_model=list[FarmData])
-def parse_farms(body: list[UnprocessedFarmData]) -> list[FarmData]:
-    """
-    Endpoint to parse farm data and generate polygon information.
-
-    Args:
-        body (list[UnprocessedFarmData]): List of unprocessed farm data.
-
-    Returns:
-        list[FarmData]: List of processed farm data with polygon information.
-
-    Raises:
-        HTTPException: If there is an error in parsing farm coordinates or
-        generating polygons.
-
-    The endpoint performs the following steps:
-    1. Parses the farm coordinates data for each farm in the input list.
-    2. Generates polygon information based on the parsed coordinates.
-    3. Constructs and returns a list of processed farm data with polygon details.
-    4. Auto-generates IDs if needed:
-       - If all farms are missing IDs, sequential numbers are assigned
-       - If some farms have IDs, IDs matching the existing pattern are generated for
-       those missing IDs
-       - If all farms have IDs, no changes are made
-
-    Each farm data includes:
-    - Basic information such as id, producer, crop type, production details, etc.
-    - Polygon type (either "polygon" or "circle").
-    - Polygon details including center coordinates, points, radius (if applicable),
-    and area.
-    """
-    # Process farms
-    farm_data = []
-    for farm in body:
-        base_information = parse_base_information(farm)
-        farm_data.append(base_information)
-
-    # Ensure all farms have appropriate IDs
-    farm_data = ensure_farm_ids(farm_data, body)
-
-    return farm_data
 
 
 @router.post(

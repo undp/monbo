@@ -1,5 +1,6 @@
-from typing import Tuple
-from app.models.polygons import Coordinates, Point
+import math
+from typing import Tuple, Literal
+from app.models.polygons import Coordinates
 from pyproj import CRS, Transformer
 from shapely.geometry import Point as SPoint, Polygon
 from shapely.ops import transform
@@ -7,7 +8,9 @@ from shapely.ops import transform
 POINT_RADIUS = 50 / 111111
 
 
-def generate_polygon(points: list[Point]) -> Polygon:
+def generate_polygon(
+    points: list[Coordinates],
+) -> Tuple[Literal["polygon", "point"], Polygon]:
     """
     Generates a polygon or a buffered point from a list of points.
 
@@ -26,13 +29,13 @@ def generate_polygon(points: list[Point]) -> Polygon:
         Shapely geometry object (buffered point or polygon).
     """
     if len(points) == 1:
-        point = SPoint(points[0].x, points[0].y)
+        point = SPoint(points[0].lng, points[0].lat)
         return ("point", point.buffer(POINT_RADIUS))
 
     if len(points) == 2:
         return ("polygon", Polygon([]))
 
-    points = [(point.x, point.y) for point in points]
+    points = [(point.lng, point.lat) for point in points]
     return ("polygon", Polygon(points))
 
 
@@ -96,3 +99,19 @@ def get_polygon_area(polygon: Polygon) -> float:
 
     # Return the area rounded to two decimal places
     return round(projected_polygon.area, 2)
+
+
+def get_point_area_and_radius(area: float) -> Tuple[float, float]:
+    """
+    Calculate the area and radius of a point, assuming a circular shape.
+
+    Args:
+        area (float): The area in hectares.
+
+    Returns:
+        Tuple[float, float]: A tuple containing:
+            - The area in square meters (m²)
+            - The radius in meters (m) calculated from the area
+    """
+    area *= 10000  # Convert hectares to square meters
+    return area, round(math.sqrt(area / math.pi), 2)

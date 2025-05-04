@@ -9,23 +9,15 @@ export const GET_MAPS_URL =
   process.env.NEXT_PUBLIC_GET_MAPS_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/maps`;
 
-export const POLYGON_VALIDATION_PARSER_URL =
-  process.env.NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL ||
-  `${
-    process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/polygons_validation/parse-farms`;
+export const FARMS_PARSER_URL =
+  process.env.NEXT_PUBLIC_FARMS_PARSER_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/farms/parse`;
 
 export const POLYGON_VALIDATION_URL =
   process.env.NEXT_PUBLIC_POLYGON_VALIDATION_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
   }/polygons_validation/validate`;
-
-export const DEFORESTATION_ANALYSIS_PARSER_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL ||
-  `${
-    process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/parse-farms`;
 
 export const DEFORESTATION_ANALYSIS_URL =
   process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL ||

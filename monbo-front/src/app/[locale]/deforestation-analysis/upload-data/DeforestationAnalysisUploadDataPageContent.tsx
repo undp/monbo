@@ -9,10 +9,8 @@ import React, {
 } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { Text } from "@/components/reusable/Text";
-import {
-  analizeDeforestation,
-  generateFarmsData,
-} from "@/api/deforestationAnalysis";
+import { generateFarmsData } from "@/api/farms";
+import { analizeDeforestation } from "@/api/deforestationAnalysis";
 import { DataContext } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
