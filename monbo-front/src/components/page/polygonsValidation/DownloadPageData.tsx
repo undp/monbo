@@ -59,7 +59,7 @@ const parseData = async (
     })
   );
 
-  const templateHeadersRows = await loadTemplateHeaders();
+  const templateHeadersRows = await loadTemplateHeaders(language);
 
   const validPolygonsHeaders: (string | XLSX.CellObject)[][] = [[], [], []];
   validPolygonsHeaders[0].push(...templateHeadersRows[0]);

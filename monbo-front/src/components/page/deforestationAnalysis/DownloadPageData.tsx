@@ -46,7 +46,7 @@ const parseData = async (
     ];
   });
 
-  const templateHeadersRows = await loadTemplateHeaders();
+  const templateHeadersRows = await loadTemplateHeaders(language);
 
   const deforestationHeaders: (string | XLSX.CellObject)[][] = [[], []];
   deforestationHeaders[0].push(...templateHeadersRows[0]);

@@ -20,7 +20,10 @@ import { useTranslation } from "react-i18next";
 import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
-import { loadExcelFileFarmsData } from "@/utils/excel";
+import {
+  getUploadFileTemplatePath,
+  loadExcelFileFarmsData,
+} from "@/utils/excel";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -34,7 +37,7 @@ export function PolygonsValidationUploadDataPageContent() {
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
       try {
-        const results = await generateFarmsData(data);
+        const results = await generateFarmsData(data, i18n.language);
         setFarmsData(results);
       } catch (error) {
         console.error(error);
@@ -46,7 +49,7 @@ export function PolygonsValidationUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t]
+    [openSnackbar, setFarmsData, t, i18n.language]
   );
 
   const performValidationAnalysis = useCallback(
@@ -142,7 +145,7 @@ export function PolygonsValidationUploadDataPageContent() {
           buttonText={t(
             "polygonValidation:uploadDataPage:templateStep:buttonText"
           )}
-          fileUrl="/files/polygon-validation-template.xlsx"
+          fileUrl={getUploadFileTemplatePath(i18n.language)}
         />
       </TextHeaderStepContainer>
       <TextHeaderStepContainer

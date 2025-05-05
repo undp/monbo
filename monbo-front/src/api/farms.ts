@@ -2,9 +2,11 @@ import { FARMS_PARSER_URL } from "@/config/env";
 import { FarmData } from "@/interfaces/Farm";
 
 export const generateFarmsData = async (
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  locale?: string
 ): Promise<FarmData[]> => {
-  const response = await fetch(FARMS_PARSER_URL, {
+  const url = `${FARMS_PARSER_URL}${locale ? `?locale=${locale}` : ""}`;
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

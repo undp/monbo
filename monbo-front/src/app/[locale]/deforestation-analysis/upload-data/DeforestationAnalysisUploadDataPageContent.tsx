@@ -26,7 +26,10 @@ import { Box } from "@mui/material";
 import { CustomHeaderStepContainer } from "@/components/page/uploadData/CustomHeaderStepContainer";
 import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
 import { MessageBox } from "@/components/reusable/MessageBox";
-import { loadExcelFileFarmsData } from "@/utils/excel";
+import {
+  getUploadFileTemplatePath,
+  loadExcelFileFarmsData,
+} from "@/utils/excel";
 
 export function DeforestationAnalysisUploadDataPageContent() {
   // const [file, setFile] = useState<File | null>(null);
@@ -87,7 +90,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
       try {
-        const results = await generateFarmsData(data);
+        const results = await generateFarmsData(data, i18n.language);
         setFarmsData(results);
       } catch (error) {
         console.error(error);
@@ -99,7 +102,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t]
+    [openSnackbar, setFarmsData, t, i18n.language]
   );
 
   const performDeforestationAnalysis = useCallback(
@@ -192,7 +195,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           buttonText={t(
             "deforestationAnalysis:uploadDataPage:templateStep:buttonText"
           )}
-          fileUrl="/files/polygon-validation-template.xlsx" // TODO: Change to deforestation analysis template
+          fileUrl={getUploadFileTemplatePath(i18n.language)} // TODO: Change to deforestation analysis template
         />
       </TextHeaderStepContainer>
       <CustomHeaderStepContainer

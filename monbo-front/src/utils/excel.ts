@@ -362,33 +362,40 @@ export const generateExcel = async (data: Record<string, SheetData>) => {
 };
 
 /**
- * Loads and extracts header rows from a predefined Excel template file.
+ * Loads and extracts header rows from a predefined Excel template file for the given locale.
  *
- * @returns {Promise<string[][]>} A promise that resolves to a 2D array containing the first 3 rows of headers
- *                                from the template file.
+ * @param locale - The locale code (e.g. 'en', 'es', 'pt') to get the template headers for
+ * @returns A promise that resolves to a 2D array containing the first 3 rows of headers from the template file:
+ *          - Row 1: Main headers in both languages
+ *          - Row 2: Sub-headers in both languages
+ *          - Row 3: Example values
  *
  * @remarks
- * This function:
- * - Fetches the template file from the public directory
- * - Reads it as an Excel workbook
- * - Extracts the first 3 rows which contain header information
- * - Returns these rows as a 2D string array
+ * The template files are stored in the public directory with naming pattern:
+ * `/files/upload-file-template-{locale}.xlsx`
+ *
+ * The function:
+ * 1. Gets the template path for the locale
+ * 2. Fetches and reads the Excel file
+ * 3. Extracts just the first 3 header rows
  *
  * @example
- * try {
- *   const headers = await loadTemplateHeaders();
- *   // headers[0] contains first row
- *   // headers[1] contains second row
- *   // headers[2] contains third row
- * } catch (error) {
- *   console.error('Failed to load template headers:', error);
- * }
+ * ```ts
+ * const headers = await loadTemplateHeaders('en');
+ * // headers = [
+ * //   ['ID', 'Producer Name', ...],      // Row 1 - Main headers
+ * //   ['ID', 'Name', ...],               // Row 2 - Sub-headers
+ * //   ['1', 'John Smith', ...]           // Row 3 - Examples
+ * // ]
+ * ```
  *
- * @throws {Error} If the template file cannot be fetched or parsed
+ * @throws {Error} If the template file cannot be fetched or parsed for the given locale
  */
-export const loadTemplateHeaders = async (): Promise<string[][]> => {
+export const loadTemplateHeaders = async (
+  locale: string
+): Promise<string[][]> => {
   // Path to your template in the public directory
-  const templatePath = "/files/polygon-validation-template.xlsx";
+  const templatePath = getUploadFileTemplatePath(locale);
 
   // Fetch the template file
   const response = await fetch(templatePath);
@@ -707,4 +714,13 @@ export const loadExcelFileFarmsData = async (
     data: mappedData,
     errorMessages,
   };
+};
+
+/**
+ * Gets the path to the Excel template file for the specified locale
+ * @param locale - The locale code (e.g. 'en', 'es', 'pt') to get the template for
+ * @returns The file path to the localized Excel template
+ */
+export const getUploadFileTemplatePath = (locale: string): string => {
+  return `/files/m1-upload-file-template-${locale}.xlsx`;
 };
