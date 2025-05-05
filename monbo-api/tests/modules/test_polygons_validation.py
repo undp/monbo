@@ -5,6 +5,7 @@ from app.modules.polygons_validation.helpers import (
 )
 from app.utils.polygons import (
     get_polygon_area,
+    determine_polygon_type,
     generate_polygon,
 )
 from app.utils.farms import parse_farm_coordinates_string
@@ -27,7 +28,7 @@ def test_generate_polygon():
        - Expected output: ("polygon", Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]))
     2. A single point.
        - Input: points = [SPoint(0, 0)]
-       - Expected output: ("point", SPoint(0, 0).buffer(0.0009))
+       - Expected output: ("point", SPoint(0, 0).buffer(99))
     Assertions:
     - The type of the generated shape should match the expected type.
     - The generated shape should be equal to the expected shape.
@@ -40,13 +41,14 @@ def test_generate_polygon():
     ]
 
     expected_polygon = Polygon([(point.x, point.y) for point in points])
-    (poly_type, polygon) = generate_polygon(points)
+    poly_type = determine_polygon_type(points)
+    polygon = generate_polygon(points, None)[1]
     assert poly_type == "polygon"
     assert expected_polygon.equals(polygon)
 
     points = [SPoint(0, 0)]
-    expected_polygon = SPoint(0, 0).buffer(0.0009)
-    (poly_type, polygon) = generate_polygon(points)
+    expected_polygon = SPoint(0, 0).buffer(99)
+    (poly_type, polygon) = generate_polygon(points, 99)
     assert poly_type == "point"
     assert expected_polygon.equals(polygon)
 

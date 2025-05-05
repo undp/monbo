@@ -9,6 +9,7 @@ from app.modules.deforestation_analysis.helpers import (
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
 from app.utils.maps import get_map_raster_path
 from app.utils.polygons import (
+    generate_polygon,
     get_polygon_area,
 )
 from fastapi import APIRouter, HTTPException
@@ -35,7 +36,13 @@ def analize(body: AnalizeBody):
             with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
-                        polygon = farm.get_polygon()
+                        coords = (
+                            farm.details.path
+                            if farm.type == "polygon"
+                            else [farm.details.center]
+                        )
+                        radius = farm.details.radius if farm.type == "point" else None
+                        polygon = generate_polygon(coords, radius)
                         loss_year_data = get_map_pixels_inside_polygon(polygon, src)
                         pixel_area = get_pixel_area(map_data)
                         deforestation_ratio = get_deforestation_ratio(

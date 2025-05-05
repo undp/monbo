@@ -6,7 +6,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Polygon
 from app.utils.polygons import get_polygon_area
 from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
-from app.models.farms import FarmWithPolygon
+from app.models.farms import FarmPolygonDetailDataWithPolygon
 from shapely.validation import explain_validity
 
 
@@ -77,8 +77,8 @@ def get_geometry_paths(geometry: BaseGeometry) -> list[list[Point]]:
     raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
 
 
-def get_overlap_inconsistencies(farms: list[FarmWithPolygon]):
-    polygons = list(map(lambda x: x["polygon"], farms))
+def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
+    polygons = list(map(lambda x: x.polygon, farms))
 
     overlaps = detect_overlaps(polygons)
 
@@ -87,8 +87,8 @@ def get_overlap_inconsistencies(farms: list[FarmWithPolygon]):
         overlap_area = get_polygon_area(overlap["intersection_polygon"])
 
         overlap_farms_ids = [
-            farms[overlap["polygon1_idx"]]["id"],
-            farms[overlap["polygon2_idx"]]["id"],
+            farms[overlap["polygon1_idx"]].id,
+            farms[overlap["polygon2_idx"]].id,
         ]
 
         overlap_polygons = [
@@ -127,7 +127,7 @@ def get_overlap_inconsistencies(farms: list[FarmWithPolygon]):
     return inconsistencies
 
 
-def get_geometry_inconsistencies(farms: list[FarmWithPolygon]):
+def get_geometry_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
     """
     Check for other types of polygon inconsistencies:
     - Invalid polygons (not valid geometry)
@@ -141,14 +141,14 @@ def get_geometry_inconsistencies(farms: list[FarmWithPolygon]):
     inconsistencies = []
 
     for farm in farms:
-        polygon: BaseGeometry = farm["polygon"]
+        polygon: BaseGeometry = farm.polygon
 
         # Check if the polygon is empty
         if polygon.is_empty:
             inconsistencies.append(
                 {
                     "type": "empty_polygon",
-                    "farmIds": [farm["id"]],
+                    "farmIds": [farm.id],
                     "data": None,
                 }
             )
@@ -158,7 +158,7 @@ def get_geometry_inconsistencies(farms: list[FarmWithPolygon]):
             inconsistencies.append(
                 {
                     "type": "invalid_geometry",
-                    "farmIds": [farm["id"]],
+                    "farmIds": [farm.id],
                     "data": {
                         "reason": explain_validity(polygon),
                     },

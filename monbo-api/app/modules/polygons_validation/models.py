@@ -32,6 +32,6 @@ class FarmResult(BaseModel):
     status: Literal["VALID", "VALID_MANUALLY", "NOT_VALID"]
 
 
-class GetOverlappingPolygonsResponse(BaseModel):
+class PolygonInconsistenciesResponse(BaseModel):
     farmResults: list[FarmResult]
     inconsistencies: list[PolygonInconsistency]

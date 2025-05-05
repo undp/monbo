@@ -1,12 +1,10 @@
 from typing import Literal, Optional
-
-from app.utils.polygons import generate_polygon_from_coordinates
 from pydantic import BaseModel
-
+from shapely.geometry import Polygon
 from .polygons import Coordinates, PointDetails, PolygonDetails
 
 
-class Polygon(BaseModel):
+class PolygonSummary(BaseModel):
     type: Literal["polygon", "point"]
     details: PolygonDetails | PointDetails | None
     area: float | None
@@ -29,7 +27,7 @@ class FarmData(BaseModel):
     region: Optional[str] = None
     association: Optional[str] = None
     documents: list[Document]
-    polygon: Polygon | None
+    polygon: PolygonSummary | None
 
 
 class InputFarmData(BaseModel):
@@ -62,18 +60,13 @@ class PreProcessedFarmData(BaseModel):
     documents: list[Document]
 
 
-class FarmPolygon(BaseModel):
+class FarmPolygonDetailData(BaseModel):
     id: str
     type: Literal["polygon", "point"]
-    path: Optional[list[Coordinates]] = None
-    center: Optional[Coordinates] = None
-
-    def get_polygon(self):
-        (_, polygon) = generate_polygon_from_coordinates(
-            self.path if self.type == "polygon" else [self.center]
-        )
-        return polygon
+    details: PolygonDetails | PointDetails | None
 
 
-class FarmWithPolygon(FarmPolygon):
+class FarmPolygonDetailDataWithPolygon(FarmPolygonDetailData):
     polygon: Polygon
+
+    model_config = {"arbitrary_types_allowed": True}

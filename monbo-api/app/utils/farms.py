@@ -1,6 +1,7 @@
-from app.models.farms import PreProcessedFarmData, FarmData, Polygon as CPolygon
+from app.models.farms import PreProcessedFarmData, FarmData, PolygonSummary
 from app.models.polygons import Coordinates, PolygonDetails, PointDetails
 from app.utils.polygons import (
+    determine_polygon_type,
     generate_polygon,
     get_point_area_and_radius,
     get_polygon_area,
@@ -77,20 +78,24 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
         polygon=None,
     )
     try:
-        (poly_type, polygon) = generate_polygon(farm.farmCoordinates)
+        poly_type = determine_polygon_type(farm.farmCoordinates)
         details: PolygonDetails | PointDetails | None = None
         area = None
-        if poly_type == "polygon" and not polygon.is_empty:
-            details = PolygonDetails(
-                center=Coordinates(
-                    lng=polygon.centroid.x,
-                    lat=polygon.centroid.y,
-                ),
-                path=farm.farmCoordinates,
-            )
-            area = get_polygon_area(polygon)
+
+        if poly_type == "polygon":
+            polygon = generate_polygon(farm.farmCoordinates)
+            if not polygon.is_empty:
+                details = PolygonDetails(
+                    center=Coordinates(
+                        lng=polygon.centroid.x,
+                        lat=polygon.centroid.y,
+                    ),
+                    path=farm.farmCoordinates,
+                )
+                area = get_polygon_area(polygon)
         elif poly_type == "point":
             area, radius = get_point_area_and_radius(float(farm.area))
+            polygon = generate_polygon(farm.farmCoordinates, radius)
             details = PointDetails(
                 center=Coordinates(
                     lng=farm.farmCoordinates[0].lng,
@@ -98,12 +103,14 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
                 ),
                 radius=radius,
             )
-        base_information.polygon = CPolygon(
+
+        base_information.polygon = PolygonSummary(
             type=poly_type,
             details=details,
             area=area,
         )
         return base_information
+
     except Exception as e:
         print(e)
         raise HTTPException(

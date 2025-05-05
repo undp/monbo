@@ -1,4 +1,4 @@
-from app.models.farms import FarmPolygon, InputFarmData
+from app.models.farms import FarmPolygonDetailData, InputFarmData
 from pydantic import BaseModel
 
 
@@ -8,7 +8,7 @@ class DeforestationUnprocessedFarmData(InputFarmData):
 
 class AnalizeBody(BaseModel):
     maps: list[int]
-    farms: list[FarmPolygon]
+    farms: list[FarmPolygonDetailData]
 
 
 class FarmDeforestation(BaseModel):

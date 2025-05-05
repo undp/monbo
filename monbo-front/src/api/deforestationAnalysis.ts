@@ -33,8 +33,7 @@ export const analizeDeforestation = async (
       farms: data.map(({ id, polygon }) => ({
         id,
         type: polygon.type,
-        path: polygon.type === "polygon" ? polygon.details?.path : null,
-        center: polygon.details?.center ?? null,
+        details: polygon.details,
       })),
       maps: map(selectedMaps, "id"),
     }),

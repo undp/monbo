@@ -1,10 +1,14 @@
-from app.models.farms import FarmPolygon, FarmWithPolygon
+from app.models.farms import (
+    FarmPolygonDetailData,
+    FarmPolygonDetailDataWithPolygon,
+)
+from app.utils.polygons import generate_polygon
 from fastapi import APIRouter
 from .helpers import (
     get_geometry_inconsistencies,
     get_overlap_inconsistencies,
 )
-from .models import GetOverlappingPolygonsResponse
+from .models import PolygonInconsistenciesResponse
 
 
 router = APIRouter()
@@ -12,45 +16,54 @@ router = APIRouter()
 
 @router.post(
     "/validate",
-    response_model=GetOverlappingPolygonsResponse,
+    response_model=PolygonInconsistenciesResponse,
     name="Validate Polygons",
 )
-def get_overlapping_polygons(
-    body: list[FarmPolygon],
-) -> GetOverlappingPolygonsResponse:
+def get_polygon_inconsistencies(
+    body: list[FarmPolygonDetailData],
+) -> PolygonInconsistenciesResponse:
     """
-    Processes a list of farm polygons to identify and handle overlapping polygons.
+    Validates a list of farm polygons by checking for overlaps and geometry
+    inconsistencies.
 
     Args:
-        body (list[FarmPolygon]): List of farm polygons and their associated data.
+        body (list[FarmPolygon]): List of farm polygons to validate.
 
     Returns:
-        GetOverlappingPolygonsResponse: A response object containing:
-            - farmResults (list[dict]): A list of dictionaries with polygon IDs
-            and their validation status.
-            - inconsistencies (list[dict]): A list of dictionaries detailing the
-            overlapping polygons and their overlap information.
+        PolygonInconsistenciesResponse: A response object containing:
+            - farmResults (list[FarmResult]): A list of validation results
+              for each farm, with status either "VALID" or "NOT_VALID"
+            - inconsistencies (list[PolygonInconsistency]): A list of detected
+              inconsistencies, which can be overlaps or geometry issues
 
-    The function performs the following steps:
-    1. Parses the farm coordinates data for each farm polygon.
-    2. Generates polygon objects and calculates their details (center, points, radius).
-    3. Identifies and handles any exceptions during polygon generation.
-    4. Filters out valid polygons that do not have any issues.
-    5. Checks for overlaps among the valid polygons.
-    6. Collects the indices of polygons with overlap issues.
-    7. Constructs a list of inconsistent polygons with overlap details, including
-    the area, center, and path of the overlap.
+    The function performs the following validations:
+    1. Converts the input FarmPolygons into Shapely geometry objects
+    2. Checks for overlapping polygons between farms
+    3. Validates the geometry of each polygon (e.g. self-intersections)
+    4. Marks farms as "NOT_VALID" if they are involved in any inconsistency
     """
+    farms_polygons = []
+    for farm in body:
+        # Determine coordinates based on polygon type
+        if farm.type == "polygon":
+            coords = farm.details.path if farm.details else []
+            radius = None
+        else:
+            # Points always have farm.details
+            coords = [farm.details.center]
+            radius = farm.details.radius
 
-    parsed_farms: list[FarmWithPolygon] = list(
-        map(
-            lambda x: {
-                **x.model_dump(),
-                "polygon": x.get_polygon(),
-            },
-            body,
+        polygon = generate_polygon(coords, radius)
+
+        # Create farm polygon object with all details
+        farms_polygons.append(
+            FarmPolygonDetailDataWithPolygon(
+                id=farm.id,
+                type=farm.type,
+                details=farm.details,
+                polygon=polygon,
+            )
         )
-    )
 
     # Initialize results with VALID status
     results = list(map(lambda x: {"farmId": x.id, "status": "VALID"}, body))
@@ -59,8 +72,8 @@ def get_overlapping_polygons(
     results_lookup = {result["farmId"]: result for result in results}
 
     # Get inconsistencies
-    overlap_inconsistencies = get_overlap_inconsistencies(parsed_farms)
-    geometry_inconsistencies = get_geometry_inconsistencies(parsed_farms)
+    overlap_inconsistencies = get_overlap_inconsistencies(farms_polygons)
+    geometry_inconsistencies = get_geometry_inconsistencies(farms_polygons)
 
     all_inconsistencies = overlap_inconsistencies + geometry_inconsistencies
 
