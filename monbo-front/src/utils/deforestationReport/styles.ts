@@ -138,13 +138,13 @@ export const styles = StyleSheet.create({
     textDecoration: "underline",
   },
   farmMapPageMapImageContainer: {
-    marginBottom: 40,
+    marginBottom: 30,
     width: "100%",
-    maxHeight: "380px",
+    maxHeight: "370px",
   },
   farmMapPageMapImage: {
     width: "100%", // Adjust as needed
-    height: "100%", // Fills the container
+    height: "95%", // Fills the container
     objectFit: "cover", // Ensures the image scales properly
   },
   appendixPage: {

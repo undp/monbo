@@ -349,6 +349,14 @@ export const FarmMapPage = ({
       {!!imageBlobUrl && (
         <View style={styles.farmMapPageMapImageContainer}>
           <ImagePDF src={imageBlobUrl} style={styles.farmMapPageMapImage} />
+          <Text
+            style={[
+              styles.farmMapPageLightText,
+              { fontSize: 10, marginTop: 5 },
+            ]}
+          >
+            {t("deforestationAnalysis:satelliteImageryDisclaimer")}
+          </Text>
         </View>
       )}
 

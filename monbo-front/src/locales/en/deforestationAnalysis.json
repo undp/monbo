@@ -46,5 +46,6 @@
     "publishDate": "Publication date",
     "references": "References",
     "considerations": "Considerations"
-  }
+  },
+  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not represent the deforestation"
 }

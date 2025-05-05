@@ -45,5 +45,6 @@
     "publishDate": "Fecha de publicación",
     "references": "Referencias",
     "considerations": "Consideraciones"
-  }
+  },
+  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no representa la deforestación"
 }

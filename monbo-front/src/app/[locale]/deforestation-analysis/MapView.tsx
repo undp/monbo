@@ -200,23 +200,46 @@ export const MapView: React.FC = () => {
           selectedPolygonIdAtMap={selectedPolygonIdAtMap}
           setSelectedPolygonIdAtMap={setSelectedPolygonIdAtMap}
         />
-        <Text sx={{ display: "flex", alignItems: "center" }}>
-          {selectedMapName}
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          {t("deforestationAnalysis:deforestationMapFooter", {
-            baselineYear: baseline,
-            comparedToYear: comparedAgainst,
-          })}
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          <FiberManualRecordIcon
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text
             sx={{
-              width: 18,
-              height: 18,
-              color: "red",
+              display: "flex",
+              alignItems: "center",
             }}
-          />
-          {t("deforestationAnalysis:deforestation")}
-        </Text>
+          >
+            {selectedMapName}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            {t("deforestationAnalysis:deforestationMapFooter", {
+              baselineYear: baseline,
+              comparedToYear: comparedAgainst,
+            })}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <FiberManualRecordIcon
+              sx={{
+                width: 18,
+                height: 18,
+                color: "red",
+                mr: 1,
+              }}
+            />
+            {t("deforestationAnalysis:deforestation")}
+          </Text>
+          <Text
+            sx={{
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {t("deforestationAnalysis:satelliteImageryDisclaimer")}
+          </Text>
+        </Box>
       </Box>
     </Box>
   );
