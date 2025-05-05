@@ -32,18 +32,20 @@ def detect_overlaps(polygons: List[Polygon]):
 
     for i in range(0, len(polygons)):
         for idx in tree.query(polygons[i]):
-            if idx != i and f"{idx}-{i}" not in polygons_intersections_index:
-                if polygons[i].intersects(polygons[idx]):
-                    polygons_intersections_index.append(f"{i}-{idx}")
-                    overlaps.append(
-                        {
-                            "intersection_polygon": polygons[i].intersection(
-                                polygons[idx]
-                            ),
-                            "polygon1_idx": i,
-                            "polygon2_idx": int(idx),
-                        }
-                    )
+            if idx == i or f"{idx}-{i}" in polygons_intersections_index:
+                continue
+            if not polygons[i].is_valid or not polygons[idx].is_valid:
+                continue
+
+            if polygons[i].intersects(polygons[idx]):
+                polygons_intersections_index.append(f"{i}-{idx}")
+                overlaps.append(
+                    {
+                        "intersection_polygon": polygons[i].intersection(polygons[idx]),
+                        "polygon1_idx": i,
+                        "polygon2_idx": int(idx),
+                    }
+                )
 
     return overlaps
 
