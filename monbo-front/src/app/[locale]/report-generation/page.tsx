@@ -42,7 +42,10 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
         >
           <PageTitle />
           <Suspense>
-            <SearchBar placeholder={t("reportGeneration:searchPlaceholder")} />
+            <SearchBar
+              placeholder={t("reportGeneration:searchPlaceholder")}
+              style={{ minWidth: "400px" }}
+            />
           </Suspense>
         </Box>
         <SectionBackground
