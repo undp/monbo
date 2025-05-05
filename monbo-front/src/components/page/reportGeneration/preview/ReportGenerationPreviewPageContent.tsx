@@ -25,7 +25,10 @@ export const ReportGenerationPreviewPageContent = () => {
             visibility: isLoading ? "hidden" : "visible",
           }}
         >
-          <PDFViewer style={{ width: "100%", height: "100%" }} showToolbar>
+          <PDFViewer
+            style={{ width: "100%", height: "100%" }}
+            showToolbar={false}
+          >
             {document}
           </PDFViewer>
         </Box>
