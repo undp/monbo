@@ -230,20 +230,27 @@ export const InconsistentFarmsTable: React.FC = () => {
       sortedBy
         ? orderBy(
             filteredInconsistencies.map((item) => {
+              const inconsistency = t(
+                `polygonValidation:inconsistenciesTypes:${item.type}`
+              );
               if (item.type === "overlap") {
                 return {
                   ...item,
+                  inconsistency,
                   overlapPercentage: item.data.percentage,
                   overlapArea: item.data.area,
                 };
               }
-              return item;
+              return {
+                ...item,
+                inconsistency,
+              };
             }),
             sortedBy.attr,
             sortedBy.order
           )
         : filteredInconsistencies,
-    [sortedBy, filteredInconsistencies]
+    [sortedBy, filteredInconsistencies, t]
   );
 
   if (sortedInconsistencies?.length === 0)
@@ -306,6 +313,7 @@ export const InconsistentFarmsTable: React.FC = () => {
             name: t("common:tableColumns:inconsistency"),
             attr: "inconsistency",
             type: "label",
+            sortable: true,
           },
           {
             name: t("common:tableColumns:overlap"),
