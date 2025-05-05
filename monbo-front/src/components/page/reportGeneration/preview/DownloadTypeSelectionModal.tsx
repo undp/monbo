@@ -60,15 +60,17 @@ export const DownloadTypeSelectionModal: React.FC<
     if (isDownloading) return;
 
     if (downloadType === "combined") {
-      downloadCompleteReportWrapper();
+      await downloadCompleteReportWrapper();
     } else {
-      downloadSeparatedReportsWrapper();
+      await downloadSeparatedReportsWrapper();
     }
+    handleClose();
   }, [
     isDownloading,
     downloadType,
     downloadCompleteReportWrapper,
     downloadSeparatedReportsWrapper,
+    handleClose,
   ]);
 
   return (
