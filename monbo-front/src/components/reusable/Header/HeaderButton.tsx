@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 
 interface HeaderButtonProps {
   children: React.ReactNode;
-  path?: string;
+  path: string;
 }
 
 export const HeaderButton: React.FC<HeaderButtonProps> = ({
@@ -20,19 +20,18 @@ export const HeaderButton: React.FC<HeaderButtonProps> = ({
   const pathname = usePathname();
   const { i18n } = useTranslation();
 
-  const isHomepage = useMemo(
+  const { polygonsValidationResults, deforestationAnalysisResults } =
+    useContext(DataContext);
+
+  const currentPathnameIsHomepage = useMemo(
     () => pathname === "/" || pathname === `/${i18n.language}`,
     [pathname, i18n.language]
   );
 
-  const { polygonsValidationResults, deforestationAnalysisResults } =
-    useContext(DataContext);
-
-  const isPathActive = path
-    ? isHomepage
-      ? pathname === path
-      : pathname.includes(path)
-    : false;
+  const isPathActive = useMemo(
+    () => pathname === path || pathname === `/${i18n.language}${path}`,
+    [pathname, path, i18n.language]
+  );
 
   const isDisabled =
     !isPathActive &&
@@ -42,11 +41,12 @@ export const HeaderButton: React.FC<HeaderButtonProps> = ({
         !deforestationAnalysisResults) ||
       path.includes("report-generation"));
 
+  if (currentPathnameIsHomepage) return null;
+
   return (
     <Button
       disabled={isDisabled}
       sx={{
-        display: isHomepage ? "none" : "block",
         color: "#3A3541",
         ...(isPathActive
           ? { color: "#03689E", backgroundColor: "#F3FAFD" }
