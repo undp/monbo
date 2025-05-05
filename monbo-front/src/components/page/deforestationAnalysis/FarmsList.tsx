@@ -10,6 +10,7 @@ import {
   getDeforestationPercentageChipColor,
 } from "@/utils/styling";
 import { Box, Chip, FormControlLabel, Radio } from "@mui/material";
+import { orderBy } from "lodash";
 import { useSearchParams } from "next/navigation";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,6 +45,20 @@ export const FarmsList: React.FC<FarmsListProps> = ({
     [deforestationAnalysisResults, selectedMapId]
   );
 
+  const sortedData = useMemo(() => {
+    return orderBy(
+      filteredData,
+      (farm) => {
+        const deforestationValue: number | null =
+          deforestationMapResults?.farmResults.find(
+            ({ farmId }) => farmId === farm.id
+          )?.value ?? null;
+        return deforestationValue;
+      },
+      "desc"
+    );
+  }, [filteredData, deforestationMapResults]);
+
   return (
     <Box
       sx={{
@@ -66,7 +81,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
           )})`}
         />
       )}
-      {filteredData.map((farm) => {
+      {sortedData.map((farm) => {
         const deforestationValue: number | null =
           deforestationMapResults?.farmResults.find(
             ({ farmId }) => farmId === farm.id
