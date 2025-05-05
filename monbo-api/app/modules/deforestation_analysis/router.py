@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 from io import BytesIO
+from pydantic import BaseModel
+from shapely.geometry import shape
 from app.modules.deforestation_analysis.helpers import (
     get_deforestation_ratio,
     get_map_pixels_inside_polygon,
@@ -7,6 +9,8 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
+from app.utils.image_generation.errors import NoRasterDataOverlapError
+from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 from app.utils.maps import get_map_raster_path
 from app.utils.polygons import (
     generate_polygon,
@@ -98,3 +102,33 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     except Exception as e:
         print(f"Tile serving error: {e}")
         raise HTTPException(status_code=404, detail="Tile not found")
+
+
+class GenerateImageBody(BaseModel):
+    feature: dict  # geojson feature
+    mapId: int
+
+
+@router.post("/generate-image")
+async def generate_image(body: GenerateImageBody):
+    raster_filename = get_map_by_id(body.mapId)["raster_filename"]
+    raster_path = get_map_raster_path(raster_filename)
+
+    try:
+        geom = shape(body.feature["geometry"])
+        # Check geometry type and pass point_radius_meters only for Point geometries
+        if geom.geom_type == "Point":
+            point_radius_meters = 50  # TODO: get from body when new excel is ready
+            img = await MapImageGenerator.generate(
+                geom, raster_path, point_radius_meters
+            )
+        else:  # For Polygon or other geometries
+            img = await MapImageGenerator.generate(geom, raster_path)
+    except NoRasterDataOverlapError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    img_io = BytesIO()
+    img.save(img_io, format="PNG")
+    img_io.seek(0)
+
+    return Response(img_io.read(), media_type="image/png")

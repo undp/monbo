@@ -35,7 +35,7 @@ export const DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL =
   process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/map-generation/generate-for-polygon`;
+  }/deforestation_analysis/generate-image`;
 
 export const DOWNLOAD_GEOJSON_URL =
   process.env.NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL ||
