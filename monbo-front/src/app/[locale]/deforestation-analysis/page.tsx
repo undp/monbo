@@ -5,16 +5,15 @@ import TranslationsProvider from "@/context/TranslationProvider";
 import { PageWithSearchParams } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 import { Box, ButtonGroup } from "@mui/material";
-import { DeforestationResultsTable } from "./DeforestationResultsTable";
-import { MapView } from "./MapView";
+import { DeforestationResultsTable } from "@/components/page/deforestationAnalysis/DeforestationResultsTable";
+import { MapView } from "@/components/page/deforestationAnalysis/MapView";
 import { PageFooter } from "@/components/page/deforestationAnalysis/PageFooter";
-
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import { SearchParamButton } from "@/components/reusable/SearchParamButton";
-import { PageTitle } from "./PageTitle";
+import { PageTitle } from "@/components/page/deforestationAnalysis/PageTitle";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
-import { ResultsMapSelector } from "./ResultsMapSelector";
+import { ResultsMapSelector } from "@/components/page/deforestationAnalysis/ResultsMapSelector";
 import { DownloadPageData } from "@/components/page/deforestationAnalysis/DownloadPageData";
 
 const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];

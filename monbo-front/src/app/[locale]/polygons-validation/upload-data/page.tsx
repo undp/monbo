@@ -1,5 +1,5 @@
 import TranslationsProvider from "@/context/TranslationProvider";
-import { PolygonsValidationUploadDataPageContent } from "./PolygonsValidationUploadDataPageContent";
+import { PolygonsValidationUploadDataPageContent } from "@/components/page/polygonsValidation/PolygonsValidationUploadDataPageContent";
 import { BasePageProps } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 

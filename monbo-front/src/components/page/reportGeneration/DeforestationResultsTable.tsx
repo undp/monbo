@@ -1,6 +1,6 @@
 "use client";
 
-import { DeforestationResultsTable as DeforestationResultsTableComponent } from "@/app/[locale]/deforestation-analysis/DeforestationResultsTable";
+import { DeforestationResultsTable as DeforestationResultsTableComponent } from "@/components/page/deforestationAnalysis/DeforestationResultsTable";
 import { RowData } from "@/components/reusable/Table";
 import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";

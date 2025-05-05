@@ -3,10 +3,8 @@ import { Text } from "@/components/reusable/Text";
 import { SectionBackground } from "@/components/reusable/SectionBackground";
 import { Tabs } from "@/components/reusable/Tabs";
 import { DownloadPageData } from "@/components/page/polygonsValidation/DownloadPageData";
-
-import { ValidFarmsTable } from "./ValidFarmsTable";
-import { InconsistentFarmsTable } from "./InconsistentFarmsTable";
-
+import { InconsistentFarmsTable } from "@/components/page/polygonsValidation/InconsistentFarmsTable";
+import { ValidFarmsTable } from "@/components/page/polygonsValidation/ValidFarmsTable";
 import { TabTitle } from "@/components/page/polygonsValidation/TabTitle";
 import { PageFooter } from "@/components/page/polygonsValidation/PageFooter";
 import TranslationsProvider from "@/context/TranslationProvider";

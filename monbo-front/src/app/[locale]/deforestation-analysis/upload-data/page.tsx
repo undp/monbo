@@ -1,5 +1,5 @@
 import TranslationsProvider from "@/context/TranslationProvider";
-import { DeforestationAnalysisUploadDataPageContent } from "./DeforestationAnalysisUploadDataPageContent";
+import { DeforestationAnalysisUploadDataPageContent } from "@/components/page/deforestationAnalysis/DeforestationAnalysisUploadDataPageContent";
 import { BasePageProps } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 
