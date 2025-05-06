@@ -8,6 +8,7 @@ import initTranslations from "@/utils/i18n";
 import { Box, Grid2, Typography } from "@mui/material";
 import { BasePageProps } from "@/interfaces";
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
+import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 
 export default async function HomePage({ params }: BasePageProps) {
   const { locale } = await params;
@@ -19,17 +20,19 @@ export default async function HomePage({ params }: BasePageProps) {
       namespaces={["common", "home"]}
       resources={resources}
     >
-      <Box
-        sx={{
-          maxWidth: 1280,
-          margin: "0px auto",
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "16px 24px 0 0",
-        }}
-      >
-        <DevEnvWarning />
-      </Box>
+      {SHOW_TESTING_ENVIRONMENT_WARNING && (
+        <Box
+          sx={{
+            maxWidth: 1280,
+            margin: "0px auto",
+            display: "flex",
+            justifyContent: "flex-end",
+            padding: "16px 24px 0 0",
+          }}
+        >
+          <DevEnvWarning />
+        </Box>
+      )}
       <div
         style={{
           display: "flex",

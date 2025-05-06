@@ -96,3 +96,11 @@ export const DEFORESTATION_THRESHOLD_PERCENTAGE = (() => {
   }
   return value;
 })();
+
+export const SHOW_TESTING_ENVIRONMENT_WARNING = (() => {
+  const raw =
+    process.env.NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING ??
+    "__NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING__";
+
+  return raw.toLowerCase() === "true";
+})();
