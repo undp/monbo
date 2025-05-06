@@ -554,24 +554,22 @@ export const MapDescriptionPage = ({
                 {attribute === "references" && Array.isArray(map[attribute]) ? (
                   <View>
                     {map[attribute].length > 0 ? (
-                      map[attribute].map((reference, idx) =>
+                      map[attribute].map((reference, i) =>
                         showLinks ? (
                           <Link
-                            key={`${map.id}-reference-${idx}-link`}
+                            key={`${map.id}-reference-${idx}-link-${i}`}
                             src={reference}
                             style={[
                               styles.blueLink,
-                              { marginTop: idx === 0 ? 0 : 10 },
+                              { marginTop: i === 0 ? 0 : 10 },
                             ]}
                           >
                             {reference}
                           </Link>
                         ) : (
-                          <>
-                            <Text key={`${map.id}-reference-${idx}-text`}>
-                              -
-                            </Text>
-                          </>
+                          <Text key={`${map.id}-reference-${idx}-text-${i}`}>
+                            -
+                          </Text>
                         )
                       )
                     ) : (
