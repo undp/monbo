@@ -104,6 +104,7 @@ export const useDeforestationCompleteReportDocument = () => {
         onRender={() => {
           setIsDocumentRendering(false);
         }}
+        showLinks={false}
       />
     );
   }, [

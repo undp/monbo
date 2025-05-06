@@ -123,6 +123,7 @@ export const FarmMapPage = ({
   t,
   language,
   imageBlobUrl,
+  showLinks = true,
 }: {
   farm: FarmData;
   map: MapData;
@@ -130,6 +131,7 @@ export const FarmMapPage = ({
   t: TFunction;
   language?: string;
   imageBlobUrl: string | null;
+  showLinks?: boolean;
 }) => {
   const deforestationPercentage = result.value;
   // If the deforestation percentage is null, return null to avoid rendering the page
@@ -327,15 +329,21 @@ export const FarmMapPage = ({
           </View>
           <View style={styles.farmMapPageDivider} />
           <View style={[styles.farmMapPageRow, styles.farmMapPageSpaceEvenly]}>
-            {farm.documents.map((document, index) => (
-              <Link
-                key={`${farm.id}-document-${index}`}
-                src={document.url}
-                style={styles.blueLink}
-              >
-                {document.name ?? `Documento ${index + 1}`}
-              </Link>
-            ))}
+            {farm.documents.map((document, index) =>
+              showLinks ? (
+                <Link
+                  key={`${farm.id}-document-${index}-link`}
+                  src={document.url}
+                  style={styles.blueLink}
+                >
+                  {document.name ?? `Documento ${index + 1}`}
+                </Link>
+              ) : (
+                <Text key={`${farm.id}-document-${index}-text`}>
+                  {document.name ?? `Documento ${index + 1}`}
+                </Text>
+              )
+            )}
             {!farm.documents.length && (
               <Text style={styles.farmMapPageLightText}>
                 {t("reportGeneration:phrases:noDocumentation")}
@@ -494,10 +502,12 @@ export const MapDescriptionPage = ({
   deforestationAnalysisResults,
   mapsData,
   t,
+  showLinks = true,
 }: {
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
   mapsData: MapData[];
   t: TFunction;
+  showLinks?: boolean;
 }) => {
   return deforestationAnalysisResults
     .map((mapResults) => {
@@ -544,18 +554,26 @@ export const MapDescriptionPage = ({
                 {attribute === "references" && Array.isArray(map[attribute]) ? (
                   <View>
                     {map[attribute].length > 0 ? (
-                      map[attribute].map((reference, idx) => (
-                        <Link
-                          key={`${map.id}-reference-${idx}`}
-                          src={reference}
-                          style={[
-                            styles.blueLink,
-                            { marginTop: idx === 0 ? 0 : 10 },
-                          ]}
-                        >
-                          {reference}
-                        </Link>
-                      ))
+                      map[attribute].map((reference, idx) =>
+                        showLinks ? (
+                          <Link
+                            key={`${map.id}-reference-${idx}-link`}
+                            src={reference}
+                            style={[
+                              styles.blueLink,
+                              { marginTop: idx === 0 ? 0 : 10 },
+                            ]}
+                          >
+                            {reference}
+                          </Link>
+                        ) : (
+                          <>
+                            <Text key={`${map.id}-reference-${idx}-text`}>
+                              -
+                            </Text>
+                          </>
+                        )
+                      )
                     ) : (
                       <Text>{t("common:na")}</Text>
                     )}

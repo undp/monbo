@@ -66,6 +66,7 @@ export const DeforestationReportDocument = ({
   t,
   language,
   onRender,
+  showLinks = true,
 }: {
   farmsData: FarmData[];
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
@@ -74,6 +75,7 @@ export const DeforestationReportDocument = ({
   t: TFunction;
   language?: string;
   onRender?: () => void;
+  showLinks?: boolean;
 }) => {
   return (
     <Document style={styles.document} onRender={onRender}>
@@ -112,6 +114,7 @@ export const DeforestationReportDocument = ({
                 t={t}
                 language={language}
                 imageBlobUrl={imageBlobUrl}
+                showLinks={showLinks}
               />
             );
           })
@@ -126,6 +129,7 @@ export const DeforestationReportDocument = ({
         deforestationAnalysisResults={deforestationAnalysisResults}
         mapsData={mapsData}
         t={t}
+        showLinks={showLinks}
       />
     </Document>
   );
