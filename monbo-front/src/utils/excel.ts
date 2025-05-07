@@ -456,7 +456,6 @@ const mandatoryHeaders: string[] = [
   "productionQuantityUnit",
   "country",
   "farmCoordinates",
-  "area",
   "cropType",
 ];
 

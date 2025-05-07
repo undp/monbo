@@ -41,7 +41,7 @@ class InputFarmData(BaseModel):
     farmCoordinates: str
     cropType: str
     association: Optional[str] = None
-    area: int | float | str
+    area: Optional[int | float | str] = None
     documents: list[Document]
 
 

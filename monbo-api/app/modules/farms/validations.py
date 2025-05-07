@@ -1,5 +1,6 @@
 from collections import Counter
 from fastapi import HTTPException
+from app.config.constants import FarmDefaults
 from app.models.farms import (
     InputFarmData,
     PreProcessedFarmData,
@@ -176,11 +177,24 @@ def validate_farm_coordinates(coordinates: str) -> list[Coordinates]:
         )
 
 
-def validate_area(area: str, locale: str) -> float:
+def validate_area(area: str | int | float | None, locale: str) -> float | None:
     """
-    Validates and parses area string based on locale.
-    Returns float value or raises HTTPException if invalid.
+    Validates and parses farm area value based on locale.
+
+    Args:
+        area: Area value to validate, can be string, int, float or None
+        locale: Locale string for number parsing (e.g. 'en', 'es')
+
+    Returns:
+        float: Parsed area value in hectares. If area is None or empty, returns default
+        point area
+
+    Raises:
+        HTTPException: If area value cannot be parsed as a valid number for the given
+        locale
     """
+    if not area:
+        return FarmDefaults.DEFAULT_POINT_AREA_HECTARES
     try:
         return parse_float_string(area, locale)
     except ValueError as e:
