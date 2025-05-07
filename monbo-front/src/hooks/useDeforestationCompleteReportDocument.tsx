@@ -7,9 +7,7 @@ import {
 } from "@/utils/deforestationReport";
 import { useTranslation } from "react-i18next";
 import { useParams } from "next/navigation";
-import { generatePolygonDeforestationImage } from "@/api/deforestationAnalysis";
-import { generateGeoJsonFeature } from "@/utils/geojson";
-import { flatten } from "lodash";
+import { fetchDeforestationImages } from "@/utils/deforestationImages";
 
 export const useDeforestationCompleteReportDocument = () => {
   const { t } = useTranslation();
@@ -44,35 +42,13 @@ export const useDeforestationCompleteReportDocument = () => {
     // TODO: improve the performance of fetching the images
     const fetchImages = async () => {
       setAreImagesLoading(true);
-      const results = await Promise.all(
-        flatten(
-          selectedMapsForReport.map(({ id: mapId }) =>
-            selectedFarmsForReport.map(async (farm) => {
-              const hasResults = !!filteredDeforestationAnalysisResults
-                .find((m) => m.mapId === mapId)
-                ?.farmResults.some(
-                  ({ farmId, value }) => farmId === farm.id && value !== null
-                );
-              if (!hasResults)
-                return {
-                  mapId,
-                  farmId: farm.id,
-                  url: null,
-                };
 
-              const blob = await generatePolygonDeforestationImage(
-                mapId,
-                generateGeoJsonFeature(farm)
-              );
-              return {
-                mapId,
-                farmId: farm.id,
-                url: URL.createObjectURL(blob),
-              };
-            })
-          )
-        )
+      const results = await fetchDeforestationImages(
+        selectedMapsForReport,
+        selectedFarmsForReport,
+        filteredDeforestationAnalysisResults
       );
+
       setImages(results);
       setAreImagesLoading(false);
     };

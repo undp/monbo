@@ -19,6 +19,7 @@ find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_GCP_MA
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE|g" {} +
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE|g" {} +
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING__|$NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING|g" {} +
+find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION__|$NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION|g" {} +
 echo "✓ Environment variables replacement completed"
 
 # Start service

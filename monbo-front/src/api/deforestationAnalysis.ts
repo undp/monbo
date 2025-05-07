@@ -47,9 +47,11 @@ export const analizeDeforestation = async (
 
 export const generatePolygonDeforestationImage = async (
   mapId: number,
-  feature: GeoJsonFeature
+  feature: GeoJsonFeature,
+  includeSatelitalBackground: boolean = true
 ): Promise<Blob> => {
-  const response = await fetch(DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL, {
+  const url = `${DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL}?include_satelital_background=${includeSatelitalBackground}`;
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 from typing import Tuple
 from PIL import Image
 from shapely.geometry.base import BaseGeometry
-from app.utils.image_generation.constants import MapDefaults
+from app.utils.image_generation.constants import MapColors, MapDefaults
 from app.utils.image_generation.GeometryHelper import GeometryHelper
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
 from app.utils.image_generation.ImageManipulationHelper import ImageManipulationHelper
@@ -31,11 +31,33 @@ class MapImageGenerator:
     """
 
     @staticmethod
+    def generate_solid_background(
+        output_size: Tuple[int, int] = MapDefaults.OUTPUT_SIZE,
+    ) -> Image.Image:
+        """
+        Generate a solid background image with the default forest green color.
+
+        This method creates a new RGB image filled with MapColors.SOLID_BACKGROUND
+        color, which is used as a fallback when satellite imagery is not available
+        or desired.
+
+        Args:
+            output_size (Tuple[int, int], optional): The dimensions (width, height)
+            of the output image in pixels. Defaults to MapDefaults.OUTPUT_SIZE.
+
+        Returns:
+            Image.Image: A new PIL Image in RGB mode filled with the solid background
+            color.
+        """
+        return Image.new("RGB", output_size, MapColors.SOLID_BACKGROUND)
+
+    @staticmethod
     async def generate(
         geometry: BaseGeometry,
         tif_path: str,
         point_radius_meters: float = None,
         output_size: Tuple[int, int] = MapDefaults.OUTPUT_SIZE,
+        include_satelital_background: bool = True,
     ) -> Image.Image:
         """
         Generate a composite map with Google Maps satellite imagery as base,
@@ -63,6 +85,7 @@ class MapImageGenerator:
             GoogleMapsAPIError: If there are issues fetching satellite imagery
         """
         layers: list[Image.Image] = []
+
         # Get the geometry bounds and calculate zoom level
         min_lat, max_lat, min_lon, max_lon = GeometryHelper.calculate_geometry_bounds(
             geometry, point_radius_meters
@@ -72,11 +95,16 @@ class MapImageGenerator:
             min_lat, max_lat, min_lon, max_lon, output_size
         )
 
-        # Get the satellite base image
-        satellite_img = await GoogleMapsAPIHelper.get_google_maps_satellite_image(
-            geometry, zoom_level, output_size
-        )
-        layers.append(satellite_img)
+        if include_satelital_background:
+            # Get the satellite base image
+            satellite_img = await GoogleMapsAPIHelper.get_google_maps_satellite_image(
+                geometry, zoom_level, output_size
+            )
+            layers.append(satellite_img)
+        else:
+            # Add dark green background
+            satellite_img = MapImageGenerator.generate_solid_background(output_size)
+            layers.append(satellite_img)
 
         # Create geometry overlay
         geometry_overlay = GeometryHelper.create_feature_overlay(

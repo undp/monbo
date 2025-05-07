@@ -56,6 +56,9 @@ class MapColors:
     # Color used to highlight deforested areas
     DEFORESTATION = (255, 20, 20, 180)  # Red with 71% opacity
 
+    # Color used as dark green background when satellite imagery is not available
+    SOLID_BACKGROUND = (0, 64, 0)  # RGB for dark green
+
 
 class MapStyles:
     """

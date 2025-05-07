@@ -16,7 +16,7 @@ from app.utils.polygons import (
     generate_polygon,
     get_polygon_area,
 )
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 from rasterio import open as rasterio_open
 from .models import AnalizeBody, MapData
@@ -110,7 +110,12 @@ class GenerateImageBody(BaseModel):
 
 
 @router.post("/generate-image")
-async def generate_image(body: GenerateImageBody):
+async def generate_image(
+    body: GenerateImageBody,
+    include_satelital_background: bool = Query(
+        True, description="Whether to include satellite imagery as background"
+    ),
+):
     raster_filename = get_map_by_id(body.mapId)["raster_filename"]
     raster_path = get_map_raster_path(raster_filename)
 
@@ -120,10 +125,17 @@ async def generate_image(body: GenerateImageBody):
         if geom.geom_type == "Point":
             point_radius_meters = 50  # TODO: get from body when new excel is ready
             img = await MapImageGenerator.generate(
-                geom, raster_path, point_radius_meters
+                geom,
+                raster_path,
+                point_radius_meters,
+                include_satelital_background=include_satelital_background,
             )
         else:  # For Polygon or other geometries
-            img = await MapImageGenerator.generate(geom, raster_path)
+            img = await MapImageGenerator.generate(
+                geom,
+                raster_path,
+                include_satelital_background=include_satelital_background,
+            )
     except NoRasterDataOverlapError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

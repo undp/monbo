@@ -104,3 +104,16 @@ export const SHOW_TESTING_ENVIRONMENT_WARNING = (() => {
 
   return raw.toLowerCase() === "true";
 })();
+
+export const MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION =
+  (() => {
+    const raw =
+      process.env
+        .NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION ??
+      "__NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION__";
+
+    const value = parseInt(raw);
+    if (isNaN(value)) return null;
+
+    return value;
+  })();
