@@ -86,6 +86,8 @@ export const readExcel = async (file: File): Promise<XLSX.WorkBook> => {
       const workbook = XLSX.read(binaryStr, {
         type: "binary",
         cellDates: true,
+        raw: true, // To prevent type conversion
+        cellText: true, // To get raw text values
       });
 
       resolve(workbook);
@@ -145,6 +147,8 @@ export const sheetToJson = (
   const defaultOptions: XLSX.Sheet2JSONOpts = {
     blankrows: false, // Skip empty rows
     raw: true, // Return raw values
+    defval: null, // Default value for empty cells
+    rawNumbers: true, // Keep numbers as raw strings
   };
   return XLSX.utils.sheet_to_json(sheet, { ...defaultOptions, ...options });
 };
@@ -623,6 +627,7 @@ export const loadExcelFileFarmsData = async (
   Object.entries(headerKeywordsMappings).forEach(
     ([internalKey, expectedHeaders]) => {
       headers.forEach((incomingHeader) => {
+        if (!incomingHeader) return;
         // Split header by newline and get the first part
         const cleanHeaderParts = incomingHeader
           .split(/\r?\n/)
