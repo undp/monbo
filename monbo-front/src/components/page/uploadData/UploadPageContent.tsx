@@ -4,6 +4,7 @@ import { Box } from "@mui/material";
 import { Text } from "@/components/reusable/Text";
 import React from "react";
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
+import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 
 interface Props {
   title: string;
@@ -32,7 +33,7 @@ export const UploadPageContent: React.FC<Props> = ({ title, children }) => {
         <Text variant="h3" sx={{ marginLeft: 1.5 }} bold>
           {title}
         </Text>
-        <DevEnvWarning />
+        {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
       </Box>
       {children}
     </Box>

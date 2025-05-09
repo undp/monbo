@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { DownloadTypeSelectionModal } from "./DownloadTypeSelectionModal";
 import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
 import { DataContext } from "@/context/DataContext";
+import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 
 export function PageFooter() {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ export function PageFooter() {
             justifyContent: "space-between",
           }}
         >
-          <DevEnvWarning />
+          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
           <Box sx={{ display: "flex", gap: 2 }}>
             <Button
               variant="contained"
