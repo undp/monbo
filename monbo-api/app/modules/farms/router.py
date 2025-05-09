@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from app.models.farms import FarmData, InputFarmData
-from app.utils.farms import parse_base_information
 from .validations import parse_farms_validation, validate_locale
+from .helpers import generate_farms
 
 
 router = APIRouter()
@@ -57,6 +57,6 @@ def parse_farms(
     preprocessed_farms = parse_farms_validation(body, locale)
 
     # Process farms
-    farm_data = [parse_base_information(farm) for farm in preprocessed_farms]
+    farm_data = generate_farms(preprocessed_farms)
 
     return farm_data
