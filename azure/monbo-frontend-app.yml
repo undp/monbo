@@ -26,6 +26,10 @@ properties:
             value: 1
           - name: NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE
             value: 1
+          - name: NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING
+            value: true
+          - name: NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
+            value: 100
         resources:
           cpu: 0.5
           memory: 1Gi
