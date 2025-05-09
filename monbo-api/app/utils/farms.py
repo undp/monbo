@@ -7,6 +7,7 @@ from app.utils.polygons import (
     get_point_area_and_radius,
 )
 from fastapi import HTTPException
+import re
 
 
 def parse_farm_coordinates_string(farm_coordinates: str) -> list[Coordinates]:
@@ -28,22 +29,11 @@ def parse_farm_coordinates_string(farm_coordinates: str) -> list[Coordinates]:
         coords = parse_farm_coordinates_string(farm_coordinates)
         # coords will be [Coordinates(lng=1.0, lat=2.0), Coordinates(lng=3.0, lat=4.0)]
     """
-    stripped_coordinates = (
-        farm_coordinates.replace("[", "").replace("]", "").replace(" ", "")
-    )
-    if stripped_coordinates == "":
-        return []
+    pattern = r"\(([^,]+),\s*([^)]+)\)"
 
-    separated_coordinates = stripped_coordinates.split(",")
+    matches = re.findall(pattern, farm_coordinates)
 
-    coords = [
-        Coordinates(
-            lng=float(separated_coordinates[i].replace("(", "")),
-            lat=float(separated_coordinates[i + 1].replace(")", "")),
-        )
-        for i in range(0, len(separated_coordinates), 2)
-    ]
-    return coords
+    return [Coordinates(lng=float(lng), lat=float(lat)) for lng, lat in matches]
 
 
 def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
