@@ -73,7 +73,14 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
           for those missing IDs
     """
     # Check if any farms have IDs
-    farms_with_id = [farm for farm in farms_data if bool(farm.id)]
+    farms_with_id = []
+    farms_without_id = []
+    for farm in farms_data:
+        if bool(farm.id):
+            farms_with_id.append(farm)
+        else:
+            farms_without_id.append(farm)
+
     all_have_ids = len(farms_with_id) == len(farms_data)
     none_have_ids = len(farms_with_id) == 0
 
@@ -81,12 +88,20 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
         # All farms have IDs, no action needed
         return farms_data
 
+    if none_have_ids:
+        # Use range for sequential IDs
+        for i, farm_data in enumerate(farms_data):
+            farm_data.id = str(i + 1)
+        return farms_data
+
+    needed_ids = len(farms_without_id)
+
     # IMPORTANT!
     # Due to the random 6-alphanumeric chars ID generation method, the theoretical
     # maximum number of possible IDs is 2,176,782,336. In practice, generating
     # many less IDs could cause performance degradation. So the limit of records
     # this code can handle will be set to 10,000.
-    if len(farms_data) - len(farms_with_id) > MAX_RANDOM_ID_BATCH:
+    if needed_ids > MAX_RANDOM_ID_BATCH:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -95,25 +110,20 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
             ),
         )
 
-    # Generate a set of existing IDs to avoid duplicates
-    existing_ids = {str(farm.id) for farm in farms_with_id}
+    # Generate all random IDs at once
+    random_ids = set()
+    while len(random_ids) < needed_ids:
+        random_ids.update(
+            "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            for _ in range(min(100, needed_ids - len(random_ids)))
+        )
+    random_ids = list(random_ids)
 
     # Assign IDs to farms that need them
-    for i, farm_data in enumerate(farms_data):
-        if none_have_ids:
-            # If none have IDs, assign sequential numbers
-            farm_data.id = str(i + 1)
-        elif not bool(farm_data.id):
-            # If some have IDs but this one doesn't
-            # Generate a short alphanumeric ID (6 characters)
-            while True:
-                short_id = "".join(
-                    random.choices(string.ascii_uppercase + string.digits, k=6)
-                )
-                if short_id not in existing_ids:
-                    break
-            farm_data.id = short_id
-            existing_ids.add(short_id)
+    for idx, farm_data in enumerate(farms_without_id):
+        farm_data.id = random_ids[idx]
+
+    return farms_data
 
 
 def validate_production_date(production_date: str) -> str:
