@@ -37,7 +37,7 @@ class InputFarmData(BaseModel):
     productionQuantity: int | float | str
     productionQuantityUnit: str
     country: str
-    region: str
+    region: Optional[str] = None
     farmCoordinates: str
     cropType: str
     association: Optional[str] = None
@@ -52,7 +52,7 @@ class PreProcessedFarmData(BaseModel):
     productionQuantity: float
     productionQuantityUnit: str
     country: str
-    region: str
+    region: Optional[str] = None
     farmCoordinates: list[Coordinates]
     cropType: str
     association: Optional[str] = None
