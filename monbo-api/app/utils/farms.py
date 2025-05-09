@@ -1,10 +1,10 @@
 from app.models.farms import PreProcessedFarmData, FarmData, PolygonSummary
 from app.models.polygons import Coordinates, PolygonDetails, PointDetails
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.polygons import (
     determine_polygon_type,
     generate_polygon,
     get_point_area_and_radius,
-    get_polygon_area,
 )
 from fastapi import HTTPException
 
@@ -92,7 +92,7 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
                     ),
                     path=farm.farmCoordinates,
                 )
-                area = get_polygon_area(polygon)
+                area = GeometryCalculator.calculate_polygon_area(polygon)
         elif poly_type == "point":
             area, radius = get_point_area_and_radius(float(farm.area))
             polygon = generate_polygon(farm.farmCoordinates, radius)

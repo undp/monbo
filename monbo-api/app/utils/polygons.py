@@ -1,9 +1,7 @@
 import math
 from typing import Tuple, Literal
 from app.models.polygons import Coordinates
-from pyproj import CRS, Transformer
 from shapely.geometry import Point as SPoint, Polygon
-from shapely.ops import transform
 from app.utils.image_generation.GeoHelper import GeoHelper
 
 
@@ -90,38 +88,6 @@ def generate_polygon(
 
     points = [(coord.lng, coord.lat) for coord in coordinates]
     return Polygon(points)
-
-
-def get_polygon_area(polygon: Polygon) -> float:
-    """
-    Calculate the area of a given polygon.
-
-    This function transforms the given polygon's coordinates from the WGS 84
-    coordinate system (EPSG:4326) to an Albers Equal-Area projection, which
-    is defined using the polygon's bounding box. It then calculates the area
-    of the transformed polygon and returns it rounded to two decimal places.
-
-    Args:
-        polygon (Polygon): The polygon for which the area is to be calculated.
-
-    Returns:
-        float: The area of the polygon in square meters, rounded to two decimal places.
-    """
-    # Define an Albers Equal-Area projection using the polygon's bounding box
-    lon_min, lat_min, lon_max, lat_max = polygon.bounds
-    crs_albers = CRS.from_proj4(
-        f"+proj=aea +lat_1={lat_min} +lat_2={lat_max} "
-        f"+lon_0={(lon_min + lon_max) / 2} +lat_0={(lat_min + lat_max) / 2}"
-    )
-
-    # Create a transformer from WGS 84 to the Albers projection
-    transformer = Transformer.from_crs(CRS("EPSG:4326"), crs_albers, always_xy=True)
-
-    # Transform the polygon to the projected coordinate system
-    projected_polygon = transform(transformer.transform, polygon)
-
-    # Return the area rounded to two decimal places
-    return round(projected_polygon.area, 2)
 
 
 def get_point_area_and_radius(area: float) -> Tuple[float, float]:

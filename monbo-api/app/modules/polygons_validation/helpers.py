@@ -4,7 +4,7 @@ from app.models.polygons import Point
 from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Polygon
-from app.utils.polygons import get_polygon_area
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
 from app.models.farms import FarmPolygonDetailDataWithPolygon
 from shapely.validation import explain_validity
@@ -86,7 +86,9 @@ def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
 
     inconsistencies = []
     for overlap in overlaps:
-        overlap_area = get_polygon_area(overlap["intersection_polygon"])
+        overlap_area = GeometryCalculator.calculate_polygon_area(
+            overlap["intersection_polygon"]
+        )
 
         overlap_farms_ids = [
             farms[overlap["polygon1_idx"]].id,
@@ -97,7 +99,12 @@ def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
             polygons[overlap["polygon1_idx"]],
             polygons[overlap["polygon2_idx"]],
         ]
-        overlap_polygons_area = sum(list(map(get_polygon_area, overlap_polygons)))
+        overlap_polygons_area = sum(
+            [
+                GeometryCalculator.calculate_polygon_area(polygon)
+                for polygon in overlap_polygons
+            ]
+        )
 
         # Calculate the union area (total area minus the double-counted overlap)
         union_area = overlap_polygons_area - overlap_area

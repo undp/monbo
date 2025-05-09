@@ -3,8 +3,8 @@ from app.modules.polygons_validation.helpers import (
     get_geometry_paths,
     detect_overlaps,
 )
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.polygons import (
-    get_polygon_area,
     determine_polygon_type,
     generate_polygon,
 )
@@ -126,7 +126,7 @@ def test_get_polygon_area():
         ]
     )
     gee_poly1_area = 10369.361754695708
-    poly1_area = get_polygon_area(polygon_1)
+    poly1_area = GeometryCalculator.calculate_polygon_area(polygon_1)
     assert abs(poly1_area - gee_poly1_area) / gee_poly1_area < 0.01
 
     polygon_2 = Polygon(
@@ -163,7 +163,7 @@ def test_get_polygon_area():
         ]
     )
     gee_poly2_area = 77167.23433934484
-    poly2_area = get_polygon_area(polygon_2)
+    poly2_area = GeometryCalculator.calculate_polygon_area(polygon_2)
     assert abs(poly2_area - gee_poly2_area) / gee_poly2_area < 0.01
 
 

@@ -7,6 +7,7 @@ class GeographicConstants:
 
     # Earth measurements
     EARTH_RADIUS_METERS = 6378137  # WGS84 equatorial radius in meters
+    METERS_PER_DEGREE = 111320
 
     # Maximum/minimum values for Web Mercator projection
     MAX_LATITUDE = 85.0511  # Web Mercator projection limit

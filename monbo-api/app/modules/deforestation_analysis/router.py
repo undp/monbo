@@ -11,10 +11,10 @@ from app.modules.deforestation_analysis.helpers import (
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.maps import get_map_raster_path
 from app.utils.polygons import (
     generate_polygon,
-    get_polygon_area,
 )
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
@@ -51,7 +51,7 @@ def analize(body: AnalizeBody):
                         pixel_area = get_pixel_area(map_data)
                         deforestation_ratio = get_deforestation_ratio(
                             loss_year_data,
-                            get_polygon_area(polygon),
+                            GeometryCalculator.calculate_polygon_area(polygon),
                             pixel_area,
                         )
                         farmsResults.append(
