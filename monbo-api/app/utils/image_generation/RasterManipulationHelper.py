@@ -9,7 +9,7 @@ from app.utils.image_generation.constants import MapColors, MapDefaults
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.RasterDataContext import RasterDataContext
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
-from app.utils.image_generation.GeometryCalculator import GeometryCalculator
+from app.helpers.GeometryCalculator import GeometryCalculator
 
 
 class RasterManipulationHelper:

@@ -3,7 +3,7 @@ from typing import Tuple
 from .GeoHelper import GeoHelper
 from app.config.env import GCP_MAPS_PLATFORM_API_KEY, GCP_MAPS_PLATFORM_SIGNATURE_SECRET
 from app.utils.image_generation.constants import MapDefaults
-from app.utils.image_generation.GeometryCalculator import GeometryCalculator
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.errors import GoogleMapsAPIError
 from PIL import Image
 from shapely.geometry.base import BaseGeometry

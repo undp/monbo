@@ -5,7 +5,7 @@ from pyproj import Transformer
 from PIL import Image, ImageDraw
 from typing import Optional, Tuple
 from app.utils.image_generation.GeoHelper import GeoHelper
-from app.utils.image_generation.GeometryCalculator import GeometryCalculator
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
 from app.utils.image_generation.errors import (
     GeometryTypeError,

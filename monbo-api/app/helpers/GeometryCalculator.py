@@ -1,16 +1,17 @@
-from typing import Tuple
-from shapely.geometry.base import BaseGeometry
+from typing import Tuple, Union
 from app.config.logger import get_logger
+from shapely.geometry import Polygon, Point
+
 
 # Get logger for this module
-logger = get_logger("utils.image_generation.GeometryCalculator")
+logger = get_logger("helpers.GeometryCalculator")
 
 
 class GeometryCalculator:
     """Base class for geometry calculations used by multiple modules"""
 
     @staticmethod
-    def calculate_geometry_center(geom: BaseGeometry) -> Tuple[float, float]:
+    def calculate_geometry_center(geom: Union[Polygon, Point]) -> Tuple[float, float]:
         """
         Calculate the center point of a geometry (Polygon or Point).
 
