@@ -1,3 +1,27 @@
+## [1.5.1] - 2025-05-12
+
+### Added
+
+- Create decorator for measuring method times at API
+
+### Changed
+
+- Improve performance of generating random IDs for farms
+- Improve performance of parsing farm coordinates string
+- Improve performance when calculating polygons areas
+- Move farms generation to a helper method
+- Move GeometryCalculator helper class to another folder
+
+### Fixed
+
+- Show "testing environment" warning on all pages and use the enviromental variable in all cases
+- Make region attribute optional when parsing farms data at API
+- Make area column optional when uploading excel file
+
+### Other
+
+- Add new enviromental variables to azure container apps YML template file
+
 ## [1.5.0] - 2025-05-07
 
 ### Added
