@@ -2,6 +2,7 @@ import { Chip, Tooltip, SxProps, Theme } from "@mui/material";
 import { OutlinedMomboIcon } from "@/components/icons/MomboIcon";
 import { formatNumber } from "@/utils/numbers";
 import { useTranslation } from "react-i18next";
+import { getDeforestationPercentageChipColor } from "@/utils/styling";
 
 interface DeforestationFreeCounterChipProps {
   count: number | null;
@@ -33,7 +34,7 @@ export const DeforestationFreeCounterChip: React.FC<
         label={formatNumber(count, 0)}
         icon={<OutlinedMomboIcon sx={{ fontSize: 12 }} />}
         sx={{
-          backgroundColor: "#2E7D32",
+          backgroundColor: getDeforestationPercentageChipColor(0),
           color: "white",
           ...sx,
         }}

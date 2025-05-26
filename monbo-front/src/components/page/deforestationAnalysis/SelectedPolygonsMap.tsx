@@ -12,6 +12,7 @@ import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDef
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 import { FarmData } from "@/interfaces/Farm";
 import { isDeforestationAboveThreshold } from "@/utils/deforestation";
+import { getDeforestationPercentageChipColor } from "@/utils/styling";
 
 interface SelectedPolygonsMapProps {
   farmsData: FarmData[];
@@ -37,11 +38,12 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
     [farmsData, selectedPolygonIdAtMap]
   );
 
-  const deforestationLevel = useMemo(
+  const deforestationLevel = useMemo<number | null>(
     () =>
       deforestationAnalysisResults
         ?.find((d) => d.mapId === selectedMapId)
-        ?.farmResults.find((d) => d.farmId === selectedPolygonIdAtMap)?.value,
+        ?.farmResults.find((d) => d.farmId === selectedPolygonIdAtMap)?.value ??
+      null,
     [selectedMapId, selectedPolygonIdAtMap, deforestationAnalysisResults]
   );
 
@@ -169,13 +171,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
                 marginLeft: 1,
                 textAlign: "right",
                 textTransform: "uppercase",
-                color:
-                  deforestationLevel !== undefined &&
-                  deforestationLevel !== null
-                    ? deforestationLevel > 0
-                      ? "#D32F2F"
-                      : "#2E7D32"
-                    : undefined,
+                color: getDeforestationPercentageChipColor(deforestationLevel),
               }}
             >
               {deforestationLevel !== undefined && deforestationLevel !== null
