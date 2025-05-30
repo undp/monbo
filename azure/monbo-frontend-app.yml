@@ -29,7 +29,7 @@ properties:
           - name: NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING
             value: true
           - name: NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
-            value: 100
+            value: 210
         resources:
           cpu: 0.5
           memory: 1Gi
