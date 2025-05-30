@@ -47,5 +47,16 @@
       "https://drive.google.com/drive/folders/1_4Y_tGth6FSJl32VlAeq8kX5lhP1GUlf"
     ],
     "available_countries_codes": ["CO"]
+  },
+  {
+    "id": 4,
+    "raster_filename": "ecuador2.tif",
+    "attributes_filename": "ecuador2.json",
+    "considerations_filename": "ecuador2.md",
+    "pixel_size": 30,
+    "baseline": "2020",
+    "compared_against": "2023",
+    "references": [],
+    "available_countries_codes": ["EC"]
   }
 ]

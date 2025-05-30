@@ -1,0 +1,10 @@
+{
+  "name": "Mapa de deforestación Ecuador",
+  "alias": "MAATE 2020-2023",
+  "coverage": "Ecuador",
+  "source": "Cobertura generada por el equipo técnico PNUD-PPR Ecuador",
+  "resolution": "30 x 30 metros",
+  "contentDate": "Cambio forestal entre 2020 y 2023",
+  "updateFrequency": null,
+  "publishDate": null
+}
