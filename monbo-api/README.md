@@ -29,6 +29,87 @@ monbo-api/
 └── .env.template  # Template for environment variables
 ```
 
+## Core functionalities
+
+These are the core modules of the API:
+
+### 1. Polygons Validation
+
+This module is responsible for validating the polygons and points of interest. The current implemented validations are:
+
+- Polygons overlap
+  ![](/docs/polygon_overlap_example.png)
+
+- Invalid geometries:
+  - Polygons self-intersections
+    ![](/docs/polygon_self_intersection_example.png)
+  - Polygon with few points
+    ![](/docs/polygon_few_points_example.png)
+- Empty polygons
+
+The libraries used for this module are:
+
+- [Shapely](https://shapely.readthedocs.io/en/stable/)
+
+### 2. Deforestation Analysis
+
+This module is responsible for analyzing the deforestation of the polygons and points of interest.
+
+This module uses the raster layers located in the `monbo-api/app/maps` directory.
+
+The libraries used for this module are:
+
+- [Shapely](https://shapely.readthedocs.io/en/stable/): for geometric operations
+- [Rasterio](https://rasterio.readthedocs.io/en/stable/): for raster data processing and manipulation
+- [Geopandas](https://geopandas.org/en/stable/): for geospatial data handling
+- [Mercantile](https://mercantile.readthedocs.io/en/stable/index.html): for tile calculations
+- [Numpy](https://numpy.org/): for numerical operations
+- [Pillow](https://pillow.readthedocs.io/en/stable/): for image processing
+- [asyncio](https://docs.python.org/3/library/asyncio.html): for asynchronous operations and context management
+
+The deforestation percentage is calculated using the following formula:
+
+$$
+\text{deforestation\_percentage} = \frac{\text{deforested\_pixels\_inside\_polygon} * \text{pixel\_area}}{\text{total\_polygon\_area}}
+$$
+
+with the following considerations:
+
+- The pixels inside the polygon are found using [rasterio's mask](https://rasterio.readthedocs.io/en/latest/api/rasterio.mask.html) method.
+- The pixel area depends on the raster layer resolution. For example, if the resolution is 30x30 meters, the pixel area will be 900 m².
+- The polygon total area is calculated based on the [area calculation methodology](docs/polygon_area_calculation.md).
+
+So, if the deforested pixels inside the polygon are 100, the pixel area is 900 square meters and the total polygon area is 50 hectares, the deforestation percentage would be 18%.
+
+### 3. Report Generation
+
+This module is responsible for providing the necessary data and assets to generate, at Frontend, the PDF report for the deforestation analysis.
+
+Also, view the report generation docs at Frontend documentation [here](monbo-front/README.md).
+
+The file generated is a PNG image combining a satelital background with the polygon drawn on top of it and the deforestation areas surrounding the polygon.
+
+![](/docs/deforestation_image_example.png)
+
+The libraries used for this module are:
+
+- **PIL (Pillow)**: primary image processing library for creating, manipulating, and combining images
+- **numpy**: for numerical operations and array manipulation of raster data
+- **shapely**: for geometric operations, polygon/point handling, and spatial calculations
+- **pyproj**: for coordinate system transformations (WGS84 to Web Mercator)
+- **rasterio**: for reading and manipulating raster data (TIF files)
+- **geopandas**: for geospatial data handling
+- **httpx**: for making HTTP requests to Google Maps API
+- **urllib.parse**: for URL parsing and manipulation
+- **hashlib**: for generating cryptographic hashes
+- **hmac**: for HMAC signature generation
+- **base64e**: for encoding/decoding data
+- **asyncio**: for asynchronous operations and context management
+- **io**: for BytesIO operations
+- **math**: for mathematical calculations
+- **typing**: for type hints
+- **types**: for type checking in context managers
+
 ## Running the Application
 
 There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
