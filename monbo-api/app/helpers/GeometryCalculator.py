@@ -30,6 +30,13 @@ class GeometryCalculator:
     )
 
     @staticmethod
+    def _lon_span(lmin: float, lmax: float) -> float:
+        """Compute the smallest distance between two longitudes,
+        accounting for wrap-around."""
+        span = (lmax - lmin + 360.0) % 360.0
+        return 360.0 - span if span > 180.0 else span
+
+    @staticmethod
     def calculate_geometry_center(geom: Union[Polygon, Point]) -> Tuple[float, float]:
         """
         Calculate the center point of a geometry (Polygon or Point).
@@ -194,7 +201,7 @@ class GeometryCalculator:
         # Get polygon bounds and calculate dimensions
         bounds = polygon.bounds
         lon_min, lat_min, lon_max, lat_max = bounds
-        width_deg = lon_max - lon_min
+        width_deg = GeometryCalculator._lon_span(lon_min, lon_max)
         height_deg = lat_max - lat_min
         center_lat = (lat_min + lat_max) / 2
 
