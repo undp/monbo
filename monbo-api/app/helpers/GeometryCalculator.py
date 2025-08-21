@@ -92,9 +92,19 @@ class GeometryCalculator:
             minimum and maximum latitudes.
         """
         lon_min, lat_min, lon_max, lat_max = bounds
+        lat0 = (lat_min + lat_max) / 2
+        lon0 = (lon_min + lon_max) / 2
+
+        # Ensure distinct parallels and clamp to valid range
+        EPS = 1e-6
+        if abs(lat_max - lat_min) < EPS:
+            lat_1 = max(min(lat0 - 0.5, 89.0), -89.0)
+            lat_2 = max(min(lat0 + 0.5, 89.0), -89.0)
+        else:
+            lat_1, lat_2 = lat_min, lat_max
+
         local_crs = CRS.from_proj4(
-            f"+proj=aea +lat_1={lat_min} +lat_2={lat_max} "
-            f"+lon_0={(lon_min + lon_max) / 2} +lat_0={(lat_min + lat_max) / 2}"
+            f"+proj=aea +lat_1={lat_1} +lat_2={lat_2} +lon_0={lon0} +lat_0={lat0}"
         )
         transformer = Transformer.from_crs(
             GeometryCalculator.WGS84_CRS, local_crs, always_xy=True
