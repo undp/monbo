@@ -70,7 +70,7 @@ The libraries used for this module are:
 The deforestation percentage is calculated using the following formula:
 
 $$
-\text{deforestation\_percentage} = \frac{\text{deforested\_pixels\_inside\_polygon} * \text{pixel\_area}}{\text{total\_polygon\_area}}
+\text{deforestationPercentage} = \frac{\text{deforestedPixelsInsidePolygon} * \text{pixelArea}}{\text{totalPolygonArea}}
 $$
 
 with the following considerations:
