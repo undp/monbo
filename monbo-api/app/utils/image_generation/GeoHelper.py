@@ -196,3 +196,11 @@ class GeoHelper:
             degrees_lon = degrees_lat
 
         return degrees_lat, degrees_lon
+
+    @staticmethod
+    def deg_for_square_side(area_m2: float) -> float:
+        """
+        Provides the degrees for a square side of the given area in square meters.
+        """
+        side_m = (area_m2) ** 0.5
+        return side_m / GeographicConstants.METERS_PER_DEGREE

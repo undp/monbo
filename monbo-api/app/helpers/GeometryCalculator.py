@@ -1,10 +1,9 @@
 from typing import Tuple, Union, Final
 from app.config.logger import get_logger
-import math
 from pyproj import CRS, Transformer
 from shapely.ops import transform
 from shapely.geometry import Polygon, Point
-from app.utils.image_generation.constants import GeographicConstants
+from app.utils.image_generation.GeoHelper import GeoHelper
 
 
 # Get logger for this module
@@ -15,9 +14,14 @@ class GeometryCalculator:
     """Base class for geometry calculations used by multiple modules"""
 
     # Constants for area calculation
-    SMALL_AREA_THRESHOLD: Final[float] = 0.1  # degrees
-    HIGH_LATITUDE_THRESHOLD: Final[float] = 60  # degrees
-    LARGE_AREA_THRESHOLD: Final[float] = 1.0  # degrees
+    HIGH_LATITUDE_THRESHOLD: Final[float] = 30  # degrees
+
+    # 25 hectares at equator
+    MEDIUM_AREA_THRESHOLD: Final[float] = GeoHelper.deg_for_square_side(25 * 10000)
+
+    # 50 hectares at equator
+    LARGE_AREA_THRESHOLD: Final[float] = GeoHelper.deg_for_square_side(50 * 10000)
+
     ERROR_THRESHOLD: Final[float] = 5.0  # percent
 
     # Define CRS at class level
@@ -25,6 +29,18 @@ class GeometryCalculator:
     GLOBAL_CRS: Final[CRS] = CRS.from_proj4(
         "+proj=aea +lat_1=30 +lat_2=60 +lon_0=0 +lat_0=0"
     )
+
+    # Create transformer once at class level
+    GLOBAL_TRANSFORMER: Final[Transformer] = Transformer.from_crs(
+        WGS84_CRS, GLOBAL_CRS, always_xy=True
+    )
+
+    @staticmethod
+    def _lon_span(lmin: float, lmax: float) -> float:
+        """Compute the smallest distance between two longitudes,
+        accounting for wrap-around."""
+        span = (lmax - lmin + 360.0) % 360.0
+        return 360.0 - span if span > 180.0 else span
 
     @staticmethod
     def calculate_geometry_center(geom: Union[Polygon, Point]) -> Tuple[float, float]:
@@ -57,41 +73,6 @@ class GeometryCalculator:
         return center_lat, center_lon
 
     @staticmethod
-    def _calculate_small_area(
-        width_deg: float,
-        height_deg: float,
-        center_lat: float,
-    ) -> float:
-        """
-        Calculate area for small polygons using a simplified formula (haversine).
-
-        This method is most accurate for small areas (< 0.1 degrees) and provides
-        a fast approximation. For larger areas, consider using projection-based methods.
-        The calculation uses the METERS_PER_DEGREE constant (111,320 meters/degree at
-        equator) and adjusts for latitude using cosine correction.
-
-        Args:
-            width_deg: Width of the polygon in degrees longitude
-            height_deg: Height of the polygon in degrees latitude
-            center_lat: Center latitude of the polygon, used for cosine correction
-
-        Returns:
-            float: Area in square meters, rounded to 2 decimal places
-
-        Note:
-            This is an approximation that works well for small areas near the equator.
-            For high latitudes (> 60°) or large areas (> 1°), use projection-based
-            methods for better accuracy.
-        """
-        width_meters = (
-            GeographicConstants.METERS_PER_DEGREE
-            * math.cos(math.radians(center_lat))
-            * width_deg
-        )
-        height_meters = GeographicConstants.METERS_PER_DEGREE * height_deg
-        return round(width_meters * height_meters, 2)
-
-    @staticmethod
     def _calculate_area_with_local_projection(
         polygon: Polygon,
         bounds: Tuple[float, float, float, float],
@@ -117,9 +98,19 @@ class GeometryCalculator:
             minimum and maximum latitudes.
         """
         lon_min, lat_min, lon_max, lat_max = bounds
+        lat0 = (lat_min + lat_max) / 2
+        lon0 = (lon_min + lon_max) / 2
+
+        # Ensure distinct parallels and clamp to valid range
+        EPS = 1e-6
+        if abs(lat_max - lat_min) < EPS:
+            lat_1 = max(min(lat0 - 0.5, 89.0), -89.0)
+            lat_2 = max(min(lat0 + 0.5, 89.0), -89.0)
+        else:
+            lat_1, lat_2 = lat_min, lat_max
+
         local_crs = CRS.from_proj4(
-            f"+proj=aea +lat_1={lat_min} +lat_2={lat_max} "
-            f"+lon_0={(lon_min + lon_max) / 2} +lat_0={(lat_min + lat_max) / 2}"
+            f"+proj=aea +lat_1={lat_1} +lat_2={lat_2} +lon_0={lon0} +lat_0={lat0}"
         )
         transformer = Transformer.from_crs(
             GeometryCalculator.WGS84_CRS, local_crs, always_xy=True
@@ -145,12 +136,10 @@ class GeometryCalculator:
             For areas outside this range, consider using
             _calculate_area_with_local_projection() for better accuracy.
         """
-        transformer = Transformer.from_crs(
-            GeometryCalculator.WGS84_CRS,
-            GeometryCalculator.GLOBAL_CRS,
-            always_xy=True,
+        projected_polygon = transform(
+            GeometryCalculator.GLOBAL_TRANSFORMER.transform,
+            polygon,
         )
-        projected_polygon = transform(transformer.transform, polygon)
         return round(projected_polygon.area, 2)
 
     @staticmethod
@@ -188,7 +177,15 @@ class GeometryCalculator:
         local_area = local_projected.area
 
         # Calculate percent error
+        if local_area <= 0:
+            logger.warning(
+                "Local projected area is 0; skipping percent error check to avoid "
+                "division by zero"
+            )
+            return
+
         percent_error = abs((calculated_area - local_area) / local_area * 100)
+        logger.debug(f"Area calculation percent error: {percent_error:.1f}%")
 
         if percent_error > GeometryCalculator.ERROR_THRESHOLD:
             logger.warning(
@@ -200,7 +197,7 @@ class GeometryCalculator:
     def calculate_polygon_area(polygon: Polygon) -> float:
         """
         Calculate the area of a given polygon using optimized methods
-        based on size and location.
+        based on size and location, balancing accuracy and performance.
 
         Args:
             polygon (Polygon): The polygon for which to calculate the area
@@ -209,9 +206,12 @@ class GeometryCalculator:
             float: The area in square meters, rounded to 2 decimal places
 
         The method uses different calculation strategies based on:
-        1. Size of the polygon (small vs large)
-        2. Latitude of the polygon (high vs mid/low)
-        3. Potential error in the calculation
+        1. Local projection when necessary for accuracy (high latitude areas >30°,
+           or large areas where projection distortion matters)
+        2. Global projection for better performance (any other case)
+
+        Also, the method checks for potential area calculation errors on medium areas
+        to avoid large errors.
         """
         # Validate polygon
         if not polygon.is_valid:
@@ -224,37 +224,34 @@ class GeometryCalculator:
         # Get polygon bounds and calculate dimensions
         bounds = polygon.bounds
         lon_min, lat_min, lon_max, lat_max = bounds
-        width_deg = lon_max - lon_min
+        width_deg = GeometryCalculator._lon_span(lon_min, lon_max)
         height_deg = lat_max - lat_min
         center_lat = (lat_min + lat_max) / 2
 
-        # Strategy 1: Fast calculation for small areas
-        if (
-            width_deg < GeometryCalculator.SMALL_AREA_THRESHOLD
-            and height_deg < GeometryCalculator.SMALL_AREA_THRESHOLD
-        ):
-            return GeometryCalculator._calculate_small_area(
-                width_deg, height_deg, center_lat
-            )
-
-        # Strategy 2: High latitude or large area - use local projection
+        # Strategy 1: Use local projection when necessary for accuracy
+        # (high latitude areas or large areas)
         if (
             abs(center_lat) > GeometryCalculator.HIGH_LATITUDE_THRESHOLD
             or width_deg > GeometryCalculator.LARGE_AREA_THRESHOLD
             or height_deg > GeometryCalculator.LARGE_AREA_THRESHOLD
         ):
-            return GeometryCalculator._calculate_area_with_local_projection(
+            area = GeometryCalculator._calculate_area_with_local_projection(
                 polygon, bounds
             )
+            logger.debug(f"Calculated area using local projection: {area} m²")
+            return area
 
-        # Strategy 3: Mid/low latitude and medium area - use global projection
+        # Strategy 2: Use global projection for better performance
+        # (low/mid latitude areas where global projection is accurate)
         area = GeometryCalculator._calculate_area_with_global_projection(polygon)
+        logger.debug(f"Calculated area using global projection: {area} m²")
 
-        # Check for potential large errors
+        # Check for potential area calculation errors on medium areas
         if (
-            width_deg > GeometryCalculator.LARGE_AREA_THRESHOLD
-            or height_deg > GeometryCalculator.LARGE_AREA_THRESHOLD
+            width_deg > GeometryCalculator.MEDIUM_AREA_THRESHOLD
+            or height_deg > GeometryCalculator.MEDIUM_AREA_THRESHOLD
         ):
+            logger.debug("Checking area accuracy for medium area")
             GeometryCalculator._check_area_accuracy(
                 polygon,
                 area,
