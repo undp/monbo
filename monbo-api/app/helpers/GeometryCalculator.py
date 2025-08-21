@@ -3,6 +3,7 @@ from app.config.logger import get_logger
 from pyproj import CRS, Transformer
 from shapely.ops import transform
 from shapely.geometry import Polygon, Point
+from app.utils.image_generation.GeoHelper import GeoHelper
 
 
 # Get logger for this module
@@ -14,8 +15,13 @@ class GeometryCalculator:
 
     # Constants for area calculation
     HIGH_LATITUDE_THRESHOLD: Final[float] = 30  # degrees
-    MEDIUM_AREA_THRESHOLD: Final[float] = 0.00449  # degrees  (~25 hectares at equator)
-    LARGE_AREA_THRESHOLD: Final[float] = 0.006352  # degrees  (~50 hectares at equator)
+
+    # 25 hectares at equator
+    MEDIUM_AREA_THRESHOLD: Final[float] = GeoHelper.deg_for_square_side(25 * 10000)
+
+    # 50 hectares at equator
+    LARGE_AREA_THRESHOLD: Final[float] = GeoHelper.deg_for_square_side(50 * 10000)
+
     ERROR_THRESHOLD: Final[float] = 5.0  # percent
 
     # Define CRS at class level
