@@ -161,6 +161,13 @@ class GeometryCalculator:
         local_area = local_projected.area
 
         # Calculate percent error
+        if local_area <= 0:
+            logger.warning(
+                "Local projected area is 0; skipping percent error check to avoid "
+                "division by zero"
+            )
+            return
+
         percent_error = abs((calculated_area - local_area) / local_area * 100)
         logger.debug(f"Area calculation percent error: {percent_error:.1f}%")
 
