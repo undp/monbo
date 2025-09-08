@@ -58,5 +58,16 @@
     "compared_against": "2023",
     "references": [],
     "available_countries_codes": ["EC"]
+  },
+  {
+    "id": 5,
+    "raster_filename": "cr_mocupp_perdida_ca_10m.tif",
+    "attributes_filename": "costa_rica_mocupp.json",
+    "considerations_filename": "costa_rica_mocupp.md",
+    "pixel_size": 10,
+    "baseline": "2021",
+    "compared_against": "2022",
+    "references": [],
+    "available_countries_codes": ["CR"]
   }
 ]
