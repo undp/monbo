@@ -1,6 +1,6 @@
 ### Definiciones de datos y limitaciones
 
-MOCUPP mide la pérdida, ganancia o no cambios de la cobertura arbórea para Costa Rica.
+MOCUPP mide la pérdida, ganancia o no cambios de la cobertura arbórea para Costa Rica (solamente en la zona cafetalera. No cubre la totalidad del país).
 
 **Cobertura arbórea**: Comprende las áreas naturales, seminaturales o plantadas, constituidas principalmente por elementos arbóreos o arbustivos (especies nativas o exóticas) identificables a una escala de 1:10.000, utilizando un pixel de 10x10 metros. Con una superficie mínima de 0,5 ha (UMC) cubierta por un dosel abierto o cerrado. Incluye: bosque en todas sus sucesiones, manglar, páramo y plantación forestal. Se incorporan, además, yolillales y bambusales debido a que, por la escala y resolución utilizadas, estas coberturas se asemejan a elementos arbóreos o arbustivos (Aguilar, Vargas, Ávila y Miller, 2020).
 
