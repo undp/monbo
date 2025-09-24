@@ -5,9 +5,10 @@ from app.utils.polygons import (
     generate_polygon,
     get_point_area_and_radius,
 )
+from shapely import wkt
+from shapely.geometry import Point as ShapelyPoint, Polygon as ShapelyPolygon
 from typing import Literal
 from fastapi import HTTPException
-import re
 import json
 
 
@@ -15,7 +16,7 @@ def parse_farm_coordinates_string(
     coordinates_format: str,
     geometry_type: str,
     farm_coordinates: str,
-) -> tuple[Literal["Point", "Polygon"], list[Coordinates]]:
+) -> list[Coordinates]:
     """
     Parses a string of farm coordinates into a list of Coordinates objects.
 
@@ -27,12 +28,11 @@ def parse_farm_coordinates_string(
 
     Returns:
         list[Coordinates]: A list of Coordinates objects with longitude (lng) and
-        latitude (lat) attributes representing the coordinates. Returns an empty
-        list if the input string is empty.
+        latitude (lat) attributes representing the coordinates.
 
     Raises:
         ValueError: If the geometry_type is not supported or coordinates
-                   cannot be parsed.
+                   cannot be parsed or are empty.
 
     Examples:
         coordinates_format = "WKT"
@@ -82,7 +82,7 @@ def parse_farm_coordinates_string(
         else:
             raise ValueError(f"Unsupported coordinates format: {coordinates_format}")
     except Exception as e:
-        raise ValueError(f"Error parsing coordinates: {str(e)}")
+        raise ValueError(f"Error parsing coordinates: {str(e)}") from e
 
 
 def _parse_wkt_coordinates(
@@ -99,32 +99,18 @@ def _parse_wkt_coordinates(
     Returns:
         list[Coordinates]: List of coordinate objects
     """
-    if geometry_type not in ["Point", "Polygon"]:
-        raise ValueError("Unsupported geometry type")
-
-    are_point_coordinates = farm_coordinates.upper().startswith("POINT")
-    are_polygon_coordinates = farm_coordinates.upper().startswith("POLYGON")
-
-    if (not are_point_coordinates and not are_polygon_coordinates):
-        raise ValueError("Unsupported WKT geometry")
-
-    if geometry_type == "Point" and not are_point_coordinates:
-        raise ValueError("Inconsistent geometry_type and WKT coordinates")
-    elif geometry_type == "Polygon" and not are_polygon_coordinates:
-        raise ValueError("Inconsistent geometry_type and WKT coordinates")
-
-    coordinates = []
-
-    # Pattern to match coordinate pairs in WKT format: (lon lat) or lon lat,lon lat,...
-    # This pattern handles both POINT format with parentheses and POLYGON format with
-    # comma separation
-    pattern = r"([+-]?\d+(?:\.\d+)?)\s+([+-]?\d+(?:\.\d+)?)"
-    matches = re.findall(pattern, farm_coordinates)
-
-    for lng_str, lat_str in matches:
-        coordinates.append(Coordinates(lng=float(lng_str), lat=float(lat_str)))
-
-    return coordinates
+    geom = wkt.loads(farm_coordinates)
+    if geometry_type == "Point":
+        if not isinstance(geom, ShapelyPoint):
+            raise ValueError("Inconsistent geometry_type and WKT coordinates")
+        return [Coordinates(lng=float(geom.x), lat=float(geom.y))]
+    if geometry_type == "Polygon":
+        if not isinstance(geom, ShapelyPolygon):
+            raise ValueError("Inconsistent geometry_type and WKT coordinates")
+        return [
+            Coordinates(lng=float(x), lat=float(y)) for x, y in geom.exterior.coords
+        ]
+    raise ValueError("Unsupported geometry type")
 
 
 def _parse_geojson_point_coordinates(farm_coordinates: str) -> list[Coordinates]:
@@ -142,9 +128,10 @@ def _parse_geojson_point_coordinates(farm_coordinates: str) -> list[Coordinates]
         if not isinstance(coords, list) or len(coords) != 2:
             raise ValueError("GeoJSON Point must be an array with exactly 2 elements")
 
-        return [Coordinates(lng=float(coords[0]), lat=float(coords[1]))]
-    except json.JSONDecodeError:
-        raise ValueError("Invalid JSON format for GeoJSON Point")
+        lng, lat = coords
+        return [Coordinates(lng=float(lng), lat=float(lat))]
+    except (json.JSONDecodeError, TypeError, ValueError) as e:
+        raise ValueError(f"Invalid GeoJSON Point coordinates: {e}")
 
 
 def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinates]:
@@ -174,14 +161,12 @@ def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinate
                     raise ValueError(
                         "Each coordinate must be an array with exactly 2 elements"
                     )
-
-                coordinates.append(
-                    Coordinates(lng=float(coord[0]), lat=float(coord[1]))
-                )
+                lng, lat = coord
+                coordinates.append(Coordinates(lng=float(lng), lat=float(lat)))
 
         return coordinates
-    except json.JSONDecodeError:
-        raise ValueError("Invalid JSON format for GeoJSON Polygon")
+    except (json.JSONDecodeError, TypeError, ValueError) as e:
+        raise ValueError(f"Invalid GeoJSON Polygon coordinates: {e}")
 
 
 def parse_base_information(farm: PreProcessedFarmData) -> FarmData:

@@ -90,8 +90,12 @@ const validateWKTCoordinates = (coordinates: string): boolean => {
  */
 const validateGeoJSONPointCoordinates = (coordinates: string): boolean => {
   // GeoJSON Point: [longitude, latitude] - exactly 2 numbers
-  const pointRegex = /^\[\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*\]$/;
-  return pointRegex.test(coordinates.trim());
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+    return isValidCoordinatePair(parsed);
+  } catch {
+    return false;
+  }
 };
 
 /**

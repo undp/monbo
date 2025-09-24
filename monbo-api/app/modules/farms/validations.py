@@ -175,8 +175,8 @@ def validate_country_code(country_code: str) -> str:
 
 
 def validate_farm_coordinates(
-    coordinates_format: str,
-    geometry_type: str,
+    coordinates_format: Literal["WKT", "GeoJSON"],
+    geometry_type: Literal["Point", "Polygon"],
     coordinates: str,
 ) -> list[Coordinates]:
     """

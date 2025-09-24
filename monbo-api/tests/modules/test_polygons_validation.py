@@ -176,7 +176,8 @@ def test_parse_farm_coordinates_data():
     The expected output is a list of Point objects with the corresponding
     x and y values.
     Test case:
-    - geometry_type: "WKT"
+    - coordinates_format: "WKT"
+    - geometry_type: "Polygon"
     - input_coordinates: "POLYGON((0 0, 1 1, 2 2, 0 0))"
     - expected_points: [Point(x=0, y=0), Point(x=1, y=1), Point(x=2, y=2)]
     Asserts:

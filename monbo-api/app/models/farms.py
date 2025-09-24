@@ -38,8 +38,8 @@ class InputFarmData(BaseModel):
     productionQuantityUnit: str
     country: str
     region: Optional[str] = None
-    coordinatesFormat: str
-    geometryType: str
+    coordinatesFormat: Literal["WKT", "GeoJSON"]
+    geometryType: Literal["Point", "Polygon"]
     farmCoordinates: str
     cropType: str
     association: Optional[str] = None
