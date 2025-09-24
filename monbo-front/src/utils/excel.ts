@@ -6,6 +6,146 @@ import { isCountryCode } from "./countries";
 // TODO: refactor to use only the exceljs library
 
 /**
+ * Validates a single coordinate pair [longitude, latitude].
+ * @param coord - The coordinate pair to validate
+ * @returns boolean indicating if the coordinate is valid
+ */
+const isValidCoordinatePair = (coord: unknown): boolean => {
+  if (!Array.isArray(coord) || coord.length !== 2) {
+    return false;
+  }
+
+  // Both longitude and latitude must be numbers
+  if (typeof coord[0] !== "number" || typeof coord[1] !== "number") {
+    return false;
+  }
+
+  // Basic coordinate range validation
+  if (coord[0] < -180 || coord[0] > 180 || coord[1] < -90 || coord[1] > 90) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Validates a linear ring (array of coordinate pairs).
+ * @param ring - The linear ring to validate
+ * @returns boolean indicating if the ring is valid
+ */
+const isValidLinearRing = (ring: unknown): boolean => {
+  if (!Array.isArray(ring) || ring.length < 4) {
+    return false; // At least 4 points needed for a closed ring
+  }
+
+  // Each coordinate must be a valid coordinate pair
+  for (const coord of ring) {
+    if (!isValidCoordinatePair(coord)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Validates an array of linear rings.
+ * @param rings - The array of linear rings to validate
+ * @returns boolean indicating if all rings are valid
+ */
+const isValidLinearRings = (rings: unknown): boolean => {
+  if (!Array.isArray(rings) || rings.length === 0) {
+    return false;
+  }
+
+  // Each linear ring must be valid
+  for (const ring of rings) {
+    if (!isValidLinearRing(ring)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Validates WKT (Well-Known Text) coordinate format.
+ * WKT format examples: POINT(-84.00230098 9.87830771), POLYGON((-84.02 9.83, -84.01 9.82, ...))
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid WKT format
+ */
+const validateWKTCoordinates = (coordinates: string): boolean => {
+  // Basic WKT validation - should start with geometry type and contain parentheses
+  // const allWktRegex =
+  //   /^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*\(/i;
+  const wktRegex = /^(POINT|POLYGON)\s*\(/i;
+  return wktRegex.test(coordinates.trim());
+};
+
+/**
+ * Validates GeoJSON Point coordinate format.
+ * Format: [-84.00230098, 9.87830771]
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON Point format
+ */
+const validateGeoJSONPointCoordinates = (coordinates: string): boolean => {
+  // GeoJSON Point: [longitude, latitude] - exactly 2 numbers
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+    return isValidCoordinatePair(parsed);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Validates GeoJSON Polygon coordinate format.
+ * Format: [[[-84.02, 9.83],[-84.01, 9.82],...]] - array of linear rings
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON Polygon format
+ */
+const validateGeoJSONPolygonCoordinates = (coordinates: string): boolean => {
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+
+    // Must be an array of linear rings
+    return isValidLinearRings(parsed);
+  } catch {
+    return false; // Invalid JSON
+  }
+};
+
+/**
+ * Validates GeoJSON MultiPolygon coordinate format.
+ * Format: [[[[-84.06, 9.83],[-84.07, 9.84],...]],[[[-84.99, 10.75],...]]] - array of polygons
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON MultiPolygon format
+ */
+// const validateGeoJSONMultiPolygonCoordinates = (
+//   coordinates: string
+// ): boolean => {
+//   try {
+//     const parsed = JSON.parse(coordinates.trim());
+
+//     // Must be an array of polygons
+//     if (!Array.isArray(parsed) || parsed.length === 0) {
+//       return false;
+//     }
+
+//     // Each polygon must be an array of linear rings
+//     for (const polygon of parsed) {
+//       if (!isValidLinearRings(polygon)) {
+//         return false;
+//       }
+//     }
+
+//     return true;
+//   } catch {
+//     return false; // Invalid JSON
+//   }
+// };
+
+/**
  * Creates an Excel cell object with line break support and centered vertical alignment.
  *
  * @param {string} value - The text content to be displayed in the cell
@@ -441,6 +581,8 @@ const headerKeywordsMappings: Record<string, string[]> = {
   ],
   country: ["país", "country"],
   region: ["región", "region"],
+  coordinatesFormat: ["formato coordenadas", "coordinates format"],
+  geometryType: ["tipo geometría", "geometry type"],
   farmCoordinates: ["coordenadas finca", "land coordinates"],
   area: ["superficie [hectáreas]", "area [hectares]"],
   cropType: ["tipo de cultivo", "crop type"],
@@ -459,6 +601,8 @@ const mandatoryHeaders: string[] = [
   "productionQuantity",
   "productionQuantityUnit",
   "country",
+  "coordinatesFormat",
+  "geometryType",
   "farmCoordinates",
   "cropType",
 ];
@@ -498,7 +642,7 @@ export const validateData = ({
   const errorMessages: string[] = [];
 
   data.forEach((row, idx) => {
-    const rowIdx = idx + 3; // The template has 3 rows of headers, so we need to add 3 to the index for proper row numbering
+    const rowIdx = idx + 4; // The template has 3 rows of headers, so we need to add 3 to the index for proper row numbering
     // Check if all mandatory headers are present in each row
     mandatoryHeaders.forEach((header) => {
       if (!row[header]) {
@@ -510,18 +654,58 @@ export const validateData = ({
       }
     });
 
-    //Check if coordinates are valid
-    const coordinatesRegex =
-      /^\[\s*(\(\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*\)\s*,?\s*)*\]$/;
+    // Check if coordinates format is valid
+    const validCoordinatesFormats = ["WKT", "GeoJSON"];
     if (
-      "farmCoordinates" in row &&
-      typeof row["farmCoordinates"] === "string" &&
-      !coordinatesRegex.test(row["farmCoordinates"])
+      row["coordinatesFormat"] &&
+      !validCoordinatesFormats.includes(row["coordinatesFormat"] as string)
     ) {
-      const errorMsg = t("common:parseFileError:invalidCoordinates", {
+      const errorMsg = t("common:parseFileError:invalidCoordinatesFormat", {
         row: rowIdx,
       });
       errorMessages.push(errorMsg);
+    }
+
+    // Check if geometry type is valid
+    const validGeometryTypes = ["Point", "Polygon"];
+    if (
+      row["geometryType"] &&
+      !validGeometryTypes.includes(row["geometryType"] as string)
+    ) {
+      const errorMsg = t("common:parseFileError:invalidGeometryType", {
+        row: rowIdx,
+      });
+      errorMessages.push(errorMsg);
+    }
+
+    // Check if coordinates are valid based on format and geometry type
+    if (
+      row["geometryType"] &&
+      "farmCoordinates" in row &&
+      typeof row["farmCoordinates"] === "string"
+    ) {
+      const coordinatesFormat = row["coordinatesFormat"] as string;
+      const geometryType = row["geometryType"] as string;
+      const coordinates = row["farmCoordinates"] as string;
+
+      let isValidCoordinates = false;
+
+      if (coordinatesFormat === "WKT") {
+        isValidCoordinates = validateWKTCoordinates(coordinates);
+      } else if (coordinatesFormat === "GeoJSON") {
+        if (geometryType === "Point") {
+          isValidCoordinates = validateGeoJSONPointCoordinates(coordinates);
+        } else if (geometryType === "Polygon") {
+          isValidCoordinates = validateGeoJSONPolygonCoordinates(coordinates);
+        }
+      }
+
+      if (!isValidCoordinates) {
+        const errorMsg = t("common:parseFileError:invalidCoordinates", {
+          row: rowIdx,
+        });
+        errorMessages.push(errorMsg);
+      }
     }
 
     // Check the country is ISO 3166-1 alpha-2

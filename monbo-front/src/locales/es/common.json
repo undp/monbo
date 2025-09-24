@@ -51,6 +51,8 @@
   },
   "parseFileError": {
     "mandatoryDataMissing": "Falta dato obligatorio ({{header}}) en la fila {{row}}",
+    "invalidCoordinatesFormat": "Formato de coordenadas inválido en la fila {{row}}",
+    "invalidGeometryType": "Tipo de geometría inválido en la fila {{row}}",
     "invalidCoordinates": "Coordenadas inválidas en la fila {{row}}",
     "invalidCountryCode": "Código de país ISO 3166-1 alpha-2 inválido en la fila {{row}}"
   }
