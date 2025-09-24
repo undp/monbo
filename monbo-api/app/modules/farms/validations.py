@@ -1,5 +1,6 @@
 from collections import Counter
 from fastapi import HTTPException
+from typing import Literal
 from app.config.constants import FarmDefaults
 from app.models.farms import (
     InputFarmData,
@@ -173,13 +174,21 @@ def validate_country_code(country_code: str) -> str:
     return country_code
 
 
-def validate_farm_coordinates(coordinates: str) -> list[Coordinates]:
+def validate_farm_coordinates(
+    coordinates_format: str,
+    geometry_type: str,
+    coordinates: str,
+) -> list[Coordinates]:
     """
     Validates and parses farm coordinates string.
     Returns parsed coordinates or raises HTTPException if invalid.
     """
     try:
-        return parse_farm_coordinates_string(coordinates)
+        return parse_farm_coordinates_string(
+            coordinates_format,
+            geometry_type,
+            coordinates
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -256,22 +265,33 @@ def parse_farms_validation(
     # Ensure all farms have appropriate IDs
     ensure_farm_ids(body)
 
-    return [
-        PreProcessedFarmData(
-            id=str(farm.id),
-            producerName=farm.producerName,
-            productionDate=validate_production_date(farm.productionDate),
-            productionQuantity=validate_production_quantity(
-                farm.productionQuantity, locale
-            ),
-            productionQuantityUnit=farm.productionQuantityUnit,
-            country=validate_country_code(farm.country),
-            region=farm.region,
-            farmCoordinates=validate_farm_coordinates(farm.farmCoordinates),
-            cropType=farm.cropType,
-            association=farm.association,
-            area=validate_area(farm.area, locale),
-            documents=validate_documents(farm.documents),
+    data = []
+
+    for farm in body:
+        farm_coordinates = validate_farm_coordinates(
+            farm.coordinatesFormat,
+            farm.geometryType,
+            farm.farmCoordinates
         )
-        for farm in body
-    ]
+        data.append(
+            PreProcessedFarmData(
+                id=str(farm.id),
+                producerName=farm.producerName,
+                productionDate=validate_production_date(farm.productionDate),
+                productionQuantity=validate_production_quantity(
+                    farm.productionQuantity, locale
+                ),
+                productionQuantityUnit=farm.productionQuantityUnit,
+                country=validate_country_code(farm.country),
+                region=farm.region,
+                coordinatesFormat=farm.coordinatesFormat,
+                geometryType=farm.geometryType,
+                farmCoordinates=farm_coordinates,
+                cropType=farm.cropType,
+                association=farm.association,
+                area=validate_area(farm.area, locale),
+                documents=validate_documents(farm.documents),
+            )
+        )
+
+    return data

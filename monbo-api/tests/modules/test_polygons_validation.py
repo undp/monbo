@@ -176,19 +176,27 @@ def test_parse_farm_coordinates_data():
     The expected output is a list of Point objects with the corresponding
     x and y values.
     Test case:
-    - input_coordinates: "[(0, 0), (1, 1), (2, 2)]"
+    - geometry_type: "WKT"
+    - input_coordinates: "POLYGON((0 0, 1 1, 2 2, 0 0))"
     - expected_points: [Point(x=0, y=0), Point(x=1, y=1), Point(x=2, y=2)]
     Asserts:
     - The parsed coordinates match the expected list of Point objects.
     """
-    input_coordinates = "[(0, 0), (1, 1), (2, 2)]"
+    coordinates_format = "WKT"
+    geometry_type = "Polygon"
+    input_coordinates = "POLYGON((0 0, 1 1, 2 2, 0 0))"
     expected_points = [
         Coordinates(lng=0, lat=0),
         Coordinates(lng=1, lat=1),
         Coordinates(lng=2, lat=2),
     ]
 
-    assert parse_farm_coordinates_string(input_coordinates) == expected_points
+    parsed_points = parse_farm_coordinates_string(
+        coordinates_format,
+        geometry_type,
+        input_coordinates
+    )
+    assert parsed_points == expected_points
 
 
 def test_get_polygon_coordinates():
