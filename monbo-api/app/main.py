@@ -12,12 +12,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from app.config.logger import configure_logging
+from app.utils.maps import validate_raster_files
 import logging
 
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
 
+# Validate raster files are actual data (not Git LFS pointers)
+validate_raster_files()
 
 app = FastAPI()
 app.add_middleware(
