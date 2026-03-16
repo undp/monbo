@@ -110,6 +110,26 @@ The libraries used for this module are:
 - **typing**: for type hints
 - **types**: for type checking in context managers
 
+## Prerequisites
+
+### Git LFS
+
+This project uses [Git LFS](https://git-lfs.github.com/) to store large raster files (`.tif`). You **must** install Git LFS and pull the files before running the API, otherwise raster operations will fail.
+
+```sh
+# Install Git LFS (macOS)
+brew install git-lfs
+
+# Install Git LFS (Ubuntu/Debian)
+apt-get install git-lfs
+
+# Initialize and pull the actual raster files
+git lfs install
+git lfs pull
+```
+
+You can verify the files were downloaded correctly by checking their size — each `.tif` file in `app/maps/layers/rasters/` should be several megabytes, not ~130 bytes.
+
 ## Running the Application
 
 There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
