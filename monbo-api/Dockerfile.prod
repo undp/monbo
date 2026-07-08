@@ -23,6 +23,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY ./app ./app
 
+# Validate raster files are actual data (not Git LFS pointers)
+RUN for f in app/maps/layers/rasters/*.tif; do \
+      [ -f "$f" ] || continue; \
+      if head -c 44 "$f" | grep -q "version https://git-lfs.github.com/spec/v1"; then \
+        echo "ERROR: '$f' is a Git LFS pointer, not actual raster data." >&2; \
+        echo "Run 'git lfs install && git lfs pull' before building the Docker image." >&2; \
+        exit 1; \
+      fi; \
+    done
+
 # Final stage
 FROM --platform=linux/amd64 python:3.11-slim AS api-runner
 WORKDIR /app
