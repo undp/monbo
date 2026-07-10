@@ -47,6 +47,8 @@ Project contains 4 subfolders, each has a separate set of instructions how to us
 
 4. Scripts: `scripts`
 
+5. Azure: `azure`
+
 ### Frontend
 
 The frontend is built with [React](https://react.dev/) and [Next.js 15](https://nextjs.org/), providing a modern, server-side rendered (SSR) web application. Next.js offers enhanced performance through automatic code splitting, optimized image handling, and built-in routing capabilities.
@@ -78,6 +80,10 @@ The `/scripts` directory houses standalone utility scripts and mini-projects for
 A notable component is the `update-gfw-tmf` tool, which provides a robust Python implementation for downloading and processing deforestation data from Global Forest Watch (GFW) and Tropical Moist Forest (TMF) datasets using Google Earth Engine. This script features an object-oriented design with abstract base classes, multi-threaded downloading capabilities, and automatic cleanup mechanisms. It handles large-scale geospatial data processing, including tiled downloads, compression, and error handling. The tool is fully documented with a comprehensive README that covers installation, configuration, usage patterns, and troubleshooting guidelines.
 
 Other scripts in this directory follow similar patterns of being self-contained, well-documented tools that serve specific data processing or automation needs within the project.
+
+### Azure
+
+This folder contains the `.yml` files with the configuration needed to perform continuous deployment of both API and Frontend components in an Azure environment
 
 ## Running the project
 
