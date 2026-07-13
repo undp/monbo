@@ -3,12 +3,13 @@
   "version": "1.5.1",
   "description": "FastAPI application",
   "scripts": {
-    "install": "pip install --no-cache-dir -r requirements.txt",
-    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 12",
-    "profile:cprofile": "python -m cProfile -o cprofile_output.prof -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
-    "profile:memory": "mprof run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
-    "dev": "fastapi dev ./app/main.py",
-    "test": "pytest",
-    "build": "docker build -t fastapi ."
+    "install": "uv sync",
+    "start": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 12",
+    "profile:cprofile": "uv run python -m cProfile -o cprofile_output.prof -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
+    "profile:memory": "uv run mprof run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
+    "dev": "uv run fastapi dev ./app/main.py",
+    "test": "uv run pytest",
+    "lint": "uv run ruff check app && uv run black --check app",
+    "build": "docker build -f Dockerfile.prod -t monbo-api ."
   }
 }
