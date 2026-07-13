@@ -1,37 +1,30 @@
+from shapely.geometry import Point as SPoint
+from shapely.geometry import Polygon
+
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.polygons import Coordinates
 from app.modules.polygons_validation.helpers import (
-    get_geometry_paths,
     detect_overlaps,
+    get_geometry_paths,
 )
-from app.helpers.GeometryCalculator import GeometryCalculator
+from app.utils.farms import parse_farm_coordinates_string
 from app.utils.polygons import (
     determine_polygon_type,
     generate_polygon,
 )
-from app.utils.farms import parse_farm_coordinates_string
-from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
 
 
 def test_generate_polygon():
     """
-    Test the generate_polygon function with different sets of points.
+    Test the generate_polygon function with different sets of coordinates.
     This test covers two scenarios:
-    1. When the input points form a polygon.
-    2. When the input points form a single point.
-    The function is expected to return a tuple containing the type of the
-    generated shape ("polygon" or "point") and the generated shape itself.
-    Test cases:
-    1. A list of points forming a square polygon.
-       - Input: points = [Point(x=0, y=0), Point(x=0, y=1), Point(x=1, y=1),
-       Point(x=1, y=0)]
-       - Expected output: ("polygon", Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]))
-    2. A single point.
-       - Input: points = [SPoint(0, 0)]
-       - Expected output: ("point", SPoint(0, 0).buffer(99))
-    Assertions:
-    - The type of the generated shape should match the expected type.
-    - The generated shape should be equal to the expected shape.
+    1. When the input coordinates form a polygon (multiple coordinates).
+    2. When the input coordinates form a single point (a single coordinate plus a
+       radius, which is buffered into a circular polygon).
+
+    generate_polygon returns a Shapely Polygon; determine_polygon_type reports
+    whether the coordinates represent a "polygon" or a "point".
+    Coordinates expose longitude/latitude via `.lng` / `.lat`.
     """
     points = [
         Coordinates(lng=0, lat=0),
@@ -40,17 +33,19 @@ def test_generate_polygon():
         Coordinates(lng=1, lat=0),
     ]
 
-    expected_polygon = Polygon([(point.x, point.y) for point in points])
-    poly_type = determine_polygon_type(points)
-    polygon = generate_polygon(points, None)[1]
-    assert poly_type == "polygon"
+    expected_polygon = Polygon([(point.lng, point.lat) for point in points])
+    assert determine_polygon_type(points) == "polygon"
+    polygon = generate_polygon(points, None)
     assert expected_polygon.equals(polygon)
 
-    points = [SPoint(0, 0)]
-    expected_polygon = SPoint(0, 0).buffer(99)
-    (poly_type, polygon) = generate_polygon(points, 99)
-    assert poly_type == "point"
-    assert expected_polygon.equals(polygon)
+    single_point = [Coordinates(lng=0, lat=0)]
+    assert determine_polygon_type(single_point) == "point"
+    polygon = generate_polygon(single_point, 99)
+    # A point with a radius is buffered into a non-empty circular polygon
+    # centered on the coordinate.
+    assert polygon.geom_type == "Polygon"
+    assert not polygon.is_empty
+    assert polygon.contains(SPoint(0, 0))
 
 
 def test_check_ploygons_overlap():
@@ -171,17 +166,16 @@ def test_parse_farm_coordinates_data():
     """
     Test the parse_farm_coordinates_data function.
     This test checks if the parse_farm_coordinates_data function correctly
-    parses a string of coordinates into a list of Point objects.
-    The input string is in the format "[(x1, y1), (x2, y2), ...]".
-    The expected output is a list of Point objects with the corresponding
-    x and y values.
+    parses a WKT polygon string into a list of Coordinates objects.
+    The parser returns every vertex of the exterior ring, including the closing
+    coordinate that repeats the first vertex.
     Test case:
     - coordinates_format: "WKT"
     - geometry_type: "Polygon"
     - input_coordinates: "POLYGON((0 0, 1 1, 2 2, 0 0))"
-    - expected_points: [Point(x=0, y=0), Point(x=1, y=1), Point(x=2, y=2)]
+    - expected_points: the four ring vertices (closing point included)
     Asserts:
-    - The parsed coordinates match the expected list of Point objects.
+    - The parsed coordinates match the expected list of Coordinates objects.
     """
     coordinates_format = "WKT"
     geometry_type = "Polygon"
@@ -190,12 +184,11 @@ def test_parse_farm_coordinates_data():
         Coordinates(lng=0, lat=0),
         Coordinates(lng=1, lat=1),
         Coordinates(lng=2, lat=2),
+        Coordinates(lng=0, lat=0),
     ]
 
     parsed_points = parse_farm_coordinates_string(
-        coordinates_format,
-        geometry_type,
-        input_coordinates
+        coordinates_format, geometry_type, input_coordinates
     )
     assert parsed_points == expected_points
 

@@ -1,9 +1,14 @@
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import mercantile
 import numpy as np
 import pytest
-from app.modules.maps.helpers import get_all_maps, get_map_by_id
+from fastapi import HTTPException
+from PIL import Image
+from rasterio.errors import WindowError
+from shapely import Polygon
+
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
     get_deforestation_ratio,
@@ -11,13 +16,23 @@ from app.modules.deforestation_analysis.helpers import (
     get_pixel_area,
     get_tile,
 )
-from fastapi import HTTPException
-from PIL import Image
-from rasterio.errors import WindowError
-from shapely import Polygon
+from app.modules.maps.helpers import get_all_maps, get_map_by_id
 
 
-@patch("app.modules.deforestation_analysis.helpers.read_json_file")
+class _AsyncRasterContext:
+    """Minimal async context manager standing in for RasterDataContext."""
+
+    def __init__(self, vrt):
+        self._vrt = vrt
+
+    async def __aenter__(self):
+        return self._vrt
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+
+@patch("app.modules.maps.helpers.read_json_file")
 def test_get_all_maps(mock_read_json_file):
     mock_data = [
         {"id": 1, "name": "Deforestation Map A"},
@@ -104,44 +119,41 @@ def test_get_map_pixels_inside_polygon(mock_mask):
     assert (result == np.array([[[1, 2], [3, 4]]])).all()  # Ensure correct pixel values
 
 
-@patch("app.modules.deforestation_analysis.helpers.rasterio.open")
-@patch("app.modules.deforestation_analysis.helpers.WarpedVRT")
+@patch("app.modules.deforestation_analysis.helpers.RasterDataContext")
 @patch("app.modules.deforestation_analysis.helpers.mercantile.xy_bounds")
-def test_get_tile(mock_xy_bounds, mock_warped_vrt, mock_raster_open):
-    # Mocking input parameters
-    tif_path = "app/map_assets/example.tif"
-    red_tile_values = {1, 2, 3}  # Values considered "red"
+def test_get_tile(mock_xy_bounds, mock_raster_context):
+    # get_tile is an async coroutine with signature (tif_path, z, x, y). It opens
+    # the raster through RasterDataContext (an async context manager) and renders
+    # a 256x256 RGBA PNG tile for the requested z/x/y.
+    tif_path = "app/maps/layers/rasters/example.tif"
     z, x, y = 10, 500, 300  # Tile coordinates
 
-    # Mock raster dataset and VRT
-    mock_src = MagicMock()
-    mock_src.count = 1  # Single-band raster
-    mock_raster_open.return_value.__enter__.return_value = mock_src
-
+    # Mock the warped VRT exposed by RasterDataContext.__aenter__
     mock_vrt = MagicMock()
+    mock_vrt.count = 1  # Single-band raster
     mock_vrt.bounds = mercantile.Bbox(-180, -90, 180, 90)  # Global coverage
-    mock_vrt.count = 1
     mock_vrt.window.return_value = mercantile.Bbox(0, 0, 10, 10)  # Mock window
-    mock_vrt.read.return_value = np.random.randint(0, 5, (1, 256, 256), dtype=np.uint8)
+    mock_vrt.read.return_value = np.random.randint(0, 2, (1, 256, 256), dtype=np.uint8)
 
-    mock_warped_vrt.return_value.__enter__.return_value = mock_vrt
+    mock_raster_context.return_value = _AsyncRasterContext(mock_vrt)
 
     mock_xy_bounds.return_value = mercantile.Bbox(
         left=-45, bottom=-45, right=45, top=45
     )
 
     # Call function
-    result = get_tile(tif_path, red_tile_values, z, x, y)
+    result = asyncio.run(get_tile(tif_path, z, x, y))
 
     # Assertions
     assert isinstance(result, Image.Image)  # Ensure return type is PIL Image
     assert result.size == (256, 256)  # Ensure correct size
     assert result.mode == "RGBA"  # Ensure correct mode
-    mock_raster_open.assert_called_once_with(tif_path)  # Ensure raster opened
+    mock_raster_context.assert_called_once_with(tif_path)  # Ensure raster opened
     mock_xy_bounds.assert_called_once_with(x, y, z)  # Ensure tile bounds checked
 
-    mock_vrt.read.return_value = np.random.randint(0, 5, (2, 256, 256), dtype=np.uint8)
-    result = get_tile(tif_path, red_tile_values, z, x, y)
+    # Multi-band data: only the first band is used
+    mock_vrt.read.return_value = np.random.randint(0, 2, (2, 256, 256), dtype=np.uint8)
+    result = asyncio.run(get_tile(tif_path, z, x, y))
 
     # Assertions
     assert isinstance(result, Image.Image)  # Ensure return type is PIL Image
@@ -150,7 +162,7 @@ def test_get_tile(mock_xy_bounds, mock_warped_vrt, mock_raster_open):
 
     # Simulate a case where the tile is outside bounds
     mock_vrt.bounds = mercantile.Bbox(60, 60, 70, 70)  # Change bounds to exclude tile
-    result_empty = get_tile(tif_path, red_tile_values, z, x, y)
+    result_empty = asyncio.run(get_tile(tif_path, z, x, y))
     assert result_empty == Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)
     )  # Ensure empty tile returned
@@ -158,10 +170,10 @@ def test_get_tile(mock_xy_bounds, mock_warped_vrt, mock_raster_open):
     # Simulate a window calculation failure
     mock_vrt.bounds = mercantile.Bbox(-180, -90, 180, 90)  # Global coverage
     mock_vrt.window.side_effect = WindowError("Invalid window")
-    mock_window_error = get_tile(tif_path, red_tile_values, z, x, y)
+    mock_window_error = asyncio.run(get_tile(tif_path, z, x, y))
     assert mock_window_error == Image.new("RGBA", (256, 256), (0, 0, 0, 0))
 
     # Simulate Exception
     mock_vrt.window.side_effect = OSError("Invalid window")
     with pytest.raises(HTTPException):
-        get_tile(tif_path, red_tile_values, z, x, y)
+        asyncio.run(get_tile(tif_path, z, x, y))
