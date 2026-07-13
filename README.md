@@ -97,7 +97,7 @@ A root `package.json` provides orchestrator scripts that delegate to each packag
 ```sh
 pnpm dev     # runs the frontend and API dev servers in parallel (via `pnpm exec concurrently`)
 pnpm test    # runs the API test suite (uv run pytest)
-pnpm lint    # lints the frontend and the API (ruff + black)
+pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
 pnpm build   # builds the frontend production bundle
 ```
 

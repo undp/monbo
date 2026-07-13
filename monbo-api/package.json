@@ -9,7 +9,7 @@
     "profile:memory": "uv run mprof run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1",
     "dev": "uv run fastapi dev ./app/main.py",
     "test": "uv run pytest",
-    "lint": "uv run ruff check app && uv run black --check app",
+    "lint": "uv run ruff check . && uv run black --check . && uv run mypy app",
     "build": "docker build -f Dockerfile.prod -t monbo-api ."
   }
 }

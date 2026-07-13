@@ -226,13 +226,13 @@ The `package.json` file is used to standardize the execution of commands across 
 - **pnpm start** - Run FastAPI server in production mode (`uv run uvicorn ...`)
 - **pnpm dev** - Run FastAPI development server with hot reload (`uv run fastapi dev ...`)
 - **pnpm test** - Run unit tests with pytest (`uv run pytest`)
-- **pnpm lint** - Run ruff + black checks (`uv run ruff check app && uv run black --check app`)
+- **pnpm lint** - Run ruff + black + mypy checks, matching CI (`uv run ruff check . && uv run black --check . && uv run mypy app`)
 - **pnpm build** - Build the production Docker image
 - **pnpm profile:cprofile** - Run the server under cProfile (`uv run python -m cProfile ...`)
 - **pnpm profile:memory** - Run the server under memory-profiler's `mprof` (`uv run mprof run ...`)
 
 All scripts delegate to uv, so you can also invoke the underlying commands directly, e.g.
-`uv run pytest` or `uv run ruff check app`.
+`uv run pytest` or `uv run ruff check .`.
 
 ## Environment Variables
 

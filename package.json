@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "pnpm exec concurrently -n front,api -c blue,green \"pnpm --dir monbo-front dev\" \"uv run --directory monbo-api fastapi dev app/main.py\"",
     "test": "uv run --directory monbo-api pytest",
-    "lint": "pnpm --dir monbo-front lint && uv run --directory monbo-api ruff check app && uv run --directory monbo-api black --check app",
+    "lint": "pnpm --dir monbo-front lint && uv run --directory monbo-api ruff check . && uv run --directory monbo-api black --check . && uv run --directory monbo-api mypy app",
     "build": "pnpm --dir monbo-front build"
   },
   "devDependencies": {
