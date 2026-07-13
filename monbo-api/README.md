@@ -23,11 +23,22 @@ monbo-api/
 │  ├── utils/  # Utility functions
 │  ├── main.py  # FastAPI application entry point
 ├── tests/  # Additional test cases
-├── requirements.txt  # Python dependencies
+├── pyproject.toml  # Project metadata + Python dependencies (managed by uv)
+├── uv.lock  # Fully resolved, pinned dependency lockfile
+├── .python-version  # Pinned Python version (3.11)
 ├── package.json  # Node.js package file to manage commands
-├── Dockerfile  # Docker build configuration
+├── Dockerfile.dev / Dockerfile.prod  # Docker build configurations
 └── .env.template  # Template for environment variables
 ```
+
+## Tooling
+
+Python dependencies are managed with [uv](https://docs.astral.sh/uv/). `pyproject.toml`
+declares production dependencies plus a `dev` dependency-group (pytest, pytest-cov,
+ruff, black, mypy, memory-profiler), and `uv.lock` is the single source of truth for
+resolved versions.
+Install uv with `curl -LsSf https://astral.sh/uv/install.sh | sh` (see the
+[uv docs](https://docs.astral.sh/uv/getting-started/installation/) for other methods).
 
 ## Core functionalities
 
@@ -140,38 +151,46 @@ docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-
 
 ### 3. Run FastAPI in development mode
 
-We use `pnpm` to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI development server with hot-reloading.
+We use [uv](https://docs.astral.sh/uv/) to manage the Python environment and `pnpm` to
+standardize command execution using the `package.json` file's scripts (each script
+delegates to uv), similar to the frontend. This will start the FastAPI development
+server with hot-reloading.
 
-First, we recommend to create a virtual environment with Python 3.11:
+uv creates and manages the virtual environment automatically, pinned to Python 3.11 via
+`.python-version` — no manual `venv` step is required. Install the dependencies and run
+the development server:
 
 ```sh
-python3.11 -m venv .venv
-source .venv/bin/activate
+pnpm install   # delegates to `uv sync`
+pnpm dev       # delegates to `uv run fastapi dev ./app/main.py`
 ```
 
-Then, install the dependencies and run the development server:
+Or use uv directly:
 
 ```sh
-pnpm install
-pnpm dev
+uv sync
+uv run fastapi dev ./app/main.py
 ```
 
 ### 4. Run FastAPI in production mode
 
-We use pnpm to standardize command execution using the `package.json` file's scripts, similar to the frontend. This will start the FastAPI production server.
+We use pnpm to standardize command execution using the `package.json` file's scripts
+(each script delegates to uv), similar to the frontend. This will start the FastAPI
+production server.
 
-First, we recommend to create a virtual environment with Python 3.11:
+uv manages the virtual environment automatically (Python 3.11), so no manual `venv` step
+is required. Install the dependencies and run the production server:
 
 ```sh
-python3.11 -m venv .venv
-source .venv/bin/activate
+pnpm install   # delegates to `uv sync`
+pnpm start     # delegates to `uv run uvicorn app.main:app ...`
 ```
 
-Then, install the dependencies and run the production server:
+Or use uv directly:
 
 ```sh
-pnpm install
-pnpm start
+uv sync
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 12
 ```
 
 ## Dependencies
@@ -180,8 +199,7 @@ The API requires the following dependencies:
 
 | Package           | Version | Description                                                                 |
 | ----------------- | ------- | --------------------------------------------------------------------------- |
-| fastapi           | 0.115.6 | FastAPI framework for building APIs with Python                             |
-| fastapi[standard] | 0.115.6 | Standard FastAPI dependencies                                               |
+| fastapi[standard] | 0.115.6 | FastAPI framework with the `standard` extra (uvicorn, Jinja2, etc.)         |
 | shapely           | 2.0.6   | Geometric objects and operations                                            |
 | pyproj            | 3.7.0   | Cartographic projections and coordinate transformations                     |
 | uvicorn           | 0.34.0  | ASGI server for running FastAPI applications                                |
@@ -192,20 +210,29 @@ The API requires the following dependencies:
 | mercantile        | 1.2.1   | Tile-based mapping utilities                                                |
 | pillow            | 11.1.0  | Image processing capabilities                                               |
 | python-dotenv     | 1.0.1   | Read key-value pairs from a .env file and set them as environment variables |
-| pytest            | 8.3.4   | Testing framework for Python                                                |
-| pytest_cov        | 6.0.0   | Coverage plugin for pytest                                                  |
+| pycountry         | 24.6.1  | ISO country/subdivision databases                                           |
 
-You can install dependencies manually using the install script declared in the `package.json` file.
+The full, resolved and pinned dependency set (including transitive dependencies and the
+`dev` group: pytest 8.3.4, pytest-cov 6.0.0, ruff, black, mypy, memory-profiler) lives
+in `uv.lock`.
+Run `uv sync` (or `pnpm install`) to install everything from the lockfile, or
+`uv sync --no-dev` to install production dependencies only.
 
 ## Available Scripts
 
 The `package.json` file is used to standardize the execution of commands across environments, making it easier to work with both frontend and backend using pnpm.
 
-- **pnpm install** - Install Python dependencies
-- **pnpm start** - Run FastAPI server in production mode
-- **pnpm dev** - Run FastAPI development server with hot reload
-- **pnpm test** - Run unit tests with pytest
-- **pnpm build** - Build the Docker image
+- **pnpm install** - Install Python dependencies (`uv sync`)
+- **pnpm start** - Run FastAPI server in production mode (`uv run uvicorn ...`)
+- **pnpm dev** - Run FastAPI development server with hot reload (`uv run fastapi dev ...`)
+- **pnpm test** - Run unit tests with pytest (`uv run pytest`)
+- **pnpm lint** - Run ruff + black checks (`uv run ruff check app && uv run black --check app`)
+- **pnpm build** - Build the production Docker image
+- **pnpm profile:cprofile** - Run the server under cProfile (`uv run python -m cProfile ...`)
+- **pnpm profile:memory** - Run the server under memory-profiler's `mprof` (`uv run mprof run ...`)
+
+All scripts delegate to uv, so you can also invoke the underlying commands directly, e.g.
+`uv run pytest` or `uv run ruff check app`.
 
 ## Environment Variables
 
@@ -241,8 +268,22 @@ or directly with:
 **Command:**
 
 ```sh
-pytest
+uv run pytest
 ```
+
+## Continuous Integration
+
+Pull requests marked "ready for review" are validated by the `API CI` GitHub Actions
+workflow (`.github/workflows/api.yml`), which runs `uv sync --frozen`, `uv run pytest`,
+and the `ruff`/`black`/`mypy` checks. Draft PRs are skipped.
+
+These checks are **blocking**: every step runs without `continue-on-error`, so the job
+fails (and the pull request is prevented from merging, once branch protection requires
+the check) if the suite, lint, formatting, or type checks fail. The pytest run includes
+the deterministic numeric baseline gate (`tests/test_numeric_baseline.py`), which
+re-runs the deforestation fixture under the committed lock (numpy 2) and compares it
+against the version-controlled numpy 1 reference within the tolerances defined by the
+`python-dependency-toolchain` spec.
 
 ## API Documentation
 

@@ -209,16 +209,15 @@ cp .env.template .env
 #      GCP_MAPS_PLATFORM_SIGNATURE_SECRET=<your secret>       # optional for local dev
 #      OVERLAP_THRESHOLD_PERCENTAGE=1
 
-# 2. Create a Python 3.11 virtual environment and activate it
-python3.11 -m venv .venv
-source .venv/bin/activate           # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies and run the dev server (hot reload)
-pnpm install                        # this simply runs: pip install -r requirements.txt
-pnpm dev                            # → fastapi dev ./app/main.py  (http://localhost:8000)
+# 2. Install dependencies and run the dev server (hot reload).
+#    Dependencies are managed with uv (https://docs.astral.sh/uv/). uv creates and
+#    manages the Python 3.11 virtual environment automatically (pinned via
+#    .python-version), so no manual `venv` step is needed.
+pnpm install                        # this simply runs: uv sync
+pnpm dev                            # → uv run fastapi dev ./app/main.py  (http://localhost:8000)
 ```
 
-> `pnpm` in the backend is just a thin wrapper over `package.json` scripts. If you'd rather skip it: `pip install -r requirements.txt` then `fastapi dev ./app/main.py`.
+> `pnpm` in the backend is just a thin wrapper over `package.json` scripts, which delegate to uv. If you'd rather skip it: `uv sync` then `uv run fastapi dev ./app/main.py`.
 > Verify the backend is up: open **`http://localhost:8000/docs`** (interactive Swagger UI).
 
 ### 4.3 Frontend — terminal 2 (`monbo-front`, port 3000)
