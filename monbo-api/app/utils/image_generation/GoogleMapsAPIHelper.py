@@ -1,19 +1,22 @@
-import math
-from typing import Tuple
-from .GeoHelper import GeoHelper
-from app.config.env import GCP_MAPS_PLATFORM_API_KEY, GCP_MAPS_PLATFORM_SIGNATURE_SECRET
-from app.utils.image_generation.constants import MapDefaults
-from app.helpers.GeometryCalculator import GeometryCalculator
-from app.utils.image_generation.errors import GoogleMapsAPIError
-from PIL import Image
-from shapely.geometry.base import BaseGeometry
-from io import BytesIO
-import httpx
+import base64
 import hashlib
 import hmac
-import base64
+import math
 import urllib.parse as urlparse
+from io import BytesIO
+from typing import Tuple
+
+import httpx
+from PIL import Image
+from shapely.geometry.base import BaseGeometry
+
+from app.config.env import GCP_MAPS_PLATFORM_API_KEY, GCP_MAPS_PLATFORM_SIGNATURE_SECRET
 from app.config.logger import get_logger
+from app.helpers.GeometryCalculator import GeometryCalculator
+from app.utils.image_generation.constants import MapDefaults
+from app.utils.image_generation.errors import GoogleMapsAPIError
+
+from .GeoHelper import GeoHelper
 
 # Get logger for this module
 logger = get_logger("utils.image_generation.GoogleMapsAPIHelper")

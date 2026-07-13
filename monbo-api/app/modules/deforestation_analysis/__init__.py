@@ -1,5 +1,6 @@
-from app.modules.deforestation_analysis.router import router as root_router
 from fastapi import APIRouter
+
+from app.modules.deforestation_analysis.router import router as root_router
 
 module_router = APIRouter()
 

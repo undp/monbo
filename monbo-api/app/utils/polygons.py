@@ -1,7 +1,10 @@
 import math
-from typing import Tuple, Literal
+from typing import Literal, Tuple
+
+from shapely.geometry import Point as SPoint
+from shapely.geometry import Polygon
+
 from app.models.polygons import Coordinates
-from shapely.geometry import Point as SPoint, Polygon
 from app.utils.image_generation.GeoHelper import GeoHelper
 
 
@@ -78,8 +81,10 @@ def generate_polygon(
         return Polygon([])
 
     if len(coordinates) == 1:
+        # radius is guaranteed non-None here by the validation above.
+        assert radius is not None
         point = SPoint(coordinates[0].lng, coordinates[0].lat)
-        (radius_degrees, _) = GeoHelper.meters_to_degrees(radius, coordinates[0].lat)
+        radius_degrees, _ = GeoHelper.meters_to_degrees(radius, coordinates[0].lat)
         return point.buffer(radius_degrees)
 
     if len(coordinates) == 2:

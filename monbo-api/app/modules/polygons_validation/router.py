@@ -1,15 +1,19 @@
+from typing import cast
+
+from fastapi import APIRouter
+
 from app.models.farms import (
     FarmPolygonDetailData,
     FarmPolygonDetailDataWithPolygon,
 )
+from app.models.polygons import PointDetails, PolygonDetails
 from app.utils.polygons import generate_polygon
-from fastapi import APIRouter
+
 from .helpers import (
     get_geometry_inconsistencies,
     get_overlap_inconsistencies,
 )
 from .models import PolygonInconsistenciesResponse
-
 
 router = APIRouter()
 
@@ -45,13 +49,15 @@ def get_polygon_inconsistencies(
     farms_polygons = []
     for farm in body:
         # Determine coordinates based on polygon type
+        details = farm.details
         if farm.type == "polygon":
-            coords = farm.details.path if farm.details else []
+            coords = details.path if isinstance(details, PolygonDetails) else []
             radius = None
         else:
-            # Points always have farm.details
-            coords = [farm.details.center]
-            radius = farm.details.radius
+            # Points always carry PointDetails
+            assert isinstance(details, PointDetails)
+            coords = [details.center]
+            radius = details.radius
 
         polygon = generate_polygon(coords, radius)
 
@@ -88,7 +94,12 @@ def get_polygon_inconsistencies(
     for farm_id in invalid_farm_ids:
         results_lookup[farm_id]["status"] = "NOT_VALID"
 
-    return {
-        "farmResults": results,
-        "inconsistencies": all_inconsistencies,
-    }
+    # Serialized against the response_model by FastAPI; cast keeps mypy aligned
+    # with the declared return type without changing runtime behavior.
+    return cast(
+        PolygonInconsistenciesResponse,
+        {
+            "farmResults": results,
+            "inconsistencies": all_inconsistencies,
+        },
+    )

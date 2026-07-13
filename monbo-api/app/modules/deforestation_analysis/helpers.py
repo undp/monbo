@@ -1,12 +1,14 @@
+import asyncio
+
 import geopandas as gpd
 import mercantile
-import asyncio
 import numpy as np
 from fastapi import HTTPException
 from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.errors import WindowError
 from rasterio.mask import mask
+
 from app.utils.image_generation.RasterDataContext import RasterDataContext
 
 

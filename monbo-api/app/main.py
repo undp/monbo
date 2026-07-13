@@ -1,19 +1,19 @@
 import json
+import logging
 import os
 from urllib.parse import unquote
 
-from app.modules import (
-    deforestation_analysis_router,
-    polygons_validation_router,
-    maps_router,
-    farms_router,
-)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from app.config.logger import configure_logging
-import logging
 
+from app.config.logger import configure_logging
+from app.modules import (
+    deforestation_analysis_router,
+    farms_router,
+    maps_router,
+    polygons_validation_router,
+)
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
