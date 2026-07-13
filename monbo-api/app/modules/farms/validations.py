@@ -57,7 +57,7 @@ def validate_unique_ids(body: list[InputFarmData]) -> None:
         )
 
 
-def ensure_farm_ids(farms_data: list[InputFarmData]) -> list[InputFarmData]:
+def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
     """
     Ensures all farms have appropriate IDs based on existing data patterns.
 
@@ -88,13 +88,13 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> list[InputFarmData]:
 
     if all_have_ids:
         # All farms have IDs, no action needed
-        return farms_data
+        return
 
     if none_have_ids:
         # Use range for sequential IDs
         for i, farm_data in enumerate(farms_data):
             farm_data.id = str(i + 1)
-        return farms_data
+        return
 
     needed_ids = len(farms_without_id)
 
@@ -124,8 +124,6 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> list[InputFarmData]:
     # Assign IDs to farms that need them
     for idx, farm_data in enumerate(farms_without_id):
         farm_data.id = random_ids_list[idx]
-
-    return farms_data
 
 
 def validate_production_date(production_date: str) -> str:
