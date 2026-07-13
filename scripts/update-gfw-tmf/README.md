@@ -35,27 +35,30 @@ git clone [repository-url]
 cd [repository-name]
 ```
 
-2. Create a virtual environment (recommended):
+2. Install [uv](https://docs.astral.sh/uv/) (manages the Python environment):
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-3. Install requirements:
+3. Install dependencies (uv creates and manages the virtual environment automatically):
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
-Required packages:
+Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`:
 
 ```txt
 earthengine-api
 geemap
-gdal
-tenacity
+GDAL
+tenacity (<9)
 ```
+
+> Note: the `GDAL` Python bindings require a matching system GDAL install
+> (`libgdal`/`gdal-config`) to build. Install it via your OS package manager
+> (e.g. `apt-get install gdal-bin libgdal-dev`) before running `uv sync`.
 
 4. Set up Google Earth Engine:
 
@@ -92,7 +95,7 @@ CONFIG = {
 ### Basic Execution
 
 ```bash
-python download_gee_asset.py
+uv run python run.py
 ```
 
 ### Common Modifications
@@ -228,9 +231,10 @@ RuntimeError: Insufficient disk space for download
 your-project/
 ├── config.py
 ├── config_example.py
-├── requirements.txt
+├── pyproject.toml
+├── uv.lock
 ├── run.py
-├── venv/
+├── .venv/
 └── output/
     ├── gfw.tif
     └── tmf.tif
