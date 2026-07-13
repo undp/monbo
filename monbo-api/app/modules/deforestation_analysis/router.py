@@ -8,7 +8,6 @@ from rasterio import open as rasterio_open
 from shapely.geometry import shape
 
 from app.helpers.GeometryCalculator import GeometryCalculator
-from app.models.polygons import PointDetails, PolygonDetails
 from app.modules.deforestation_analysis.helpers import (
     get_deforestation_ratio,
     get_map_pixels_inside_polygon,
@@ -16,6 +15,7 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
+from app.utils.farms import get_farm_coords_and_radius
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 from app.utils.maps import get_map_raster_path
@@ -43,15 +43,7 @@ def analize(body: AnalizeBody):
             with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
-                        details = farm.details
-                        if isinstance(details, PolygonDetails):
-                            coords = details.path
-                            radius = None
-                        elif isinstance(details, PointDetails):
-                            coords = [details.center]
-                            radius = details.radius
-                        else:
-                            raise ValueError("Farm details are required")
+                        coords, radius = get_farm_coords_and_radius(farm)
                         polygon = generate_polygon(coords, radius)
                         loss_year_data = get_map_pixels_inside_polygon(polygon, src)
                         pixel_area = get_pixel_area(map_data)

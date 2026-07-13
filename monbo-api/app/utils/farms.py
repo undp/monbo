@@ -7,7 +7,12 @@ from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry import Polygon as ShapelyPolygon
 
 from app.helpers.GeometryCalculator import GeometryCalculator
-from app.models.farms import FarmData, PolygonSummary, PreProcessedFarmData
+from app.models.farms import (
+    FarmData,
+    FarmPolygonDetailData,
+    PolygonSummary,
+    PreProcessedFarmData,
+)
 from app.models.polygons import Coordinates, PointDetails, PolygonDetails
 from app.utils.polygons import (
     generate_polygon,
@@ -15,9 +20,26 @@ from app.utils.polygons import (
 )
 
 
+def get_farm_coords_and_radius(
+    farm: FarmPolygonDetailData,
+) -> tuple[list[Coordinates], float | None]:
+    """
+    Derives the (coords, radius) pair used to build a farm's polygon from its
+    ``type`` + ``details``. ``type`` and ``details`` are independent,
+    client-controlled fields (not a discriminated union), so a mismatch between
+    them is rejected here instead of being asserted or silently coerced.
+    """
+    details = farm.details
+    if farm.type == "polygon" and isinstance(details, PolygonDetails):
+        return details.path, None
+    if farm.type == "point" and isinstance(details, PointDetails):
+        return [details.center], details.radius
+    raise ValueError(f"Details do not match farm type '{farm.type}'")
+
+
 def parse_farm_coordinates_string(
     coordinates_format: str,
-    geometry_type: str,
+    geometry_type: Literal["Point", "Polygon"],
     farm_coordinates: str,
 ) -> list[Coordinates]:
     """
@@ -89,7 +111,7 @@ def parse_farm_coordinates_string(
 
 
 def _parse_wkt_coordinates(
-    geometry_type: str, farm_coordinates: str
+    geometry_type: Literal["Point", "Polygon"], farm_coordinates: str
 ) -> list[Coordinates]:
     """
     Parses WKT format coordinates. Only supports Point and Polygon geometries.
