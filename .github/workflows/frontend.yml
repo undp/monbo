@@ -1,0 +1,52 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    # Draft PRs do not run CI; marking a PR "ready for review" triggers it.
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  frontend:
+    name: Type-check, lint, build
+    # Skip while the PR is a draft so drafts don't burn CI minutes.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: monbo-front
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm must be installed before actions/setup-node so its `cache: pnpm`
+      # can locate the pnpm store. The pnpm version comes from the
+      # `packageManager` field in package.json.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: monbo-front/pnpm-lock.yaml
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: monbo-front/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('monbo-front/pnpm-lock.yaml') }}-${{ hashFiles('monbo-front/src/**/*.[jt]s', 'monbo-front/src/**/*.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('monbo-front/pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build
