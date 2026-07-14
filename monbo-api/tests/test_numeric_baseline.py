@@ -71,6 +71,19 @@ def test_scalar_ratios_within_tolerance(baseline, outputs):
         ), f"scalar '{key}' drifted: actual={actual!r} expected={expected!r}"
 
 
+def test_baseline_mask_exercises_nodata_and_valid():
+    # Representativeness guard. The version-controlled valid mask must contain
+    # BOTH valid (True) and nodata (False) cells, otherwise the valid/nodata
+    # comparison in test_raster_metadata_and_pixels_within_tolerance degenerates
+    # into a no-op: a 100%-valid mask passes every equality check while testing
+    # nothing about how the pipeline handles nodata. This assertion stops that
+    # regression from silently returning.
+    with np.load(_common.BASELINE_RASTER) as data:
+        expected_mask = data["valid_mask"]
+    assert expected_mask.any(), "baseline valid mask has no valid (True) cells"
+    assert (~expected_mask).any(), "baseline valid mask has no nodata (False) cells"
+
+
 def test_raster_metadata_and_pixels_within_tolerance(baseline, outputs):
     meta = baseline["raster_metadata"]
     raster = outputs["raster"]

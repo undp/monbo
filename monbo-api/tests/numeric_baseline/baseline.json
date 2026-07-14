@@ -42,7 +42,7 @@
   "reference_platform": "Linux x86_64 (GitHub Actions)",
   "scalars": {
     "polygon_area": 7063764.16,
-    "scalar_ratio": 0.13046868201216955,
+    "scalar_ratio": 0.12231438938640896,
     "scalar_ratio_pure": 0.15
   },
   "tile_zxy": [

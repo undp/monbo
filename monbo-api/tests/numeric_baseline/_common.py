@@ -67,9 +67,18 @@ TILE_ZXY = (_TILE_ZOOM, _center.x, _center.y)
 
 
 def fixture_pixels() -> np.ndarray:
-    """Deterministic single-band loss pattern (no randomness)."""
+    """Deterministic single-band loss pattern (no randomness).
+
+    Pixel values: ``1`` == forest loss, ``0`` == no loss, ``255`` == nodata.
+    The nodata block sits *inside* the analysis polygon, so after the crop the
+    baseline's valid mask contains both True (valid) and False (nodata) cells.
+    Without it the raster is pure 0/1 and, because the analysis polygon covers a
+    full pixel-aligned rectangle, ``valid_mask`` would be 100% True and the
+    nodata/valid-mask comparison path in the gate would never be exercised.
+    """
     data = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
     data[16:48, 16:48] = 1  # central loss block
+    data[20:28, 20:28] = NODATA  # nodata hole carved inside the loss block
     data[4, 4] = 1  # scattered loss pixels
     data[60, 60] = 1
     return data
