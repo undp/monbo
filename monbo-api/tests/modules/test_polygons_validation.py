@@ -1,3 +1,5 @@
+import math
+
 from shapely.geometry import Point as SPoint
 from shapely.geometry import Polygon
 
@@ -8,6 +10,7 @@ from app.modules.polygons_validation.helpers import (
     get_geometry_paths,
 )
 from app.utils.farms import parse_farm_coordinates_string
+from app.utils.image_generation.GeoHelper import GeoHelper
 from app.utils.polygons import (
     determine_polygon_type,
     generate_polygon,
@@ -39,13 +42,34 @@ def test_generate_polygon():
     assert expected_polygon.equals(polygon)
 
     single_point = [Coordinates(lng=0, lat=0)]
+    radius_m = 99
     assert determine_polygon_type(single_point) == "point"
-    polygon = generate_polygon(single_point, 99)
+    polygon = generate_polygon(single_point, radius_m)
     # A point with a radius is buffered into a non-empty circular polygon
     # centered on the coordinate.
     assert polygon.geom_type == "Polygon"
     assert not polygon.is_empty
     assert polygon.contains(SPoint(0, 0))
+
+    # Derive the expected buffer radius (in degrees) the same way the app does,
+    # so these geometry assertions track the real implementation instead of a
+    # hard-coded magic number.
+    radius_degrees, _ = GeoHelper.meters_to_degrees(radius_m, single_point[0].lat)
+    center = SPoint(0, 0)
+
+    # (i) The buffered polygon's area matches the target circle. Shapely
+    # approximates the circle with straight segments, so the polygon is slightly
+    # smaller than the true disk; allow a small relative tolerance for that
+    # discretization rather than pinning an exact value.
+    expected_circle_area = math.pi * radius_degrees**2
+    assert math.isclose(polygon.area, expected_circle_area, rel_tol=0.05)
+
+    # (ii) The polygon is bounded between two concentric disks just inside and
+    # just outside the nominal radius: contained in a slightly larger disk and
+    # containing a slightly smaller one. This pins both the radius and the
+    # centering while staying robust to the buffer's segment count.
+    assert center.buffer(radius_degrees * 1.01).contains(polygon)
+    assert polygon.contains(center.buffer(radius_degrees * 0.97))
 
 
 def test_check_ploygons_overlap():
