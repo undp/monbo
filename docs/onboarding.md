@@ -173,7 +173,7 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 |---|---|---|
 | **git** + **git-lfs** | any recent | git-lfs is required to download the rasters (it is **not** installed by default) |
 | **Python** | **3.11** | backend |
-| **Node.js** | **20** | frontend (only enforced in Docker; use 20 to match) |
+| **Node.js** | **20** (packages) / **≥22** (root orchestrator) | frontend runs on Node 20 (only enforced in Docker; use 20 to match). The optional root orchestrator (`pnpm dev`/`test`/`lint`/`build` at the repo root, which shells out to `concurrently`) needs **Node ≥22**; run it on 22, or run each service directly from its own directory on Node 20. |
 | **pnpm** | latest | package manager for both apps |
 | A **Google Maps Platform API key** | — | so the map actually renders in module 2/3 |
 

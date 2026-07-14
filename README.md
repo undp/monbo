@@ -101,6 +101,8 @@ pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
 pnpm build   # builds the frontend production bundle
 ```
 
+> **Node ≥22 required for the root orchestrator.** The pinned `concurrently` devDependency declares `engines.node >=22`, so the root scripts above expect Node 22+. The individual packages still target Node 20 for now (the frontend's `engines` floor is raised to Node 22 later, with the `node:22-alpine` Docker bump), so you can run each service directly on Node 20 from its own directory. On Node 20 the orchestrator only prints a pnpm engine warning (`engine-strict` is off) rather than failing, but use Node 22 to run it cleanly.
+
 ## Continuous Integration
 
 - **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
