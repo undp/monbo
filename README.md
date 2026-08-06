@@ -59,7 +59,7 @@ Check the frontend [README](monbo-front/README.md) for more detailed instruction
 
 This project implements a RESTful API using [FastAPI](https://fastapi.tiangolo.com/), a modern Python web framework known for its high performance and automatic API documentation.
 
-The API is containerized using Docker for consistent deployment across environments. Also, it follows RESTful principles and uses JSON for data exchange.
+Python dependencies are managed with [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`). The API is containerized using Docker for consistent deployment across environments. Also, it follows RESTful principles and uses JSON for data exchange.
 
 Check the API [README](monbo-api/README.md) for more detailed instructions on how to use.
 
@@ -81,6 +81,29 @@ Other scripts in this directory follow similar patterns of being self-contained,
 
 ## Running the project
 
-The way to run the project is running both the frontend and API separately. Navigate to each service's directory and follow the instructions in their respective README files.
+You can run each service separately (navigate to each service's directory and follow the instructions in their respective README files), or use the root orchestrator.
 
 The backend is intended to be available at `http://localhost:8000` while the frontend is intended to be available at `http://localhost:3000`.
+
+### Prerequisites
+
+- [pnpm](https://pnpm.io/) for the frontend (the exact version is pinned via the `packageManager` field).
+- [uv](https://docs.astral.sh/uv/) for the Python API and scripts — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+
+### Root orchestrator
+
+A root `package.json` provides orchestrator scripts that delegate to each package (option A: no pnpm workspace; each package keeps its own lockfile, and a minimal root `pnpm-lock.yaml` pins the `concurrently` devDependency). Frontend commands delegate via `pnpm --dir monbo-front` and Python commands via `uv run --directory monbo-api`:
+
+```sh
+pnpm dev     # runs the frontend and API dev servers in parallel (via `pnpm exec concurrently`)
+pnpm test    # runs the API test suite (uv run pytest)
+pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
+pnpm build   # builds the frontend production bundle
+```
+
+> **Node ≥22 required for the root orchestrator.** The pinned `concurrently` devDependency declares `engines.node >=22`, so the root scripts above expect Node 22+. The individual packages still target Node 20 for now (the frontend's `engines` floor is raised to Node 22 later, with the `node:22-alpine` Docker bump), so you can run each service directly on Node 20 from its own directory. On Node 20 the orchestrator only prints a pnpm engine warning (`engine-strict` is off) rather than failing, but use Node 22 to run it cleanly.
+
+## Continuous Integration
+
+- **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
+- **Dependency updates:** an automated dependency bot (Dependabot) is planned as the final step of the toolchain upgrade; it is not wired up yet.

@@ -1,6 +1,8 @@
 from typing import Literal, Optional
+
 from pydantic import BaseModel
 from shapely.geometry import Polygon
+
 from .polygons import Coordinates, PointDetails, PolygonDetails
 
 

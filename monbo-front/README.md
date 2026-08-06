@@ -23,6 +23,8 @@ monbo-front/
 
 There are many ways to run the frontend application. In any case the frontend will be available at `http://localhost:3000`.
 
+> The pnpm version is pinned via the `packageManager` field in `package.json`, so tools like Corepack and `pnpm/action-setup` use a consistent version. You can also run the frontend from the repo root via the orchestrator (`pnpm dev`, `pnpm lint`, `pnpm build`) — see the root [README](../README.md).
+
 ### 1. Using Docker for development mode
 
 You can run the frontend in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
@@ -180,6 +182,13 @@ If you want to add a new language, please follow the instructions in the [New La
 ### Testing
 
 There are no tests for this project yet.
+
+### Continuous Integration
+
+Pull requests marked "ready for review" are validated by the `Frontend CI` GitHub Actions
+workflow (`.github/workflows/frontend.yml`), which runs `pnpm install --frozen-lockfile`,
+`tsc --noEmit`, `pnpm run lint`, and `pnpm run build` on Node 22, caching the pnpm store
+and `.next/cache`. Draft PRs are skipped.
 
 ### Performance Optimization
 

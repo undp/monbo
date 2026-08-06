@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from app.models.maps import BaseMapData
-from app.utils.maps import read_attributes, read_considerations
-from app.modules.maps.helpers import get_all_maps
 
+from app.models.maps import BaseMapData
+from app.modules.maps.helpers import get_all_maps
+from app.utils.maps import read_attributes, read_considerations
 
 router = APIRouter()
 

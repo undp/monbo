@@ -1,0 +1,15 @@
+[project]
+name = "update-gfw-tmf"
+version = "0.1.0"
+description = "Download and process GFW/TMF forest-change data from Google Earth Engine"
+requires-python = ">=3.9"
+dependencies = [
+    "earthengine-api>=0.1.375",
+    "geemap>=0.28.0",
+    "GDAL>=3.6.0",
+    "tenacity>=8.2.0,<9.0.0",
+]
+
+[tool.uv]
+# This is a runnable standalone script, not a distributable package.
+package = false

@@ -19,7 +19,7 @@ class MapDefaults:
 
     # Resampling methods
     RASTER_RESAMPLING = Resampling.nearest
-    IMAGE_RESAMPLING = Image.LANCZOS
+    IMAGE_RESAMPLING = Image.Resampling.LANCZOS
 
     # Map styling
     MAP_TYPE = "satellite"  # Options: satellite, roadmap, hybrid, terrain
