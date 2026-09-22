@@ -17,6 +17,7 @@ rationale in review.
 
 import json
 import platform
+from importlib.metadata import version
 
 import geopandas as gpd
 import numpy as np
@@ -32,6 +33,11 @@ def _tooling() -> dict:
     return {
         "python": platform.python_version(),
         "numpy": np.__version__,
+        # pandas reaches the pipeline transitively through geopandas, which caps
+        # nothing above pandas>=2.0.0. Recording it keeps a pandas major from
+        # moving unobserved across an interpreter or lockfile bump. Read from
+        # distribution metadata because pandas is not a declared dependency.
+        "pandas": version("pandas"),
         "rasterio": rasterio.__version__,
         "shapely": shapely.__version__,
         "geopandas": gpd.__version__,

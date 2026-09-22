@@ -5,6 +5,11 @@ resolves numpy 2.4.6) and compares its outputs against the version-controlled
 reference captured from the pre-upgrade Python 3.11 / rasterio 1.4 / numpy 1
 environment (see ``tests/numeric_baseline/generate_baseline.py``).
 
+The gate also records the resolved pandas version: pandas reaches the pipeline
+transitively through geopandas (which caps nothing above ``pandas>=2.0.0``), so
+a pandas major can otherwise cross into the graph without any upgrade step
+naming it -- which is how pandas 3 arrived.
+
 Tolerances (enforced automatically, per the python-dependency-toolchain spec):
 - scalar deforestation ratios: math.isclose(rel_tol=1e-6, abs_tol=1e-8);
 - generated rasters: exactly equal CRS, affine transform, dimensions, band
@@ -19,6 +24,7 @@ Linux x86_64 in GitHub Actions is the blocking reference platform.
 
 import json
 import math
+from importlib.metadata import version
 
 import numpy as np
 import pytest
@@ -61,6 +67,36 @@ def test_baseline_captured_from_numpy1_reference(baseline):
         "is not evidence of compatibility"
     )
     assert baseline["tooling"]["rasterio"].startswith("1.4.")
+
+
+def test_baseline_records_pandas_provenance(baseline):
+    # pandas reaches the pipeline only transitively, through geopandas, which
+    # caps nothing above pandas>=2.0.0 -- which is how pandas 3.0.3 entered the
+    # committed graph without any upgrade step naming it. The baseline must
+    # record the version it was captured against, or the comparison below has
+    # nothing to compare to.
+    assert "pandas" in baseline["tooling"], (
+        "baseline does not record the pandas version it was captured under; "
+        "recapture with generate_baseline.py under the approved reference "
+        "environment"
+    )
+
+
+def test_pandas_major_matches_baseline(baseline):
+    # A pandas major is allowed to move -- but not unobserved. Patch and minor
+    # drift is fine; crossing a major requires re-running the capture under the
+    # approved reference environment and reviewing the result, exactly like a
+    # numpy major. This is the guard that would have surfaced 2 -> 3.
+    resolved = version("pandas")
+    expected = baseline["tooling"]["pandas"].split(".")[0]
+    actual = resolved.split(".")[0]
+    assert actual == expected, (
+        f"pandas major changed since the baseline was captured: baseline="
+        f"{baseline['tooling']['pandas']} runtime={resolved}. Re-run "
+        "tests/numeric_baseline/generate_baseline.py under the approved "
+        "reference environment and review the resulting values before "
+        "accepting the bump."
+    )
 
 
 def test_scalar_ratios_within_tolerance(baseline, outputs):
