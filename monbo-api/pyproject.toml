@@ -2,7 +2,7 @@
 name = "monbo-api"
 version = "1.5.1"
 description = "FastAPI application"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]==0.115.6",
     "shapely==2.0.6",
@@ -37,7 +37,7 @@ testpaths = ["tests"]
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py313']
 
 [tool.ruff]
 line-length = 88
@@ -46,6 +46,6 @@ lint.ignore = ["E501"]  # Let Black handle line length
 exclude = ["migrations", "__pycache__"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 check_untyped_defs = true
 ignore_missing_imports = true

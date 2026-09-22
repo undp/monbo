@@ -114,14 +114,14 @@ monbo/
 
 | | Backend (`monbo-api`) | Frontend (`monbo-front`) |
 |---|---|---|
-| **Language** | Python 3.11 | TypeScript |
+| **Language** | Python 3.13 | TypeScript |
 | **Framework** | FastAPI + Uvicorn | Next.js 15 (App Router) + React 19 |
 | **Core** | Geospatial: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`; images: `pillow` | UI: MUI 6 + Emotion; maps: `@vis.gl/react-google-maps` |
 | **i18n** | bilingual metadata (en/es) | `i18next` (`[locale]` routes, en/es) |
 | **Data/docs** | — | `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`, `file-saver` |
 | **Packages** | `pip` (there is a `package.json` "wrapper" only to expose scripts) | `pnpm` |
 | **Tests** | `pytest` (in `tests/`) | — |
-| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.11) | `Dockerfile.dev` / `Dockerfile.prod` (Node 20) |
+| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.13) | `Dockerfile.dev` / `Dockerfile.prod` (Node 20) |
 
 ### 3.2 Backend — `monbo-api/app/`
 
@@ -172,7 +172,7 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 | Tool | Version | Why |
 |---|---|---|
 | **git** + **git-lfs** | any recent | git-lfs is required to download the rasters (it is **not** installed by default) |
-| **Python** | **3.11** | backend |
+| **Python** | **3.13** | backend |
 | **Node.js** | **20** (packages) / **≥22** (root orchestrator) | frontend runs on Node 20 (only enforced in Docker; use 20 to match). The optional root orchestrator (`pnpm dev`/`test`/`lint`/`build` at the repo root, which shells out to `concurrently`) needs **Node ≥22**; run it on 22, or run each service directly from its own directory on Node 20. |
 | **pnpm** | latest | package manager for both apps |
 | A **Google Maps Platform API key** | — | so the map actually renders in module 2/3 |
@@ -180,8 +180,8 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 ```bash
 # Fedora           # Debian/Ubuntu            # macOS (Homebrew)
 sudo dnf install \  sudo apt install \         brew install \
-  git git-lfs        git git-lfs                git git-lfs python@3.11 node pnpm
-# Python 3.11 + Node 20 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
+  git git-lfs        git git-lfs                git git-lfs python@3.13 node pnpm
+# Python 3.13 + Node 20 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
 ```
 
 ### 4.1 Clone the repo and download the rasters (Git LFS)
@@ -211,7 +211,7 @@ cp .env.template .env
 
 # 2. Install dependencies and run the dev server (hot reload).
 #    Dependencies are managed with uv (https://docs.astral.sh/uv/). uv creates and
-#    manages the Python 3.11 virtual environment automatically (pinned via
+#    manages the Python 3.13 virtual environment automatically (pinned via
 #    .python-version), so no manual `venv` step is needed.
 pnpm install                        # this simply runs: uv sync
 pnpm dev                            # → uv run fastapi dev ./app/main.py  (http://localhost:8000)
