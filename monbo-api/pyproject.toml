@@ -22,10 +22,10 @@ dependencies = [
 dev = [
     "pytest==8.3.4",
     "pytest-cov==6.0.0",
-    "ruff",
-    "black",
-    "mypy",
-    "memory-profiler",
+    "ruff==0.15.20",
+    "black==26.5.1",
+    "mypy==2.2.0",
+    "memory-profiler==0.61.0",
 ]
 
 [tool.uv]
