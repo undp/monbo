@@ -1,3 +1,5 @@
+> **Resequenced 2026-09-22.** The Python track order is now **PR 1 → PR 4a (Python 3.13) → PR 2 → PR 3 → PR 4b (rasterio 1.5) → PR 5**. The interpreter bump was split out of PR 4 and moved ahead of the dependency PRs because rasterio 1.4.3 publishes cp313 wheels, so Python 3.13 does not require rasterio 1.5 — see design D3 and R10. This unblocks pyproj 3.8.0 in PR 2 and geemap in PR 5, which the old 3.11 floor made impossible.
+>
 > **Revised 2026-09-22.** Version targets were set on 2026-07-08 and have been re-validated against PyPI, the npm registry, and the Node/Python release calendars. Pinned numbers below are refreshed; three decisions changed (Node 22 → 24, Python 3.12 → 3.13, TypeScript pinned at 6.0.3 with 7 deferred — see design D3, D4, D10) and two silently-absorbed risks were promoted to explicit tasks (dev-tool pins per D9, pandas 3 per R8). Completed PR 1 tasks were not re-opened; where a revised target affects already-shipped work, the follow-up lives in the PR that owns the runtime.
 
 ## 1. PR 1 — Hygiene + uv + orchestration + CI (prerequisite for all)
@@ -44,36 +46,50 @@
 - [x] 1.18 Give every `dev` dependency-group entry in `monbo-api/pyproject.toml` an exact `==` pin (ruff, black, mypy, memory-profiler), matching the style of the production deps; pin them at the versions the committed lock already resolved (mypy 2.2.0, black 26.5.1, ruff 0.15.20) so this is a no-op for the current CI run. Rationale in design D9: unpinned linters let an unrelated `uv lock` refresh in PRs 2-5 re-roll the toolchain and fail CI for reasons unrelated to the bump under review, and it is how mypy 1 → 2 and black 25 → 26 landed without appearing in any PR's scope
 - [x] 1.19 Record the resolved `pandas` version in the `tooling` block of `monbo-api/tests/numeric_baseline/baseline.json` and in `generate_baseline.py`'s version capture, alongside numpy/geopandas/rasterio/pyproj/shapely/pillow. The PR 1 lock pulled pandas 3.0.3 transitively through geopandas (which caps nothing above `pandas>=2.0.0`), so a pandas major is currently in the dependency graph with no record in the baseline — see design R8
 
-## 2. PR 2 — API minors (Python track)
+## 2. PR 2 — API minors (Python track; lands after PR 4a)
 
 **Branch:** `chore/api-deps-minors` — **Title:** `chore(deps): bump API minors (shapely, geopandas, pyproj, uvicorn…)`
 
-- [ ] 2.1 Bump shapely 2.1.2, geopandas 1.1.4, pyproj 3.8.0, uvicorn 0.53.0, colorlog 6.12.0, python-dotenv 1.2.3 (keep rasterio 1.4.3 until PR 4); refresh `uv.lock`
-- [ ] 2.2 Run `uv run pytest` and smoke `/health` + a deforestation analysis
+- [ ] 2.1 Bump shapely 2.1.2, geopandas 1.1.4, pyproj 3.8.0, uvicorn 0.53.0, colorlog 6.12.0, python-dotenv 1.2.3 (keep rasterio 1.4.3 until PR 4b); refresh `uv.lock`. pyproj 3.8.0 requires Python >= 3.12 and publishes no cp311 wheel, which is why this PR lands after PR 4a — on the original ordering it would have had to settle for 3.7.2
+- [ ] 2.1b Expect a small numeric drift from pyproj and attribute it explicitly. Measured 2026-09-22 against the production rasters: the polygon path is bit-identical, but the **point-with-radius path drifts ~3.6e-10 relative** (0.07030155911922976 → 0.0703015591443049 on `gfw.tif`), isolated to pyproj 3.7.2 → 3.8.0 by holding the interpreter and numpy constant. That is three orders of magnitude inside the gate's 1e-6 tolerance, and it is consistent with 3.8.0 bundling a newer PROJ that changes the geodesic buffer. Record the before/after values in the PR rather than letting the gate pass silently
+- [ ] 2.2 Run `uv run pytest` and smoke `/health` + a deforestation analysis (a first pass on Python 3.11 with pyproj 3.7.2 was run 2026-09-22 and was clean — 31 tests, static checks, `/health` 200, analize 200 over `gfw.tif`/`tmf.tif`, tile endpoint returning a 256x256 RGBA PNG — but it must be redone on top of PR 4a with pyproj 3.8.0)
 
-## 3. PR 3 — API nominal majors (Python track)
+## 3. PR 3 — API nominal majors (Python track; lands after PR 2, before PR 4b)
 
 **Branch:** `chore/api-deps-majors` — **Title:** `chore(deps): bump API majors (pillow 12, pytest 9, pycountry 26, fastapi 0.141)`
 
 - [ ] 3.1 Bump pillow 12.3.0, pytest 9.1.1 + pytest-cov 7.1.0, pycountry 26.2.16, fastapi 0.141.1; refresh `uv.lock`
 - [ ] 3.2 Confirm no removed pillow APIs are used and there is no `on_event` usage (Pydantic already v2); run pytest
 
-## 4. PR 4 — Python 3.13 + rasterio 1.5 (Python track, runtime gate)
+## 4a. PR 4a — Python 3.13 runtime only (Python track; lands right after PR 1, before PR 2)
 
-**Branch:** `chore/api-python-3.13` — **Title:** `build: raise API runtime to Python 3.13 + rasterio 1.5 (numpy 2)`
+**Branch:** `chore/api-python-3.13` — **Title:** `build: raise API runtime to Python 3.13`
 
-- [ ] 4.1 Raise `.python-version` and `requires-python` to 3.13; set `python:3.13-slim` in both API Dockerfiles. Revised 2026-09-22 (design D3): the original 3.12 target is superseded — 3.12 has been security-only since April 2025, 3.13 is the current bugfix line, and the whole geospatial stack publishes cp313 wheels (verified for rasterio 1.5.1, pyproj 3.8.0, shapely 2.1.2, numpy 2.5.3, pillow 12.3.0; geopandas is pure Python, pyogrio ships abi3), so the gate work is identical either way
-- [ ] 4.2 Verify and update any hardcoded versioned paths (e.g. `/usr/local/lib/python3.11/site-packages`) in `monbo-api/Dockerfile.prod`'s multi-stage `COPY --from=api-builder` step; this path may already be gone after the uv rewrite in PR 1 — confirm and update to `python3.13` if it is still present
-- [ ] 4.3 Bump rasterio to 1.5.1 and refresh `uv.lock`; explicitly verify the selected numpy **and pandas** versions. numpy 2 was already present in the PR 1 lock, so this is not its first introduction — but that lock is a dual resolution (numpy 2.4.6 below Python 3.12, 2.5.x at or above it), so raising the interpreter also crosses numpy 2.4 → 2.5, a minor the baseline has never been validated against. Record both resolved versions in the PR description
-- [ ] 4.4 Raise mypy `python_version` 3.10 → 3.13 in the authoritative `monbo-api/pyproject.toml`; remove the duplicate root `[tool.mypy]` block if it is orphaned, or consolidate to one shared authoritative configuration if a root invocation is retained; update README
-- [ ] 4.5 Hard gate: on Linux x86_64, run the repaired full pytest suite and the automated PR 1 numeric fixture against the Python 3.13/rasterio 1.5.1 lock; block unless ratios, raster metadata/masks/pixels, and decoded rendered imagery satisfy the exact tolerances in `python-dependency-toolchain`. Treat this as a genuine re-validation, not a repeat of PR 1's run: the interpreter bump moves numpy from 2.4.6 to the 2.5 series and may move pandas as well (see 4.3 and design R8)
+> Resequenced 2026-09-22. D3 originally coupled the interpreter bump to rasterio 1.5 and put both at the end of the Python track. The coupling only runs one way: rasterio 1.5 needs Python >= 3.12, but Python 3.13 does not need rasterio 1.5 — rasterio 1.4.3 publishes cp313 wheels. Verified by resolving and running the full suite at 3.13 with rasterio pinned to 1.4.3. Splitting the interpreter out and moving it ahead of the dependency PRs unblocks pyproj 3.8.0 (PR 2) and geemap (PR 5), collapses the lock's dual numpy resolution into a single version, and leaves rasterio 1.5 as a one-variable PR (4b). See design D3 and R10 for the rollback trade-off this creates.
+
+- [x] 4a.1 Raise `.python-version` and `requires-python` to 3.13; set `python:3.13-slim` in both API Dockerfiles. Revised 2026-09-22 (design D3): the original 3.12 target is superseded — 3.12 has been security-only since April 2025, 3.13 is the current bugfix line, and the whole geospatial stack publishes cp313 wheels (verified for rasterio 1.4.3 and 1.5.1, pyproj 3.8.0, shapely 2.1.2, numpy 2.5.3, pillow 12.3.0; geopandas is pure Python, pyogrio ships abi3)
+- [x] 4a.2 Verify and update any hardcoded versioned paths (e.g. `/usr/local/lib/python3.11/site-packages`) in `monbo-api/Dockerfile.prod`'s multi-stage `COPY --from=api-builder` step — confirmed already gone after the uv rewrite in PR 1: the build stage produces a self-contained environment at `/opt/venv` and the runner copies that path, with no interpreter version in it
+- [x] 4a.3 Keep rasterio at 1.4.3 and refresh `uv.lock`; record the resolved numpy and pandas versions. Result: numpy collapses from the dual resolution (2.4.6 below 3.12, 2.5.1 at or above) to a single **2.5.1**, pandas stays **3.0.3**, and `tomli` drops out — 79 packages, down from 81. The numpy 2.4 → 2.5 crossing therefore happens here, isolated from every dependency bump
+- [x] 4a.4 Raise mypy `python_version` 3.10 → 3.13 in the authoritative `monbo-api/pyproject.toml`; the duplicate root `[tool.mypy]` block was orphaned — nothing invokes mypy from the repo root, since both the orchestrator script and CI run it with `--directory monbo-api` — so it was removed rather than consolidated. The root `[tool.black]` `target-version` was aligned to `py313` at the same time so no file in the repo still claims 3.11. Updated `monbo-api/README.md` and `docs/onboarding.md`
+- [x] 4a.5 Replace the deprecated `datetime.utcnow()` calls that Python 3.13 surfaces as `DeprecationWarning` in the tile handler (`app/modules/deforestation_analysis/router.py`) with timezone-aware `datetime.now(timezone.utc)`; the rendered HTTP date strings are unchanged
+- [x] 4a.6 Hard gate: run the full pytest suite and the automated numeric fixture against the Python 3.13 lock. Result on macOS arm64: 31 passed, ruff/black/mypy clean, and the production-raster smoke (`gfw.tif` + `tmf.tif`, polygon and point-with-radius) returns ratios **identical to the last digit** versus Python 3.11 / numpy 2.4.6. The interpreter and numpy bump are numerically neutral
+- [ ] 4a.7 Re-confirm the gate on Linux x86_64 in CI, which is the blocking reference platform; the local run above is informative only
+
+## 4b. PR 4b — rasterio 1.5 (Python track; after PR 3)
+
+**Branch:** `chore/api-rasterio-1.5` — **Title:** `build: upgrade rasterio to 1.5 (numpy 2)`
+
+- [ ] 4b.1 Bump rasterio to 1.5.1 and refresh `uv.lock`; record the resolved numpy and pandas versions and confirm nothing else moved
+- [ ] 4b.2 Hard gate: on Linux x86_64, run the repaired full pytest suite and the automated PR 1 numeric fixture against the rasterio 1.5.1 lock; block unless ratios, raster metadata/masks/pixels, and decoded rendered imagery satisfy the exact tolerances in `python-dependency-toolchain`. This PR now carries a single variable — the interpreter and numpy crossings were already validated in PR 4a — so any drift the gate reports is attributable to rasterio
+- [ ] 4b.3 Update the numeric-gate guard in `tests/test_numeric_baseline.py` that asserts the baseline was captured under rasterio 1.4.x, if it still describes the pre-upgrade reference correctly after this bump
 
 ## 5. PR 5 — Script GFW/TMF (Python track)
 
 **Branch:** `chore/gfw-tmf-deps` — **Title:** `chore(deps): update GFW/TMF script (uncap tenacity, bump earthengine/geemap)`
 
-- [ ] 5.1 Remove the `tenacity<9` cap (current release 9.1.4; the script lock is still on 8.5.0) and bump earthengine-api to 1.7.45 and geemap to 0.38.5 (the script lock is on 1.7.34 / 0.38.3); refresh `uv.lock`
-- [ ] 5.2 Validate with a bounded run + `gdalinfo` on the output
+- [ ] 5.1 Raise the script's `requires-python` floor before bumping anything, aligning it with the API's 3.13 interpreter established in PR 4a. `scripts/update-gfw-tmf/pyproject.toml` declares `>=3.9`, which is loose enough that uv forks the lock three ways — the committed lock installs geemap 0.36.6 on Python 3.9, 0.37.2 on 3.10-3.11 and 0.38.3 on 3.12+ — so the script already runs different code depending on which interpreter the developer happens to have. Verify the refreshed lock resolves a single version per package
+- [ ] 5.2 Remove the `tenacity<9` cap (current release 9.1.4; the script lock is still on 8.5.0) and bump earthengine-api to 1.7.45 and geemap to 0.38.5 (the script lock is on 1.7.34 / 0.38.3; note geemap has required Python >= 3.12 since 0.37.3, which is why 5.1 comes first); refresh `uv.lock`
+- [ ] 5.3 Validate with a bounded run + `gdalinfo` on the output
 
 ## 6. PR 6 — Front minors (Front track)
 
