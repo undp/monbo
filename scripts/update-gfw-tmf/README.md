@@ -50,15 +50,38 @@ uv sync
 Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`:
 
 ```txt
-earthengine-api
-geemap
-GDAL
-tenacity (<9)
+earthengine-api==1.7.45
+geemap==0.38.5
+tenacity==9.1.4
+GDAL>=3.6.0   (see the version-matching note below)
 ```
 
-> Note: the `GDAL` Python bindings require a matching system GDAL install
-> (`libgdal`/`gdal-config`) to build. Install it via your OS package manager
-> (e.g. `apt-get install gdal-bin libgdal-dev`) before running `uv sync`.
+The script requires **Python 3.13**, matching `monbo-api`. This floor is
+deliberate: `geemap` has required Python >= 3.12 since 0.37.3, and with the
+previous `>=3.9` floor uv produced a *forked* lockfile that installed a
+different dependency set depending on which interpreter you happened to have —
+geemap 0.36.6 on 3.9, 0.37.2 on 3.10–3.11 and 0.38.3 on 3.12+, with numpy
+resolving to four different versions across the same range. Since this script
+generates the raster files the API reads, that is not acceptable drift. A
+single floor gives a single resolution.
+
+> **GDAL version matching.** The `GDAL` Python bindings only build against a
+> system `libgdal` of the *same* version — building the 3.13.1 bindings on a
+> host with libgdal 3.7.3 fails with
+> `Python bindings of GDAL 3.13.1 require at least libgdal 3.13.1`.
+> `GDAL` is therefore left as a range rather than an exact pin, and `uv.lock`
+> records whatever version resolved at lock time. Before running `uv sync`:
+>
+> 1. install the system GDAL (`apt-get install gdal-bin libgdal-dev`, or
+>    `brew install gdal`), then
+> 2. check it with `gdal-config --version`, and
+> 3. if it does not match the locked binding, pin the binding to your system
+>    version for the install: `uv sync --no-install-package gdal` followed by
+>    `uv pip install "GDAL==$(gdal-config --version)"`, or align the system
+>    GDAL to the locked version.
+>
+> The rest of the environment installs and runs independently of GDAL; only
+> the VRT/translate step at the end of the pipeline needs it.
 
 4. Set up Google Earth Engine:
 
