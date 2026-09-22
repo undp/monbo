@@ -4,7 +4,7 @@ version = "1.5.1"
 description = "FastAPI application"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi[standard]==0.115.6",
+    "fastapi[standard]==0.141.1",
     "shapely==2.1.2",
     "pyproj==3.8.0",
     "uvicorn==0.53.0",
@@ -13,15 +13,15 @@ dependencies = [
     "rasterio==1.4.3",
     "colorlog==6.12.0",
     "mercantile==1.2.1",
-    "pillow==11.1.0",
+    "pillow==12.3.0",
     "python-dotenv==1.2.3",
-    "pycountry==24.6.1",
+    "pycountry==26.2.16",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==8.3.4",
-    "pytest-cov==6.0.0",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
     "ruff==0.15.20",
     "black==26.5.1",
     "mypy==2.2.0",
