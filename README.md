@@ -106,4 +106,31 @@ pnpm build   # builds the frontend production bundle
 ## Continuous Integration
 
 - **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
-- **Dependency updates:** an automated dependency bot (Dependabot) is planned as the final step of the toolchain upgrade; it is not wired up yet.
+- **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests on a weekly schedule.
+
+### Dependency update policy
+
+Dependabot covers seven manifest locations, one entry per ecosystem and directory:
+
+| Ecosystem | Directory | Day |
+| --- | --- | --- |
+| `npm` | `/` (root orchestrator) | Monday |
+| `npm` | `/monbo-front` | Monday |
+| `uv` | `/monbo-api` | Tuesday |
+| `uv` | `/scripts/update-gfw-tmf` | Tuesday |
+| `docker` | `/monbo-api` | Wednesday |
+| `docker` | `/monbo-front` | Wednesday |
+| `github-actions` | `/` | Thursday |
+
+The policy in one paragraph: **minor and patch updates are grouped** per ecosystem so routine churn arrives as a single reviewable pull request, **majors are deliberately left ungrouped** so each gets its own PR and can be read against its changelog in isolation, `open-pull-requests-limit` bounds the queue, and **nothing is automerged** — every update passes CI and a human before it lands. Days are staggered so one ecosystem's PRs don't all arrive at once.
+
+Two things worth knowing about the coverage:
+
+- **Non-standard Dockerfile names are covered.** These directories hold `Dockerfile.dev` and `Dockerfile.prod` rather than a plain `Dockerfile`. Dependabot's Docker file fetcher selects on `/dockerfile|containerfile/i` as a substring of the filename, so both match.
+- **The uv binary image is *not* covered.** `monbo-api/Dockerfile.dev` and `Dockerfile.prod` pull the uv binary with `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only reads lines beginning with `FROM`. That version is a manual bump, and it lives in **three** places that must stay in sync:
+
+  1. `monbo-api/Dockerfile.dev`
+  2. `monbo-api/Dockerfile.prod`
+  3. `.github/workflows/api.yml` (the `astral-sh/setup-uv` `version:` input)
+
+Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.

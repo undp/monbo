@@ -273,6 +273,13 @@ The endpoints of each module are defined as environment variables because this p
 - i18next for internationalization
 - Google Maps for mapping functionality
 
+## Dependency updates
+
+Frontend dependencies are updated by Dependabot (`npm` ecosystem on `/monbo-front`,
+plus a `docker` entry for the two Dockerfiles), weekly, with minor and patch updates
+grouped into one pull request and each major isolated in its own. Nothing is
+automerged. See the root README for the full policy.
+
 ## Deploy
 
 ### Deploy on AWS
