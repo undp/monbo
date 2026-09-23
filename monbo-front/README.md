@@ -273,6 +273,27 @@ The endpoints of each module are defined as environment variables because this p
 - i18next for internationalization
 - Google Maps for mapping functionality
 
+## Dependency notes
+
+> **`xlsx` is a manual bump.** It is installed from the official SheetJS
+> distribution rather than npm:
+>
+> ```json
+> "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+> ```
+>
+> The npm registry's copy is frozen at 0.18.5, which carries two HIGH advisories
+> with no patched version available there — prototype pollution (fixed in
+> 0.19.3) and ReDoS (fixed in 0.20.2) — both in the parsing path this app uses
+> on untrusted uploads. Dependabot cannot track a tarball URL, so when SheetJS
+> publishes past 0.20.3 the version has to be updated by hand; check
+> <https://cdn.sheetjs.com/> for the current release.
+>
+> `.xls` support is why this package is here at all. `exceljs` — already a
+> dependency, used for *writing* spreadsheets — reads only `xlsx` and `csv`,
+> while both upload flows accept `.xls` and the dropzone advertises it. The two
+> cannot be consolidated without dropping legacy uploads.
+
 ## Deploy
 
 ### Deploy on AWS
