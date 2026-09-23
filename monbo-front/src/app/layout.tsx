@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "@/config/theme";
 import CssBaseline from "@mui/material/CssBaseline";
-import i18nConfig from "@/i18nConfig";
-import { LayoutProps } from "@/interfaces";
 import DataProvider from "@/context/DataContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
 
@@ -25,14 +23,20 @@ export const metadata: Metadata = {
   },
 };
 
-export function generateStaticParams() {
-  return i18nConfig.locales.map((locale) => ({ locale }));
-}
-
-export default async function RootLayout({ children, params }: LayoutProps) {
-  const { locale } = await params;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // No `lang` here on purpose. This layout is the root of "/", which has no
+  // dynamic segment, so Next never supplies a `locale` param -- the previous
+  // `lang={locale}` resolved to undefined and rendered no attribute at all.
+  // Setting it correctly means reading the locale from the request headers,
+  // which would make this layout dynamic and de-opt every currently static
+  // page; that trade-off is tracked separately rather than smuggled into a
+  // dependency upgrade.
   return (
-    <html lang={locale}>
+    <html>
       <body className={roboto.variable}>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
