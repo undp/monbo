@@ -18,27 +18,13 @@
 - [x] 1.12 Before PR 1 acceptance, create a deterministic, version-controlled deforestation fixture with no network/current-data dependency; capture expected ratios and decoded imagery from the approved pre-upgrade Python 3.11/rasterio 1.4/numpy 1 environment; record tool versions and Linux x86_64 as the blocking platform; automate the tolerance checks defined by `python-dependency-toolchain` — fixture + capture script + baseline committed under `monbo-api/tests/numeric_baseline/`, gate at `monbo-api/tests/test_numeric_baseline.py`
 - [x] 1.13 Run the repaired suite and numeric fixture under PR 1's committed `uv.lock` (which already resolves numpy 2.4.6); block PR 1 unless scalar ratios, raster metadata/masks/pixels, and decoded rendered imagery satisfy the specified tolerances — passes on Linux x86_64 under numpy 2.4.6
 - [x] 1.14 Repair the inherited ruff, black, and mypy failures, then remove `continue-on-error` from pytest, ruff, black, and mypy so every API step is blocking
-- [ ] 1.15 Verify repository branch protection/rulesets require the successful frontend and API workflow checks before merge; record the required check names and confirm a failing check prevents merging — **MANUAL GitHub step, blocked on permissions.** Verified 2026-09-22: `undp/monbo` has no rulesets (`GET /repos/undp/monbo/rulesets` returns `[]`) and no branch protection on `main` (`GET /repos/undp/monbo/branches/main/protection` returns 404), so nothing currently gates merges. The account working this change has `push`/`triage` but not `admin` or `maintain`, so it cannot create the rule; a repository admin must apply it. The two required status check contexts, read from the workflow job `name:` fields and confirmed against the checks reported on PR #14, are exactly:
-  - `Test and static checks` (job `api` in `.github/workflows/api.yml`, workflow `API CI`)
-  - `Type-check, lint, build` (job `frontend` in `.github/workflows/frontend.yml`, workflow `Frontend CI`)
+- [ ] 1.15 Verify repository branch protection/rulesets require the successful frontend and API workflow checks before merge; record the required check names and confirm a failing check prevents merging. **The policy is now designed and documented in [`docs/branch_protection.md`](../../../docs/branch_protection.md)** — required check names, every setting with its rationale, both the ruleset and REST paths to apply it, and the verification steps. What remains is applying it and watching a red check refuse a merge.
 
-  An admin can apply it via Settings → Branches / Rulesets, or equivalently:
+  State as of 2026-09-23: `undp/monbo` still has **no rulesets and no protection on `main`** (`GET /repos/undp/monbo/rulesets` returns `[]`, `GET /repos/undp/monbo/branches/main/protection` returns 404), so the CI checks accumulated across the open pull requests gate nothing. The permission blocker has lifted, though — the working account now reports `admin: true`, where it reported `admin: false` earlier in this change. Applying the rule is no longer blocked on access; it is blocked on someone deciding to turn it on, since doing so immediately changes how everyone merges.
 
-  ```
-  gh api -X PUT repos/undp/monbo/branches/main/protection --input - <<'JSON'
-  {
-    "required_status_checks": {
-      "strict": true,
-      "contexts": ["Test and static checks", "Type-check, lint, build"]
-    },
-    "enforce_admins": false,
-    "required_pull_request_reviews": null,
-    "restrictions": null
-  }
-  JSON
-  ```
-
-  After applying it, confirm a failing check actually blocks merge before closing this task.
+  Two decisions the doc calls out rather than assuming:
+  - **"Require branches to be up to date" starts off.** With a stack of dependent pull requests landing, that setting makes every merge invalidate everything above it, serially. Turn it on once the stack has landed.
+  - **"Enforce for administrators" should be on, but it makes R18 everyone's problem.** With no bypass, a build that fails for an external reason blocks all merges — and the frontend build downloads Roboto from Google Fonts at build time, which already produced exactly that failure once (task 12.7). Prefer fixing the network dependency over keeping an admin escape hatch.
 - [x] 1.16 Configure workflow triggers: `types: [opened, synchronize, ready_for_review]` + `if: github.event.pull_request.draft == false`
 - [x] 1.17 Update root, `monbo-api`, `monbo-front`, and `scripts` READMEs for uv + orchestrator + workflow
 - [x] 1.18 Give every `dev` dependency-group entry in `monbo-api/pyproject.toml` an exact `==` pin (ruff, black, mypy, memory-profiler), matching the style of the production deps; pin them at the versions the committed lock already resolved (mypy 2.2.0, black 26.5.1, ruff 0.15.20) so this is a no-op for the current CI run. Rationale in design D9: unpinned linters let an unrelated `uv lock` refresh in PRs 2-5 re-roll the toolchain and fail CI for reasons unrelated to the bump under review, and it is how mypy 1 → 2 and black 25 → 26 landed without appearing in any PR's scope
