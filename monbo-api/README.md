@@ -25,7 +25,7 @@ monbo-api/
 ├── tests/  # Additional test cases
 ├── pyproject.toml  # Project metadata + Python dependencies (managed by uv)
 ├── uv.lock  # Fully resolved, pinned dependency lockfile
-├── .python-version  # Pinned Python version (3.11)
+├── .python-version  # Pinned Python version (3.13)
 ├── package.json  # Node.js package file to manage commands
 ├── Dockerfile.dev / Dockerfile.prod  # Docker build configurations
 └── .env.template  # Template for environment variables
@@ -156,7 +156,7 @@ standardize command execution using the `package.json` file's scripts (each scri
 delegates to uv), similar to the frontend. This will start the FastAPI development
 server with hot-reloading.
 
-uv creates and manages the virtual environment automatically, pinned to Python 3.11 via
+uv creates and manages the virtual environment automatically, pinned to Python 3.13 via
 `.python-version` — no manual `venv` step is required. Install the dependencies and run
 the development server:
 
@@ -178,7 +178,7 @@ We use pnpm to standardize command execution using the `package.json` file's scr
 (each script delegates to uv), similar to the frontend. This will start the FastAPI
 production server.
 
-uv manages the virtual environment automatically (Python 3.11), so no manual `venv` step
+uv manages the virtual environment automatically (Python 3.13), so no manual `venv` step
 is required. Install the dependencies and run the production server:
 
 ```sh

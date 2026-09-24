@@ -58,9 +58,9 @@ The API SHALL target Python 3.13 as its runtime baseline. `requires-python` SHAL
 
 ### Requirement: Numeric correctness under rasterio 1.5 and numpy 2
 
-The numpy 2 correctness gate SHALL apply when numpy 2 first enters the committed dependency graph and again when Python 3.13/rasterio 1.5 lands. Because the PR 1 `uv.lock` already resolves numpy 2.4.6, PR 1 SHALL NOT be accepted merely as a tooling-only migration: the inherited pytest failures SHALL first be repaired and the comparison below SHALL pass before PR 1, and it SHALL be rerun as a hard gate in PR 4.
+The numpy 2 correctness gate SHALL apply when numpy 2 first enters the committed dependency graph, again when the Python 3.13 interpreter lands, and a third time when rasterio 1.5 lands. The interpreter and rasterio upgrades SHALL ship as separate changes so that each rerun of the gate carries a single variable; rasterio 1.4.3 publishes cp313 wheels, so the interpreter bump does not require the rasterio bump. Because the PR 1 `uv.lock` already resolves numpy 2.4.6, PR 1 SHALL NOT be accepted merely as a tooling-only migration: the inherited pytest failures SHALL first be repaired and the comparison below SHALL pass before PR 1, and it SHALL be rerun as a hard gate in PR 4.
 
-The PR 4 rerun SHALL NOT be treated as a formality. The committed lock resolves numpy conditionally on the interpreter (2.4.6 below Python 3.12, the 2.5 series at or above it), so raising the interpreter crosses a numpy minor the baseline has never been validated against. The gate SHALL additionally record and compare the resolved `pandas` version, which entered the graph transitively through geopandas as a 2 → 3 major without being named by any upgrade step.
+Neither rerun SHALL be treated as a formality. The committed lock resolves numpy conditionally on the interpreter (2.4.6 below Python 3.12, the 2.5 series at or above it), so raising the interpreter crosses a numpy minor the baseline has never been validated against; raising the floor SHALL collapse that conditional resolution to a single numpy version. The gate SHALL additionally record and compare the resolved `pandas` version, which entered the graph transitively through geopandas as a 2 → 3 major without being named by any upgrade step.
 
 The gate SHALL use a deterministic, version-controlled fixture containing fixed local inputs (including the analysis geometry and raster/source data) with no network, clock, or mutable external-data dependency. Expected scalar ratios, raster outputs, and rendered imagery SHALL be captured from the approved pre-upgrade Python 3.11/rasterio 1.4/numpy 1 environment, with the exact dependency/tool versions recorded — including `pandas` alongside numpy, geopandas, rasterio, pyproj, shapely, and pillow. Linux x86_64 in GitHub Actions is the blocking reference platform; results on other developer platforms are informative unless they are explicitly added to the supported matrix.
 
@@ -81,11 +81,11 @@ Changing the fixture, baseline values, or tolerances SHALL require an explicit r
 
 #### Scenario: Deforestation results unchanged after numpy 2 upgrade
 
-- **WHEN** the deterministic fixture is run after the Python 3.13 / rasterio 1.5 upgrade in PR 4
+- **WHEN** the deterministic fixture is run after the Python 3.13 interpreter upgrade, and again after the rasterio 1.5 upgrade
 - **THEN** scalar ratios, raster outputs, and decoded rendered images match the version-controlled numpy 1 reference using the specified tolerances
 - **AND** the pytest suite passes
 - **AND** the resolved numpy and pandas versions are recorded in the PR, showing the numpy 2.4 → 2.5 crossing explicitly
-- **AND** PR 4 is blocked if either condition fails
+- **AND** either upgrade is blocked if its own run fails
 
 ### Requirement: uv-managed GFW/TMF update script
 
