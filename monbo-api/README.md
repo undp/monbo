@@ -285,6 +285,23 @@ re-runs the deforestation fixture under the committed lock (numpy 2) and compare
 against the version-controlled numpy 1 reference within the tolerances defined by the
 `python-dependency-toolchain` spec.
 
+## Dependency updates
+
+Python dependencies here are updated by Dependabot (`uv` ecosystem, weekly) — see the
+root README for the full policy. One thing it does **not** cover:
+
+> **The uv binary version is a manual bump.** Both Dockerfiles pull the uv binary with
+> `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only
+> reads lines beginning with `FROM`, so that image is outside its reach. The version
+> appears in **three** places and they must be changed together:
+>
+> 1. `monbo-api/Dockerfile.dev`
+> 2. `monbo-api/Dockerfile.prod`
+> 3. `.github/workflows/api.yml` — the `astral-sh/setup-uv` `version:` input
+>
+> If they drift, the image and CI resolve dependencies with different uv versions,
+> which is exactly the kind of difference a `--frozen` install is supposed to rule out.
+
 ## API Documentation
 
 FastAPI provides interactive API documentation:

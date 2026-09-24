@@ -1,0 +1,134 @@
+# Dependabot policy for the Monbo monorepo.
+#
+# Shape of the policy (see openspec/changes/dependency-upgrade-2026, D8):
+#   - weekly schedule, spread across the week so one ecosystem's PRs don't all
+#     land at once;
+#   - minor and patch updates grouped per ecosystem, so routine churn arrives as
+#     one reviewable PR;
+#   - majors deliberately NOT grouped, so each one gets its own PR and can be
+#     reviewed against its changelog in isolation. The 2026 dependency upgrade
+#     is a long argument for that: several majors in this repo carried silent
+#     behaviour changes that only showed up when looked at one at a time;
+#   - open-pull-requests-limit keeps the queue bounded;
+#   - no automerge anywhere. Every PR passes CI and a human before it lands.
+version: 2
+
+updates:
+  # --- JavaScript -----------------------------------------------------------
+  # The repo root is a minimal pnpm project holding only the orchestrator's
+  # `concurrently` devDependency; the application lives in monbo-front. They
+  # are separate entries because they are separate lockfiles.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels: ["dependencies", "root-orchestrator"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/monbo-front"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels: ["dependencies", "frontend"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # --- Python ---------------------------------------------------------------
+  # Both projects are uv-managed. The two dependabot-core defects the plan
+  # flagged for this ecosystem are resolved upstream: #12788 (uv.lock updated
+  # without pyproject.toml) closed 2025-12-05, and #13426 (security updates run
+  # through pip instead of uv) closed 2026-01-14. monbo-api pins with `==`, so
+  # pyproject.toml and uv.lock must move together -- worth spot-checking on the
+  # first few PRs regardless.
+  - package-ecosystem: "uv"
+    directory: "/monbo-api"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels: ["dependencies", "api"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "uv"
+    directory: "/scripts/update-gfw-tmf"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    labels: ["dependencies", "gfw-tmf-script"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # --- Docker ---------------------------------------------------------------
+  # These directories hold Dockerfile.dev and Dockerfile.prod rather than a
+  # plain `Dockerfile`. That is covered: dependabot-core's docker file fetcher
+  # selects on `/dockerfile|containerfile/i` as a substring of the filename, so
+  # both names match. Verified against the fetcher source, not assumed.
+  #
+  # NOT covered: the `COPY --from=ghcr.io/astral-sh/uv:<version>` lines in the
+  # API Dockerfiles. The parser only matches lines beginning with `FROM`, so
+  # that image is outside Dependabot's reach and stays a manual bump -- see the
+  # API README for the three places its version has to stay in sync.
+  - package-ecosystem: "docker"
+    directory: "/monbo-api"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build(deps)"
+    labels: ["dependencies", "docker", "api"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/monbo-front"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build(deps)"
+    labels: ["dependencies", "docker", "frontend"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # --- GitHub Actions -------------------------------------------------------
+  # Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment.
+  # Dependabot understands that form: it bumps the SHA and rewrites the comment,
+  # so SHA pinning and automated updates are not in tension.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci(deps)"
+    labels: ["dependencies", "github-actions"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]

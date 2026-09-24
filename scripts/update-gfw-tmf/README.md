@@ -262,3 +262,14 @@ your-project/
     ├── gfw.tif
     └── tmf.tif
 ```
+
+## Dependency updates
+
+This script's dependencies are updated by Dependabot (`uv` ecosystem on
+`/scripts/update-gfw-tmf`), weekly, with minor and patch updates grouped and majors
+isolated. Nothing is automerged. See the root README for the full policy.
+
+Note the interaction with the GDAL version-matching requirement above: Dependabot can
+propose a newer `GDAL` binding, but whether that binding *builds* depends on the system
+`libgdal` on the machine running `uv sync`. Check `gdal-config --version` before
+accepting a GDAL bump.
