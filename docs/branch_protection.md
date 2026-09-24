@@ -23,13 +23,41 @@ what appears in the "Checks" list on a pull request.
 | Setting | Value | Why |
 | --- | --- | --- |
 | Require a pull request before merging | on | Nothing reaches `main` without review. |
-| Required approvals | 1 | Matches the Dependabot policy: every update is reviewed by a human, nothing automerges. |
+| Required approvals | **0** — see below | A deliberate concession to team size, not an oversight. |
 | Dismiss stale approvals on new commits | on | An approval should describe the code that merges, not an earlier version of it. |
 | Require status checks to pass | on | The two jobs above. |
 | Require branches to be up to date before merging | **on** (applied 2026-09-24) — see the note below | |
 | Block force pushes | on | History on `main` should be append-only. |
 | Block deletions | on | |
 | Enforce for administrators | on — see the caveat below | An exemption nobody uses is clutter; an exemption people do use is the policy. |
+
+### Why required approvals is 0
+
+GitHub does not let anyone approve their own pull request. With most changes here
+opened by the same person, requiring even one approval means nothing can merge
+until a second maintainer is available — which in practice means work sits, or
+the rule gets bypassed, and a rule that gets bypassed is not a rule.
+
+So the count is 0, deliberately. Be clear about what that does and does not leave
+in place:
+
+**Still enforced.** Changes must arrive through a pull request — nobody pushes
+straight to `main`. Both CI jobs must pass. Force pushes and branch deletion are
+blocked. These are the properties that stop `main` from silently breaking.
+
+**No longer enforced.** Nothing requires a human to read the code. A pull request
+with green checks and zero reviews can merge.
+
+That second point has a specific consequence for the dependency policy. The
+Dependabot design says every update passes CI *and* human review before landing.
+Automerge is off, so no bot merges anything on its own — but with 0 required
+approvals there is nothing stopping a person from merging a dependency bump
+without reading it. **That half of the policy is now discipline, not
+configuration.** Grouped minor/patch pull requests are the ones to watch: they are
+routine enough to wave through and wide enough to carry something that matters.
+
+Raise this to 1 when a second reviewer is reliably available. It is one setting,
+and it costs nothing to change back.
 
 ### Why "require branches up to date" starts off
 
