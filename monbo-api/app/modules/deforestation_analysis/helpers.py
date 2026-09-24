@@ -64,9 +64,7 @@ async def get_tile(tif_path, z, x, y):
                 return create_empty_tile()
 
             # Calculate the raster window for the requested bounds
-            window = vrt.window(
-                bounds.left, bounds.bottom, bounds.right, bounds.top, precision=21
-            )
+            window = vrt.window(bounds.left, bounds.bottom, bounds.right, bounds.top)
 
             # Read the data for the specified window, resampled to 256x256 pixels
             data = await asyncio.to_thread(

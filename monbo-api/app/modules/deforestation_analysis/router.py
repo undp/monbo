@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 from fastapi import APIRouter, HTTPException, Query
@@ -91,8 +91,10 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
         # Set caching headers (e.g., cache for 1 day)
         headers = {
             "Cache-Control": "public, max-age=86400",  # Cache for 1 day
-            "Last-Modified": datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-            "Expires": (datetime.utcnow() + timedelta(days=1)).strftime(
+            "Last-Modified": datetime.now(timezone.utc).strftime(
+                "%a, %d %b %Y %H:%M:%S GMT"
+            ),
+            "Expires": (datetime.now(timezone.utc) + timedelta(days=1)).strftime(
                 "%a, %d %b %Y %H:%M:%S GMT"
             ),
         }

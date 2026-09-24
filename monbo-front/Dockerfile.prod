@@ -1,12 +1,14 @@
 # Build stage for frontend
-FROM --platform=linux/amd64 node:20-alpine AS frontend-builder
+FROM --platform=linux/amd64 node:24-alpine AS frontend-builder
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Use the exact pnpm version declared by `packageManager` via Corepack instead
+# of installing a mutable global; `npm install -g pnpm` would pull whatever is
+# latest at image-build time and silently drift from the committed lockfile.
+RUN corepack enable
 
 # Copy only package files first for better caching
-COPY package*.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Set build arguments to optimize Next.js build
@@ -20,7 +22,7 @@ COPY . .
 RUN pnpm run build
 
 # Final stage
-FROM --platform=linux/amd64 node:20-alpine AS frontend-runner
+FROM --platform=linux/amd64 node:24-alpine AS frontend-runner
 WORKDIR /app
 
 # Create non-root user

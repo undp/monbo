@@ -1,5 +1,5 @@
 # Build stage for API
-FROM --platform=linux/amd64 python:3.11-slim AS api-builder
+FROM --platform=linux/amd64 python:3.13-slim AS api-builder
 
 # Bring in the uv binary (pinned; bump manually — keep in sync with CI and pyproject)
 COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /uvx /bin/
@@ -37,7 +37,7 @@ RUN uv sync --frozen --no-dev
 COPY ./app ./app
 
 # Final stage
-FROM --platform=linux/amd64 python:3.11-slim AS api-runner
+FROM --platform=linux/amd64 python:3.13-slim AS api-runner
 WORKDIR /app
 
 # Create non-root user

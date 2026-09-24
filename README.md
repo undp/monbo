@@ -106,6 +106,7 @@ pnpm build   # builds the frontend production bundle
 ## Continuous Integration
 
 - **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
+- **Branch protection:** `main` requires both CI jobs to pass before merging. The policy, the exact required check names, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
 - **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests on a weekly schedule.
 
 ### Dependency update policy

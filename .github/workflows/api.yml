@@ -25,7 +25,7 @@ jobs:
           enable-cache: true
 
       # Fails if pyproject.toml and uv.lock are inconsistent. uv provisions the
-      # interpreter declared by .python-version (3.11) automatically.
+      # interpreter declared by .python-version (3.13) automatically.
       - name: Install dependencies
         run: uv sync --frozen
 
