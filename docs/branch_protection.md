@@ -26,7 +26,7 @@ what appears in the "Checks" list on a pull request.
 | Required approvals | 1 | Matches the Dependabot policy: every update is reviewed by a human, nothing automerges. |
 | Dismiss stale approvals on new commits | on | An approval should describe the code that merges, not an earlier version of it. |
 | Require status checks to pass | on | The two jobs above. |
-| Require branches to be up to date before merging | **off initially** — see below | |
+| Require branches to be up to date before merging | **on** (applied 2026-09-24) — see the note below | |
 | Block force pushes | on | History on `main` should be append-only. |
 | Block deletions | on | |
 | Enforce for administrators | on — see the caveat below | An exemption nobody uses is clutter; an exemption people do use is the policy. |
@@ -39,8 +39,17 @@ end state, but turning it on while a stack of dependent pull requests is landing
 means each merge invalidates everything above it — each one has to be updated and
 re-tested in turn, serially.
 
-Turn it on once the current stack has landed. It costs one setting change and
-nothing else.
+**Applied as on.** That is the right end state, so the note above is about
+sequencing rather than correctness. While the current stack of dependent pull
+requests lands, expect to click "Update branch" on each one after the one below
+it merges, and to wait for CI again.
+
+One consequence worth planning around: **land the stack with merge commits, not
+squashes.** Each pull request in the chain contains the commits of the one below
+it. A merge commit leaves those commits recognisable, so the next pull request
+needs only a sync. A squash replaces them with a single new commit that the next
+pull request does not have, while still carrying the originals — which turns a
+one-click sync into a conflict-prone rebase.
 
 ### The caveat on "enforce for administrators"
 
