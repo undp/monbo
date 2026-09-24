@@ -1,22 +1,22 @@
-from shapely.geometry.base import BaseGeometry
-from shapely.geometry import shape
-from shapely.geometry import Point
-from pyproj import Transformer
-from PIL import Image, ImageDraw
 from typing import Optional, Tuple
-from app.utils.image_generation.GeoHelper import GeoHelper
+
+from PIL import Image, ImageDraw
+from pyproj import Transformer
+from shapely.geometry import Point, shape
+from shapely.geometry.base import BaseGeometry
+
+from app.config.logger import get_logger
 from app.helpers.GeometryCalculator import GeometryCalculator
-from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
+from app.utils.image_generation.constants import MapColors, MapDefaults, MapStyles
 from app.utils.image_generation.errors import (
     GeometryTypeError,
     ParameterValidationError,
 )
-from app.utils.image_generation.constants import MapColors, MapStyles, MapDefaults
+from app.utils.image_generation.GeoHelper import GeoHelper
+from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
 from app.utils.image_generation.ImageManipulationHelper import (
     ImageManipulationHelper,
 )
-from app.config.logger import get_logger
-
 
 # Get logger for this module
 logger = get_logger("utils.image_generation.GeometryHelper")
@@ -106,14 +106,15 @@ class GeometryHelper:
             lons, lats = zip(*[(lon, lat) for lon, lat in geom.exterior.coords])
         elif geom.geom_type == "Point":
             # Handle Point type - point_radius_meters already validated
+            assert point_radius_meters is not None
             # Convert radius from meters to degrees
             radius_lat, radius_lon = GeoHelper.meters_to_degrees(
                 point_radius_meters, geom.y
             )
 
             # Create bounds that include the radius around the point
-            lons = [geom.x - radius_lon, geom.x + radius_lon]
-            lats = [geom.y - radius_lat, geom.y + radius_lat]
+            lons = (geom.x - radius_lon, geom.x + radius_lon)
+            lats = (geom.y - radius_lat, geom.y + radius_lat)
 
         min_lon, max_lon = min(lons), max(lons)
         min_lat, max_lat = min(lats), max(lats)
@@ -249,7 +250,7 @@ class GeometryHelper:
         # Define a drawing function for our anti-aliased overlay
         def draw_circle(
             _: Image.Image,
-            draw: ImageDraw.Draw,
+            draw: ImageDraw.ImageDraw,
             scale_factor: float,
         ) -> None:
             # Scale up the coordinates
@@ -269,7 +270,7 @@ class GeometryHelper:
                 ),
                 fill=MapColors.FEATURE_HIGHLIGHT,  # Semi-transparent yellow fill
                 outline=MapColors.FEATURE_OUTLINE,  # More opaque yellow outline
-                width=scale_factor,  # Thicker line matching the polygon style
+                width=int(scale_factor),  # Thicker line matching the polygon style
             )
 
         # Create the anti-aliased overlay
@@ -346,7 +347,7 @@ class GeometryHelper:
         # Define a drawing function for our anti-aliased outline
         def draw_polygon_outline(
             _: Image.Image,
-            draw: ImageDraw.Draw,
+            draw: ImageDraw.ImageDraw,
             scale_factor: float,
         ) -> None:
             # Scale up the coordinates
@@ -405,6 +406,7 @@ class GeometryHelper:
             )
 
         if geom.geom_type == "Point":
+            assert point_radius_meters is not None
             overlay = GeometryHelper._generate_point_overlay(
                 geom, output_size, zoom_level, point_radius_meters
             )

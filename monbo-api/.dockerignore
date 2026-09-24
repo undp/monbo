@@ -75,6 +75,8 @@ __pycache__/
 # TOML and YAML
 *.toml
 *.yml
+# ...but the uv project manifest is required by the Docker build
+!pyproject.toml
 
 # Virtual environment
 venv/

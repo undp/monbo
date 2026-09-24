@@ -1,15 +1,17 @@
+from fastapi import APIRouter, HTTPException
+
 from app.models.farms import (
     FarmPolygonDetailData,
     FarmPolygonDetailDataWithPolygon,
 )
+from app.utils.farms import get_farm_coords_and_radius
 from app.utils.polygons import generate_polygon
-from fastapi import APIRouter
+
 from .helpers import (
     get_geometry_inconsistencies,
     get_overlap_inconsistencies,
 )
 from .models import PolygonInconsistenciesResponse
-
 
 router = APIRouter()
 
@@ -44,14 +46,10 @@ def get_polygon_inconsistencies(
     """
     farms_polygons = []
     for farm in body:
-        # Determine coordinates based on polygon type
-        if farm.type == "polygon":
-            coords = farm.details.path if farm.details else []
-            radius = None
-        else:
-            # Points always have farm.details
-            coords = [farm.details.center]
-            radius = farm.details.radius
+        try:
+            coords, radius = get_farm_coords_and_radius(farm)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         polygon = generate_polygon(coords, radius)
 
@@ -88,7 +86,9 @@ def get_polygon_inconsistencies(
     for farm_id in invalid_farm_ids:
         results_lookup[farm_id]["status"] = "NOT_VALID"
 
-    return {
-        "farmResults": results,
-        "inconsistencies": all_inconsistencies,
-    }
+    return PolygonInconsistenciesResponse.model_validate(
+        {
+            "farmResults": results,
+            "inconsistencies": all_inconsistencies,
+        }
+    )

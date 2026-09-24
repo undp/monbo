@@ -1,5 +1,6 @@
-from app.modules.maps.router import router
 from fastapi import APIRouter
+
+from app.modules.maps.router import router
 
 module_router = APIRouter()
 

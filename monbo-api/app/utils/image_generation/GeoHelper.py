@@ -1,9 +1,10 @@
 import math
 from typing import Tuple
-import numpy as np
-from app.utils.image_generation.constants import GeographicConstants
-from app.config.logger import get_logger
 
+import numpy as np
+
+from app.config.logger import get_logger
+from app.utils.image_generation.constants import GeographicConstants
 
 """
 TODO:

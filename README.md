@@ -59,7 +59,7 @@ Check the frontend [README](monbo-front/README.md) for more detailed instruction
 
 This project implements a RESTful API using [FastAPI](https://fastapi.tiangolo.com/), a modern Python web framework known for its high performance and automatic API documentation.
 
-The API is containerized using Docker for consistent deployment across environments. Also, it follows RESTful principles and uses JSON for data exchange.
+Python dependencies are managed with [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`). The API is containerized using Docker for consistent deployment across environments. Also, it follows RESTful principles and uses JSON for data exchange.
 
 Check the API [README](monbo-api/README.md) for more detailed instructions on how to use.
 
@@ -81,6 +81,57 @@ Other scripts in this directory follow similar patterns of being self-contained,
 
 ## Running the project
 
-The way to run the project is running both the frontend and API separately. Navigate to each service's directory and follow the instructions in their respective README files.
+You can run each service separately (navigate to each service's directory and follow the instructions in their respective README files), or use the root orchestrator.
 
 The backend is intended to be available at `http://localhost:8000` while the frontend is intended to be available at `http://localhost:3000`.
+
+### Prerequisites
+
+- [pnpm](https://pnpm.io/) for the frontend (the exact version is pinned via the `packageManager` field).
+- [uv](https://docs.astral.sh/uv/) for the Python API and scripts — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+
+### Root orchestrator
+
+A root `package.json` provides orchestrator scripts that delegate to each package (option A: no pnpm workspace; each package keeps its own lockfile, and a minimal root `pnpm-lock.yaml` pins the `concurrently` devDependency). Frontend commands delegate via `pnpm --dir monbo-front` and Python commands via `uv run --directory monbo-api`:
+
+```sh
+pnpm dev     # runs the frontend and API dev servers in parallel (via `pnpm exec concurrently`)
+pnpm test    # runs the API test suite (uv run pytest)
+pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
+pnpm build   # builds the frontend production bundle
+```
+
+> **Node 24 required.** `monbo-front` declares `engines.node >=24`, both frontend Docker images are `node:24-alpine`, and CI pins `actions/setup-node` to 24 — so 24 is the version the app is built and shipped on. The root orchestrator needs at least 22 (its pinned `concurrently` declares `engines.node >=22`), which 24 satisfies. Because pnpm's `engine-strict` is off, running on an older Node prints an engine warning instead of failing; use 24 so the warning stays meaningful.
+
+## Continuous Integration
+
+- **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
+- **Branch protection:** `main` requires both CI jobs to pass before merging. The policy, the exact required check names, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
+- **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests on a weekly schedule.
+
+### Dependency update policy
+
+Dependabot covers seven manifest locations, one entry per ecosystem and directory:
+
+| Ecosystem | Directory | Day |
+| --- | --- | --- |
+| `npm` | `/` (root orchestrator) | Monday |
+| `npm` | `/monbo-front` | Monday |
+| `uv` | `/monbo-api` | Tuesday |
+| `uv` | `/scripts/update-gfw-tmf` | Tuesday |
+| `docker` | `/monbo-api` | Wednesday |
+| `docker` | `/monbo-front` | Wednesday |
+| `github-actions` | `/` | Thursday |
+
+The policy in one paragraph: **minor and patch updates are grouped** per ecosystem so routine churn arrives as a single reviewable pull request, **majors are deliberately left ungrouped** so each gets its own PR and can be read against its changelog in isolation, `open-pull-requests-limit` bounds the queue, and **nothing is automerged** — every update passes CI and a human before it lands. Days are staggered so one ecosystem's PRs don't all arrive at once.
+
+Two things worth knowing about the coverage:
+
+- **Non-standard Dockerfile names are covered.** These directories hold `Dockerfile.dev` and `Dockerfile.prod` rather than a plain `Dockerfile`. Dependabot's Docker file fetcher selects on `/dockerfile|containerfile/i` as a substring of the filename, so both match.
+- **The uv binary image is *not* covered.** `monbo-api/Dockerfile.dev` and `Dockerfile.prod` pull the uv binary with `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only reads lines beginning with `FROM`. That version is a manual bump, and it lives in **three** places that must stay in sync:
+
+  1. `monbo-api/Dockerfile.dev`
+  2. `monbo-api/Dockerfile.prod`
+  3. `.github/workflows/api.yml` (the `astral-sh/setup-uv` `version:` input)
+
+Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.

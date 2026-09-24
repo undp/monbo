@@ -1,10 +1,11 @@
-from typing import Tuple, Union, Final
-from app.config.logger import get_logger
-from pyproj import CRS, Transformer
-from shapely.ops import transform
-from shapely.geometry import Polygon, Point
-from app.utils.image_generation.GeoHelper import GeoHelper
+from typing import Final, Tuple, Union
 
+from pyproj import CRS, Transformer
+from shapely.geometry import Point, Polygon
+from shapely.ops import transform
+
+from app.config.logger import get_logger
+from app.utils.image_generation.GeoHelper import GeoHelper
 
 # Get logger for this module
 logger = get_logger("helpers.GeometryCalculator")
@@ -58,7 +59,7 @@ class GeometryCalculator:
         """
         if geom.geom_type == "Polygon":
             # Handle Polygon type
-            (min_x, min_y, max_x, max_y) = geom.bounds
+            min_x, min_y, max_x, max_y = geom.bounds
             center_lon = (min_x + max_x) / 2
             center_lat = (min_y + max_y) / 2
         elif geom.geom_type == "Point":

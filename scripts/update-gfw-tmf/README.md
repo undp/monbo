@@ -35,27 +35,53 @@ git clone [repository-url]
 cd [repository-name]
 ```
 
-2. Create a virtual environment (recommended):
+2. Install [uv](https://docs.astral.sh/uv/) (manages the Python environment):
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-3. Install requirements:
+3. Install dependencies (uv creates and manages the virtual environment automatically):
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
-Required packages:
+Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`:
 
 ```txt
-earthengine-api
-geemap
-gdal
-tenacity
+earthengine-api==1.7.45
+geemap==0.38.5
+tenacity==9.1.4
+GDAL>=3.6.0   (see the version-matching note below)
 ```
+
+The script requires **Python 3.13**, matching `monbo-api`. This floor is
+deliberate: `geemap` has required Python >= 3.12 since 0.37.3, and with the
+previous `>=3.9` floor uv produced a *forked* lockfile that installed a
+different dependency set depending on which interpreter you happened to have —
+geemap 0.36.6 on 3.9, 0.37.2 on 3.10–3.11 and 0.38.3 on 3.12+, with numpy
+resolving to four different versions across the same range. Since this script
+generates the raster files the API reads, that is not acceptable drift. A
+single floor gives a single resolution.
+
+> **GDAL version matching.** The `GDAL` Python bindings only build against a
+> system `libgdal` of the *same* version — building the 3.13.1 bindings on a
+> host with libgdal 3.7.3 fails with
+> `Python bindings of GDAL 3.13.1 require at least libgdal 3.13.1`.
+> `GDAL` is therefore left as a range rather than an exact pin, and `uv.lock`
+> records whatever version resolved at lock time. Before running `uv sync`:
+>
+> 1. install the system GDAL (`apt-get install gdal-bin libgdal-dev`, or
+>    `brew install gdal`), then
+> 2. check it with `gdal-config --version`, and
+> 3. if it does not match the locked binding, pin the binding to your system
+>    version for the install: `uv sync --no-install-package gdal` followed by
+>    `uv pip install "GDAL==$(gdal-config --version)"`, or align the system
+>    GDAL to the locked version.
+>
+> The rest of the environment installs and runs independently of GDAL; only
+> the VRT/translate step at the end of the pipeline needs it.
 
 4. Set up Google Earth Engine:
 
@@ -92,7 +118,7 @@ CONFIG = {
 ### Basic Execution
 
 ```bash
-python download_gee_asset.py
+uv run python run.py
 ```
 
 ### Common Modifications
@@ -228,10 +254,22 @@ RuntimeError: Insufficient disk space for download
 your-project/
 ├── config.py
 ├── config_example.py
-├── requirements.txt
+├── pyproject.toml
+├── uv.lock
 ├── run.py
-├── venv/
+├── .venv/
 └── output/
     ├── gfw.tif
     └── tmf.tif
 ```
+
+## Dependency updates
+
+This script's dependencies are updated by Dependabot (`uv` ecosystem on
+`/scripts/update-gfw-tmf`), weekly, with minor and patch updates grouped and majors
+isolated. Nothing is automerged. See the root README for the full policy.
+
+Note the interaction with the GDAL version-matching requirement above: Dependabot can
+propose a newer `GDAL` binding, but whether that binding *builds* depends on the system
+`libgdal` on the machine running `uv sync`. Check `gdal-config --version` before
+accepting a GDAL bump.

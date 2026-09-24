@@ -1,8 +1,9 @@
+import asyncio
 from types import TracebackType
-from typing import Optional, Type
+from typing import Any, Optional, Type
+
 from rasterio import open as rasterio_open
 from rasterio.vrt import WarpedVRT
-import asyncio
 
 
 class RasterDataContext:
@@ -21,8 +22,8 @@ class RasterDataContext:
     def __init__(self, tif_path: str, target_crs: str = "EPSG:3857"):
         self.tif_path = tif_path
         self.target_crs = target_crs
-        self.src = None
-        self.vrt = None
+        self.src: Any = None
+        self.vrt: Any = None
 
     async def __aenter__(self):
         """

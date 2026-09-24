@@ -9,7 +9,7 @@ import {
   Box,
   IconButton,
   Chip,
-  Grid2 as Grid,
+  Grid,
   Link,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";

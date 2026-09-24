@@ -114,14 +114,14 @@ monbo/
 
 | | Backend (`monbo-api`) | Frontend (`monbo-front`) |
 |---|---|---|
-| **Language** | Python 3.11 | TypeScript |
+| **Language** | Python 3.13 | TypeScript |
 | **Framework** | FastAPI + Uvicorn | Next.js 15 (App Router) + React 19 |
 | **Core** | Geospatial: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`; images: `pillow` | UI: MUI 6 + Emotion; maps: `@vis.gl/react-google-maps` |
 | **i18n** | bilingual metadata (en/es) | `i18next` (`[locale]` routes, en/es) |
 | **Data/docs** | — | `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`, `file-saver` |
 | **Packages** | `pip` (there is a `package.json` "wrapper" only to expose scripts) | `pnpm` |
 | **Tests** | `pytest` (in `tests/`) | — |
-| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.11) | `Dockerfile.dev` / `Dockerfile.prod` (Node 20) |
+| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.13) | `Dockerfile.dev` / `Dockerfile.prod` (Node 24) |
 
 ### 3.2 Backend — `monbo-api/app/`
 
@@ -172,16 +172,16 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 | Tool | Version | Why |
 |---|---|---|
 | **git** + **git-lfs** | any recent | git-lfs is required to download the rasters (it is **not** installed by default) |
-| **Python** | **3.11** | backend |
-| **Node.js** | **20** | frontend (only enforced in Docker; use 20 to match) |
+| **Python** | **3.13** | backend |
+| **Node.js** | **24** | Both the frontend package and the root orchestrator require Node 24 (`engines.node >=24` in `monbo-front/package.json`; the pinned `concurrently` needs ≥22). Docker images are `node:24-alpine` and CI pins `actions/setup-node` to 24, so 24 is what the app is built and shipped on. `engine-strict` is off, so an older interpreter warns rather than fails — but the warning is the only thing standing between you and a mismatch, so match it. |
 | **pnpm** | latest | package manager for both apps |
 | A **Google Maps Platform API key** | — | so the map actually renders in module 2/3 |
 
 ```bash
 # Fedora           # Debian/Ubuntu            # macOS (Homebrew)
 sudo dnf install \  sudo apt install \         brew install \
-  git git-lfs        git git-lfs                git git-lfs python@3.11 node pnpm
-# Python 3.11 + Node 20 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
+  git git-lfs        git git-lfs                git git-lfs python@3.13 node pnpm
+# Python 3.13 + Node 24 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
 ```
 
 ### 4.1 Clone the repo and download the rasters (Git LFS)
@@ -209,16 +209,15 @@ cp .env.template .env
 #      GCP_MAPS_PLATFORM_SIGNATURE_SECRET=<your secret>       # optional for local dev
 #      OVERLAP_THRESHOLD_PERCENTAGE=1
 
-# 2. Create a Python 3.11 virtual environment and activate it
-python3.11 -m venv .venv
-source .venv/bin/activate           # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies and run the dev server (hot reload)
-pnpm install                        # this simply runs: pip install -r requirements.txt
-pnpm dev                            # → fastapi dev ./app/main.py  (http://localhost:8000)
+# 2. Install dependencies and run the dev server (hot reload).
+#    Dependencies are managed with uv (https://docs.astral.sh/uv/). uv creates and
+#    manages the Python 3.13 virtual environment automatically (pinned via
+#    .python-version), so no manual `venv` step is needed.
+pnpm install                        # this simply runs: uv sync
+pnpm dev                            # → uv run fastapi dev ./app/main.py  (http://localhost:8000)
 ```
 
-> `pnpm` in the backend is just a thin wrapper over `package.json` scripts. If you'd rather skip it: `pip install -r requirements.txt` then `fastapi dev ./app/main.py`.
+> `pnpm` in the backend is just a thin wrapper over `package.json` scripts, which delegate to uv. If you'd rather skip it: `uv sync` then `uv run fastapi dev ./app/main.py`.
 > Verify the backend is up: open **`http://localhost:8000/docs`** (interactive Swagger UI).
 
 ### 4.3 Frontend — terminal 2 (`monbo-front`, port 3000)

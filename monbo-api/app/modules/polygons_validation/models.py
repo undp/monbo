@@ -1,7 +1,8 @@
 from typing import Literal
 
-from app.models.polygons import Coordinates
 from pydantic import BaseModel
+
+from app.models.polygons import Coordinates
 
 
 class OverlapData(BaseModel):

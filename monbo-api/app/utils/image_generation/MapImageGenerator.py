@@ -1,18 +1,19 @@
 from typing import Tuple
+
 from PIL import Image
 from shapely.geometry.base import BaseGeometry
+
 from app.utils.image_generation.constants import MapColors, MapDefaults
+from app.utils.image_generation.errors import (
+    MapGenerationError,
+    NoRasterDataOverlapError,
+)
 from app.utils.image_generation.GeometryHelper import GeometryHelper
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
 from app.utils.image_generation.ImageManipulationHelper import ImageManipulationHelper
 from app.utils.image_generation.RasterManipulationHelper import (
     RasterManipulationHelper,
 )
-from app.utils.image_generation.errors import (
-    NoRasterDataOverlapError,
-    MapGenerationError,
-)
-
 
 # """
 # The only meaningful improvements that might still be worth considering:
@@ -55,7 +56,7 @@ class MapImageGenerator:
     async def generate(
         geometry: BaseGeometry,
         tif_path: str,
-        point_radius_meters: float = None,
+        point_radius_meters: float | None = None,
         output_size: Tuple[int, int] = MapDefaults.OUTPUT_SIZE,
         include_satelital_background: bool = True,
     ) -> Image.Image:

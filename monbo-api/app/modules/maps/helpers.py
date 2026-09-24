@@ -1,4 +1,7 @@
+from typing import cast
+
 from fastapi import HTTPException
+
 from app.utils.json import read_json_file
 
 
@@ -18,10 +21,10 @@ def get_all_maps() -> list[dict]:
     if maps is None:
         raise HTTPException(status_code=500, detail="Failed to read map data")
 
-    return maps
+    return cast(list[dict], maps)
 
 
-def get_map_by_id(mapId: int) -> dict:
+def get_map_by_id(mapId: int) -> dict | None:
     """
     Retrieve a map by its ID.
     Args:

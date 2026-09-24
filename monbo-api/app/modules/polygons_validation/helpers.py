@@ -1,13 +1,13 @@
 from typing import List
 
-from app.models.polygons import Point
 from shapely import STRtree
-from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Polygon
-from app.helpers.GeometryCalculator import GeometryCalculator
-from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
-from app.models.farms import FarmPolygonDetailDataWithPolygon
+from shapely.geometry.base import BaseGeometry
 from shapely.validation import explain_validity
+
+from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
+from app.helpers.GeometryCalculator import GeometryCalculator
+from app.models.farms import FarmPolygonDetailDataWithPolygon
 
 
 def detect_overlaps(polygons: List[Polygon]):
@@ -50,7 +50,7 @@ def detect_overlaps(polygons: List[Polygon]):
     return overlaps
 
 
-def get_geometry_paths(geometry: BaseGeometry) -> list[list[Point]]:
+def get_geometry_paths(geometry: BaseGeometry) -> list[list[dict]]:
     """
     Extracts the coordinates from the exterior of a given polygon or multipolygon
     and returns them as a list of paths, where each path is a list of points.
@@ -147,7 +147,7 @@ def get_geometry_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
     Returns:
         list: List of inconsistency dictionaries for other types of issues
     """
-    inconsistencies = []
+    inconsistencies: list[dict] = []
 
     for farm in farms:
         polygon: BaseGeometry = farm.polygon

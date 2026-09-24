@@ -1,20 +1,21 @@
-from collections import Counter
-from fastapi import HTTPException
-from typing import Literal
-from app.config.constants import FarmDefaults
-from app.models.farms import (
-    InputFarmData,
-    PreProcessedFarmData,
-    Document,
-    Coordinates,
-)
-from app.utils.url import is_valid_url
-from app.utils.numbers import parse_float_string
-from app.utils.farms import parse_farm_coordinates_string
-import pycountry
 import random
 import string
+from collections import Counter
+from typing import Literal
 
+import pycountry
+from fastapi import HTTPException
+
+from app.config.constants import FarmDefaults
+from app.models.farms import (
+    Coordinates,
+    Document,
+    InputFarmData,
+    PreProcessedFarmData,
+)
+from app.utils.farms import parse_farm_coordinates_string
+from app.utils.numbers import parse_float_string
+from app.utils.url import is_valid_url
 
 MAX_RANDOM_ID_BATCH = 10_000
 
@@ -87,13 +88,13 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
 
     if all_have_ids:
         # All farms have IDs, no action needed
-        return farms_data
+        return
 
     if none_have_ids:
         # Use range for sequential IDs
         for i, farm_data in enumerate(farms_data):
             farm_data.id = str(i + 1)
-        return farms_data
+        return
 
     needed_ids = len(farms_without_id)
 
@@ -112,19 +113,17 @@ def ensure_farm_ids(farms_data: list[InputFarmData]) -> None:
         )
 
     # Generate all random IDs at once
-    random_ids = set()
+    random_ids: set[str] = set()
     while len(random_ids) < needed_ids:
         random_ids.update(
             "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
             for _ in range(min(100, needed_ids - len(random_ids)))
         )
-    random_ids = list(random_ids)
+    random_ids_list = list(random_ids)
 
     # Assign IDs to farms that need them
     for idx, farm_data in enumerate(farms_without_id):
-        farm_data.id = random_ids[idx]
-
-    return farms_data
+        farm_data.id = random_ids_list[idx]
 
 
 def validate_production_date(production_date: str) -> str:
@@ -136,7 +135,9 @@ def validate_production_date(production_date: str) -> str:
     return production_date
 
 
-def validate_production_quantity(production_quantity: str, locale: str) -> float:
+def validate_production_quantity(
+    production_quantity: str | float | int, locale: str
+) -> float:
     """
     Validates and parses production quantity string based on locale.
     Returns float value or raises HTTPException if invalid.
@@ -185,9 +186,7 @@ def validate_farm_coordinates(
     """
     try:
         return parse_farm_coordinates_string(
-            coordinates_format,
-            geometry_type,
-            coordinates
+            coordinates_format, geometry_type, coordinates
         )
     except ValueError as e:
         raise HTTPException(
@@ -196,7 +195,7 @@ def validate_farm_coordinates(
         )
 
 
-def validate_area(area: str | int | float | None, locale: str) -> float | None:
+def validate_area(area: str | int | float | None, locale: str) -> float:
     """
     Validates and parses farm area value based on locale.
 
@@ -269,9 +268,7 @@ def parse_farms_validation(
 
     for farm in body:
         farm_coordinates = validate_farm_coordinates(
-            farm.coordinatesFormat,
-            farm.geometryType,
-            farm.farmCoordinates
+            farm.coordinatesFormat, farm.geometryType, farm.farmCoordinates
         )
         data.append(
             PreProcessedFarmData(

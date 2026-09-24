@@ -1,6 +1,8 @@
 from typing import Callable, Tuple
+
 from PIL import Image, ImageDraw
-from app.utils.image_generation.constants import MapStyles, MapDefaults
+
+from app.utils.image_generation.constants import MapDefaults, MapStyles
 
 
 class ImageManipulationHelper:
@@ -37,7 +39,7 @@ class ImageManipulationHelper:
     @staticmethod
     def create_anti_aliased_overlay(
         output_size: Tuple[int, int],
-        draw_func: Callable[[Image.Image, ImageDraw.Draw, float], None],
+        draw_func: Callable[[Image.Image, ImageDraw.ImageDraw, float], None],
     ) -> Image.Image:
         """
         Creates an anti-aliased overlay by drawing at higher resolution and

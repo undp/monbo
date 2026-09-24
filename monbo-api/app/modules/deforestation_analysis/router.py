@@ -1,7 +1,13 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
+from rasterio import open as rasterio_open
 from shapely.geometry import shape
+
+from app.helpers.GeometryCalculator import GeometryCalculator
 from app.modules.deforestation_analysis.helpers import (
     get_deforestation_ratio,
     get_map_pixels_inside_polygon,
@@ -9,18 +15,15 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
+from app.utils.farms import get_farm_coords_and_radius
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
-from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.maps import get_map_raster_path
 from app.utils.polygons import (
     generate_polygon,
 )
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import Response
-from rasterio import open as rasterio_open
-from .models import AnalizeBody, MapData
 
+from .models import AnalizeBody, MapData
 
 router = APIRouter()
 
@@ -40,12 +43,7 @@ def analize(body: AnalizeBody):
             with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
-                        coords = (
-                            farm.details.path
-                            if farm.type == "polygon"
-                            else [farm.details.center]
-                        )
-                        radius = farm.details.radius if farm.type == "point" else None
+                        coords, radius = get_farm_coords_and_radius(farm)
                         polygon = generate_polygon(coords, radius)
                         loss_year_data = get_map_pixels_inside_polygon(polygon, src)
                         pixel_area = get_pixel_area(map_data)
@@ -93,8 +91,10 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
         # Set caching headers (e.g., cache for 1 day)
         headers = {
             "Cache-Control": "public, max-age=86400",  # Cache for 1 day
-            "Last-Modified": datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-            "Expires": (datetime.utcnow() + timedelta(days=1)).strftime(
+            "Last-Modified": datetime.now(timezone.utc).strftime(
+                "%a, %d %b %Y %H:%M:%S GMT"
+            ),
+            "Expires": (datetime.now(timezone.utc) + timedelta(days=1)).strftime(
                 "%a, %d %b %Y %H:%M:%S GMT"
             ),
         }
@@ -116,7 +116,10 @@ async def generate_image(
         True, description="Whether to include satellite imagery as background"
     ),
 ):
-    raster_filename = get_map_by_id(body.mapId)["raster_filename"]
+    map_data = get_map_by_id(body.mapId)
+    if map_data is None:
+        raise HTTPException(status_code=404, detail="Map not found")
+    raster_filename = map_data["raster_filename"]
     raster_path = get_map_raster_path(raster_filename)
 
     try:

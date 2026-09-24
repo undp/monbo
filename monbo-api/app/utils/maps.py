@@ -1,4 +1,5 @@
 import os
+from typing import cast
 
 from app.utils.json import read_json_file
 
@@ -9,7 +10,7 @@ def read_attributes(filename: str, language: str) -> dict | None:
     if content is None:
         print(f"Cannot read Attributes file at '{filepath}'")
         return None
-    return content
+    return cast(dict, content)
 
 
 def read_considerations(filename: str, language: str) -> str | None:
