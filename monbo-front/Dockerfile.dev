@@ -1,4 +1,4 @@
-FROM node:24-alpine AS frontend-runner
+FROM node:25-alpine AS frontend-runner
 WORKDIR /app
 
 # Use the exact pnpm version declared by `packageManager` via Corepack instead
