@@ -187,7 +187,7 @@ There are no tests for this project yet.
 
 Pull requests marked "ready for review" are validated by the `Frontend CI` GitHub Actions
 workflow (`.github/workflows/frontend.yml`), which runs `pnpm install --frozen-lockfile`,
-`tsc --noEmit`, `pnpm run lint`, and `pnpm run build` on Node 22, caching the pnpm store
+`tsc --noEmit`, `pnpm run lint`, and `pnpm run build` on Node 24, caching the pnpm store
 and `.next/cache`. Draft PRs are skipped.
 
 ### Performance Optimization

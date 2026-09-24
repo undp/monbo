@@ -121,7 +121,7 @@ monbo/
 | **Data/docs** | — | `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`, `file-saver` |
 | **Packages** | `pip` (there is a `package.json` "wrapper" only to expose scripts) | `pnpm` |
 | **Tests** | `pytest` (in `tests/`) | — |
-| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.13) | `Dockerfile.dev` / `Dockerfile.prod` (Node 20) |
+| **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.13) | `Dockerfile.dev` / `Dockerfile.prod` (Node 24) |
 
 ### 3.2 Backend — `monbo-api/app/`
 
@@ -173,7 +173,7 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 |---|---|---|
 | **git** + **git-lfs** | any recent | git-lfs is required to download the rasters (it is **not** installed by default) |
 | **Python** | **3.13** | backend |
-| **Node.js** | **20** (packages) / **≥22** (root orchestrator) | frontend runs on Node 20 (only enforced in Docker; use 20 to match). The optional root orchestrator (`pnpm dev`/`test`/`lint`/`build` at the repo root, which shells out to `concurrently`) needs **Node ≥22**; run it on 22, or run each service directly from its own directory on Node 20. |
+| **Node.js** | **24** | Both the frontend package and the root orchestrator require Node 24 (`engines.node >=24` in `monbo-front/package.json`; the pinned `concurrently` needs ≥22). Docker images are `node:24-alpine` and CI pins `actions/setup-node` to 24, so 24 is what the app is built and shipped on. `engine-strict` is off, so an older interpreter warns rather than fails — but the warning is the only thing standing between you and a mismatch, so match it. |
 | **pnpm** | latest | package manager for both apps |
 | A **Google Maps Platform API key** | — | so the map actually renders in module 2/3 |
 
@@ -181,7 +181,7 @@ Install these on your machine first (examples for Fedora; adjust for your OS):
 # Fedora           # Debian/Ubuntu            # macOS (Homebrew)
 sudo dnf install \  sudo apt install \         brew install \
   git git-lfs        git git-lfs                git git-lfs python@3.13 node pnpm
-# Python 3.13 + Node 20 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
+# Python 3.13 + Node 24 + pnpm: install via your OS package manager, pyenv/nvm, or corepack
 ```
 
 ### 4.1 Clone the repo and download the rasters (Git LFS)

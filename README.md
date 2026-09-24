@@ -101,7 +101,7 @@ pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
 pnpm build   # builds the frontend production bundle
 ```
 
-> **Node ≥22 required for the root orchestrator.** The pinned `concurrently` devDependency declares `engines.node >=22`, so the root scripts above expect Node 22+. The individual packages still target Node 20 for now (the frontend's `engines` floor is raised to Node 22 later, with the `node:22-alpine` Docker bump), so you can run each service directly on Node 20 from its own directory. On Node 20 the orchestrator only prints a pnpm engine warning (`engine-strict` is off) rather than failing, but use Node 22 to run it cleanly.
+> **Node 24 required.** `monbo-front` declares `engines.node >=24`, both frontend Docker images are `node:24-alpine`, and CI pins `actions/setup-node` to 24 — so 24 is the version the app is built and shipped on. The root orchestrator needs at least 22 (its pinned `concurrently` declares `engines.node >=22`), which 24 satisfies. Because pnpm's `engine-strict` is off, running on an older Node prints an engine warning instead of failing; use 24 so the warning stays meaningful.
 
 ## Continuous Integration
 
