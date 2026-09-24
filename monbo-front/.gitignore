@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Unanchored too: a build run with a mis-inferred workspace root can drop a
+# nested .next/ elsewhere in the tree, and `/.next/` alone would not catch it.
+.next/
 /out/
 
 # production
