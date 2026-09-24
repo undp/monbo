@@ -5,7 +5,7 @@ import {
 } from "@/components/page/home";
 import TranslationsProvider from "@/context/TranslationProvider";
 import initTranslations from "@/utils/i18n";
-import { Box, Grid2, Typography } from "@mui/material";
+import { Box, Grid, Typography } from "@mui/material";
 import { BasePageProps } from "@/interfaces";
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
@@ -76,17 +76,17 @@ export default async function HomePage({ params }: BasePageProps) {
             {t("home:subtitle")}
           </Typography>
 
-          <Grid2 container spacing={3}>
-            <Grid2 size={4}>
+          <Grid container spacing={3}>
+            <Grid size={4}>
               <PolygonValidationModuleCard />
-            </Grid2>
-            <Grid2 size={4}>
+            </Grid>
+            <Grid size={4}>
               <DeforestationModuleCard />
-            </Grid2>
-            <Grid2 size={4}>
+            </Grid>
+            <Grid size={4}>
               <ReportCreationModuleCard />
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </div>
       </div>
     </TranslationsProvider>
