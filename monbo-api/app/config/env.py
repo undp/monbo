@@ -9,6 +9,11 @@ GCP_MAPS_PLATFORM_API_KEY = os.getenv("GCP_MAPS_PLATFORM_API_KEY")
 
 GCP_MAPS_PLATFORM_SIGNATURE_SECRET = os.getenv("GCP_MAPS_PLATFORM_SIGNATURE_SECRET")
 
+# Root directory holding the layers index, metadata and rasters. Relative paths are
+# resolved from the working directory, as before (the default is the Git-tracked
+# copy). In Azure this points at the mounted Azure Files share (/mnt/maps).
+MAPS_ROOT = os.getenv("MAPS_ROOT") or "app/maps"
+
 # Overlap threshold %, between 0 and 100. Ensure the same value at frontend.
 raw_overlap_threshold_percentage = os.getenv("OVERLAP_THRESHOLD_PERCENTAGE")
 if raw_overlap_threshold_percentage is not None:

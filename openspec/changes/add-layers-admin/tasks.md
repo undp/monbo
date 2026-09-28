@@ -7,15 +7,15 @@
 
 ## 2. Layer storage abstraction (no behavior change)
 
-- [ ] 2.1 Add `MAPS_ROOT` (default `app/maps`) to `app/config/env.py`
-- [ ] 2.2 Create a `LayerStore` module that owns every path under the root: index read, attributes/considerations read, raster path resolution, and the `.staging/` and `.jobs/` directories
-- [ ] 2.3 Rewrite `get_all_maps`, `get_map_by_id` (`app/modules/maps/helpers.py`) and `read_attributes`, `read_considerations`, `get_map_raster_path` (`app/utils/maps.py`) as thin wrappers over `LayerStore`. Grep that no other module builds `app/maps/...` paths
-- [ ] 2.4 Add `enabled` (default `true`) and `version` (default `1`) handling when reading index entries
-- [ ] 2.5 Implement atomic writes in `LayerStore` (temp file in the same dir, flush + `fsync`, `os.replace`) under one process-wide `RLock` that also covers every index and metadata **read**. Retry `os.replace` on `PermissionError` (10 × 100 ms) and keep the temp file until a read-back matches. Cache the parsed index keyed by `mtime` and size. Use only `shutil.copyfile`, never `shutil.copy`/`copystat`/`chmod` (design D6, Spike results)
-- [ ] 2.6 Filter `GET /maps` to enabled layers and add `version` to `BaseMapData`. Keep analysis, tiles, and `generate-image` resolving by id regardless of `enabled`
-- [ ] 2.7 Extend `/health` with `mapsRoot` and `mapsRootWritable`
-- [ ] 2.8 Tests: default root, custom root (tmp dir), legacy index defaults, enabled filtering, disabled layer still analyzable by id, atomic write (no partial file on simulated failure), and a simulated `PermissionError` on the first `os.replace` after which the index is still present and correct. Confirm the numeric baseline test is unchanged and green
-- [ ] 2.9 Frontend: add `version` to `MapData` and append `?v={version}` to tile URLs in `DeforestationMapOverlay.tsx`
+- [x] 2.1 Add `MAPS_ROOT` (default `app/maps`) to `app/config/env.py`
+- [x] 2.2 Create a `LayerStore` module that owns every path under the root: index read, attributes/considerations read, raster path resolution, and the `.staging/` and `.jobs/` directories
+- [x] 2.3 Rewrite `get_all_maps`, `get_map_by_id` (`app/modules/maps/helpers.py`) and `read_attributes`, `read_considerations`, `get_map_raster_path` (`app/utils/maps.py`) as thin wrappers over `LayerStore`. Grep that no other module builds `app/maps/...` paths
+- [x] 2.4 Add `enabled` (default `true`) and `version` (default `1`) handling when reading index entries
+- [x] 2.5 Implement atomic writes in `LayerStore` (temp file in the same dir, flush + `fsync`, `os.replace`) under one process-wide `RLock` that also covers every index and metadata **read**. Retry `os.replace` on `PermissionError` (10 × 100 ms) and keep the temp file until a read-back matches. Cache the parsed index keyed by `mtime` and size. Use only `shutil.copyfile`, never `shutil.copy`/`copystat`/`chmod` (design D6, Spike results)
+- [x] 2.6 Filter `GET /maps` to enabled layers and add `version` to `BaseMapData`. Keep analysis, tiles, and `generate-image` resolving by id regardless of `enabled`
+- [x] 2.7 Extend `/health` with `mapsRoot` and `mapsRootWritable`
+- [x] 2.8 Tests: default root, custom root (tmp dir), legacy index defaults, enabled filtering, disabled layer still analyzable by id, atomic write (no partial file on simulated failure), and a simulated `PermissionError` on the first `os.replace` after which the index is still present and correct. Confirm the numeric baseline test is unchanged and green
+- [x] 2.9 Frontend: add `version` to `MapData` and append `?v={version}` to tile URLs in `DeforestationMapOverlay.tsx`
 
 ## 3. Admin authentication
 

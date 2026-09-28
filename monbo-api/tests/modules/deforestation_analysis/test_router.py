@@ -10,9 +10,10 @@ from app.utils.polygons import get_point_area_and_radius
 client = TestClient(app)
 
 
-# get_all_maps returns raw index entries; the router enriches each one with the
-# attributes/considerations metadata files (read_attributes / read_considerations)
-# and maps them onto the BaseMapData response schema.
+# get_all_maps returns raw index entries (with `enabled`/`version` defaults applied);
+# the router drops disabled ones, enriches the rest with the attributes/considerations
+# metadata files (read_attributes / read_considerations) and maps them onto the
+# BaseMapData response schema.
 MAPS_MOCK_DATA = [
     {
         "id": 0,
@@ -25,7 +26,20 @@ MAPS_MOCK_DATA = [
             "old=off;dl=1;lon=20;lat=10;zoom=3;"
         ],
         "available_countries_codes": ["EC", "CO", "CR"],
-    }
+        "enabled": True,
+        "version": 2,
+    },
+    {
+        "id": 1,
+        "attributes_filename": "tmf.json",
+        "considerations_filename": "tmf.md",
+        "baseline": "2020",
+        "compared_against": "2023",
+        "references": [],
+        "available_countries_codes": ["EC"],
+        "enabled": False,
+        "version": 1,
+    },
 ]
 
 ATTRIBUTES_MOCK_DATA = {
@@ -74,6 +88,7 @@ EXPECTED_MAPS_DATA = [
         ],
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
+        "version": 2,
     }
 ]
 

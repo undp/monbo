@@ -13,6 +13,7 @@ export interface MapData {
   references: string[];
   considerations: string;
   availableCountriesCodes: string[];
+  version: number;
 }
 
 export interface DeforestationAnalysisMapResults {

@@ -32,17 +32,20 @@ class _AsyncRasterContext:
         return False
 
 
-@patch("app.modules.maps.helpers.read_json_file")
-def test_get_all_maps(mock_read_json_file):
-    mock_data = [
-        {"id": 1, "name": "Deforestation Map A"},
-        {"id": 2, "name": "Deforestation Map B"},
-    ]
-    mock_read_json_file.return_value = mock_data
+def test_get_all_maps(maps_root):
+    maps_root.write_index(
+        [
+            {"id": 1, "name": "Deforestation Map A"},
+            {"id": 2, "name": "Deforestation Map B", "enabled": False, "version": 4},
+        ]
+    )
     response = get_all_maps()
-    assert response == mock_data
+    assert response == [
+        {"id": 1, "name": "Deforestation Map A", "enabled": True, "version": 1},
+        {"id": 2, "name": "Deforestation Map B", "enabled": False, "version": 4},
+    ]
 
-    mock_read_json_file.return_value = None
+    (maps_root.root / "index.json").unlink()
     with pytest.raises(HTTPException):
         get_all_maps()
 

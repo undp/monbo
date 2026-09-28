@@ -10,10 +10,11 @@ router = APIRouter()
 @router.get("", response_model=list[BaseMapData])
 def get_maps(language: str = "en"):
     """
-    Retrieve a list of maps with their metadata and attributes.
+    Retrieve the enabled maps with their metadata and attributes.
 
     This endpoint reads the maps index file and their corresponding metadata
-    files to return detailed information about each available map layer.
+    files to return detailed information about each enabled map layer. Disabled
+    layers are left out here but remain usable by id for analysis and tiles.
 
     Args:
         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -36,8 +37,10 @@ def get_maps(language: str = "en"):
           (in Markdown format)
         - availableCountriesCodes: List of ISO 3166-1 alpha-2 country codes
           available in the layer
+        - version: Raster version, incremented on every raster replacement (the
+          frontend appends it to tile URLs to bypass cached tiles)
     """
-    maps = get_all_maps()
+    maps = [map for map in get_all_maps() if map["enabled"]]
 
     parsed_maps = []
     for map in maps:
@@ -72,6 +75,7 @@ def get_maps(language: str = "en"):
                 references=map.get("references", []),
                 considerations=considerations_text,
                 availableCountriesCodes=map.get("available_countries_codes", []),
+                version=map["version"],
             )
         )
 

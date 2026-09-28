@@ -1,30 +1,16 @@
-import os
-from typing import cast
-
-from app.utils.json import read_json_file
+from app.modules.layers.store import get_layer_store
 
 
 def read_attributes(filename: str, language: str) -> dict | None:
-    filepath = f"app/maps/metadata/attributes/{language}/{filename}"
-    content = read_json_file(filepath)
-    if content is None:
-        print(f"Cannot read Attributes file at '{filepath}'")
-        return None
-    return cast(dict, content)
+    return get_layer_store().read_attributes(filename, language)
 
 
 def read_considerations(filename: str, language: str) -> str | None:
-    filepath = f"app/maps/metadata/considerations/{language}/{filename}"
-    try:
-        with open(filepath, "r") as f:
-            return f.read().strip()
-    except Exception as e:
-        print(f"Cannot read Considerations file at '{filepath}': {e}")
-        return None
+    return get_layer_store().read_considerations(filename, language)
 
 
 def get_map_raster_path(raster_filename: str) -> str:
-    filepath = f"app/maps/layers/rasters/{raster_filename}"
-    if not os.path.exists(filepath):
+    filepath = get_layer_store().raster_path(raster_filename)
+    if not filepath.exists():
         raise FileNotFoundError(f"Raster file not found at '{filepath}'")
-    return filepath
+    return str(filepath)

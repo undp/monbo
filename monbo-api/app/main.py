@@ -14,6 +14,7 @@ from app.modules import (
     maps_router,
     polygons_validation_router,
 )
+from app.modules.layers.store import get_layer_store
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
@@ -53,8 +54,16 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
-    return {"version": "0.1.0", "status": "OK"}
+def health_check():
+    # Sync on purpose: checking the maps root may touch a network share (Azure
+    # Files), so it runs in the threadpool instead of blocking the event loop.
+    store = get_layer_store()
+    return {
+        "version": "0.1.0",
+        "status": "OK",
+        "mapsRoot": str(store.root.resolve()),
+        "mapsRootWritable": store.is_writable(),
+    }
 
 
 @app.get("/download-geojson")

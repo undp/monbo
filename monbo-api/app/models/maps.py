@@ -16,6 +16,7 @@ class BaseMapData(BaseModel):
     references: list[str]
     considerations: str | None
     availableCountriesCodes: list[str]
+    version: int
 
 
 class MapData(BaseMapData):

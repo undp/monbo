@@ -1,41 +1,37 @@
-from typing import cast
-
 from fastapi import HTTPException
 
-from app.utils.json import read_json_file
+from app.modules.layers.store import get_layer_store
 
 
 def get_all_maps() -> list[dict]:
     """
-    Retrieve a list of maps with specific attributes.
-    This function reads a JSON file containing map data and returns a list of maps,
-    each represented by a dictionary with the following attributes:
-    - id: The unique identifier of the map.
-    - name: The name of the map.
-    - alias: An alias for the map.
+    Retrieve every entry of the layers index, enabled or not.
+
+    Each entry is the raw index object (`id`, `raster_filename`,
+    `attributes_filename`, `considerations_filename`, `pixel_size`, `baseline`,
+    `compared_against`, `references`, `available_countries_codes`) plus `enabled`
+    and `version`, which default to `True` and `1` for entries that predate them.
+    Callers that list layers publicly must filter on `enabled`; analysis, tiles
+    and image generation resolve layers by id regardless of it.
     Returns:
-        list[dict]: A list of dictionaries containing the 'id', 'name', and 'alias'
-        of each map.
+        list[dict]: The index entries.
+    Raises:
+        HTTPException: 500 if the index cannot be read.
     """
-    maps = read_json_file("app/maps/index.json")
+    maps = get_layer_store().read_index()
     if maps is None:
         raise HTTPException(status_code=500, detail="Failed to read map data")
 
-    return cast(list[dict], maps)
+    return maps
 
 
 def get_map_by_id(mapId: int) -> dict | None:
     """
-    Retrieve a map by its ID.
+    Retrieve a map by its ID, enabled or not.
     Args:
         mapId (int): The ID of the map to retrieve.
     Returns:
-        dict: The map data corresponding to the provided ID.
-    Raises:
-        HTTPException: If no map with the given ID is found.
-    This function reads from a JSON file containing map data and returns the map
-    that matches the provided ID. If no such map is found, a 404 HTTP exception
-    is raised with the message "Map not found".
+        dict | None: The index entry for that ID, or None if there is none.
     """
     maps = get_all_maps()
 

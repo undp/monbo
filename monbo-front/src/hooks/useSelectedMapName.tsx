@@ -20,6 +20,7 @@ export const useSelectedMap = () => {
       alias: selectedMap?.alias ?? "",
       baseline: selectedMap?.baseline ?? null,
       comparedAgainst: selectedMap?.comparedAgainst ?? null,
+      version: selectedMap?.version ?? null,
     };
   }, [selectedMaps, searchParams]);
 };
