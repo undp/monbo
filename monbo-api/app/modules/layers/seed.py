@@ -42,11 +42,12 @@ def _stem(raster_filename: str) -> str:
 
 
 def _copy_metadata(source: Path, target: Path) -> int:
-    """Copy metadata/** file by file. copyfile, not copytree: copying permissions
-    (copystat) fails on the Azure Files mount."""
+    """Copy metadata/** file by file, skipping hidden files like macOS's .DS_Store.
+    copyfile, not copytree: copying permissions (copystat) fails on the Azure Files
+    mount."""
     copied = 0
     for path in sorted((source / "metadata").rglob("*")):
-        if path.is_file():
+        if path.is_file() and not path.name.startswith("."):
             destination = target / path.relative_to(source)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, destination)

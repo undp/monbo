@@ -117,6 +117,17 @@ def test_seed_converts_every_layer_and_publishes_it(source, tmp_path):
     ]
 
 
+def test_seed_skips_hidden_metadata_files(source, tmp_path):
+    (source / "metadata" / ".DS_Store").write_bytes(b"finder")
+    (source / "metadata" / "attributes" / ".DS_Store").write_bytes(b"finder")
+    target = tmp_path / "target"
+
+    seed(source, target, log=lambda _: None)
+
+    assert not list((target / "metadata").rglob(".*"))
+    assert (target / "metadata" / "attributes" / "es" / "a.json").is_file()
+
+
 def test_seed_refuses_a_target_that_already_has_an_index(source, tmp_path):
     target = tmp_path / "target"
     target.mkdir()
