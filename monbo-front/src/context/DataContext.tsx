@@ -72,8 +72,9 @@ export const DataContext = createContext<DataContextValue>({
   setAvailableMaps: () => {},
 });
 
-const DataProvider: React.FC<{ children: React.ReactNode }> = ({
+const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   children,
+  locale,
 }) => {
   const [farmsData, setFarmsData] =
     useState<DataContextValue["farmsData"]>(null);
@@ -106,8 +107,16 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const fetchAvailableMaps = async () => {
-      const maps = await getMaps();
+      const maps = await getMaps(locale);
       setAvailableMaps(maps);
+      // Keep already selected layers in step (language, and the raster version
+      // used to bust the tile cache); a layer no longer listed keeps its data.
+      setDeforestationAnalysisParams((prev) => ({
+        ...prev,
+        selectedMaps: prev.selectedMaps.map(
+          (selected) => maps.find((map) => map.id === selected.id) ?? selected
+        ),
+      }));
     };
     const interval = setInterval(
       fetchAvailableMaps,
@@ -116,7 +125,7 @@ const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     fetchAvailableMaps();
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]);
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
     () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),

@@ -50,7 +50,7 @@ export default async function MainLayout({ children, params }: LayoutProps) {
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <SnackbarProvider>
-              <DataProvider>
+              <DataProvider locale={locale}>
                 <CssBaseline />
                 <Header locale={locale} />
                 <main>

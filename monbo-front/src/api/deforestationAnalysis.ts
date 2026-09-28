@@ -11,8 +11,11 @@ import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
 import { GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
 
-export const getMaps = async (): Promise<MapData[]> => {
-  const response = await fetch(GET_MAPS_URL);
+export const getMaps = async (language: string): Promise<MapData[]> => {
+  // Names, aliases and considerations come back in this language.
+  const response = await fetch(
+    `${GET_MAPS_URL}?language=${encodeURIComponent(language)}`
+  );
   if (!response.ok) {
     throw new Error("Error on get maps");
   }
