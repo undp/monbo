@@ -9,6 +9,8 @@
    farm and layer, validation statuses and inconsistencies.
 """
 
+import math
+from contextlib import nullcontext
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -96,9 +98,19 @@ def read_farm_rows(path: Path = EXCEL_PATH) -> list[dict[str, Any]]:
     return rows
 
 
-def run_pipeline(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Parse, analyze against every layer in the current store, and validate."""
-    client = TestClient(app)
+def run_pipeline(
+    rows: list[dict[str, Any]], client=None, map_ids: list[int] | None = None
+) -> dict[str, Any]:
+    """Parse, analyze and validate.
+
+    By default it runs in-process against every layer in the current store, with
+    the overlap threshold pinned. Pass an HTTP client (e.g. `httpx.Client` with a
+    `base_url`) and the map ids to run it against a deployed API instead; the
+    deployment's own threshold then applies.
+    """
+    in_process = client is None
+    if client is None:
+        client = TestClient(app)
 
     response = client.post(f"/farms/parse?locale={LOCALE}", json=rows)
     response.raise_for_status()
@@ -112,17 +124,23 @@ def run_pipeline(rows: list[dict[str, Any]]) -> dict[str, Any]:
         for farm in farms
     ]
 
-    map_ids = sorted(entry["id"] for entry in get_all_maps())
+    if map_ids is None:
+        map_ids = sorted(entry["id"] for entry in get_all_maps())
     response = client.post(
         "/deforestation_analysis/analize", json={"maps": map_ids, "farms": payload}
     )
     response.raise_for_status()
     analysis = response.json()
 
-    with patch(
-        "app.modules.polygons_validation.helpers.OVERLAP_THRESHOLD_PERCENTAGE",
-        OVERLAP_THRESHOLD_PERCENTAGE,
-    ):
+    pinned_threshold = (
+        patch(
+            "app.modules.polygons_validation.helpers.OVERLAP_THRESHOLD_PERCENTAGE",
+            OVERLAP_THRESHOLD_PERCENTAGE,
+        )
+        if in_process
+        else nullcontext()
+    )
+    with pinned_threshold:
         response = client.post("/polygons_validation/validate", json=payload)
     response.raise_for_status()
     validation = response.json()
@@ -165,3 +183,31 @@ def run_pipeline(rows: list[dict[str, Any]]) -> dict[str, Any]:
             ],
         },
     }
+
+
+def differences(actual, expected, path="results") -> list[str]:
+    """Human-readable list of every value that changed (floats compared to 1e-9)."""
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        diffs = []
+        for key in sorted(set(expected) | set(actual)):
+            if key not in actual:
+                diffs.append(f"{path}.{key}: missing (expected {expected[key]!r})")
+            elif key not in expected:
+                diffs.append(f"{path}.{key}: unexpected {actual[key]!r}")
+            else:
+                diffs += differences(actual[key], expected[key], f"{path}.{key}")
+        return diffs
+    if isinstance(expected, list) and isinstance(actual, list):
+        if len(expected) != len(actual):
+            return [f"{path}: {len(actual)} items, expected {len(expected)}"]
+        return [
+            diff
+            for i, (a, e) in enumerate(zip(actual, expected))
+            for diff in differences(a, e, f"{path}[{i}]")
+        ]
+    if isinstance(expected, float) and isinstance(actual, (int, float)):
+        if math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12):
+            return []
+    elif actual == expected:
+        return []
+    return [f"{path}: {actual!r} (expected {expected!r})"]

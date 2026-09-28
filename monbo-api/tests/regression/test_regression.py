@@ -10,7 +10,6 @@ If a change is *meant* to alter these results, regenerate the expected values wi
 """
 
 import json
-import math
 
 import openpyxl
 import pytest
@@ -21,6 +20,7 @@ from tests.regression.pipeline import (
     EXCEL_PATH,
     EXPECTED_PATH,
     FIXTURE_MAPS_ROOT,
+    differences,
     read_farm_rows,
     run_pipeline,
 )
@@ -36,34 +36,6 @@ REGENERATE_HINT = (
 
 def expected_results():
     return json.loads(EXPECTED_PATH.read_text(encoding="utf-8"))["results"]
-
-
-def differences(actual, expected, path="results"):
-    """Human-readable list of every value that changed (floats compared to 1e-9)."""
-    if isinstance(expected, dict) and isinstance(actual, dict):
-        diffs = []
-        for key in sorted(set(expected) | set(actual)):
-            if key not in actual:
-                diffs.append(f"{path}.{key}: missing (expected {expected[key]!r})")
-            elif key not in expected:
-                diffs.append(f"{path}.{key}: unexpected {actual[key]!r}")
-            else:
-                diffs += differences(actual[key], expected[key], f"{path}.{key}")
-        return diffs
-    if isinstance(expected, list) and isinstance(actual, list):
-        if len(expected) != len(actual):
-            return [f"{path}: {len(actual)} items, expected {len(expected)}"]
-        return [
-            diff
-            for i, (a, e) in enumerate(zip(actual, expected))
-            for diff in differences(a, e, f"{path}[{i}]")
-        ]
-    if isinstance(expected, float) and isinstance(actual, (int, float)):
-        if math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12):
-            return []
-    elif actual == expected:
-        return []
-    return [f"{path}: {actual!r} (expected {expected!r})"]
 
 
 def assert_same_results(actual):

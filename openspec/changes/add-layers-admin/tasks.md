@@ -51,9 +51,9 @@
 
 ## 6. Seed existing layers
 
-- [ ] 6.1 Implement the seed CLI (`uv run python -m app.modules.layers.seed --source app/maps --target <dir>`), reusing the ingestion validation, COG, and verification code. It writes `<stem>-v1.tif`, copies the metadata, and writes an index with `enabled: true, version: 1`
-- [ ] 6.2 Run it locally on the six current layers. Confirm every raster passes binary validation (ecuador2 with nodata 3), pixel equality holds, and the total size is under 100 MB
-- [ ] 6.3 Write the analysis-parity script: a fixed sample of farms (reuse the numeric-baseline farms and add at least one farm per country layer) posted to `/analize` on two base URLs, asserting identical ratios
+- [x] 6.1 Implement the seed CLI (`uv run python -m app.modules.layers.seed --source app/maps --target <dir>`), reusing the ingestion validation, COG, and verification code. It writes `<stem>-v1.tif`, copies the metadata, and writes an index with `enabled: true, version: 1`
+- [x] 6.2 Run it locally on the six current layers. Confirm every raster passes binary validation (ecuador2 with nodata 3), pixel equality holds, and the total size is under 100 MB — done: 6 layers, 511 MB → 51.8 MB, all binary (ecuador2 with nodata 3), pixel-identical; parity with the Git-tracked layers is identical
+- [x] 6.3 Write the analysis-parity script: a fixed sample of farms (reuse the numeric-baseline farms and add at least one farm per country layer) posted to `/analize` on two base URLs, asserting identical ratios — done as `uv run python -m tests.regression.parity <current-url> <candidate-url>`, using the 10 regression farms (they cover every layer) and also comparing parsed areas and validation
 
 ## 7. Admin UI (frontend)
 
@@ -81,7 +81,7 @@
 - [ ] 9.1 Merge the code with `MAPS_ROOT` unset and no admin secrets. Verify production behavior is unchanged
 - [ ] 9.2 Seed the share: run the seed CLI locally, then `az storage file upload-batch` to `maps`, and verify the listing
 - [ ] 9.3 Deploy with the mount, `MAPS_ROOT=/mnt/maps`, and the admin secrets. Verify `/health`, that `GET /maps` returns 6 layers, tiles at z=6 and z=12, and image generation
-- [ ] 9.4 Run the analysis-parity script (6.3) between the previous deployment (or a revision without `MAPS_ROOT`) and the share-backed deployment. The ratios must be identical
+- [ ] 9.4 Run the analysis-parity script (6.3, `uv run python -m tests.regression.parity`) between the previous deployment (or a revision without `MAPS_ROOT`) and the share-backed deployment. The ratios must be identical
 - [ ] 9.5 Admin acceptance in production: log in, create a test layer, upload one of the new rasters (5.8, 28.1, or 32.4 MB), confirm the job succeeds, enable it, see it in the public selector with tiles, then disable it. Edit the `es` considerations of a seeded layer and confirm the change. Deploy a new revision and confirm everything persists
 - [ ] 9.6 Verify a rollback: deploy a revision without `MAPS_ROOT`, confirm it serves the image layers, then restore
 
@@ -89,6 +89,6 @@
 
 - [ ] 10.1 Rewrite `docs/maps.md`: the admin is how layers are managed; binary/COG requirements; the loss-year binarization note pointing to `scripts/update-gfw-tmf`; `enabled`/`version` fields; versioned filenames
 - [ ] 10.2 Update `docs/suggested_deployment.md`: storage resource group and lock, share and backups, mount, admin secrets, the single-replica constraint, and rollback
-- [ ] 10.3 Update `docs/onboarding.md` and `monbo-api/.env.template`: `MAPS_ROOT` for local admin work (`monbo-api/.local-maps/`, gitignored), and generating local admin credentials
-- [ ] 10.4 Add `monbo-api/.local-maps/` to `.gitignore`
+- [ ] 10.3 Update `docs/onboarding.md` and `monbo-api/.env.template`: `MAPS_ROOT` for local admin work (`monbo-api/.local-maps/`, gitignored), and generating local admin credentials — `.env.template` and the API README's variable list are done; `docs/onboarding.md` is still pending
+- [x] 10.4 Add `monbo-api/.local-maps/` to `.gitignore`
 - [ ] 10.5 Add a CHANGELOG entry

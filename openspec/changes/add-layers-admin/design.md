@@ -211,7 +211,7 @@ The Bearer token is never attached automatically by the browser, so CORS is not 
 
 A CLI, `uv run python -m app.modules.layers.seed --source app/maps --target <dir>`, runs each existing raster through the same validation and COG pipeline as D4/D5, with pixel-equality verification. It writes `<stem>-v1.tif`, copies the metadata, and writes `index.json` with `enabled: true, version: 1`. The operator seeds into a local directory and uploads it to the share with `az storage file upload-batch`. The expected share size after seeding is under 100 MB.
 
-A smoke check compares `POST /analize` ratios for a fixed sample of farms between the current production deployment and the share-backed deployment. They must be identical.
+A smoke check compares `POST /analize` ratios for a fixed sample of farms between the current production deployment and the share-backed deployment. They must be identical. The sample is the 10-farm regression set (`tests/regression/regression_farms.xlsx`), and the check is `uv run python -m tests.regression.parity <current-url> <candidate-url>`. It also compares parsed areas and validation results. The seed and admin ingestion share `app/modules/layers/processing.py` (validation, COG conversion, verification). Seeding the six current layers locally took about 3.5 minutes, left 51.8 MB, and gave identical parity against the Git-tracked layers.
 
 ### D12: Azure infrastructure
 
