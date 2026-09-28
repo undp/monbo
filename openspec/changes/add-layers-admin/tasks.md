@@ -57,14 +57,15 @@
 
 ## 7. Admin UI (frontend)
 
-- [ ] 7.1 Add the `admin` i18n namespace (`src/locales/en/admin.json`, `src/locales/es/admin.json`) and register it in the i18n config
-- [ ] 7.2 Add TypeScript interfaces that mirror the admin Pydantic models, and `src/api/adminLayers.ts` (session, list, create, update, patch, raster upload via `XMLHttpRequest` with progress, job polling)
-- [ ] 7.3 Add `AdminSessionContext`: token in `sessionStorage`, expiry handling, redirect to login on 401, logout
-- [ ] 7.4 Build `src/app/[locale]/admin/page.tsx` (login)
-- [ ] 7.5 Build `src/app/[locale]/admin/layers/page.tsx` (list with name, alias, id, version, enabled toggle, raster presence)
-- [ ] 7.6 Build the create/edit form (`admin/layers/new/page.tsx`, `admin/layers/[id]/page.tsx`): index fields, a country multi-select reusing `src/utils/countries.ts`, a references list, and en/es tabs for attributes and considerations with a `react-markdown` preview
-- [ ] 7.7 Build the raster upload section on the edit page: `react-dropzone`, nodata input, progress bar, job polling, and the job report and errors/warnings rendered in the current language
-- [ ] 7.8 Confirm there are no links to `/admin` from the home page or the header, and that `tsc --noEmit`, lint, and build pass
+- [x] 7.1 Add the `admin` i18n namespace (`src/locales/en/admin.json`, `src/locales/es/admin.json`) and register it in the i18n config
+- [x] 7.2 Add TypeScript interfaces that mirror the admin Pydantic models, and `src/api/adminLayers.ts` (session, list, create, update, patch, raster upload via `XMLHttpRequest` with progress, job polling)
+- [x] 7.3 Add `AdminSessionContext`: token in `sessionStorage`, expiry handling, redirect to login on 401, logout
+- [x] 7.4 Build `src/app/[locale]/admin/page.tsx` (login)
+- [x] 7.5 Build `src/app/[locale]/admin/layers/page.tsx` (list with name, alias, id, version, enabled toggle, raster presence)
+- [x] 7.6 Build the create/edit form (`admin/layers/new/page.tsx`, `admin/layers/[id]/page.tsx`): index fields, a country multi-select reusing `src/utils/countries.ts`, a references list, and en/es tabs for attributes and considerations with a `react-markdown` preview
+- [x] 7.7 Build the raster upload section on the edit page: `react-dropzone`, nodata input, progress bar, job polling, and the job report and errors/warnings rendered in the current language
+- [x] 7.8 Confirm there are no links to `/admin` from the home page or the header, and that `tsc --noEmit`, lint, and build pass
+- [x] 7.9 Fix found while testing the admin locally (it predates this change): the public app fetched `GET /maps` without `language`, so layer names, aliases and considerations were always in English. `DataProvider` now receives the locale and fetches `?language=<locale>` again when it changes, and already-selected layers are refreshed from the new list (language and `version`)
 
 ## 8. Azure infrastructure and deployment
 

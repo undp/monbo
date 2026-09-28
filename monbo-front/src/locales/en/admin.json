@@ -1,0 +1,141 @@
+{
+  "title": "Layers admin",
+  "logout": "Log out",
+  "login": {
+    "title": "Admin access",
+    "subtitle": "Enter the admin passkey to manage the deforestation layers.",
+    "passkeyLabel": "Admin passkey",
+    "submit": "Log in",
+    "errors": {
+      "invalid": "The passkey is not correct.",
+      "tooManyAttempts": "Too many failed attempts. Try again in {{minutes}} minutes.",
+      "notEnabled": "The layers admin is not enabled on this server.",
+      "forbiddenOrigin": "This site is not allowed to manage layers.",
+      "network": "Could not reach the server."
+    }
+  },
+  "layers": {
+    "title": "Layers",
+    "subtitle": "Published layers appear in the deforestation analysis. Hidden layers are not shown, but earlier analyses that use them keep working.",
+    "new": "New layer",
+    "edit": "Edit",
+    "empty": "There are no layers.",
+    "loadError": "The layers could not be loaded.",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "alias": "Alias",
+      "countries": "Countries",
+      "raster": "Raster",
+      "version": "Version",
+      "published": "Published"
+    },
+    "noRaster": "No raster",
+    "published": "Layer {{alias}} published.",
+    "hidden": "Layer {{alias}} hidden.",
+    "needsRaster": "Upload a raster before publishing the layer.",
+    "toggleError": "The layer's state could not be changed."
+  },
+  "form": {
+    "createTitle": "New layer",
+    "editTitle": "Edit layer {{id}}",
+    "back": "Back to layers",
+    "sections": {
+      "layer": "Layer data",
+      "texts": "Texts per language",
+      "raster": "Raster"
+    },
+    "pixelSize": "Pixel size (meters)",
+    "baseline": "Baseline year",
+    "comparedAgainst": "Comparison year",
+    "countries": "Countries with data",
+    "references": "References (URLs)",
+    "addReference": "Add reference",
+    "removeReference": "Remove reference",
+    "languages": {
+      "es": "Spanish",
+      "en": "English"
+    },
+    "attributes": {
+      "name": "Name",
+      "alias": "Alias",
+      "coverage": "Coverage",
+      "source": "Source",
+      "resolution": "Resolution",
+      "contentDate": "Content date",
+      "updateFrequency": "Update frequency",
+      "publishDate": "Publish date"
+    },
+    "considerations": "Considerations (Markdown)",
+    "preview": "Preview",
+    "emptyPreview": "No considerations.",
+    "save": "Save",
+    "saving": "Saving…",
+    "created": "Layer created. Now upload its raster so it can be published.",
+    "saved": "Changes saved.",
+    "saveError": "The layer could not be saved.",
+    "notFound": "The layer does not exist.",
+    "errors": {
+      "required": "Required",
+      "requiredInLanguage": "Name and alias are required in {{language}}.",
+      "positive": "Must be greater than 0",
+      "year": "A year between 1900 and 2100",
+      "baselineAfterComparison": "The baseline year can't be after the comparison year",
+      "countries": "Choose at least one country",
+      "reference": "Must start with http:// or https://",
+      "invalid": "Check the highlighted fields."
+    }
+  },
+  "raster": {
+    "current": "Current raster: {{filename}} (version {{version}})",
+    "none": "This layer has no raster yet.",
+    "requirements": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). Every pixel is checked and the file is converted to an optimized GeoTIFF; the layer keeps its current raster until the process succeeds.",
+    "dropActive": "Drop the file here",
+    "dropInactive": "Drag the raster here",
+    "dropButton": "Choose a file",
+    "dropText": "or drag it into this box",
+    "dropHint": ".tif or .tiff",
+    "nodata": "Nodata value (optional)",
+    "nodataHelp": "Only if the file doesn't declare one, e.g. 3.",
+    "upload": "Upload raster",
+    "uploading": "Uploading… {{percent}} %",
+    "publish": "Publish layer",
+    "status": {
+      "queued": "Queued",
+      "running": "Validating and converting…",
+      "succeeded": "Raster activated: {{filename}} (version {{version}}).",
+      "failed": "The raster was not activated."
+    },
+    "report": {
+      "title": "Raster details",
+      "crs": "Reference system",
+      "size": "Size",
+      "sizeValue": "{{width}} × {{height}} pixels",
+      "resolution": "Approximate resolution",
+      "resolutionValue": "{{meters}} m (use it as the pixel size)",
+      "dtype": "Data type",
+      "nodata": "Nodata",
+      "values": "Values found",
+      "none": "none"
+    },
+    "uploadErrors": {
+      "tooLarge": "The file is larger than the server accepts.",
+      "busy": "Another raster is being processed. Try again in a few minutes.",
+      "generic": "The raster could not be uploaded."
+    },
+    "issues": {
+      "not_geotiff": "The file is not a readable GeoTIFF.",
+      "band_count": "The raster must have exactly one band (it has {{bands}}).",
+      "not_integer": "The raster must have integer values (it has {{dtype}}). Use 0 for no loss and 1 for loss.",
+      "no_crs": "The raster must have a coordinate reference system.",
+      "not_binary": "The raster must be binary (0 = no loss, 1 = loss). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
+      "loss_years": "The raster has values that look like loss years ({{values}}). Binarize it against its baseline year before uploading.",
+      "conversion_mismatch": "The conversion didn't keep every pixel, so nothing was changed.",
+      "layer_not_found": "The layer no longer exists.",
+      "interrupted": "The process was interrupted because the server restarted. Upload the file again.",
+      "unexpected": "An unexpected error happened while processing the raster.",
+      "nodata_ignored": "The file already declares nodata {{declared}}; the value {{requested}} was ignored.",
+      "no_loss_pixels": "The raster has no loss pixels (value 1)."
+    }
+  }
+}

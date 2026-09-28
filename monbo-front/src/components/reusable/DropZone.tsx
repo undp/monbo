@@ -18,6 +18,8 @@ interface DropZoneProps {
     text: string;
   };
   disabled?: boolean;
+  // Accepted formats shown under the call to action; defaults to Excel files.
+  hint?: string;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -25,6 +27,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   accept,
   texts,
   disabled,
+  hint,
 }) => {
   const { openSnackbar } = useContext(SnackbarContext);
   const { t } = useTranslation();
@@ -100,7 +103,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               {texts.text}
             </Text>
             <Text color="secondary" variant="body2" textAlign="center">
-              .xlsx {t("_or")} .xls
+              {hint ?? `.xlsx ${t("_or")} .xls`}
             </Text>
           </>
         )}

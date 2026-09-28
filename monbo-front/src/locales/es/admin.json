@@ -1,0 +1,141 @@
+{
+  "title": "Mantenedor de capas",
+  "logout": "Cerrar sesión",
+  "login": {
+    "title": "Acceso de administración",
+    "subtitle": "Ingresa la clave de administración para gestionar las capas de deforestación.",
+    "passkeyLabel": "Clave de administración",
+    "submit": "Ingresar",
+    "errors": {
+      "invalid": "La clave no es correcta.",
+      "tooManyAttempts": "Demasiados intentos fallidos. Vuelve a intentar en {{minutes}} minutos.",
+      "notEnabled": "El mantenedor de capas no está habilitado en este servidor.",
+      "forbiddenOrigin": "Este sitio no está autorizado para administrar capas.",
+      "network": "No se pudo conectar con el servidor."
+    }
+  },
+  "layers": {
+    "title": "Capas",
+    "subtitle": "Las capas publicadas aparecen en el análisis de deforestación. Las capas ocultas no se muestran, pero los análisis anteriores que las usan siguen funcionando.",
+    "new": "Nueva capa",
+    "edit": "Editar",
+    "empty": "No hay capas.",
+    "loadError": "No se pudieron cargar las capas.",
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "alias": "Alias",
+      "countries": "Países",
+      "raster": "Raster",
+      "version": "Versión",
+      "published": "Publicada"
+    },
+    "noRaster": "Sin raster",
+    "published": "Capa {{alias}} publicada.",
+    "hidden": "Capa {{alias}} oculta.",
+    "needsRaster": "Sube un raster antes de publicar la capa.",
+    "toggleError": "No se pudo cambiar el estado de la capa."
+  },
+  "form": {
+    "createTitle": "Nueva capa",
+    "editTitle": "Editar capa {{id}}",
+    "back": "Volver a las capas",
+    "sections": {
+      "layer": "Datos de la capa",
+      "texts": "Textos por idioma",
+      "raster": "Raster"
+    },
+    "pixelSize": "Tamaño de píxel (metros)",
+    "baseline": "Año base",
+    "comparedAgainst": "Año de comparación",
+    "countries": "Países con datos",
+    "references": "Referencias (URLs)",
+    "addReference": "Agregar referencia",
+    "removeReference": "Quitar referencia",
+    "languages": {
+      "es": "Español",
+      "en": "Inglés"
+    },
+    "attributes": {
+      "name": "Nombre",
+      "alias": "Alias",
+      "coverage": "Cobertura",
+      "source": "Fuente",
+      "resolution": "Resolución",
+      "contentDate": "Fecha del contenido",
+      "updateFrequency": "Frecuencia de actualización",
+      "publishDate": "Fecha de publicación"
+    },
+    "considerations": "Consideraciones (Markdown)",
+    "preview": "Vista previa",
+    "emptyPreview": "Sin consideraciones.",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "created": "Capa creada. Ahora sube su raster para poder publicarla.",
+    "saved": "Cambios guardados.",
+    "saveError": "No se pudo guardar la capa.",
+    "notFound": "La capa no existe.",
+    "errors": {
+      "required": "Obligatorio",
+      "requiredInLanguage": "Nombre y alias son obligatorios en {{language}}.",
+      "positive": "Debe ser mayor que 0",
+      "year": "Año entre 1900 y 2100",
+      "baselineAfterComparison": "El año base no puede ser posterior al de comparación",
+      "countries": "Elige al menos un país",
+      "reference": "Debe empezar con http:// o https://",
+      "invalid": "Revisa los campos marcados."
+    }
+  },
+  "raster": {
+    "current": "Raster actual: {{filename}} (versión {{version}})",
+    "none": "Esta capa todavía no tiene raster.",
+    "requirements": "GeoTIFF de una banda con valores 0 (sin pérdida) y 1 (pérdida). Se valida cada píxel y se convierte a un GeoTIFF optimizado; la capa sigue usando su raster actual hasta que el proceso termine bien.",
+    "dropActive": "Suelta el archivo aquí",
+    "dropInactive": "Arrastra aquí el raster",
+    "dropButton": "Selecciona un archivo",
+    "dropText": "o arrástralo a este recuadro",
+    "dropHint": ".tif o .tiff",
+    "nodata": "Valor nodata (opcional)",
+    "nodataHelp": "Solo si el archivo no declara uno, por ejemplo 3.",
+    "upload": "Subir raster",
+    "uploading": "Subiendo… {{percent}} %",
+    "publish": "Publicar capa",
+    "status": {
+      "queued": "En cola",
+      "running": "Validando y convirtiendo…",
+      "succeeded": "Raster activado: {{filename}} (versión {{version}}).",
+      "failed": "El raster no se activó."
+    },
+    "report": {
+      "title": "Detalle del raster",
+      "crs": "Sistema de referencia",
+      "size": "Tamaño",
+      "sizeValue": "{{width}} × {{height}} píxeles",
+      "resolution": "Resolución aproximada",
+      "resolutionValue": "{{meters}} m (úsala como tamaño de píxel)",
+      "dtype": "Tipo de dato",
+      "nodata": "Nodata",
+      "values": "Valores encontrados",
+      "none": "ninguno"
+    },
+    "uploadErrors": {
+      "tooLarge": "El archivo supera el tamaño máximo que acepta el servidor.",
+      "busy": "Ya se está procesando otro raster. Intenta en unos minutos.",
+      "generic": "No se pudo subir el raster."
+    },
+    "issues": {
+      "not_geotiff": "El archivo no es un GeoTIFF legible.",
+      "band_count": "El raster debe tener exactamente una banda (tiene {{bands}}).",
+      "not_integer": "El raster debe tener valores enteros (tiene {{dtype}}). Usa 0 para sin pérdida y 1 para pérdida.",
+      "no_crs": "El raster debe tener un sistema de referencia de coordenadas.",
+      "not_binary": "El raster debe ser binario (0 = sin pérdida, 1 = pérdida). Otros valores encontrados: {{values}}. Si alguno marca nodata, vuelve a subirlo indicando ese valor.",
+      "loss_years": "El raster tiene valores que parecen años de pérdida ({{values}}). Binarízalo contra su año base antes de subirlo.",
+      "conversion_mismatch": "La conversión no conservó todos los píxeles, así que no se cambió nada.",
+      "layer_not_found": "La capa ya no existe.",
+      "interrupted": "El proceso se interrumpió porque el servidor se reinició. Vuelve a subir el archivo.",
+      "unexpected": "Ocurrió un error inesperado al procesar el raster.",
+      "nodata_ignored": "El archivo ya declara nodata {{declared}}; se ignoró el valor {{requested}}.",
+      "no_loss_pixels": "El raster no tiene píxeles con pérdida (valor 1)."
+    }
+  }
+}
