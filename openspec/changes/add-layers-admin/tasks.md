@@ -79,12 +79,12 @@
 
 ## 9. Rollout
 
-- [ ] 9.1 Merge the code with `MAPS_ROOT` unset and no admin secrets. Verify production behavior is unchanged
-- [ ] 9.2 Seed the share: run the seed CLI locally, then `az storage file upload-batch` to `maps`, and verify the listing
-- [ ] 9.3 Deploy with the mount, `MAPS_ROOT=/mnt/maps`, and the admin secrets. Verify `/health`, that `GET /maps` returns 6 layers, tiles at z=6 and z=12, and image generation
-- [ ] 9.4 Run the analysis-parity script (6.3, `uv run python -m tests.regression.parity`) between the previous deployment (or a revision without `MAPS_ROOT`) and the share-backed deployment. The ratios must be identical
-- [ ] 9.5 Admin acceptance in production: log in, create a test layer, upload one of the new rasters (5.8, 28.1, or 32.4 MB), confirm the job succeeds, enable it, see it in the public selector with tiles, then disable it. Edit the `es` considerations of a seeded layer and confirm the change. Deploy a new revision and confirm everything persists
-- [ ] 9.6 Verify a rollback: deploy a revision without `MAPS_ROOT`, confirm it serves the image layers, then restore
+- [x] 9.1 Merge the code with `MAPS_ROOT` unset and no admin secrets. Verify production behavior is unchanged — deployed from the branch (not merged yet) as `8f4abbe` with no storage or admin: `/health` reports the image's maps, `/admin/session` is 404, and the regression farms, tiles and images are identical to a local API on the Git layers
+- [x] 9.2 Seed the share: run the seed CLI locally, then `az storage file upload-batch` to `maps`, and verify the listing — 6 rasters (51.8 MB) and 24 metadata files; sizes and `index.json` match the local seed. The seed now skips hidden files (it was copying `.DS_Store`)
+- [x] 9.3 Deploy with the mount, `MAPS_ROOT=/mnt/maps`, and the admin secrets. Verify `/health`, that `GET /maps` returns 6 layers, tiles at z=6 and z=12, and image generation — the admin hash and session secret are secret references; images are identical, and tiles are identical to a local API on the seeded COGs. Against the original rasters, low-zoom tiles differ because they now come from the COG's nearest overviews (D5); analysis is unaffected. The first deploy exposed a race: provisioning succeeds before the new revision is ready, so `deploy.sh` checked the old one; it now waits for `latestReadyRevisionName` and retries the maps-root check
+- [x] 9.4 Run the analysis-parity script (6.3, `uv run python -m tests.regression.parity`) between the previous deployment (or a revision without `MAPS_ROOT`) and the share-backed deployment. The ratios must be identical — identical, with a local API on the Git layers as the fixed reference (itself identical to the pre-migration deployment)
+- [x] 9.5 Admin acceptance in production: log in, create a test layer, upload one of the new rasters (5.8, 28.1, or 32.4 MB), confirm the job succeeds, enable it, see it in the public selector with tiles, then disable it. Edit the `es` considerations of a seeded layer and confirm the change. Deploy a new revision and confirm everything persists — done by the user on `monbo-test` (layer 6, raster 57601×69601 ingested in 51 s as `layer-6-v2.tif`). A new revision (`monbo-api--persist-check`) served the same `/maps` in es and en, the share's index was unchanged and layer 6's tiles rendered at z=6 and z=12
+- [x] 9.6 Verify a rollback: deploy a revision without `MAPS_ROOT`, confirm it serves the image layers, then restore — rollback revision served the image's layers (admin off, everything identical to Git); restored to the share with the admin on
 
 ## 10. Documentation
 

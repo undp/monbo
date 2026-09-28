@@ -363,11 +363,12 @@ deploy_api() {
     --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$API_APP_NAME?api-version=2024-03-01" \
     --body "@$body"
   wait_for_provisioning "$API_APP_NAME"
+  local revision
+  revision="$(wait_for_latest_revision "$API_APP_NAME")"
   # Secrets are only read at container start; restart so a changed secret takes effect
   # even when the PUT didn't create a new revision.
   az containerapp revision restart -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
-    --revision "$(az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
-      --query properties.latestRevisionName -o tsv)" -o none
+    --revision "$revision" -o none
 
   API_URL="https://$(app_fqdn "$API_APP_NAME")"
   wait_for_health "$API_URL/health"
@@ -389,18 +390,45 @@ wait_for_provisioning() {
   die "$1 is still provisioning ($state)"
 }
 
+# Provisioning succeeds before a new revision is ready, and until then the previous
+# revision keeps serving; wait for the latest one and print its name.
+wait_for_latest_revision() {
+  local latest ready
+  for _ in $(seq 1 60); do
+    read -r latest ready < <(az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$1" \
+      --query "[properties.latestRevisionName, properties.latestReadyRevisionName]" -o tsv | paste -s -)
+    if [ -n "$latest" ] && [ "$latest" = "$ready" ]; then
+      echo "$latest"
+      return 0
+    fi
+    sleep 10
+  done
+  die "Revision $latest of $1 did not become ready. Check: az containerapp logs show -g $AZURE_RESOURCE_GROUP -n $1 --revision $latest"
+}
+
 # The API must read (and, for the admin, write) the share, not the image's copy.
+# Retries for a while: the previous revision can still answer while it drains.
 verify_maps_root() {
-  local health
-  health="$(curl -fsS "$1/health")"
-  python3 -c '
+  local health report=""
+  for _ in $(seq 1 12); do
+    health="$(curl -fsS "$1/health" 2>/dev/null || true)"
+    if report="$(python3 -c '
 import json, sys
-health = json.loads(sys.argv[1])
+try:
+    health = json.loads(sys.argv[1])
+except ValueError:
+    sys.exit("no answer from /health")
 root, writable = health.get("mapsRoot"), health.get("mapsRootWritable")
 if root != "/mnt/maps" or not writable:
     sys.exit("API reports mapsRoot=%s writable=%s" % (root, writable))
-' "$health" || die "The share is not mounted writable at /mnt/maps (check the mount options and the image uid)"
-  ok "API reads its layers from /mnt/maps (writable)"
+' "$health" 2>&1)"; then
+      ok "API reads its layers from /mnt/maps (writable)"
+      return 0
+    fi
+    sleep 10
+  done
+  echo "  $report" >&2
+  die "The share is not mounted writable at /mnt/maps (check the mount options and the image uid)"
 }
 
 deploy_front() {
