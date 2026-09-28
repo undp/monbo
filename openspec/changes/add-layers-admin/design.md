@@ -189,7 +189,8 @@ The upload handler responds `202` with a `jobId` once the body is fully staged. 
 
   A small CLI (`uv run python -m app.modules.admin.passkey`) generates a random passphrase and prints it together with its hash, so nobody writes secrets by hand. If `ADMIN_PASSKEY_HASH` is unset, the admin routers are **not registered**: the routes return 404 and the OpenAPI docs don't show them.
 - **Login:** `POST /admin/session` with `{ "passkey": "..." }`. The handler hashes the input and compares it with `hmac.compare_digest`. On success it returns `{ token, expiresAt }`. The token is `base64url(payload).base64url(HMAC-SHA256(payload))`, with payload `{iat, exp, jti}`, built from the standard library only. Rotating `ADMIN_SESSION_SECRET` invalidates all sessions, and rotating `ADMIN_PASSKEY_HASH` changes the login.
-- **Authorization:** a `require_admin` FastAPI dependency validates `Authorization: Bearer <token>` (signature and `exp`) on every `/admin/*` route except the login.
+- **Authorization:** a `require_admin` FastAPI dependency validates `Authorization: Bearer <token>` (signature and `exp`) on every `/admin/*` route except the login. `GET /admin/session` returns the token's expiry, so the UI can check a stored token before using it.
+- **App factory:** `app/main.py` builds the app in `create_app()`, which includes the admin router only when both secrets are set. `uvicorn app.main:app` is unchanged, and tests build apps with and without the admin.
 - **Rate limit:** in memory, per client IP, 5 failed logins per 15 minutes, then `429` with `Retry-After`. The client IP is the last `X-Forwarded-For` hop, which the Container Apps ingress appends, falling back to the peer address. With one replica, in-memory state is enough. Every login attempt is logged (success or failure, IP, timestamp), and the passkey is never logged.
 - **Frontend storage:** the token is kept in `sessionStorage` and cleared on logout or on expiry. The passphrase is never stored.
 

@@ -1,36 +1,33 @@
 import json
 import logging
 import os
+from pathlib import Path
 from urllib.parse import unquote
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app.config.logger import configure_logging
+from app.config import env
+from app.config.logger import configure_logging, get_logger
 from app.modules import (
+    admin_router,
     deforestation_analysis_router,
     farms_router,
     maps_router,
     polygons_validation_router,
 )
+from app.modules.admin.auth import admin_enabled
 from app.modules.layers.store import get_layer_store
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
+logger = get_logger("main")
+
+router = APIRouter()
 
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/")
+@router.get("/")
 async def root():
     """
     Root endpoint that serves the API status page.
@@ -53,7 +50,7 @@ async def root():
     return Response(content=html_content, media_type="text/html")
 
 
-@app.get("/health")
+@router.get("/health")
 def health_check():
     # Sync on purpose: checking the maps root may touch a network share (Azure
     # Files), so it runs in the threadpool instead of blocking the event loop.
@@ -66,7 +63,7 @@ def health_check():
     }
 
 
-@app.get("/download-geojson")
+@router.get("/download-geojson")
 async def download_geojson(content: str | None = None):
     if content:
         try:
@@ -90,7 +87,46 @@ async def download_geojson(content: str | None = None):
     return Response(content=json_str, headers=headers)
 
 
-app.include_router(polygons_validation_router)
-app.include_router(deforestation_analysis_router)
-app.include_router(maps_router)
-app.include_router(farms_router)
+def _warn_about_admin_configuration() -> None:
+    if not admin_enabled():
+        if env.ADMIN_PASSKEY_HASH or env.ADMIN_SESSION_SECRET:
+            logger.warning(
+                "Layers admin disabled: set both ADMIN_PASSKEY_HASH and "
+                "ADMIN_SESSION_SECRET to enable it"
+            )
+        return
+    bundled_maps = (Path(__file__).parent / "maps").resolve()
+    if Path(env.MAPS_ROOT).resolve().is_relative_to(bundled_maps):
+        logger.warning(
+            "Layers admin is enabled while MAPS_ROOT points at the bundled layers "
+            "(%s): admin writes will modify Git-tracked files (and are lost on "
+            "restart inside a container)",
+            bundled_maps,
+        )
+
+
+def create_app() -> FastAPI:
+    app = FastAPI()
+    # Admin calls authenticate with a Bearer header, never cookies, so credentials
+    # stay off; the admin routes check the Origin header themselves.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH"],
+        allow_headers=["*"],
+    )
+    app.include_router(router)
+    app.include_router(polygons_validation_router)
+    app.include_router(deforestation_analysis_router)
+    app.include_router(maps_router)
+    app.include_router(farms_router)
+    # Without both admin secrets the admin routes don't exist at all (404, and
+    # they are left out of the OpenAPI docs).
+    if admin_enabled():
+        app.include_router(admin_router)
+    _warn_about_admin_configuration()
+    return app
+
+
+app = create_app()

@@ -61,6 +61,20 @@ Every `/admin/*` route except `POST /admin/session` SHALL require an `Authorizat
 - **WHEN** `ADMIN_SESSION_SECRET` changes and a new revision starts
 - **THEN** tokens issued before the change are rejected with 401
 
+### Requirement: Session check
+
+`GET /admin/session` SHALL require a valid admin token and SHALL return the session's expiry, so the admin UI can check a stored token before using it.
+
+#### Scenario: Stored token still valid
+
+- **WHEN** the admin UI calls `GET /admin/session` with a valid token
+- **THEN** the response is 200 with the token's `expiresAt`
+
+#### Scenario: Stored token no longer valid
+
+- **WHEN** the admin UI calls `GET /admin/session` with an expired token
+- **THEN** the response is 401
+
 ### Requirement: Login attempts are rate-limited and logged
 
 The API SHALL allow at most 5 failed login attempts per client IP within 15 minutes. Further attempts from that IP SHALL receive 429 with a `Retry-After` header until the window passes. The client IP SHALL be taken from the last `X-Forwarded-For` hop when that header is present, and from the connection peer otherwise. Every login attempt SHALL be logged with its outcome, the client IP, and a timestamp, and never with the submitted passkey.

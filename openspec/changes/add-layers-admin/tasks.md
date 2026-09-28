@@ -19,15 +19,15 @@
 
 ## 3. Admin authentication
 
-- [ ] 3.1 Add `ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`, `ADMIN_SESSION_TTL_MINUTES` (default 60), `ADMIN_ALLOWED_ORIGIN`, `ADMIN_MAX_UPLOAD_MB` (default 500), and `ADMIN_STAGING_DIR` (default `/tmp/monbo-staging`) to `app/config/env.py`, with validation (hash is 64 lowercase hex characters; secret is at least 32 bytes)
-- [ ] 3.2 Add the passkey generator CLI (`uv run python -m app.modules.admin.passkey`) that prints a random passkey of at least 64 characters plus its SHA-256 hex, and writes nothing to disk
-- [ ] 3.3 Implement the stdlib token: HMAC-SHA256 over a base64url `{iat, exp, jti}` payload, with sign/verify helpers
-- [ ] 3.4 Implement `POST /admin/session`: constant-time hash comparison, returns `{token, expiresAt}`, generic 401 on failure
-- [ ] 3.5 Implement the in-memory per-IP rate limiter (5 failures / 15 min → 429 + `Retry-After`), with the IP taken from the last `X-Forwarded-For` hop or the peer. Log every attempt with outcome and IP, never the passkey
-- [ ] 3.6 Implement the `require_admin` dependency (Bearer, signature, expiry) and the `Origin` check against `ADMIN_ALLOWED_ORIGIN` for admin routes, login included
-- [ ] 3.7 Register the admin routers in `app/main.py` only when the hash and the secret are both set, with a startup warning when only one is. Log a startup warning when the admin is enabled and `MAPS_ROOT` resolves inside the repo's `app/maps`
-- [ ] 3.8 Update the CORS middleware: methods `GET, POST, PUT, PATCH`; headers include `Authorization` and `Content-Type`; `allow_credentials=False`
-- [ ] 3.9 Tests: routes absent when unconfigured, login success/failure, rate limit and `Retry-After`, expired/tampered/rotated-secret tokens rejected, origin mismatch returns 403, and logs contain no passkey
+- [x] 3.1 Add `ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`, `ADMIN_SESSION_TTL_MINUTES` (default 60), `ADMIN_ALLOWED_ORIGIN`, `ADMIN_MAX_UPLOAD_MB` (default 500), and `ADMIN_STAGING_DIR` (default `/tmp/monbo-staging`) to `app/config/env.py`, with validation (hash is 64 lowercase hex characters; secret is at least 32 bytes)
+- [x] 3.2 Add the passkey generator CLI (`uv run python -m app.modules.admin.passkey`) that prints a random passkey of at least 64 characters plus its SHA-256 hex, and writes nothing to disk
+- [x] 3.3 Implement the stdlib token: HMAC-SHA256 over a base64url `{iat, exp, jti}` payload, with sign/verify helpers
+- [x] 3.4 Implement `POST /admin/session`: constant-time hash comparison, returns `{token, expiresAt}`, generic 401 on failure
+- [x] 3.5 Implement the in-memory per-IP rate limiter (5 failures / 15 min → 429 + `Retry-After`), with the IP taken from the last `X-Forwarded-For` hop or the peer. Log every attempt with outcome and IP, never the passkey
+- [x] 3.6 Implement the `require_admin` dependency (Bearer, signature, expiry) and the `Origin` check against `ADMIN_ALLOWED_ORIGIN` for admin routes, login included
+- [x] 3.7 Register the admin routers in `app/main.py` only when the hash and the secret are both set, with a startup warning when only one is. Log a startup warning when the admin is enabled and `MAPS_ROOT` resolves inside the repo's `app/maps`
+- [x] 3.8 Update the CORS middleware: methods `GET, POST, PUT, PATCH`; headers include `Authorization` and `Content-Type`; `allow_credentials=False`
+- [x] 3.9 Tests: routes absent when unconfigured, login success/failure, rate limit and `Retry-After`, expired/tampered/rotated-secret tokens rejected, origin mismatch returns 403, and logs contain no passkey
 
 ## 4. Layer administration API
 
