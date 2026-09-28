@@ -1,9 +1,21 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-from app.modules.layers.store import LayerStore, set_layer_store
+# Tests must not pick up a developer's .env, e.g. the local admin setup from
+# docs/onboarding.md. load_dotenv() doesn't override variables that are already set,
+# so blank these before the app reads its configuration.
+for _name in (
+    "MAPS_ROOT",
+    "ADMIN_PASSKEY_HASH",
+    "ADMIN_SESSION_SECRET",
+    "ADMIN_ALLOWED_ORIGIN",
+):
+    os.environ[_name] = ""
+
+from app.modules.layers.store import LayerStore, set_layer_store  # noqa: E402
 
 
 class MapsRoot:
