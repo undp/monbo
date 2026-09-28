@@ -36,6 +36,7 @@ REPLACE_ATTEMPTS = 10
 REPLACE_BACKOFF_SECONDS = 0.1
 
 _LANGUAGE_PATTERN = re.compile(r"^[a-z]{2}$")
+_JOB_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 
 
 def _is_safe_filename(name: str) -> bool:
@@ -252,6 +253,36 @@ class LayerStore:
             return
         assert last_error is not None
         raise last_error
+
+    # --- Ingestion jobs ------------------------------------------------------
+
+    def _job_path(self, job_id: str) -> Path | None:
+        if not _JOB_ID_PATTERN.match(job_id):
+            return None
+        return self.jobs_dir / f"{job_id}.json"
+
+    def write_job(self, job: dict) -> None:
+        path = self._job_path(job["jobId"])
+        if path is None:
+            raise ValueError(f"Invalid job id '{job['jobId']}'")
+        data = json.dumps(job, indent=2, ensure_ascii=False) + "\n"
+        self._atomic_write(path, data.encode("utf-8"))
+
+    def read_job(self, job_id: str) -> dict | None:
+        path = self._job_path(job_id)
+        if path is None:
+            return None
+        with self._lock:
+            content = self._read_json(path)
+        return content if isinstance(content, dict) else None
+
+    def list_jobs(self) -> list[dict]:
+        with self._lock:
+            paths = (
+                sorted(self.jobs_dir.glob("*.json")) if self.jobs_dir.is_dir() else []
+            )
+            jobs = [self._read_json(path) for path in paths]
+        return [job for job in jobs if isinstance(job, dict)]
 
     # --- Health --------------------------------------------------------------
 

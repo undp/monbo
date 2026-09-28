@@ -21,7 +21,7 @@
 
 ### Requirement: One ingestion at a time with persisted job status
 
-Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), error message, warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). On startup, jobs left `queued` or `running` SHALL be marked `failed` with the reason "interrupted by restart", and their staging files SHALL be removed.
+Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` SHALL be marked `failed` with the reason "interrupted by restart", and their staging files SHALL be removed.
 
 #### Scenario: Poll a running job
 
@@ -88,12 +88,17 @@ Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL
 
 ### Requirement: Conversion to COG with verification
 
-After validation, ingestion SHALL convert the raster to a Cloud Optimized GeoTIFF with lossless compression and nearest-neighbour overviews, keeping the CRS and nodata. It SHALL then verify, window by window, that the COG's pixels are identical to the validated input. If they are not, the job SHALL fail and the layer SHALL remain unchanged.
+After validation, ingestion SHALL convert the raster to a Cloud Optimized GeoTIFF with lossless compression and nearest-neighbour overviews, keeping the CRS and nodata. Bit-packed inputs (fewer than 8 bits per sample) SHALL be stored with 8-bit samples, without changing their values. It SHALL then verify, window by window, that the COG's pixels are identical to the validated input. If they are not, the job SHALL fail and the layer SHALL remain unchanged.
 
 #### Scenario: Converted raster is identical and optimized
 
 - **WHEN** a valid strip-organized, uncompressed GeoTIFF is ingested
 - **THEN** the stored raster is tiled, compressed, has overviews, and its pixel values equal the input's
+
+#### Scenario: Bit-packed raster
+
+- **WHEN** a valid 2-bit raster (like `ecuador2.tif`) is ingested
+- **THEN** the job succeeds and the stored raster has the same pixel values and nodata
 
 #### Scenario: Verification mismatch
 

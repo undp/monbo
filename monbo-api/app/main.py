@@ -1,12 +1,14 @@
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import unquote
 
 from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
 
 from app.config import env
 from app.config.logger import configure_logging, get_logger
@@ -18,6 +20,7 @@ from app.modules import (
     polygons_validation_router,
 )
 from app.modules.admin.auth import admin_enabled
+from app.modules.admin.ingestion import recover_interrupted_jobs
 from app.modules.layers.store import get_layer_store
 
 # Configure the logger
@@ -105,8 +108,19 @@ def _warn_about_admin_configuration() -> None:
         )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if admin_enabled():
+        try:
+            await run_in_threadpool(recover_interrupted_jobs, get_layer_store())
+        except Exception:
+            # Don't keep the public API down because the share is unreachable.
+            logger.exception("Could not recover interrupted ingestion jobs")
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
     # Admin calls authenticate with a Bearer header, never cookies, so credentials
     # stay off; the admin routes check the Origin header themselves.
     app.add_middleware(

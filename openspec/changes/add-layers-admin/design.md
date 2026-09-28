@@ -149,6 +149,8 @@ After validation, the job converts the raster with `rasterio.shutil.copy(..., dr
 
 The spike confirmed this is also the only safe option on SMB: `os.replace` over a file that another handle has open fails *and deletes the target*, while `os.remove` of an open file is safe (the reader finishes). Raster files are therefore only ever created and, optionally, removed; they are never replaced. Removing old versions is safe even while a tile request still reads them.
 
+Bit-packed inputs are promoted to 8-bit samples (`NBITS=8`), because the predictor needs whole bytes. `ecuador2.tif` is 2-bit, and exposed this in the end-to-end test with the real layers.
+
 *Why versioned filenames instead of overwriting:*
 - A tile request that is reading the old file never sees a partially written raster.
 - Tile URLs change with `version`, which defeats the 1-day `Cache-Control` (D8).
@@ -172,7 +174,7 @@ The attributes schema is unchanged (name, alias, coverage, source, resolution, c
 
 ### D7: Background ingestion jobs, with job state persisted on the share
 
-The upload handler responds `202` with a `jobId` once the body is fully staged. It then schedules the ingestion (D4 and D5) with FastAPI `BackgroundTasks`, which runs in the thread pool. The job's state (`queued | running | succeeded | failed`, message, warnings, raster report) is written to `MAPS_ROOT/.jobs/<jobId>.json`. `GET /admin/jobs/{jobId}` returns it. Only one ingestion runs at a time: a second upload while another is running returns `409`. On startup, any job left `queued` or `running` is marked `failed` ("interrupted by restart") and its staging file is removed.
+The upload handler responds `202` with a `jobId` once the body is fully staged. With a real server the job runs after that response, so the client always polls (the test client runs background tasks before returning, which hides this). Errors and warnings are `{code, message, params}` objects: `not_geotiff`, `band_count`, `not_integer`, `no_crs`, `not_binary`, `loss_years`, `conversion_mismatch`, `layer_not_found`, `interrupted`, `unexpected`; warnings `nodata_ignored` and `no_loss_pixels`. The UI translates them by code. It then schedules the ingestion (D4 and D5) with FastAPI `BackgroundTasks`, which runs in the thread pool. The job's state (`queued | running | succeeded | failed`, message, warnings, raster report) is written to `MAPS_ROOT/.jobs/<jobId>.json`. `GET /admin/jobs/{jobId}` returns it. Only one ingestion runs at a time: a second upload while another is running returns `409`. On startup, any job left `queued` or `running` is marked `failed` ("interrupted by restart") and its staging file is removed.
 
 *Alternative considered:* synchronous conversion inside the request. Rejected: the spike measured 184 s for the worst current input (gfw, 55 MB strips) on 1 vCPU when processed on the share. Local processing (D3) should reduce that substantially, but it would still be too close to the ingress timeout. A queue service (Azure Queue Storage or Container Apps Jobs) is overkill for a single admin.
 
@@ -266,5 +268,5 @@ A smoke check compares `POST /analize` ratios for a fixed sample of farms betwee
 
 - ~~The exact `mountOptions`~~ Resolved: `uid=<appuser>,gid=<appuser>,dir_mode=0750,file_mode=0640`.
 - ~~Tile latency over SMB with COG~~ Resolved: p95 ≤ 60 ms at z=6–14.
-- The ephemeral storage quota that Container Apps enforces for a 1 vCPU replica. `/tmp` reported 11.8 GB free, but the enforced limit may be lower. With a 500 MB upload cap plus its COG, anything ≥ 2 GiB is enough. Confirm during group 5.
+- ~~Ephemeral storage quota~~ Resolved: Container Apps gives a replica with ≤ 1 vCPU 4 GiB of ephemeral storage in total, enough for a 500 MB upload plus its COG.
 - The retention policy for old raster versions on the share. The current plan keeps them all; revisit if the share grows.
