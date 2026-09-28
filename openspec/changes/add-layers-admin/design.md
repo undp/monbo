@@ -166,6 +166,8 @@ A write goes to a temporary file in the same directory, is flushed and `fsync`ed
 
 A new layer is created with `enabled: false` and can only be enabled once it has an ingested raster. Out-of-band edits to the share (the seed upload, a manual fix) must happen while the API is stopped or before it is pointed at the share.
 
+A new layer is written with `raster_filename: null` and `version: 1`, so its first ingested raster becomes `layer-<id>-v2.tif`. Requests for the tiles or the image of a layer without a raster answer 404 instead of 500. Create, edit and enable/disable each run their read-modify-write of the index under `LayerStore.locked()`, so concurrent requests can't assign the same id. Years are stored as strings and integral pixel sizes as integers, matching the existing entries. The admin models forbid unknown fields, so a body that tries to set `enabled` or `version` through `PUT` is rejected with 422.
+
 The attributes schema is unchanged (name, alias, coverage, source, resolution, contentDate, updateFrequency, publishDate). `name` and `alias` are required in both `en` and `es`. The rest is optional. Considerations are markdown, optional per language.
 
 ### D7: Background ingestion jobs, with job state persisted on the share

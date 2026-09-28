@@ -15,37 +15,9 @@ from app.main import create_app
 from app.modules.admin import auth
 from app.modules.admin.auth import LoginRateLimiter, hash_passkey, issue_token
 from app.modules.admin.passkey import generate
+from tests.modules.admin.support import PASSKEY, bearer, login
 
-PASSKEY = "correct horse battery staple " * 3
-SECRET = "s" * 48
 API_DIR = Path(__file__).parents[3]
-
-
-@pytest.fixture
-def admin_env(monkeypatch):
-    monkeypatch.setattr(env, "ADMIN_PASSKEY_HASH", hash_passkey(PASSKEY))
-    monkeypatch.setattr(env, "ADMIN_SESSION_SECRET", SECRET)
-    monkeypatch.setattr(env, "ADMIN_SESSION_TTL_MINUTES", 60)
-    monkeypatch.setattr(env, "ADMIN_ALLOWED_ORIGIN", None)
-    monkeypatch.setattr(auth, "login_rate_limiter", LoginRateLimiter())
-
-
-@pytest.fixture
-def client(admin_env):
-    return TestClient(create_app())
-
-
-def login(client, passkey=PASSKEY, ip=None, origin=None):
-    headers = {}
-    if ip:
-        headers["X-Forwarded-For"] = ip
-    if origin:
-        headers["Origin"] = origin
-    return client.post("/admin/session", json={"passkey": passkey}, headers=headers)
-
-
-def bearer(token):
-    return {"Authorization": f"Bearer {token}"}
 
 
 # --- Opt-in ----------------------------------------------------------------------

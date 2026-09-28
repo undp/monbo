@@ -30,6 +30,8 @@ from app.config.logger import get_logger
 logger = get_logger("modules.layers.store")
 
 INDEX_FILENAME = "index.json"
+# Languages every layer's attributes and considerations are kept in.
+SUPPORTED_LANGUAGES = ("en", "es")
 REPLACE_ATTEMPTS = 10
 REPLACE_BACKOFF_SECONDS = 0.1
 
@@ -84,6 +86,12 @@ class LayerStore:
         if not _is_safe_filename(filename):
             raise FileNotFoundError(f"Invalid raster filename '{filename}'")
         return self.rasters_dir / filename
+
+    def has_raster(self, filename: str | None) -> bool:
+        """Whether a layer's raster file exists (new layers have none yet)."""
+        if not filename or not _is_safe_filename(filename):
+            return False
+        return self.raster_path(filename).is_file()
 
     def _metadata_path(self, kind: str, filename: str, language: str) -> Path | None:
         # `language` comes straight from the query string: never let it (or a
@@ -150,6 +158,34 @@ class LayerStore:
             return None
 
     # --- Writes --------------------------------------------------------------
+
+    def locked(self) -> threading.RLock:
+        """Hold this around a read-modify-write of the index (e.g. assigning an id),
+        so concurrent admin requests can't interleave."""
+        return self._lock
+
+    def write_attributes(self, filename: str, language: str, attributes: dict) -> None:
+        path = self._require_metadata_path(self.attributes_path(filename, language))
+        data = json.dumps(attributes, indent=2, ensure_ascii=False) + "\n"
+        self._atomic_write(path, data.encode("utf-8"))
+
+    def write_considerations(
+        self, filename: str, language: str, text: str | None
+    ) -> None:
+        """Write the markdown, or remove the file when there is no text."""
+        path = self._require_metadata_path(self.considerations_path(filename, language))
+        if text:
+            self._atomic_write(path, (text.strip() + "\n").encode("utf-8"))
+            return
+        with self._lock:
+            # Safe on SMB even if a reader has it open: the file goes away on close.
+            path.unlink(missing_ok=True)
+
+    @staticmethod
+    def _require_metadata_path(path: Path | None) -> Path:
+        if path is None:
+            raise ValueError("Invalid metadata filename or language")
+        return path
 
     def write_index(self, entries: list[dict]) -> None:
         data = (json.dumps(entries, indent=2, ensure_ascii=False) + "\n").encode(

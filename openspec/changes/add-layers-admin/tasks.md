@@ -31,12 +31,12 @@
 
 ## 4. Layer administration API
 
-- [ ] 4.1 Define the admin Pydantic models: index fields, per-language attributes (`name`/`alias` required for en and es), considerations per language, and the list response with raster presence
-- [ ] 4.2 Implement `GET /admin/layers` (all layers, en/es metadata, raster presence)
-- [ ] 4.3 Implement `POST /admin/layers`: `id = max + 1` counting disabled layers, `enabled: false`, `layer-<id>.json` / `layer-<id>.md` files, and validation (baseline ≤ compared_against, pixel_size > 0, ISO alpha-2 codes via `pycountry`)
-- [ ] 4.4 Implement `PUT /admin/layers/{id}`: writes to the existing metadata filenames; does not touch `id`, `raster_filename`, `version`, or `enabled`; 404 for unknown ids
-- [ ] 4.5 Implement `PATCH /admin/layers/{id}` `{enabled}`, returning 409 when enabling without a raster file
-- [ ] 4.6 Tests for every endpoint and scenario in `specs/layer-administration/spec.md`, using a temporary `MAPS_ROOT`
+- [x] 4.1 Define the admin Pydantic models: index fields, per-language attributes (`name`/`alias` required for en and es), considerations per language, and the list response with raster presence
+- [x] 4.2 Implement `GET /admin/layers` (all layers, en/es metadata, raster presence)
+- [x] 4.3 Implement `POST /admin/layers`: `id = max + 1` counting disabled layers, `enabled: false`, `layer-<id>.json` / `layer-<id>.md` files, and validation (baseline ≤ compared_against, pixel_size > 0, ISO alpha-2 codes via `pycountry`)
+- [x] 4.4 Implement `PUT /admin/layers/{id}`: writes to the existing metadata filenames; does not touch `id`, `raster_filename`, `version`, or `enabled`; 404 for unknown ids
+- [x] 4.5 Implement `PATCH /admin/layers/{id}` `{enabled}`, returning 409 when enabling without a raster file
+- [x] 4.6 Tests for every endpoint and scenario in `specs/layer-administration/spec.md`, using a temporary `MAPS_ROOT`
 
 ## 5. Raster ingestion
 

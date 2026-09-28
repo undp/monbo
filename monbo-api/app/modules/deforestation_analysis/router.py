@@ -80,7 +80,11 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
     if map is None:
         raise HTTPException(status_code=404, detail="Map not found")
 
-    asset_path = get_map_raster_path(map["raster_filename"])
+    try:
+        asset_path = get_map_raster_path(map["raster_filename"])
+    except FileNotFoundError:
+        # e.g. a layer created in the admin that has no raster yet
+        raise HTTPException(status_code=404, detail="Map raster not found")
 
     try:
         img = await get_tile(asset_path, z, x, y)
@@ -119,8 +123,10 @@ async def generate_image(
     map_data = get_map_by_id(body.mapId)
     if map_data is None:
         raise HTTPException(status_code=404, detail="Map not found")
-    raster_filename = map_data["raster_filename"]
-    raster_path = get_map_raster_path(raster_filename)
+    try:
+        raster_path = get_map_raster_path(map_data["raster_filename"])
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Map raster not found")
 
     try:
         geom = shape(body.feature["geometry"])

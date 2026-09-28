@@ -1,0 +1,161 @@
+"""Layer administration: list, create, edit and enable/disable layers.
+
+Layers are never deleted and ids are never reused, because saved analyses and
+reports refer to layers by id. Rasters are uploaded separately (raster ingestion).
+"""
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, get_layer_store
+
+from .auth import logger, require_admin
+from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
+
+router = APIRouter(dependencies=[Depends(require_admin)])
+
+
+def _index_or_500(store: LayerStore) -> list[dict]:
+    index = store.read_index()
+    if index is None:
+        raise HTTPException(status_code=500, detail="Failed to read map data")
+    return index
+
+
+def _position(index: list[dict], layer_id: int) -> int:
+    for position, entry in enumerate(index):
+        if entry["id"] == layer_id:
+            return position
+    raise HTTPException(status_code=404, detail="Layer not found")
+
+
+def _year(value) -> int | None:
+    return int(value) if value not in (None, "") else None
+
+
+def _to_admin_layer(store: LayerStore, entry: dict) -> AdminLayer:
+    attributes = {}
+    considerations = {}
+    for language in SUPPORTED_LANGUAGES:
+        stored = store.read_attributes(entry["attributes_filename"], language)
+        attributes[language] = (
+            StoredAttributes.model_validate(stored) if stored else None
+        )
+        considerations[language] = store.read_considerations(
+            entry["considerations_filename"], language
+        )
+    return AdminLayer(
+        id=entry["id"],
+        pixel_size=entry["pixel_size"],
+        baseline=_year(entry.get("baseline")),
+        compared_against=_year(entry.get("compared_against")),
+        references=entry.get("references", []),
+        available_countries_codes=entry.get("available_countries_codes", []),
+        enabled=entry["enabled"],
+        version=entry["version"],
+        raster_filename=entry.get("raster_filename"),
+        has_raster=store.has_raster(entry.get("raster_filename")),
+        attributes=attributes,
+        considerations=considerations,
+    )
+
+
+def _apply_input(store: LayerStore, entry: dict, body: LayerInput) -> None:
+    """Write the metadata files, then update the editable index fields in `entry`."""
+    for language in SUPPORTED_LANGUAGES:
+        attributes = getattr(body.attributes, language)
+        store.write_attributes(
+            entry["attributes_filename"],
+            language,
+            attributes.model_dump(exclude_none=True),
+        )
+        store.write_considerations(
+            entry["considerations_filename"],
+            language,
+            getattr(body.considerations, language),
+        )
+    pixel_size = body.pixel_size
+    entry.update(
+        {
+            "pixel_size": int(pixel_size) if pixel_size.is_integer() else pixel_size,
+            # Years are stored as strings, like the rest of the index.
+            "baseline": str(body.baseline),
+            "compared_against": str(body.compared_against),
+            "references": body.references,
+            "available_countries_codes": body.available_countries_codes,
+        }
+    )
+
+
+@router.get("", response_model=list[AdminLayer])
+def list_layers():
+    """Every layer, enabled or not, with its metadata in every language."""
+    store = get_layer_store()
+    return [_to_admin_layer(store, entry) for entry in _index_or_500(store)]
+
+
+@router.post("", response_model=AdminLayer, status_code=201)
+def create_layer(body: LayerInput):
+    """
+    Create a layer. It starts disabled and without a raster; upload one and then
+    enable the layer to publish it. Its id is one more than the highest existing
+    id (disabled layers included), so ids are never reused.
+    """
+    store = get_layer_store()
+    with store.locked():
+        index = _index_or_500(store)
+        layer_id = max((entry["id"] for entry in index), default=-1) + 1
+        entry = {
+            "id": layer_id,
+            "raster_filename": None,
+            "attributes_filename": f"layer-{layer_id}.json",
+            "considerations_filename": f"layer-{layer_id}.md",
+            "enabled": False,
+            "version": 1,
+        }
+        # Metadata first: the index never points at files that don't exist yet.
+        _apply_input(store, entry, body)
+        store.write_index([*index, entry])
+    logger.info("Admin created layer %s", layer_id)
+    return _to_admin_layer(store, entry)
+
+
+@router.put("/{layer_id}", response_model=AdminLayer)
+def update_layer(layer_id: int, body: LayerInput):
+    """
+    Replace a layer's editable fields and its metadata in every language. The id,
+    raster, version and enabled state are not changed here.
+    """
+    store = get_layer_store()
+    with store.locked():
+        index = _index_or_500(store)
+        position = _position(index, layer_id)
+        _apply_input(store, index[position], body)
+        store.write_index(index)
+        entry = index[position]
+    logger.info("Admin updated layer %s", layer_id)
+    return _to_admin_layer(store, entry)
+
+
+@router.patch("/{layer_id}", response_model=AdminLayer)
+def set_layer_enabled(layer_id: int, body: EnabledInput):
+    """
+    Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
+    public listing but still resolves by id for analyses and tiles. A layer can
+    only be enabled once it has a raster.
+    """
+    store = get_layer_store()
+    with store.locked():
+        index = _index_or_500(store)
+        position = _position(index, layer_id)
+        entry = index[position]
+        if body.enabled and not store.has_raster(entry.get("raster_filename")):
+            raise HTTPException(
+                status_code=409, detail="Upload a raster before enabling the layer"
+            )
+        if entry["enabled"] != body.enabled:
+            entry["enabled"] = body.enabled
+            store.write_index(index)
+            logger.info(
+                "Admin %s layer %s", "enabled" if body.enabled else "disabled", layer_id
+            )
+    return _to_admin_layer(store, entry)
