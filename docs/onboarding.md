@@ -33,18 +33,20 @@ The application is organized into **3 product modules**, which are also the 3 ma
 Monbo is a **monorepo with two independent applications** plus an offline data script:
 
 ```
-User ─▶ monbo-front (Next.js)  ──HTTP fetch──▶  monbo-api (FastAPI)  ──reads──▶  .tif rasters on disk
+User ─▶ monbo-front (Next.js)  ──HTTP fetch──▶  monbo-api (FastAPI)  ──reads──▶  layers in MAPS_ROOT
+Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin     ──writes─▶  (Git copy locally,
+                                                                                 Azure Files share in Azure)
                                                        ▲
-                                                       │ (generated offline, not at runtime)
+                                                       │ (binary rasters prepared offline, not at runtime)
                                            scripts/update-gfw-tmf (Google Earth Engine)
 ```
 
 Key points for building the right mental model:
 
-- **There is no database and no authentication.** The system is **stateless**: each analysis runs on demand and **nothing is persisted on the server**.
+- **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which the **layers admin** edits (behind a shared passkey; see §4.8 and `docs/maps.md`).
 - **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home).
-- **The backend serves the rasters from local disk** (`monbo-api/app/maps/layers/rasters/*.tif`), versioned with **Git LFS**.
-- **CORS is fully open** (`allow_origins=["*"]`).
+- **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `monbo-api/app/maps` (rasters in **Git LFS**); in Azure, an **Azure Files share** mounted at `/mnt/maps`, which the admin writes to.
+- **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token.
 
 ### 2.2 End-to-end flow (the user's journey)
 
@@ -88,7 +90,7 @@ This is the core concept worth understanding clearly.
 
 - **Google Maps Platform**: base map and satellite background (requires `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` on the frontend and credentials on the backend).
 - **Google Earth Engine**: only in the offline raster-generation script.
-- **No DB, no queues, no remote storage** at runtime.
+- **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.
 
 ---
@@ -131,13 +133,15 @@ modules/                   # One package per module, each with router.py + helpe
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
 ├── deforestation_analysis/#   POST /analize, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
-└── maps/                  #   GET /maps — layer catalog from index.json + metadata
-maps/                      # Static data: index.json, .tif rasters (Git LFS), bilingual metadata per layer/country
+├── maps/                  #   GET /maps — catalog of the published layers from index.json + metadata
+├── layers/                #   LayerStore (reads/writes MAPS_ROOT), raster checks + COG conversion, seed command
+└── admin/                 #   /admin/* — passkey login, layer CRUD, raster uploads (only when configured)
+maps/                      # Git-tracked layers: index.json, .tif rasters (Git LFS), bilingual metadata per layer
 models/                    # Shared Pydantic schemas (farms, maps, polygons)
 helpers/GeometryCalculator.py  # Geodesic area computation (Albers Equal Area)
 utils/image_generation/    # Image generation (raster + geometry + Google Maps)
 config/                    # env.py, constants.py, logger.py
-tests/                     # pytest, mirrors the modules/ structure
+tests/                     # pytest, mirrors the modules/ structure; tests/regression/ runs a fixed set of farms end to end
 ```
 
 ### 3.3 Frontend — `monbo-front/src/`
@@ -147,7 +151,8 @@ app/[locale]/              # App Router; the language is a route segment (en/es)
 ├── page.tsx               #   Home: 3 module cards
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
-└── report-generation/     #   Module 3 (+ preview)
+├── report-generation/     #   Module 3 (+ preview)
+└── admin/                 #   Layers admin (login, layer list, create/edit, raster upload); not linked from the public pages
 api/                       # fetch clients to the backend (farms.ts, polygonValidation.ts, deforestationAnalysis.ts)
 context/DataContext.tsx    # Shared state for the ENTIRE flow (in memory)
 components/
@@ -268,3 +273,26 @@ Trace a single farm through the whole pipeline to internalize §2.2 and §2.3 �
 - 🧩 **Each frontend module can point to a different backend** (one env var per endpoint, all falling back to `NEXT_PUBLIC_API_URL`).
 - ✍️ **The analysis endpoint is spelled `analize`** — match that spelling exactly when calling it.
 - 🤫 A `value: null` (or area `-1`) in the results means "could not be computed", not a crash.
+
+### 4.8 Trying the layers admin locally
+
+The admin is off unless the API has both admin secrets. To try it without touching the Git-tracked layers:
+
+```bash
+cd monbo-api
+cp -r app/maps .local-maps              # a copy the admin can write to (ignored by Git)
+uv run python -m app.modules.admin.passkey
+```
+
+The last command prints a passkey, its hash and a session secret. Put these in `monbo-api/.env` and restart the backend:
+
+```bash
+MAPS_ROOT=.local-maps
+ADMIN_PASSKEY_HASH=<the printed hash>
+ADMIN_SESSION_SECRET=<the printed secret>
+ADMIN_ALLOWED_ORIGIN=http://localhost:3000
+```
+
+Then open **`http://localhost:3000/admin`** and log in with the passkey. The passkey itself never goes in `.env`: only its hash does. The frontend needs no extra setting (it calls `${NEXT_PUBLIC_API_URL}/admin`). `http://localhost:8000/health` shows which `mapsRoot` the API is using.
+
+To test raster uploads, use a binary GeoTIFF (see the requirements in `docs/maps.md`). To start over, delete `.local-maps` and copy it again.

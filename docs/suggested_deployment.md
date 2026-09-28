@@ -29,7 +29,11 @@ releases, restarts and new revisions.
 
 The volume is mounted with `uid=10001,gid=10001,dir_mode=0750,file_mode=0640`: the
 API image runs as uid/gid 10001 (`monbo-api/Dockerfile.prod`), and `chmod` is not
-possible on the share. The API is pinned to one replica.
+possible on the share.
+
+The API is pinned to one replica (`minReplicas`/`maxReplicas: 1`): the lock that
+serializes writes to the share, the login rate limit and the single ingestion slot
+live in the API's memory. Don't scale it out while the admin is enabled.
 
 ### First-time setup
 
@@ -78,7 +82,7 @@ cd monbo-api && uv run python -m app.modules.admin.passkey
 It prints the passkey the admin logs in with (keep it in a password manager, never
 in `deploy.env` or Azure), its hash and a session secret. `deploy.sh` stores the hash
 and the secret as Container App secrets and sets `ADMIN_ALLOWED_ORIGIN` to the
-frontend's URL.
+frontend's URL. How to manage layers there is in [maps.md](maps.md).
 
 ### Rotating the admin credentials
 

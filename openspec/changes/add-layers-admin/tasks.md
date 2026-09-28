@@ -88,8 +88,8 @@
 
 ## 10. Documentation
 
-- [ ] 10.1 Rewrite `docs/maps.md`: the admin is how layers are managed; binary/COG requirements; the loss-year binarization note pointing to `scripts/update-gfw-tmf`; `enabled`/`version` fields; versioned filenames
-- [ ] 10.2 Update `docs/suggested_deployment.md`: storage resource group and lock, share and backups, mount, admin secrets, the single-replica constraint, and rollback
-- [ ] 10.3 Update `docs/onboarding.md` and `monbo-api/.env.template`: `MAPS_ROOT` for local admin work (`monbo-api/.local-maps/`, gitignored), and generating local admin credentials — `.env.template` and the API README's variable list are done; `docs/onboarding.md` is still pending
+- [x] 10.1 Rewrite `docs/maps.md`: the admin is how layers are managed; binary/COG requirements; the loss-year binarization note pointing to `scripts/update-gfw-tmf`; `enabled`/`version` fields; versioned filenames
+- [x] 10.2 Update `docs/suggested_deployment.md`: storage resource group and lock, share and backups, mount, admin secrets, the single-replica constraint, and rollback
+- [x] 10.3 Update `docs/onboarding.md` and `monbo-api/.env.template`: `MAPS_ROOT` for local admin work (`monbo-api/.local-maps/`, gitignored), and generating local admin credentials — `.env.template` and the API README's variable list were done earlier; `docs/onboarding.md` gains §4.8 and no longer describes the API as having no persisted state or authentication
 - [x] 10.4 Add `monbo-api/.local-maps/` to `.gitignore`
-- [ ] 10.5 Add a CHANGELOG entry
+- [x] 10.5 Add a CHANGELOG entry — under `[Unreleased]`; the version is not bumped
