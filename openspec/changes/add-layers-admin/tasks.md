@@ -69,13 +69,13 @@
 
 ## 8. Azure infrastructure and deployment
 
-- [ ] 8.1 Pin `appuser` to uid/gid 10001 in `monbo-api/Dockerfile.prod`
-- [ ] 8.2 Add an `ensure_layer_storage` step to `azure/deploy.sh`: idempotently create the `monbo-data` resource group, the `CanNotDelete` lock, the Storage Account, the share (quota 10 GiB), share soft delete (14 days), daily Azure Backup snapshots (30-day retention), and the Container Apps environment storage definition
-- [ ] 8.3 Turn `azure/monbo-api-app.yml` into the rendered template for the API app, with image, CPU/memory, `minReplicas`/`maxReplicas: 1`, the `volumes`/`volumeMounts` for `/mnt/maps` with the spike's mount options, env (`MAPS_ROOT`, `ADMIN_ALLOWED_ORIGIN` computed from the environment's default domain), and the secret references (`ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`). Deploy the API with `az rest --method put` against `api-version=2024-03-01` and a rendered JSON body (`az containerapp create --yaml` is broken on az CLI 2.90; see design Spike results)
-- [ ] 8.4 Add the new variables to `azure/deploy.env.example` (`DATA_RESOURCE_GROUP`, `STORAGE_ACCOUNT_NAME`, `ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`). Make the admin opt-in: skip the secrets when they are empty
-- [ ] 8.5 After the API deploys, have `deploy.sh` verify that `/health` reports `mapsRoot=/mnt/maps` and `mapsRootWritable=true` (only when storage is configured), and fail otherwise
-- [ ] 8.6 Confirm `destroy` deletes only the app resource group, and print a note that the data resource group is kept
-- [ ] 8.7 Document the rotation procedure for the passkey and the session secret (generate, `az containerapp secret set`, restart the revision)
+- [x] 8.1 Pin `appuser` to uid/gid 10001 in `monbo-api/Dockerfile.prod`
+- [x] 8.2 Add an `ensure_layer_storage` step to `azure/deploy.sh`: idempotently create the `monbo-data` resource group, the `CanNotDelete` lock, the Storage Account, the share (quota 10 GiB), share soft delete (14 days), daily Azure Backup snapshots (30-day retention), and the Container Apps environment storage definition — run for real with `./azure/deploy.sh storage` (idempotent: a second run changes nothing)
+- [x] 8.3 Turn `azure/monbo-api-app.yml` into the rendered template for the API app, with image, CPU/memory, `minReplicas`/`maxReplicas: 1`, the `volumes`/`volumeMounts` for `/mnt/maps` with the spike's mount options, env (`MAPS_ROOT`, `ADMIN_ALLOWED_ORIGIN` computed from the environment's default domain), and the secret references (`ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`). Deploy the API with `az rest --method put` against `api-version=2024-03-01` and a rendered JSON body (`az containerapp create --yaml` is broken on az CLI 2.90; see design Spike results) — done as `azure/render_api_app.py` (the old `azure/monbo-api-app.yml` is removed); `deploy.sh` also refuses to mount an unseeded share
+- [x] 8.4 Add the new variables to `azure/deploy.env.example` (`DATA_RESOURCE_GROUP`, `STORAGE_ACCOUNT_NAME`, `ADMIN_PASSKEY_HASH`, `ADMIN_SESSION_SECRET`). Make the admin opt-in: skip the secrets when they are empty
+- [x] 8.5 After the API deploys, have `deploy.sh` verify that `/health` reports `mapsRoot=/mnt/maps` and `mapsRootWritable=true` (only when storage is configured), and fail otherwise
+- [x] 8.6 Confirm `destroy` deletes only the app resource group, and print a note that the data resource group is kept
+- [x] 8.7 Document the rotation procedure for the passkey and the session secret (generate, `az containerapp secret set`, restart the revision) — in `docs/suggested_deployment.md`, with the storage setup, seeding and rollback
 
 ## 9. Rollout
 

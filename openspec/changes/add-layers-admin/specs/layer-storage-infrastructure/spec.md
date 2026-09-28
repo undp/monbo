@@ -39,12 +39,17 @@ The API Container App SHALL mount the share read-write at `/mnt/maps`, with moun
 
 ### Requirement: Deployment script provisions and verifies storage
 
-`azure/deploy.sh` SHALL idempotently create or update the storage resource group, its lock, the Storage Account, the share, its soft-delete and backup settings, and the Container Apps environment storage definition. It SHALL deploy the API with the volume mount, the environment variables, and the secrets from a single rendered YAML template. After deploying, it SHALL fail if `/health` does not report a writable maps root at `/mnt/maps`. The `destroy` command SHALL NOT delete the storage resource group.
+`azure/deploy.sh` SHALL idempotently create or update the storage resource group, its lock, the Storage Account, the share, its soft-delete and backup settings, and the Container Apps environment storage definition. It SHALL deploy the API with the volume mount, the environment variables, and the secrets from a single rendered app definition (`azure/render_api_app.py`, applied with `az rest --method put`), and SHALL refuse to mount a share that has no `index.json`. After deploying, it SHALL fail if `/health` does not report a writable maps root at `/mnt/maps`. The `destroy` command SHALL NOT delete the storage resource group.
 
 #### Scenario: Re-running deploy
 
 - **WHEN** `./azure/deploy.sh` runs against an environment where storage already exists
 - **THEN** it completes without recreating the share or losing data
+
+#### Scenario: Unseeded share
+
+- **WHEN** a deploy would mount a share that has no `index.json`
+- **THEN** the script stops before changing the API, with instructions to seed the share
 
 #### Scenario: Mount missing after deploy
 

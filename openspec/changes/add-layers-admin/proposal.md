@@ -57,7 +57,7 @@ Deforestation layers are files baked into the API Docker image (`app/maps/index.
   - New Storage Account and file share in a separate resource group.
   - Container Apps environment storage definition and a volume mount on `monbo-api`.
   - New secrets.
-  - `azure/deploy.sh` and `azure/monbo-api-app.yml` updated.
+  - `azure/deploy.sh` updated; the API app is rendered by `azure/render_api_app.py` (replaces `azure/monbo-api-app.yml`).
   - API sizing stays at 1 CPU / 2 GiB, as `deploy.sh` defaults already set.
 - **Docs**: `docs/maps.md` (the admin is now the way to manage layers), `docs/suggested_deployment.md` (storage and secrets), `docs/onboarding.md` (local `MAPS_ROOT`).
 - **Risks**:
