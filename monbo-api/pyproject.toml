@@ -7,7 +7,7 @@ dependencies = [
     "fastapi[standard]==0.141.1",
     "shapely==2.1.2",
     "pyproj==3.8.0",
-    "uvicorn==0.53.0",
+    "uvicorn==0.54.0",
     "httpx==0.28.1",
     "geopandas==1.1.4",
     "rasterio==1.5.1",
@@ -22,9 +22,9 @@ dependencies = [
 dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "ruff==0.15.20",
+    "ruff==0.16.9",
     "black==26.5.1",
-    "mypy==2.2.0",
+    "mypy==2.3.1",
     "memory-profiler==0.61.0",
 ]
 
