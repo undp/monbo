@@ -103,14 +103,18 @@ def read_farm_rows(path: Path = EXCEL_PATH) -> list[dict[str, Any]]:
 
 
 def run_pipeline(
-    rows: list[dict[str, Any]], client=None, map_ids: list[int] | None = None
+    rows: list[dict[str, Any]],
+    client=None,
+    map_ids: list[int] | None = None,
+    country: str | None = None,
 ) -> dict[str, Any]:
     """Parse, analyze and validate.
 
     By default it runs in-process against every layer in the current store, with
     the overlap threshold pinned. Pass an HTTP client (e.g. `httpx.Client` with a
     `base_url`) and the map ids to run it against a deployed API instead; the
-    deployment's own threshold then applies.
+    deployment's own threshold then applies. With the per-country layout, pass the
+    `country` of the layers: ids are numbered within each country.
     """
     in_process = client is None
     if client is None:
@@ -129,10 +133,16 @@ def run_pipeline(
     ]
 
     if map_ids is None:
-        map_ids = sorted(entry["id"] for entry in get_all_maps())
-    response = client.post(
-        "/deforestation_analysis/analize", json={"maps": map_ids, "farms": payload}
-    )
+        map_ids = sorted(
+            entry["id"]
+            for entry in get_all_maps()
+            if country is None or entry["country"] in (None, country)
+        )
+    analysis_body: dict[str, Any] = {"maps": map_ids, "farms": payload}
+    if country is not None:
+        # Per-country layout: layer ids are numbered within each country.
+        analysis_body["country"] = country
+    response = client.post("/deforestation_analysis/analize", json=analysis_body)
     response.raise_for_status()
     analysis = response.json()
 
