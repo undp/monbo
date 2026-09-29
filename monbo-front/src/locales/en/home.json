@@ -27,5 +27,14 @@
     },
     "uploadNewData": "Upload new data",
     "sameData": "Continue with the same data"
+  },
+  "landing": {
+    "title": "Where is your production?",
+    "subtitle": "Choose the country for the deforestation analysis. Only countries with available maps can be chosen.",
+    "availableCountries": "Available countries",
+    "loading": "Loading available countries…",
+    "noCountries": "No country has maps available right now.",
+    "contact": "Contact us to add your country",
+    "mapLabel": "World map with the available countries highlighted"
   }
 }

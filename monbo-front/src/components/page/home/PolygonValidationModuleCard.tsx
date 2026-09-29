@@ -14,9 +14,7 @@ export const PolygonValidationModuleCard: React.FC = () => {
     farmsData,
     polygonsValidationResults,
     deforestationAnalysisResults,
-    setFarmsData,
-    setPolygonsValidationResults,
-    setDeforestationAnalysisResults,
+    resetAnalysis,
   } = useContext(DataContext);
   const [newDataModalIsOpen, setNewDataModalIsOpen] = useState(false);
   const goToModule = useModuleRouter("/polygons-validation");
@@ -49,9 +47,7 @@ export const PolygonValidationModuleCard: React.FC = () => {
           {
             title: t("home:sameDataModal:uploadNewData"),
             handler: () => {
-              setFarmsData(null);
-              setPolygonsValidationResults(null);
-              setDeforestationAnalysisResults(null);
+              resetAnalysis();
               router.push("/polygons-validation/upload-data");
             },
             variant: "outlined",

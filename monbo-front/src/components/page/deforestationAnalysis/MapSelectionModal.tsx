@@ -14,7 +14,7 @@ import { useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
+import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 
 interface MapSelectionModalProps
   extends Pick<BaseModalProps, "isOpen" | "handleClose"> {
@@ -37,7 +37,7 @@ export const MapSelectionModal: React.FC<MapSelectionModalProps> = ({
     setReportGenerationParams,
   } = useContext(DataContext);
 
-  const { mapOptions, selectedMapsOptions } = useCountryAndMapsSelection({
+  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForReport,
     availableMaps: selectedMapsForDeforestation,
   });

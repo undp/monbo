@@ -83,7 +83,7 @@ export const ValidFarmsTable: React.FC = () => {
 
   useEffect(() => {
     if (!validFarmsData) {
-      router.push("/");
+      router.push("/home");
     }
   }, [validFarmsData, router]);
 

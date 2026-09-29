@@ -21,10 +21,7 @@ import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeader
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
-import { MultiSelector } from "@/components/reusable/selectors/MultiSelector";
-import { Box } from "@mui/material";
-import { CustomHeaderStepContainer } from "@/components/page/uploadData/CustomHeaderStepContainer";
-import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
+import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
 import {
   getUploadFileTemplatePath,
@@ -42,29 +39,15 @@ export function DeforestationAnalysisUploadDataPageContent() {
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
     setDeforestationAnalysisParams,
     setDeforestationAnalysisResults,
+    selectedCountry,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(() => !!farmsData);
   const prevDataRef = useRef<string | null>(null);
 
-  const onCountrySelectionChangeEffect = useCallback(() => {
-    // When the user selects a country, we need to clear the selected maps
-    setDeforestationAnalysisParams((prev) => ({
-      ...prev,
-      selectedMaps: [],
-    }));
-  }, [setDeforestationAnalysisParams]);
-
-  const {
-    selectedCountries,
-    countriesOptions,
-    onCountrySelectionChange,
-    mapOptions,
-    selectedMapsOptions,
-  } = useCountryAndMapsSelection({
+  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForDeforestation,
     availableMaps,
-    onCountrySelectionChangeEffect,
   });
 
   const onMapSelectionChange = useCallback(
@@ -90,7 +73,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
       try {
-        const results = await generateFarmsData(data, i18n.language);
+        // The upload has no country column: every farm is in the analysis country.
+        const results = await generateFarmsData(
+          data.map((row) => ({ ...row, country: selectedCountry })),
+          i18n.language
+        );
         setFarmsData(results);
       } catch (error) {
         console.error(error);
@@ -102,7 +89,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t, i18n.language]
+    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
   );
 
   const performDeforestationAnalysis = useCallback(
@@ -198,55 +185,24 @@ export function DeforestationAnalysisUploadDataPageContent() {
           fileUrl={getUploadFileTemplatePath(i18n.language)} // TODO: Change to deforestation analysis template
         />
       </TextHeaderStepContainer>
-      <CustomHeaderStepContainer
-        header={
-          <Box
-            sx={{
-              display: "flex",
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
-            }}
-          >
-            <Text variant="h4" bold>
-              {t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
-              )}
-            </Text>
-            <MultiSelector
-              sx={{ width: 350 }}
-              selectedOptions={selectedCountries}
-              options={countriesOptions}
-              label={t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:countrySelectorLabel"
-              )}
-              onChange={onCountrySelectionChange}
-              compact
-            />
-          </Box>
-        }
+      <TextHeaderStepContainer
+        title={t(
+          "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
+        )}
       >
         <MultiSelectionStep
           selectedOptions={selectedMapsOptions}
           options={mapOptions}
           onChange={onMapSelectionChange}
         />
-        {!selectedCountries.length && (
-          <MessageBox
-            message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noCountriesSelected"
-            )}
-          />
-        )}
-        {selectedCountries.length > 0 && !mapOptions.length && (
+        {!mapOptions.length && (
           <MessageBox
             message={t(
               "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
             )}
           />
         )}
-      </CustomHeaderStepContainer>
+      </TextHeaderStepContainer>
       <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
         sx={{

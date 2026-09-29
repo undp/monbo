@@ -1,7 +1,6 @@
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { TFunction } from "i18next";
-import { isCountryCode } from "./countries";
 
 // TODO: refactor to use only the exceljs library
 
@@ -579,7 +578,6 @@ const headerKeywordsMappings: Record<string, string[]> = {
     "unidad cantidad producción",
     "production measurement unit",
   ],
-  country: ["país", "country"],
   region: ["región", "region"],
   coordinatesFormat: ["formato coordenadas", "coordinates format"],
   geometryType: ["tipo geometría", "geometry type"],
@@ -600,7 +598,6 @@ const mandatoryHeaders: string[] = [
   "productionDate",
   "productionQuantity",
   "productionQuantityUnit",
-  "country",
   "coordinatesFormat",
   "geometryType",
   "farmCoordinates",
@@ -623,13 +620,11 @@ interface ValidateDataParams {
  * @param {Function} params.t - Translation function for error messages.
  * @param {string} params.language - The language code ('en' or 'es') to be used for validation messages.
  * @returns {string[]} Array of error messages found during validation.
- * @throws {Error} Throws an error if a row contains an invalid country code.
  *
  * @remarks
  * This function performs the following validations:
  * - Checks that all mandatory headers have non-empty values
  * - Validates farm coordinates are in the format [(x1,y1), (x2,y2), ...]
- * - Verifies country codes match ISO 3166-1 alpha-2 format
  *
  * Row numbers in error messages account for the 3 header rows in the template.
  */
@@ -706,15 +701,6 @@ export const validateData = ({
         });
         errorMessages.push(errorMsg);
       }
-    }
-
-    // Check the country is ISO 3166-1 alpha-2
-    const country = row["country"] as string;
-    if (!isCountryCode(country)) {
-      const errorMsg = t("common:parseFileError:invalidCountryCode", {
-        row: rowIdx,
-      });
-      throw new Error(errorMsg);
     }
   });
 

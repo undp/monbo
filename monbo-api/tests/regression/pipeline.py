@@ -2,7 +2,8 @@
 
 1. Read the first sheet like the frontend does (`monbo-front/src/utils/excel.ts`,
    `loadExcelFileFarmsData`): headers on row 2, data from row 4, headers matched by
-   keyword in Spanish or English.
+   keyword in Spanish or English. The upload has no country column: like the
+   frontend, every row gets the analysis country.
 2. `POST /farms/parse`, then `POST /deforestation_analysis/analize` against every
    layer in the index, and `POST /polygons_validation/validate`.
 3. Summarize what matters for regressions: parsed areas, one deforestation ratio per
@@ -30,6 +31,9 @@ FIXTURE_MAPS_ROOT = REGRESSION_DIR / "fixtures" / "maps"
 # Pinned so results don't depend on the local .env: the value deployed in Azure.
 OVERLAP_THRESHOLD_PERCENTAGE = 1.0
 LOCALE = "es"
+# The frontend sets the country chosen on its landing page on every row. The farms
+# are in several countries, but no result depends on it.
+COUNTRY = "EC"
 
 # attribute: (es-header, en-header), as in the frontend's headerKeywordsMappings
 HEADER_KEYWORDS = {
@@ -41,7 +45,6 @@ HEADER_KEYWORDS = {
         "unidad cantidad producción",
         "production measurement unit",
     ),
-    "country": ("país", "country"),
     "region": ("región", "region"),
     "coordinatesFormat": ("formato coordenadas", "coordinates format"),
     "geometryType": ("tipo geometría", "geometry type"),
@@ -86,6 +89,7 @@ def read_farm_rows(path: Path = EXCEL_PATH) -> list[dict[str, Any]]:
             continue
         if isinstance(row.get("id"), (int, float)):
             row["id"] = str(row["id"])
+        row["country"] = COUNTRY
         row["documents"] = [
             {"name": row.get(f"documentName{i}") or "", "url": row[f"documentUrl{i}"]}
             for i in (1, 2, 3)
