@@ -6,17 +6,23 @@
 #   ./azure/deploy.sh               # build, push and deploy both services
 #   ./azure/deploy.sh --skip-build  # redeploy an image tag that's already in the registry
 #   ./azure/deploy.sh storage       # only ensure the persistent layer storage (share, backup, lock)
+#   ./azure/deploy.sh seed          # fill the share with the Git layers, per country (empties it first)
+#   ./azure/deploy.sh countries list             # the countries on the share and their layers
+#   ./azure/deploy.sh countries add|rotate CC    # prints the country's new admin passkey once
+#   ./azure/deploy.sh countries disable|enable CC
 #   ./azure/deploy.sh destroy       # delete the apps' resource group (layer storage is kept)
 #
 # With STORAGE_ACCOUNT_NAME set, the API reads its layers from an Azure Files share
-# mounted at /mnt/maps instead of the ones baked into the image; seed the share first
-# (docs/suggested_deployment.md). With ADMIN_PASSKEY_HASH and ADMIN_SESSION_SECRET set,
-# the layers admin is enabled too.
+# mounted at /mnt/maps, in the per-country layout, instead of the ones baked into the
+# image. Seed the share first (`seed`, docs/suggested_deployment.md). With
+# ADMIN_SESSION_SECRET set, the layers admin is enabled too; each country's passkey
+# lives in the share's country registry.
 #
 # Configuration is read from azure/deploy.env (copy azure/deploy.env.example).
 # Any variable can also be overridden from the shell, e.g. `TAG=v2 ./azure/deploy.sh`.
 #
-# Requirements: az CLI (logged in with `az login`), python3, Docker running, git-lfs.
+# Requirements: az CLI (logged in with `az login`), python3, Docker running, git-lfs,
+# and uv for `seed` and `countries`.
 # The script is idempotent: it creates missing resources and updates existing ones.
 
 set -euo pipefail
@@ -79,9 +85,11 @@ ENV_STORAGE_NAME="${ENV_STORAGE_NAME:-maps}"
 BACKUP_VAULT_NAME="${BACKUP_VAULT_NAME:-monbo-backup}"
 BACKUP_POLICY_NAME="${BACKUP_POLICY_NAME:-maps-daily-30d}"
 DATA_LOCK_NAME="${DATA_LOCK_NAME:-monbo-data-no-delete}"
+# Where `seed` writes each country's old id -> new id (for the parity check).
+SEED_MAPPING_OUT="${SEED_MAPPING_OUT:-/tmp/monbo-seed-ids.json}"
 
-# Layers admin (optional): generate both with `uv run python -m app.modules.admin.passkey`.
-ADMIN_PASSKEY_HASH="${ADMIN_PASSKEY_HASH:-}"
+# Layers admin (optional): a random secret of at least 32 characters that signs the
+# admin sessions. Countries and their passkeys: `./azure/deploy.sh countries`.
 ADMIN_SESSION_SECRET="${ADMIN_SESSION_SECRET:-}"
 
 # --- Helpers -----------------------------------------------------------------
@@ -114,7 +122,8 @@ app_fqdn() {
 }
 
 layer_storage_enabled() { [ -n "$STORAGE_ACCOUNT_NAME" ]; }
-admin_enabled() { [ -n "$ADMIN_PASSKEY_HASH" ] && [ -n "$ADMIN_SESSION_SECRET" ]; }
+admin_enabled() { [ -n "$ADMIN_SESSION_SECRET" ]; }
+
 
 storage_key() {
   az storage account keys list -g "$DATA_RESOURCE_GROUP" -n "$STORAGE_ACCOUNT_NAME" \
@@ -158,13 +167,7 @@ check_prerequisites() {
     docker info >/dev/null 2>&1 || die "Docker is not running"
 
     # The rasters are baked into the API image; LFS pointers would ship a broken API.
-    local raster
-    for raster in "$REPO_ROOT"/monbo-api/app/maps/layers/rasters/*.tif; do
-      if head -c 100 "$raster" | grep -q "git-lfs.github.com/spec"; then
-        die "$(basename "$raster") is a Git LFS pointer. Run 'git lfs pull' first"
-      fi
-    done
-    ok "Rasters are real files (not LFS pointers)"
+    check_rasters_are_real
   fi
 
   az extension add --name containerapp --upgrade --only-show-errors >/dev/null
@@ -173,13 +176,10 @@ check_prerequisites() {
 
 # The API refuses to start with a malformed admin secret; catch it before deploying.
 check_admin_config() {
-  if [ -z "$ADMIN_PASSKEY_HASH$ADMIN_SESSION_SECRET" ]; then
-    ok "Layers admin: disabled (no ADMIN_* secrets)"
+  if ! admin_enabled; then
+    ok "Layers admin: disabled (no ADMIN_SESSION_SECRET)"
     return
   fi
-  admin_enabled || die "Set both ADMIN_PASSKEY_HASH and ADMIN_SESSION_SECRET, or neither"
-  [[ "$ADMIN_PASSKEY_HASH" =~ ^[0-9a-f]{64}$ ]] \
-    || die "ADMIN_PASSKEY_HASH must be a SHA-256 in lowercase hex (64 characters)"
   [ "${#ADMIN_SESSION_SECRET}" -ge 32 ] || die "ADMIN_SESSION_SECRET must be at least 32 characters"
   # Without the share, admin changes would land in the container and vanish on restart.
   layer_storage_enabled || die "The layers admin needs persistent storage: set STORAGE_ACCOUNT_NAME"
@@ -313,9 +313,22 @@ POLICY
   ok "Backup: $BACKUP_VAULT_NAME / $BACKUP_POLICY_NAME (daily, 30 days)"
 }
 
-share_has_index() {
+share_file_exists() {
   [ "$(az storage file exists --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$(storage_key)" \
-    --share-name "$MAPS_SHARE_NAME" --path index.json --query exists -o tsv 2>/dev/null)" = "true" ]
+    --share-name "$MAPS_SHARE_NAME" --path "$1" --query exists -o tsv 2>/dev/null)" = "true" ]
+}
+
+# The share holds the per-country layout: its country registry.
+share_has_layers() { share_file_exists countries.json; }
+
+check_rasters_are_real() {
+  local raster
+  for raster in "$REPO_ROOT"/monbo-api/app/maps/layers/rasters/*.tif; do
+    if head -c 100 "$raster" | grep -q "git-lfs.github.com/spec"; then
+      die "$(basename "$raster") is a Git LFS pointer. Run 'git lfs pull' first"
+    fi
+  done
+  ok "Rasters are real files (not LFS pointers)"
 }
 
 build_and_push() {
@@ -339,8 +352,8 @@ deploy_api() {
   log "Deploying $API_APP_NAME"
   local mount=false
   if layer_storage_enabled; then
-    # Mounting an empty share would leave the API without layers.
-    share_has_index || die "The '$MAPS_SHARE_NAME' share has no index.json: seed it first (docs/suggested_deployment.md)"
+    # Mounting an empty folder would leave the API without layers.
+    share_has_layers || die "The '$MAPS_SHARE_NAME' share has no countries.json: seed it first with ./azure/deploy.sh seed"
     mount=true
   fi
 
@@ -357,7 +370,7 @@ deploy_api() {
     GCP_MAPS_PLATFORM_SIGNATURE_SECRET="$GCP_MAPS_PLATFORM_SIGNATURE_SECRET" \
     OVERLAP_THRESHOLD_PERCENTAGE="$OVERLAP_THRESHOLD_PERCENTAGE" \
     MAPS_MOUNT="$mount" ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
-    ADMIN_PASSKEY_HASH="$ADMIN_PASSKEY_HASH" ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
+    ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
     ADMIN_ALLOWED_ORIGIN="https://$FRONT_APP_NAME.$default_domain" \
     python3 "$SCRIPT_DIR/render_api_app.py" > "$body"
 
@@ -411,7 +424,7 @@ wait_for_latest_revision() {
 # The API must read (and, for the admin, write) the share, not the image's copy.
 # Retries for a while: the previous revision can still answer while it drains.
 verify_maps_root() {
-  local health report=""
+  local health report="" expected=/mnt/maps
   for _ in $(seq 1 12); do
     health="$(curl -fsS "$1/health" 2>/dev/null || true)"
     if report="$(python3 -c '
@@ -421,16 +434,16 @@ try:
 except ValueError:
     sys.exit("no answer from /health")
 root, writable = health.get("mapsRoot"), health.get("mapsRootWritable")
-if root != "/mnt/maps" or not writable:
+if root != sys.argv[2] or not writable:
     sys.exit("API reports mapsRoot=%s writable=%s" % (root, writable))
-' "$health" 2>&1)"; then
-      ok "API reads its layers from /mnt/maps (writable)"
+' "$health" "$expected" 2>&1)"; then
+      ok "API reads its layers from $expected (writable)"
       return 0
     fi
     sleep 10
   done
   echo "  $report" >&2
-  die "The share is not mounted writable at /mnt/maps (check the mount options and the image uid)"
+  die "The API does not read a writable $expected (check the mount options and the image uid)"
 }
 
 deploy_front() {
@@ -462,6 +475,118 @@ deploy_front() {
   wait_for_health "$FRONT_URL/api/health"
 }
 
+share_is_empty() {
+  [ "$(az storage file list --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$1" \
+    --share-name "$MAPS_SHARE_NAME" --num-results 1 --query 'length(@)' -o tsv)" = "0" ]
+}
+
+# Fills the share with the Git-tracked layers (monbo-api/app/maps, needs `git lfs
+# pull`) in the per-country layout, for a new environment or to start an environment
+# over. Every raster is validated and converted to a Cloud Optimized GeoTIFF (the
+# seed command), then split by country (the migration command, which prints one admin
+# passkey per country). A share that already has files is emptied first, after typing
+# its name: every layer and admin change on it is lost. Deploy right after, so the API
+# reads the new layout.
+seed_share() {
+  local key tmp answer
+  layer_storage_enabled || die "'seed' needs STORAGE_ACCOUNT_NAME"
+  require_cmd az
+  require_cmd uv
+  select_subscription
+  check_rasters_are_real
+
+  key="$(storage_key)"
+  if ! share_is_empty "$key"; then
+    log "The '$MAPS_SHARE_NAME' share already has files"
+    echo "  All of them will be deleted: every layer, raster version and admin change on it."
+    echo "  (Share snapshots and backups are kept: docs/suggested_deployment.md.)"
+    read -r -p "Type the share name to confirm: " answer
+    [ "$answer" = "$MAPS_SHARE_NAME" ] || die "Aborted; the share is unchanged"
+  fi
+
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"; trap - RETURN' RETURN
+  log "Preparing the layers (validation and COG conversion take a few minutes)"
+  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.layers.seed \
+    --target "$tmp/flat" || die "Seeding failed; the share is unchanged"
+  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.layers.migrate_countries \
+    --source "$tmp/flat" --target "$tmp/layers" --mapping-out "$SEED_MAPPING_OUT" \
+    || die "The per-country migration failed; the share is unchanged"
+  echo "  Put each passkey above in the password manager now: it is not stored anywhere."
+  echo "  Old id -> new id per country, for tests.regression.parity --mapping: $SEED_MAPPING_OUT"
+
+  # Only now, with the new layers ready, empty the share.
+  if ! share_is_empty "$key"; then
+    log "Emptying the '$MAPS_SHARE_NAME' share"
+    az storage file delete-batch --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+      --source "$MAPS_SHARE_NAME" -o none
+  fi
+  log "Uploading the layers"
+  az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+    --destination "$MAPS_SHARE_NAME" --source "$tmp/layers" -o none
+  ok "The share has the per-country layers. Deploy now so the API reads them: ./azure/deploy.sh"
+}
+
+share_file_etag() {
+  az storage file show --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$1" \
+    --share-name "$MAPS_SHARE_NAME" --path "$2" --query properties.etag -o tsv 2>/dev/null || true
+}
+
+# Runs the country registry command (app.modules.admin.countries) against the share
+# without redeploying: the registry (and, for `list`, each country's index) is
+# downloaded to a temporary folder, the command runs there, and only what changed is
+# uploaded. The API picks the new registry up on its next request. Aborts without
+# uploading if the registry changed on the share while the command ran.
+countries() {
+  local command="${1:-}" code key tmp registry etag listed
+  code="$(printf '%s' "${2:-}" | tr '[:lower:]' '[:upper:]')"
+  case "$command" in
+    list|add|rotate|disable|enable) ;;
+    *) die "Usage: ./azure/deploy.sh countries list|add|rotate|disable|enable [CC]" ;;
+  esac
+  [ "$command" = list ] || [ -n "$code" ] || die "'countries $command' needs a country code"
+  layer_storage_enabled || die "'countries' needs STORAGE_ACCOUNT_NAME"
+  require_cmd az
+  require_cmd uv
+  select_subscription
+
+  key="$(storage_key)"
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"; trap - RETURN' RETURN
+  registry=countries.json
+  etag="$(share_file_etag "$key" "$registry")"
+  if [ -n "$etag" ]; then
+    az storage file download --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+      --share-name "$MAPS_SHARE_NAME" --path "$registry" --dest "$tmp/countries.json" -o none
+  elif [ "$command" != add ]; then
+    die "The share has no $registry: seed it first with ./azure/deploy.sh seed"
+  fi
+  if [ "$command" = list ]; then
+    for listed in $(python3 -c 'import json, sys
+print(" ".join(c["code"] for c in json.load(open(sys.argv[1]))["countries"]))' "$tmp/countries.json"); do
+      mkdir -p "$tmp/$listed"
+      az storage file download --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+        --share-name "$MAPS_SHARE_NAME" --path "$listed/index.json" \
+        --dest "$tmp/$listed/index.json" -o none 2>/dev/null || true
+    done
+  fi
+
+  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.admin.countries \
+    "$command" ${code:+"$code"} --root "$tmp" || die "'countries $command' failed; nothing was uploaded"
+  [ "$command" = list ] && return 0
+
+  [ "$(share_file_etag "$key" "$registry")" = "$etag" ] \
+    || die "$registry changed on the share while this ran; nothing was uploaded. Run the command again"
+  if [ "$command" = add ]; then
+    az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+      --destination "$MAPS_SHARE_NAME" --destination-path "$code" \
+      --source "$tmp/$code" -o none
+  fi
+  az storage file upload --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
+    --share-name "$MAPS_SHARE_NAME" --source "$tmp/countries.json" --path "$registry" -o none
+  ok "Updated $registry on the share; the API applies it on its next request"
+}
+
 destroy() {
   require_cmd az
   select_subscription
@@ -477,18 +602,36 @@ destroy() {
 
 SKIP_BUILD=false
 COMMAND=deploy
+COUNTRY_ARGS=()
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=true ;;
     destroy) COMMAND=destroy ;;
     storage) COMMAND=storage ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
-    *) die "Unknown argument: $arg (see --help)" ;;
+    seed) COMMAND=seed ;;
+    countries) COMMAND=countries ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+    *)
+      if [ "$COMMAND" = countries ]; then
+        COUNTRY_ARGS+=("$arg")
+      else
+        die "Unknown argument: $arg (see --help)"
+      fi
+      ;;
   esac
 done
 
 if [ "$COMMAND" = destroy ]; then
   destroy
+  exit 0
+fi
+if [ "$COMMAND" = seed ]; then
+  seed_share
+  exit 0
+fi
+if [ "$COMMAND" = countries ]; then
+  # (the +-expansion keeps bash 3.2's `set -u` happy with an empty array)
+  countries ${COUNTRY_ARGS[@]+"${COUNTRY_ARGS[@]}"}
   exit 0
 fi
 
@@ -497,8 +640,8 @@ ensure_infrastructure
 layer_storage_enabled && ensure_layer_storage
 if [ "$COMMAND" = storage ]; then
   log "Done"
-  share_has_index && echo "  The share has an index.json." \
-    || echo "  The share is empty: seed it before deploying with the mount (docs/suggested_deployment.md)."
+  share_has_layers && echo "  The share has its layers (countries.json)." \
+    || echo "  The share has no layers yet: run ./azure/deploy.sh seed before deploying with the mount."
   exit 0
 fi
 [ "$SKIP_BUILD" = true ] || build_and_push
