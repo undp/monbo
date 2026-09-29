@@ -3,10 +3,10 @@
 ## Purpose
 
 Define how an uploaded raster becomes a layer's raster: streamed to staging, validated as binary,
-converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by a background job.
+converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by a background job,
+within the country of the admin's session.
 
 ## Requirements
-
 ### Requirement: Raster upload streamed to staging
 
 `PUT /admin/layers/{id}/raster` SHALL accept the raster as the raw request body and stream it in chunks to a file in a local staging directory (`ADMIN_STAGING_DIR`, default `/tmp/monbo-staging`), without holding the whole file in memory. Validation and conversion SHALL run on that local file. Only the finished, verified raster SHALL be written to the maps root. Uploads larger than `ADMIN_MAX_UPLOAD_MB` (default 500) SHALL be rejected with 413 as soon as the limit is exceeded, and the partial file SHALL be deleted. An optional `nodata` query parameter SHALL set the nodata value for rasters that don't declare one. Once the body is fully received, the endpoint SHALL respond 202 with a `jobId`.
@@ -125,4 +125,28 @@ Only after conversion and verification succeed SHALL ingestion move the COG to i
 
 - **WHEN** a job fails validation
 - **THEN** the layer's `raster_filename` and `version` are unchanged and no staging file remains
+
+### Requirement: Ingestion scoped to the admin's country
+
+`PUT /admin/layers/{id}/raster` SHALL accept only layers of the country in the admin's session. Ids that belong to another country SHALL answer 404, like unknown ids. A successful ingestion SHALL store the raster in that country's `layers/rasters/` folder. Each job SHALL record its country, and `GET /admin/jobs/{jobId}` SHALL answer 404 for jobs of another country. Only one ingestion SHALL run at a time across all countries. The 409 returned while another country's job runs SHALL NOT reveal that country.
+
+#### Scenario: Upload to another country's layer
+
+- **WHEN** a CO admin uploads a raster to layer 3, and only EC has a layer 3
+- **THEN** the response is 404 and no staging file remains
+
+#### Scenario: Raster stored in the country folder
+
+- **WHEN** an EC admin's upload for layer 3 (Ecuador2) at version 1 succeeds
+- **THEN** the layer points to `ecuador2-v2.tif` inside `EC/layers/rasters/`
+
+#### Scenario: Another country's job
+
+- **WHEN** a CR admin polls a job started by a CO admin
+- **THEN** the response is 404
+
+#### Scenario: Concurrent uploads from two countries
+
+- **WHEN** a CR admin uploads while a CO ingestion is running
+- **THEN** the response is 409 with a message that another upload is in progress, without naming CO
 
