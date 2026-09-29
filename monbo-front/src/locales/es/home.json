@@ -35,6 +35,7 @@
     "loading": "Cargando países disponibles…",
     "noCountries": "No hay países con mapas disponibles en este momento.",
     "contact": "Contáctanos para agregar tu país",
-    "mapLabel": "Mapa del mundo con los países disponibles resaltados"
+    "mapLabel": "Mapa del mundo con los países disponibles resaltados",
+    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo."
   }
 }

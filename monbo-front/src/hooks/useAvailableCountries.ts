@@ -10,13 +10,16 @@ export interface AvailableCountry {
 
 /**
  * The countries that have at least one layer, with their name in the current
- * language, sorted by name. `loading` is true until the first layer list arrives.
+ * language, sorted by name. `loading` is true until the first layer list
+ * arrives, and `error` when fetching it failed before that.
  */
 export function useAvailableCountries(): {
   countries: AvailableCountry[];
   loading: boolean;
+  error: boolean;
 } {
-  const { availableMaps, availableMapsLoaded } = useContext(DataContext);
+  const { availableMaps, availableMapsLoaded, availableMapsError } =
+    useContext(DataContext);
   const { i18n } = useTranslation();
 
   const countries = useMemo(() => {
@@ -26,5 +29,6 @@ export function useAvailableCountries(): {
       .sort((a, b) => a.name.localeCompare(b.name, language));
   }, [availableMaps, i18n.language]);
 
-  return { countries, loading: !availableMapsLoaded };
+  const error = availableMapsError && !availableMapsLoaded;
+  return { countries, loading: !availableMapsLoaded && !error, error };
 }

@@ -25,6 +25,7 @@
 - [x] 3.4 Add `NEXT_PUBLIC_CONTACT_URL` to `config/env.ts` with the `__NEXT_PUBLIC_CONTACT_URL__` placeholder, to `entrypoint.sh`, to the `.env*` templates and to the frontend variables in `azure/deploy.sh`
 - [x] 3.5 Compose the landing in `src/app/[locale]/page.tsx`: title, subtitle, map, list, a loading state while layers load, and the contact button (hidden when the URL is unset). Selection calls `requestCountryChange` and navigates to `/home`
 - [x] 3.6 Add the landing, contact button, header selector and restart modal texts to the en/es locale files
+- [x] 3.7 Show an error message asking to reload the page on the landing page when `GET /maps` fails before any layer list arrived, instead of loading forever (found testing locally with a broken `MAPS_ROOT`)
 
 ## 4. Header country selector
 

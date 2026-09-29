@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useContext } from "react";
-import { Box, Button, CircularProgress, Paper } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+} from "@mui/material";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/components/reusable/Text";
@@ -15,7 +21,7 @@ import { CountryMap } from "./CountryMap";
 export const LandingPageContent: React.FC = () => {
   const { t } = useTranslation();
   const { selectedCountry } = useContext(DataContext);
-  const { countries, loading } = useAvailableCountries();
+  const { countries, loading, error } = useAvailableCountries();
   const { requestCountryChange, pendingCountry, confirmRestart, cancelRestart } =
     useCountryChange();
 
@@ -64,7 +70,9 @@ export const LandingPageContent: React.FC = () => {
           <Text variant="h3" bold>
             {t("home:landing:availableCountries")}
           </Text>
-          {loading ? (
+          {error ? (
+            <Alert severity="error">{t("home:landing:loadError")}</Alert>
+          ) : loading ? (
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <CircularProgress size={20} />
               <Text>{t("home:landing:loading")}</Text>

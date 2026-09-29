@@ -35,6 +35,7 @@
     "loading": "Loading available countries…",
     "noCountries": "No country has maps available right now.",
     "contact": "Contact us to add your country",
-    "mapLabel": "World map with the available countries highlighted"
+    "mapLabel": "World map with the available countries highlighted",
+    "loadError": "We couldn't load the available countries. Reload the page to try again."
   }
 }

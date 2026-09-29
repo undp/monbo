@@ -53,6 +53,8 @@ export interface DataContextValue {
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
   // True once the first `GET /maps` has answered.
   availableMapsLoaded: boolean;
+  // True when the last `GET /maps` failed.
+  availableMapsError: boolean;
   // ISO 3166-1 alpha-2 code of the analysis country, kept for the tab session.
   selectedCountry: string | null;
   setSelectedCountry: (code: string | null) => void;
@@ -127,6 +129,7 @@ export const DataContext = createContext<DataContextValue>({
   availableMaps: [],
   setAvailableMaps: () => {},
   availableMapsLoaded: false,
+  availableMapsError: false,
   selectedCountry: null,
   setSelectedCountry: () => {},
   countryHydrated: false,
@@ -160,6 +163,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     DataContextValue["availableMaps"]
   >([]);
   const [availableMapsLoaded, setAvailableMapsLoaded] = useState(false);
+  const [availableMapsError, setAvailableMapsError] = useState(false);
 
   const selectedCountry = useSyncExternalStore(
     subscribeToSelectedCountry,
@@ -190,9 +194,18 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
 
   useEffect(() => {
     const fetchAvailableMaps = async () => {
-      const maps = await getMaps(locale);
+      let maps: MapData[];
+      try {
+        maps = await getMaps(locale);
+      } catch (error) {
+        console.error(error);
+        // Once a list has arrived, a failed refresh keeps it.
+        setAvailableMapsError(true);
+        return;
+      }
       setAvailableMaps(maps);
       setAvailableMapsLoaded(true);
+      setAvailableMapsError(false);
       // Keep already selected layers in step (language, and the raster version
       // used to bust the tile cache); a layer no longer listed keeps its data.
       setDeforestationAnalysisParams((prev) => ({
@@ -250,6 +263,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       availableMaps,
       setAvailableMaps,
       availableMapsLoaded,
+      availableMapsError,
       selectedCountry,
       setSelectedCountry: writeSelectedCountry,
       countryHydrated,
@@ -270,6 +284,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     availableMaps,
     setAvailableMaps,
     availableMapsLoaded,
+    availableMapsError,
     selectedCountry,
     countryHydrated,
     resetAnalysis,

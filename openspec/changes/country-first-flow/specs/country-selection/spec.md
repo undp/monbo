@@ -2,7 +2,7 @@
 
 ### Requirement: Landing page with a country map
 
-The frontend SHALL serve a landing page at `/[locale]` that shows a world map and asks the user to choose the country for the deforestation analysis. The countries with layers SHALL be highlighted and SHALL be the only ones that respond to hover and click. The other countries SHALL be drawn in a neutral style and SHALL NOT be selectable. The map's initial view SHALL frame every country with layers. The page SHALL show a loading state until the list of layers has been fetched.
+The frontend SHALL serve a landing page at `/[locale]` that shows a world map and asks the user to choose the country for the deforestation analysis. The countries with layers SHALL be highlighted and SHALL be the only ones that respond to hover and click. The other countries SHALL be drawn in a neutral style and SHALL NOT be selectable. The map's initial view SHALL frame every country with layers. The page SHALL show a loading state until the list of layers has been fetched. If fetching the list fails before any list has arrived, the page SHALL show an error message asking the user to reload the page, instead of the loading state.
 
 #### Scenario: Current countries highlighted
 
@@ -13,6 +13,11 @@ The frontend SHALL serve a landing page at `/[locale]` that shows a world map an
 
 - **WHEN** the user clicks Peru on the map while Peru has no layers
 - **THEN** nothing happens and no country is selected
+
+#### Scenario: Layers cannot be fetched
+
+- **WHEN** `GET /maps` fails while the landing page loads
+- **THEN** the page shows an error message asking to reload the page, and reloading after the API recovers shows the highlighted countries
 
 #### Scenario: New country appears without a frontend change
 
