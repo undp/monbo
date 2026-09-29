@@ -81,7 +81,7 @@ The landing map is a static SVG:
 - projected with `d3-geo` (`geoNaturalEarth1` or `geoMercator`);
 - rendered as React `<path>` elements.
 
-Highlighted countries get the primary color, a hover state, a pointer cursor, a `role="button"` with an accessible name, and a tooltip with the translated name. The rest are neutral and inert.
+Highlighted countries get the primary color, a hover state, a pointer cursor, and a tooltip with the translated name. The rest are neutral and inert. The map is a mouse target only: the SVG is `role="img"` with a label, and keyboard and screen-reader users pick from the list (D6), so every country has a single tab stop.
 
 The projection is fitted (`fitExtent`) to the bounding box of the available countries, with padding, and every country is still drawn. The initial view follows whatever countries exist: today it frames northern South America and Central America; if Kenya is added it zooms out.
 
@@ -106,7 +106,7 @@ A client component rendered in `Header` before `LanguageMenu`, in the same `Susp
 
 `utils/excel.ts` drops `country` from `mandatoryHeaders`, from the header aliases (so an old `país`/`country` column is ignored like any unknown column), and from the ISO validation. Both upload pages add `country: selectedCountry` to each row before `generateFarmsData`.
 
-`POST /farms/parse` keeps requiring and validating `country`, so the API, its tests and the regression fixtures are unchanged, and `FarmData.country` keeps feeding the report and the download.
+`POST /farms/parse` keeps requiring and validating `country`, so the API is unchanged and `FarmData.country` keeps feeding the report and the download. The regression suite reads its Excel the way the frontend does, and a test requires its headers to match the template. So `regression_farms.xlsx` drops the country column too, and `tests/regression/pipeline.py` sets a pinned country on every row. No regression result depends on the country.
 
 The templates `m1-upload-file-template-{en,es}.xlsx` are regenerated without the column, keeping the other columns, their order and their formatting.
 

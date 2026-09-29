@@ -35,5 +35,5 @@ The country is chosen late in the flow: in the deforestation modal of the polygo
   - New translation keys (en/es) for the landing, header selector and restart modal.
   - `NEXT_PUBLIC_CONTACT_URL` in `config/env.ts`, `entrypoint.sh` (placeholder replacement), the `.env*` templates and `azure/deploy.sh`.
 - **Repository cleanup**: remove the stray Next.js build output tracked under `monbo-front/monbo-front/.next/` (5 files, ~650 KB). It is already covered by `.gitignore`.
-- **API (`monbo-api`)**: no changes. `InputFarmData.country` stays required and validated, and the regression fixtures keep their `country` column.
+- **API (`monbo-api`)**: no application changes; `InputFarmData.country` stays required and validated. The regression suite mirrors the frontend: `regression_farms.xlsx` loses its country column (its test requires the template's headers) and `tests/regression/pipeline.py` sets one country on every row.
 - **Docs**: `docs/excel_integration` and `docs/onboarding.md` stop describing the `country` column and describe the new flow.
