@@ -10,27 +10,27 @@
 
 #### Scenario: Disabled layers included
 
-- **WHEN** a CO admin calls `GET /admin/layers` while CO's layer 3 is disabled
-- **THEN** layer 3 appears in the response with `enabled: false`
+- **WHEN** a CO admin calls `GET /admin/layers` while CO's layer 2 is disabled
+- **THEN** layer 2 appears in the response with `enabled: false`
 
 #### Scenario: Other countries' layers excluded
 
 - **WHEN** a CR admin calls `GET /admin/layers`
-- **THEN** the response contains CR's layers (ids 5, 7, and 9) and no layer of CO or EC
+- **THEN** the response contains CR's layers (GFW, TMF, and MOCUPP) and no layer of CO or EC
 
 ### Requirement: Create a layer
 
-`POST /admin/layers` SHALL create a layer in the country of the admin's session, from the index fields and the en/es attributes and considerations. The new layer SHALL receive `id = max(ids of every country) + 1`, with disabled layers counted, and SHALL start with `enabled: false` and no raster. Metadata files SHALL be named `layer-<id>.json` and `layer-<id>.md` inside that country's folder. `name` and `alias` SHALL be required in both `en` and `es`. The other attribute fields and the considerations SHALL be optional. The request SHALL be rejected with 422 when `baseline` > `compared_against` or when `pixel_size` ≤ 0. The request SHALL NOT accept a list of countries.
+`POST /admin/layers` SHALL create a layer in the country of the admin's session, from the index fields and the en/es attributes and considerations. The new layer SHALL receive `id = max(ids of the session's country) + 1`, with disabled layers counted, and SHALL start with `enabled: false` and no raster. Metadata files SHALL be named `layer-<id>.json` and `layer-<id>.md` inside that country's folder. `name` and `alias` SHALL be required in both `en` and `es`. The other attribute fields and the considerations SHALL be optional. The request SHALL be rejected with 422 when `baseline` > `compared_against` or when `pixel_size` ≤ 0. The request SHALL NOT accept a list of countries.
 
 #### Scenario: Successful creation
 
-- **WHEN** a CO admin posts valid fields and the highest id across all countries is 9
-- **THEN** a layer with id 10, `enabled: false`, and no raster is created under `CO/`, and `GET /maps` does not list it
+- **WHEN** a CO admin posts valid fields and CO's highest id is 2
+- **THEN** a layer with id 3, `enabled: false`, and no raster is created under `CO/`, and `GET /maps` does not list it
 
 #### Scenario: Ids are never reused
 
-- **WHEN** the highest id belongs to a disabled layer 12 of EC and a CO admin creates a layer
-- **THEN** the new layer gets id 13
+- **WHEN** CO's highest id belongs to a disabled layer 9 and a CO admin creates a layer
+- **THEN** the new layer gets id 10, whatever the ids of other countries
 
 #### Scenario: Invalid years
 
@@ -48,7 +48,7 @@
 
 #### Scenario: Edit a copied layer
 
-- **WHEN** a CO admin updates the `es` considerations of layer 6 (CO's GFW)
+- **WHEN** a CO admin updates the `es` considerations of layer 0 (CO's copy of GFW)
 - **THEN** `CO/metadata/considerations/es/gfw.md` contains the new text, `GET /maps?country=CO&language=es` returns it, and EC's and CR's GFW are unchanged
 
 #### Scenario: Unknown layer
@@ -58,7 +58,7 @@
 
 #### Scenario: Another country's layer
 
-- **WHEN** a CO admin calls `PUT /admin/layers/2` and layer 2 belongs to EC
+- **WHEN** a CO admin calls `PUT /admin/layers/3` and only EC has a layer 3
 - **THEN** the response is 404 and nothing is written
 
 ### Requirement: Enable and disable layers
@@ -68,7 +68,7 @@
 #### Scenario: Disable a layer
 
 - **WHEN** an EC admin disables layer 2
-- **THEN** `GET /maps` no longer lists layer 2, and analysis by id 2 still works
+- **THEN** `GET /maps?country=EC` no longer lists layer 2, and an analysis of EC's layer 2 still works
 
 #### Scenario: Enable without raster
 
@@ -77,8 +77,8 @@
 
 #### Scenario: Another country's layer
 
-- **WHEN** a CR admin calls `PATCH /admin/layers/3` and layer 3 belongs to CO
-- **THEN** the response is 404 and layer 3 is unchanged
+- **WHEN** a CR admin calls `PATCH /admin/layers/3` and only EC has a layer 3
+- **THEN** the response is 404 and EC's layer 3 is unchanged
 
 ### Requirement: Admin UI
 
