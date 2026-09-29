@@ -570,13 +570,13 @@ wheels = [
 
 [[package]]
 name = "gdal"
-version = "3.13.1"
+version = "3.13.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/92/55/0ae08a59293443bbbb8b692d1f4b6d9ca54562c359a48d0426684ac9ea06/gdal-3.13.1.tar.gz", hash = "sha256:94bb64d729ce73ceb75a314a15cba92696cdd854d99b6bf6b88a7b551227db74", size = 940649, upload-time = "2026-06-05T10:50:14.929Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/64/78639efe3f1df027f0028e1faf9719dae609b9fd02d4ffd6c2dd7a9a9757/gdal-3.13.3.tar.gz", hash = "sha256:af547af72d2a153d658c1deb2fe595eccb38c18f3d9d298882fbdeee9806a6d2", size = 940613, upload-time = "2026-08-18T09:32:21.609Z" }
 
 [[package]]
 name = "geemap"
-version = "0.38.5"
+version = "0.38.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anywidget" },
@@ -600,9 +600,9 @@ dependencies = [
     { name = "xarray" },
     { name = "xee" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/dd/1650a9e03195ce0504d89c06b4cc688de74f08d10ac8562ddb916210c7dd/geemap-0.38.5.tar.gz", hash = "sha256:3640c3c63baafc500ef41fd2dbcbb2c5a7cb9f156fde5c4a54acaef869091828", size = 2471470, upload-time = "2026-09-03T21:51:12.602Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/e2/dce4a4665ff344e1be73483ba84af13ca5bbae898ffe0af58871217eea8f/geemap-0.38.8.tar.gz", hash = "sha256:037781a116e2f19ae3d2214f12cddecb7dc6bfcfe29967d8cde637aa7be26436", size = 2471834, upload-time = "2026-09-24T19:03:33.387Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/ba/0db912a87d4174fbe43c022db0ff03278233bc1af6a8f6d2a4e41865c93b/geemap-0.38.5-py3-none-any.whl", hash = "sha256:df70a567281ab57fa975cc2586b95687dc536eef721d499a4b502aae20efd16a", size = 2530420, upload-time = "2026-09-03T21:51:10.346Z" },
+    { url = "https://files.pythonhosted.org/packages/31/7e/1ea02c481a9133f973df620c662188fbedfcbb48d667653c94c4344baec6/geemap-0.38.8-py3-none-any.whl", hash = "sha256:60841a59e14f31ec5fcf5f4bd21da031196fe27822122b8ea0e2cd258abcf747", size = 2530824, upload-time = "2026-09-24T19:03:30.931Z" },
 ]
 
 [[package]]
@@ -1315,7 +1315,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ptyprocess" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -1923,7 +1923,7 @@ dependencies = [
 requires-dist = [
     { name = "earthengine-api", specifier = "==1.7.45" },
     { name = "gdal", specifier = ">=3.6.0" },
-    { name = "geemap", specifier = "==0.38.5" },
+    { name = "geemap", specifier = "==0.38.8" },
     { name = "tenacity", specifier = "==9.1.4" },
 ]
 

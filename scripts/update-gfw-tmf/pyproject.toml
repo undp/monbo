@@ -5,7 +5,7 @@ description = "Download and process GFW/TMF forest-change data from Google Earth
 requires-python = ">=3.13"
 dependencies = [
     "earthengine-api==1.7.45",
-    "geemap==0.38.5",
+    "geemap==0.38.8",
     # The GDAL Python bindings must match the system libgdal they build against,
     # so this is deliberately a range the operator narrows to their own install
     # rather than an exact pin. See README for the version-matching requirement.
