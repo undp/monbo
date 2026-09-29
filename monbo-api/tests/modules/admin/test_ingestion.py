@@ -10,6 +10,7 @@ from app.config import env
 from app.main import create_app
 from app.modules.admin import ingestion
 from app.modules.admin.ingestion import ingestion_slot, new_job
+from tests.modules.admin.support import COUNTRY_PASSKEYS, bearer, login
 
 GFW = {
     "id": 0,
@@ -20,7 +21,6 @@ GFW = {
     "baseline": "2020",
     "compared_against": "2023",
     "references": [],
-    "available_countries_codes": ["EC"],
 }
 NEW = {
     **GFW,
@@ -67,11 +67,17 @@ def staging(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def layers(maps_root, staging):
-    maps_root.write_index([GFW, NEW])
-    maps_root.store.rasters_dir.mkdir(parents=True)
-    write_tif(maps_root.store.rasters_dir / "gfw.tif", binary(), tiled=False)
-    return maps_root
+def layers(colombia, country_root, staging):
+    """Colombia's layers (the admin session's country), plus one in Ecuador."""
+    colombia.write_index([GFW, NEW])
+    colombia.store.rasters_dir.mkdir(parents=True)
+    write_tif(colombia.store.rasters_dir / "gfw.tif", binary(), tiled=False)
+    country_root.country("EC").write_index([{**NEW, "id": 7}])
+    return colombia
+
+
+def ecuador_headers(client):
+    return bearer(login(client, passkey=COUNTRY_PASSKEYS["EC"]).json()["token"])
 
 
 def upload(client, headers, content, layer_id=6, **params):
@@ -90,14 +96,14 @@ def job_for(client, headers, response):
     return job.json()
 
 
-def entry(maps_root, layer_id):
-    index = json.loads(maps_root.store.index_path.read_text())
+def entry(country, layer_id):
+    index = json.loads(country.store.index_path.read_text())
     return next(e for e in index if e["id"] == layer_id)
 
 
-def assert_no_staging_left(maps_root, staging):
+def assert_no_staging_left(country, staging):
     assert not [p for p in staging.glob("*") if p.is_file()]
-    assert not [p for p in maps_root.store.staging_dir.glob("*") if p.is_file()]
+    assert not [p for p in country.jobs.staging_dir.glob("*") if p.is_file()]
 
 
 # --- Success -----------------------------------------------------------------------
@@ -114,6 +120,7 @@ def test_valid_upload_is_converted_and_activated(
 
     assert job["status"] == "succeeded"
     assert job["error"] is None
+    assert job["country"] == "CO"
     assert job["rasterFilename"] == "layer-6-v2.tif"
     assert job["version"] == 2
     report = job["report"]
@@ -141,7 +148,7 @@ def test_valid_upload_is_converted_and_activated(
     )
     public = TestClient(create_app()).get("/maps").json()
     assert next(layer for layer in public if layer["id"] == 6)["version"] == 2
-    tile = client.get("/deforestation_analysis/tiles/6/dynamic/14/4710/8201.png")
+    tile = client.get("/deforestation_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
     assert tile.status_code == 200
 
 
@@ -185,7 +192,7 @@ def test_job_is_running_while_it_converts(
 
     def spy(src, dst):
         job_id = src.stem
-        seen["status"] = layers.store.read_job(job_id)["status"]
+        seen["status"] = layers.jobs.read_job(job_id)["status"]
         real_convert(src, dst)
 
     monkeypatch.setattr(ingestion, "convert_to_cog", spy)
@@ -338,6 +345,21 @@ def test_unknown_layer_is_404(layers, client, admin_headers):
     assert upload(client, admin_headers, b"x", layer_id=999).status_code == 404
 
 
+def test_another_countrys_layer_is_404(layers, staging, client, admin_headers):
+    # Layer 7 is Ecuador's.
+    assert upload(client, admin_headers, b"x", layer_id=7).status_code == 404
+    assert_no_staging_left(layers, staging)
+
+
+def test_another_countrys_job_is_404(layers, client, admin_headers, tmp_path):
+    response = upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary()))
+    job_id = response.json()["jobId"]
+
+    assert client.get(f"/admin/jobs/{job_id}", headers=admin_headers).status_code == 200
+    ecuador = client.get(f"/admin/jobs/{job_id}", headers=ecuador_headers(client))
+    assert ecuador.status_code == 404
+
+
 def test_fractional_nodata_is_422(layers, client, admin_headers):
     assert upload(client, admin_headers, b"x", nodata=3.5).status_code == 422
 
@@ -379,6 +401,24 @@ def test_only_one_ingestion_at_a_time(layers, client, admin_headers, tmp_path):
     assert response.status_code == 409
 
 
+def test_a_busy_slot_does_not_name_the_other_country(layers, client, tmp_path):
+    """A CO job holds the slot; an EC admin is told to retry, nothing more."""
+    assert ingestion_slot.acquire("a" * 32)
+    try:
+        response = upload(
+            client,
+            ecuador_headers(client),
+            write_tif(tmp_path / "in.tif", binary()),
+            layer_id=7,
+        )
+    finally:
+        ingestion_slot.release("a" * 32)
+
+    assert response.status_code == 409
+    assert "CO" not in response.text
+    assert "Colombia" not in response.text
+
+
 @pytest.mark.parametrize("job_id", ["0" * 32, "not-a-job", "..%2F..%2Findex"])
 def test_unknown_jobs_are_404(layers, client, admin_headers, job_id):
     assert client.get(f"/admin/jobs/{job_id}", headers=admin_headers).status_code == 404
@@ -390,20 +430,20 @@ def test_unknown_jobs_are_404(layers, client, admin_headers, job_id):
 def test_restart_marks_interrupted_jobs_failed_and_cleans_staging(
     layers, staging, admin_env
 ):
-    running = {**new_job("b" * 32, 6, None), "status": "running"}
-    done = {**new_job("c" * 32, 6, None), "status": "succeeded"}
-    layers.store.write_job(running)
-    layers.store.write_job(done)
+    running = {**new_job("b" * 32, "CO", 6, None), "status": "running"}
+    done = {**new_job("c" * 32, "CO", 6, None), "status": "succeeded"}
+    layers.jobs.write_job(running)
+    layers.jobs.write_job(done)
     staging.mkdir()
     (staging / f"{'b' * 32}.tif").write_bytes(b"partial")
-    layers.store.staging_dir.mkdir(parents=True)
-    (layers.store.staging_dir / f"{'b' * 32}.tif").write_bytes(b"partial")
+    layers.jobs.staging_dir.mkdir(parents=True)
+    (layers.jobs.staging_dir / f"{'b' * 32}.tif").write_bytes(b"partial")
 
     with TestClient(create_app()):  # runs the startup hook
         pass
 
-    assert layers.store.read_job("b" * 32)["status"] == "failed"
-    assert layers.store.read_job("b" * 32)["error"]["code"] == "interrupted"
-    assert layers.store.read_job("c" * 32)["status"] == "succeeded"
+    assert layers.jobs.read_job("b" * 32)["status"] == "failed"
+    assert layers.jobs.read_job("b" * 32)["error"]["code"] == "interrupted"
+    assert layers.jobs.read_job("c" * 32)["status"] == "succeeded"
     assert_no_staging_left(layers, staging)
     assert entry(layers, 6)["raster_filename"] is None

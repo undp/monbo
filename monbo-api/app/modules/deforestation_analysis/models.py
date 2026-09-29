@@ -8,6 +8,9 @@ class DeforestationUnprocessedFarmData(InputFarmData):
 
 
 class AnalizeBody(BaseModel):
+    # The country of the layers: ids are numbered within each country. Required
+    # with the per-country layout; optional with the flat one (global ids).
+    country: str | None = None
     maps: list[int]
     farms: list[FarmPolygonDetailData]
 

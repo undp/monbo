@@ -5,8 +5,9 @@ exhaustive scan and the verification are I/O-bound and much slower over the Azur
 Files share. Only the finished, verified COG is copied to the share, renamed to a
 new versioned filename (rasters are never overwritten) and written to the index.
 
-Only one ingestion runs at a time. Job state lives on the share (`.jobs/`), so the
-admin UI can poll it and a restart can mark interrupted jobs as failed.
+Only one ingestion runs at a time, across every country. Job state lives on the
+share (`.jobs/` at the root, each job recording its country), so the admin UI can
+poll it and a restart can mark interrupted jobs as failed.
 """
 
 import os
@@ -25,7 +26,7 @@ from app.modules.layers.processing import (
     validate_raster,
     verify_same_pixels,
 )
-from app.modules.layers.store import LayerStore, get_layer_store
+from app.modules.layers.store import LayersRoot, LayerStore, get_layers_root
 
 from .auth import logger
 
@@ -62,10 +63,11 @@ def _now() -> str:
     )
 
 
-def new_job(job_id: str, layer_id: int, nodata: float | None) -> dict:
+def new_job(job_id: str, country: str, layer_id: int, nodata: float | None) -> dict:
     now = _now()
     return {
         "jobId": job_id,
+        "country": country,
         "layerId": layer_id,
         "status": "queued",
         "createdAt": now,
@@ -84,8 +86,9 @@ def _save(store: LayerStore, job: dict, **changes) -> None:
     store.write_job(job)
 
 
-def recover_interrupted_jobs(store: LayerStore) -> None:
+def recover_interrupted_jobs(root: LayersRoot) -> None:
     """At startup: jobs left queued/running died with the previous process."""
+    store = root.flat
     for job in store.list_jobs():
         if job.get("status") in ("queued", "running"):
             _save(
@@ -114,10 +117,12 @@ def _raster_stem(entry: dict) -> str:
     return re.sub(r"-v\d+$", "", Path(filename).stem)
 
 
-def activate(store: LayerStore, layer_id: int, cog: Path, job_id: str) -> dict:
-    """Copy the COG to the share, give it a new versioned name and point the layer
-    at it. Returns the updated index entry."""
-    share_staging = store.staging_dir / f"{job_id}.tif"
+def activate(
+    root: LayersRoot, store: LayerStore, layer_id: int, cog: Path, job_id: str
+) -> dict:
+    """Copy the COG to the share, give it a new versioned name in the country's
+    folder (`store`) and point the layer at it. Returns the updated index entry."""
+    share_staging = root.flat.staging_dir / f"{job_id}.tif"
     share_staging.parent.mkdir(parents=True, exist_ok=True)
     # Outside the lock: copying to the share takes seconds.
     shutil.copyfile(cog, share_staging)
@@ -147,11 +152,16 @@ def activate(store: LayerStore, layer_id: int, cog: Path, job_id: str) -> dict:
 
 
 def run_ingestion(
-    job_id: str, layer_id: int, staged: Path, requested_nodata: float | None
+    job_id: str,
+    country: str,
+    layer_id: int,
+    staged: Path,
+    requested_nodata: float | None,
 ) -> None:
     """Background task: validate, convert, verify and activate one upload."""
-    store = get_layer_store()
-    job = store.read_job(job_id) or new_job(job_id, layer_id, requested_nodata)
+    root = get_layers_root()
+    store = root.flat  # jobs live at the root
+    job = store.read_job(job_id) or new_job(job_id, country, layer_id, requested_nodata)
     cog = staged.with_name(f"{job_id}.cog.tif")
     try:
         _save(store, job, status="running")
@@ -161,7 +171,7 @@ def run_ingestion(
             set_nodata(staged, validation.nodata)
         convert_to_cog(staged, cog)
         verify_same_pixels(staged, cog)
-        entry = activate(store, layer_id, cog, job_id)
+        entry = activate(root, root.country_store(country), layer_id, cog, job_id)
         _save(
             store,
             job,

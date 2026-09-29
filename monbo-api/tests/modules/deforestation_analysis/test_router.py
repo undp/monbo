@@ -275,7 +275,7 @@ def test_analize(
 def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path):
     mock_get_map_raster_path.return_value = "dummy/path.tif"
     mock_get_map_by_id.return_value = None
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Map not found"}
 
@@ -287,7 +287,7 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
     mock_get_tile.side_effect = lambda a, b, c, d: Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)
     )
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
 
@@ -295,6 +295,6 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
         raise Exception("Error")
 
     mock_get_tile.side_effect = raise_exception
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Tile not found"}

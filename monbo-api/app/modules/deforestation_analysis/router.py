@@ -14,7 +14,8 @@ from app.modules.deforestation_analysis.helpers import (
     get_pixel_area,
     get_tile,
 )
-from app.modules.maps.helpers import get_all_maps, get_map_by_id
+from app.modules.layers.store import is_layer
+from app.modules.maps.helpers import get_all_maps, get_map_by_id, require_country
 from app.utils.farms import get_farm_coords_and_radius
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
@@ -30,16 +31,21 @@ router = APIRouter()
 
 @router.post("/analize", response_model=list[MapData])
 def analize(body: AnalizeBody):
+    require_country(body.country)
     maps = get_all_maps()
 
     farms = body.farms
-    requested_maps = list(filter(lambda x: x["id"] in body.maps, maps))
+    requested_maps = [
+        map
+        for map in maps
+        if map["id"] in body.maps and is_layer(map, body.country, map["id"])
+    ]
     results = []
 
     for map_data in requested_maps:
         farmsResults = []
         try:
-            raster_path = get_map_raster_path(map_data["raster_filename"])
+            raster_path = get_map_raster_path(map_data)
             with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
@@ -73,15 +79,15 @@ def analize(body: AnalizeBody):
     return sorted(results, key=lambda x: x["mapId"])
 
 
-@router.get("/tiles/{map_id}/dynamic/{z}/{x}/{y}.png")
-async def serve_tile(map_id: int, z: int, x: int, y: int):
-    """Serve a tile for the specified z/x/y."""
-    map = get_map_by_id(map_id)
+@router.get("/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png")
+async def serve_tile(country: str, map_id: int, z: int, x: int, y: int):
+    """Serve a tile of a country's layer for the specified z/x/y."""
+    map = get_map_by_id(map_id, country)
     if map is None:
         raise HTTPException(status_code=404, detail="Map not found")
 
     try:
-        asset_path = get_map_raster_path(map["raster_filename"])
+        asset_path = get_map_raster_path(map)
     except FileNotFoundError:
         # e.g. a layer created in the admin that has no raster yet
         raise HTTPException(status_code=404, detail="Map raster not found")
@@ -111,6 +117,8 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
 class GenerateImageBody(BaseModel):
     feature: dict  # geojson feature
     mapId: int
+    # Required with the per-country layout (ids are numbered within each country).
+    country: str | None = None
 
 
 @router.post("/generate-image")
@@ -120,11 +128,11 @@ async def generate_image(
         True, description="Whether to include satellite imagery as background"
     ),
 ):
-    map_data = get_map_by_id(body.mapId)
+    map_data = get_map_by_id(body.mapId, body.country)
     if map_data is None:
         raise HTTPException(status_code=404, detail="Map not found")
     try:
-        raster_path = get_map_raster_path(map_data["raster_filename"])
+        raster_path = get_map_raster_path(map_data)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Map raster not found")
 

@@ -1,18 +1,18 @@
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.modules.layers.store import LayerStore, set_layer_store
+from app.modules.layers.store import LayersRoot, set_layers_root
 from tests.regression.parity import compare_clients
 from tests.regression.pipeline import FIXTURE_MAPS_ROOT
 
 
 def test_same_layers_give_no_differences():
-    set_layer_store(LayerStore(FIXTURE_MAPS_ROOT))
+    set_layers_root(LayersRoot(FIXTURE_MAPS_ROOT))
     try:
         app = create_app()
         assert compare_clients(TestClient(app), TestClient(app)) == []
     finally:
-        set_layer_store(None)
+        set_layers_root(None)
 
 
 class _StubClient:
