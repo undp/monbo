@@ -11,11 +11,15 @@ import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
 import { GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
 
-export const getMaps = async (language: string): Promise<MapData[]> => {
-  // Names, aliases and considerations come back in this language.
-  const response = await fetch(
-    `${GET_MAPS_URL}?language=${encodeURIComponent(language)}`
-  );
+export const getMaps = async (
+  language: string,
+  country?: string | null
+): Promise<MapData[]> => {
+  // Names, aliases and considerations come back in this language; with a
+  // country, only that country's layers.
+  const params = new URLSearchParams({ language });
+  if (country) params.set("country", country);
+  const response = await fetch(`${GET_MAPS_URL}?${params}`);
   if (!response.ok) {
     throw new Error("Error on get maps");
   }
@@ -23,9 +27,11 @@ export const getMaps = async (language: string): Promise<MapData[]> => {
   return response.json();
 };
 
+// Layer ids are numbered within each country: every call names the country.
 export const analizeDeforestation = async (
   data: FarmData[],
-  selectedMaps: MapData[]
+  selectedMaps: MapData[],
+  country: string
 ): Promise<DeforestationAnalysisMapResults[]> => {
   const response = await fetch(DEFORESTATION_ANALYSIS_URL, {
     method: "POST",
@@ -33,6 +39,7 @@ export const analizeDeforestation = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      country,
       farms: data.map(({ id, polygon }) => ({
         id,
         type: polygon.type,
@@ -49,6 +56,7 @@ export const analizeDeforestation = async (
 };
 
 export const generatePolygonDeforestationImage = async (
+  country: string,
   mapId: number,
   feature: GeoJsonFeature,
   includeSatelitalBackground: boolean = true
@@ -60,6 +68,7 @@ export const generatePolygonDeforestationImage = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      country,
       mapId,
       feature,
     }),

@@ -98,7 +98,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
       try {
         const response = await analizeDeforestation(
           data,
-          selectedMapsForDeforestation
+          selectedMapsForDeforestation,
+          selectedCountry!
         );
         setDeforestationAnalysisResults(response);
         router.push("/deforestation-analysis");
@@ -118,6 +119,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
     },
     [
       selectedMapsForDeforestation,
+      selectedCountry,
       router,
       setDeforestationAnalysisResults,
       openSnackbar,

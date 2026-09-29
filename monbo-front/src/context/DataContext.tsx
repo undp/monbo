@@ -18,9 +18,9 @@ import {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import { getMaps } from "@/api/deforestationAnalysis";
+import { getCountries } from "@/api/countries";
 import { orderBy } from "lodash";
 import { AVAILABLE_MAPS_POLLING_INTERVAL } from "@/config/constants";
-import { getLayersCountryCodes } from "@/utils/countries";
 
 export interface DataContextValue {
   farmsData: FarmData[] | null;
@@ -51,10 +51,12 @@ export interface DataContextValue {
   >;
   availableMaps: MapData[];
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
-  // True once the first `GET /maps` has answered.
-  availableMapsLoaded: boolean;
-  // True when the last `GET /maps` failed.
-  availableMapsError: boolean;
+  // The countries that can be analyzed (`GET /countries`), by ISO code.
+  availableCountries: string[];
+  // True once the first `GET /countries` has answered.
+  availableCountriesLoaded: boolean;
+  // True when the last `GET /countries` failed.
+  availableCountriesError: boolean;
   // ISO 3166-1 alpha-2 code of the analysis country, kept for the tab session.
   selectedCountry: string | null;
   setSelectedCountry: (code: string | null) => void;
@@ -128,8 +130,9 @@ export const DataContext = createContext<DataContextValue>({
   setReportGenerationParams: () => {},
   availableMaps: [],
   setAvailableMaps: () => {},
-  availableMapsLoaded: false,
-  availableMapsError: false,
+  availableCountries: [],
+  availableCountriesLoaded: false,
+  availableCountriesError: false,
   selectedCountry: null,
   setSelectedCountry: () => {},
   countryHydrated: false,
@@ -162,8 +165,10 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
   >([]);
-  const [availableMapsLoaded, setAvailableMapsLoaded] = useState(false);
-  const [availableMapsError, setAvailableMapsError] = useState(false);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableCountriesLoaded, setAvailableCountriesLoaded] =
+    useState(false);
+  const [availableCountriesError, setAvailableCountriesError] = useState(false);
 
   const selectedCountry = useSyncExternalStore(
     subscribeToSelectedCountry,
@@ -193,19 +198,32 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   }, []);
 
   useEffect(() => {
-    const fetchAvailableMaps = async () => {
-      let maps: MapData[];
+    let cancelled = false;
+    const fetchAvailableCountries = async () => {
       try {
-        maps = await getMaps(locale);
+        const countries = await getCountries();
+        if (cancelled) return;
+        setAvailableCountries(countries.map(({ code }) => code));
+        setAvailableCountriesLoaded(true);
+        setAvailableCountriesError(false);
       } catch (error) {
         console.error(error);
         // Once a list has arrived, a failed refresh keeps it.
-        setAvailableMapsError(true);
+        if (!cancelled) setAvailableCountriesError(true);
+      }
+    };
+    const fetchAvailableMaps = async () => {
+      // The layers are only needed once a country is chosen.
+      if (!selectedCountry) return;
+      let maps: MapData[];
+      try {
+        maps = await getMaps(locale, selectedCountry);
+      } catch (error) {
+        console.error(error);
         return;
       }
+      if (cancelled) return;
       setAvailableMaps(maps);
-      setAvailableMapsLoaded(true);
-      setAvailableMapsError(false);
       // Keep already selected layers in step (language, and the raster version
       // used to bust the tile cache); a layer no longer listed keeps its data.
       setDeforestationAnalysisParams((prev) => ({
@@ -215,30 +233,36 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         ),
       }));
     };
-    const interval = setInterval(
-      fetchAvailableMaps,
-      AVAILABLE_MAPS_POLLING_INTERVAL
-    );
+    const fetchAll = () => {
+      fetchAvailableCountries();
+      fetchAvailableMaps();
+    };
+    const interval = setInterval(fetchAll, AVAILABLE_MAPS_POLLING_INTERVAL);
 
-    fetchAvailableMaps();
-    return () => clearInterval(interval);
-  }, [locale]);
+    fetchAll();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [locale, selectedCountry]);
 
   // A country kept from earlier in the tab session may have lost its layers
-  // meanwhile: drop it once, when the first layer list arrives. Later changes
+  // meanwhile: drop it once, when the first country list arrives. Later changes
   // keep the selection (the layer lists then say no layers are available).
   const storedCountryChecked = useRef(false);
   useEffect(() => {
     if (storedCountryChecked.current || !countryHydrated) return;
-    if (!availableMapsLoaded) return;
+    if (!availableCountriesLoaded) return;
     storedCountryChecked.current = true;
-    if (
-      selectedCountry &&
-      !getLayersCountryCodes(availableMaps).includes(selectedCountry)
-    ) {
+    if (selectedCountry && !availableCountries.includes(selectedCountry)) {
       writeSelectedCountry(null);
     }
-  }, [countryHydrated, availableMapsLoaded, availableMaps, selectedCountry]);
+  }, [
+    countryHydrated,
+    availableCountriesLoaded,
+    availableCountries,
+    selectedCountry,
+  ]);
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
     () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
@@ -262,8 +286,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setReportGenerationParams,
       availableMaps,
       setAvailableMaps,
-      availableMapsLoaded,
-      availableMapsError,
+      availableCountries,
+      availableCountriesLoaded,
+      availableCountriesError,
       selectedCountry,
       setSelectedCountry: writeSelectedCountry,
       countryHydrated,
@@ -283,8 +308,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setReportGenerationParams,
     availableMaps,
     setAvailableMaps,
-    availableMapsLoaded,
-    availableMapsError,
+    availableCountries,
+    availableCountriesLoaded,
+    availableCountriesError,
     selectedCountry,
     countryHydrated,
     resetAnalysis,

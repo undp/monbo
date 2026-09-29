@@ -21,6 +21,7 @@ export const useDeforestationReportDownload = () => {
       selectedMaps: selectedMapsForReport,
       selectedFarms: selectedFarmsForReport,
     },
+    selectedCountry,
   } = useContext(DataContext);
 
   const filteredDeforestationAnalysisResults = useMemo(() => {
@@ -32,6 +33,7 @@ export const useDeforestationReportDownload = () => {
   const downloadCompleteReportToFile = useCallback(async () => {
     // TODO: improve the performance of fetching the images
     const images = await fetchDeforestationImages(
+      selectedCountry!,
       selectedMapsForReport,
       selectedFarmsForReport,
       filteredDeforestationAnalysisResults
@@ -50,6 +52,7 @@ export const useDeforestationReportDownload = () => {
     // TODO: internationalize filename
     saveAs(pdfBlob, "deforestation-complete-report.pdf");
   }, [
+    selectedCountry,
     selectedFarmsForReport,
     filteredDeforestationAnalysisResults,
     selectedMapsForReport,
@@ -62,6 +65,7 @@ export const useDeforestationReportDownload = () => {
 
     // TODO: improve the performance of fetching the images
     const images = await fetchDeforestationImages(
+      selectedCountry!,
       selectedMapsForReport,
       selectedFarmsForReport,
       filteredDeforestationAnalysisResults
@@ -89,6 +93,7 @@ export const useDeforestationReportDownload = () => {
     // TODO: internationalize filename
     saveAs(zipBlob, "deforestation-reports.zip");
   }, [
+    selectedCountry,
     selectedFarmsForReport,
     filteredDeforestationAnalysisResults,
     selectedMapsForReport,

@@ -10,6 +10,7 @@ import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
 import { generatePolygonDeforestationImage } from "@/api/deforestationAnalysis";
 
 export const fetchDeforestationImages = async (
+  country: string,
   selectedMapsForReport: MapData[],
   selectedFarmsForReport: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[]
@@ -45,6 +46,7 @@ export const fetchDeforestationImages = async (
   const promises = payloads.map((payload) =>
     limit(() =>
       generatePolygonDeforestationImage(
+        country,
         payload.mapId,
         payload.farmGeoJson,
         includeSatelitalBackground

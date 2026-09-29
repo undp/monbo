@@ -727,11 +727,3 @@ export const getCountryName = (code: string, language: "en" | "es") => {
 
 export const getCountryByNumericCode = (numericCode: string) =>
   countries.find((c) => c.numericCode === numericCode) ?? null;
-
-// The countries at least one of the given layers covers, sorted by code.
-export const getLayersCountryCodes = (
-  layers: { availableCountriesCodes: string[] }[]
-): string[] =>
-  Array.from(
-    new Set(layers.flatMap((layer) => layer.availableCountriesCodes))
-  ).sort();
