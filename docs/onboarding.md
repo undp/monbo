@@ -50,10 +50,12 @@ Key points for building the right mental model:
 
 ### 2.2 End-to-end flow (the user's journey)
 
-The 3 modules are **not a rigid wizard**: the home page shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`monbo-front/src/context/DataContext.tsx`), which holds: `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
+**Everything starts with the country.** The landing page (`/`) shows a world map where only the countries with at least one layer are highlighted (derived from the `availableCountriesCodes` of `GET /maps`); the user picks one and lands on `/home`. The country is one ISO code kept in `DataContext` (`selectedCountry`, persisted in `sessionStorage` for the tab); the module pages redirect to `/` without it, and the layer lists only show that country's layers. The header shows it next to the language menu: it can change freely until a deforestation analysis exists, and after that changing it means starting over (a modal asks, and accepting clears every loaded result). All country changes go through `hooks/useCountryChange.ts`.
+
+The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`monbo-front/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
 **Module 1 — Validation**
-1. The user downloads an Excel template (`public/files/m1-upload-file-template-{en,es}.xlsx`) and uploads their file. The frontend reads it with `exceljs`/`xlsx` and validates required columns (ID, producer, country, coordinates, crop type, etc.).
+1. The user downloads an Excel template (`public/files/m1-upload-file-template-{en,es}.xlsx`) and uploads their file. The frontend reads it with `exceljs`/`xlsx` and validates required columns (producer, production, coordinates, crop type, etc.). The file has **no country column**: every row gets the selected country before it is sent (an old template's country column is ignored).
 2. The frontend sends the rows to **`POST /farms/parse?locale=`**. The backend parses coordinates (supports **WKT and GeoJSON**, `Point` and `Polygon`), interprets numbers according to the locale, auto-generates missing IDs, and — a non-obvious detail — **converts points into circles**: it uses the declared `area` as the radius, and if there is no area it uses a **default of 1 hectare**. It returns `FarmData` with the polygon already normalized.
 3. The frontend stores the result (`setFarmsData`) and fires **`POST /polygons_validation/validate`** (sending only `{id, type, details}`). The backend rebuilds the polygons with **Shapely**, detects overlaps and invalid geometries, and marks each farm `VALID` / `NOT_VALID`.
 
@@ -148,7 +150,8 @@ tests/                     # pytest, mirrors the modules/ structure; tests/regre
 
 ```
 app/[locale]/              # App Router; the language is a route segment (en/es)
-├── page.tsx               #   Home: 3 module cards
+├── page.tsx               #   Landing: pick the analysis country on a map
+├── home/                  #   The 3 module cards
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
 ├── report-generation/     #   Module 3 (+ preview)
@@ -244,7 +247,7 @@ pnpm dev                            # → next dev --turbo  (http://localhost:30
 
 ### 4.4 Open the app
 
-Go to **`http://localhost:3000`**. You should see the home page with the 3 module cards. To exercise the full flow, download the Excel template from module 1, fill in a couple of farms, and upload it.
+Go to **`http://localhost:3000`**. You should see the landing map with Colombia, Ecuador and Costa Rica highlighted; pick one to reach the 3 module cards. To exercise the full flow, download the Excel template from module 1, fill in a couple of farms, and upload it.
 
 > If the map area in module 2/3 is blank, your `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` is missing or invalid. If module 2 errors out computing deforestation, you probably skipped `git lfs pull` (4.1).
 

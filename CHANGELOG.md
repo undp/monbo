@@ -8,11 +8,16 @@
 - Add the `MAPS_ROOT` environment variable to the API to read the layers from another directory (by default the Git-tracked `app/maps`), and report it in `/health`
 - Add a seed command (`uv run python -m app.modules.layers.seed`) that prepares a layers root from the Git-tracked layers
 - Add a 10-farm regression suite and a parity script (`uv run python -m tests.regression.parity`) that compares the results of two deployed APIs
+- Add a landing page with a world map to choose the analysis country first: only countries with layers can be picked, and a "Contact us to add your country" button opens `NEXT_PUBLIC_CONTACT_URL` (hidden when unset)
+- Add a country selector to the header. The country can change until a deforestation analysis exists; after that, changing it asks to start over
 
 ### Changed
 
 - In Azure, the API reads its layers from an Azure Files share mounted at `/mnt/maps`, in its own resource group with a delete lock, share soft delete and daily backups. `azure/deploy.sh storage` creates it, and the API app is rendered by `azure/render_api_app.py` instead of `azure/monbo-api-app.yml`
 - The API image runs as uid/gid 10001
+- The module cards move from `/` to `/home`, and the module pages send the user to the landing page when no country is selected
+- The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers
+- The upload templates no longer have a country column; every farm gets the selected country, and a country column in an older file is ignored
 
 ### Fixed
 
@@ -20,6 +25,7 @@
 
 ### Other
 
+- Remove Next.js build output that was committed by mistake under `monbo-front/monbo-front/.next/`
 - Document how layers are managed (`docs/maps.md`), the Azure deployment (`docs/suggested_deployment.md`) and trying the admin locally (`docs/onboarding.md`)
 
 ## [1.5.1] - 2025-05-12
