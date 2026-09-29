@@ -32,7 +32,6 @@ export interface LayerInput {
   baseline: number;
   compared_against: number;
   references: string[];
-  available_countries_codes: string[];
   attributes: Record<AdminLanguage, LayerAttributes>;
   considerations: Record<AdminLanguage, string | null>;
 }
@@ -43,7 +42,6 @@ export interface AdminLayer {
   baseline: number | null;
   compared_against: number | null;
   references: string[];
-  available_countries_codes: string[];
   enabled: boolean;
   version: number;
   raster_filename: string | null;
@@ -56,6 +54,8 @@ export interface AdminLayer {
 export interface AdminSession {
   token: string;
   expiresAt: string;
+  // ISO 3166-1 alpha-2 code of the country this session administers
+  country: string;
 }
 
 // Errors and warnings carry a stable code; the UI translates them by code.
@@ -80,6 +80,7 @@ export type JobStatus = "queued" | "running" | "succeeded" | "failed";
 
 export interface IngestionJob {
   jobId: string;
+  country: string;
   layerId: number;
   status: JobStatus;
   createdAt: string;

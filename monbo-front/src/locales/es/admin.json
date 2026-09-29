@@ -25,7 +25,6 @@
       "id": "ID",
       "name": "Nombre",
       "alias": "Alias",
-      "countries": "Países",
       "raster": "Raster",
       "version": "Versión",
       "published": "Publicada"
@@ -48,7 +47,6 @@
     "pixelSize": "Tamaño de píxel (metros)",
     "baseline": "Año base",
     "comparedAgainst": "Año de comparación",
-    "countries": "Países con datos",
     "references": "Referencias (URLs)",
     "addReference": "Agregar referencia",
     "removeReference": "Quitar referencia",
@@ -81,7 +79,6 @@
       "positive": "Debe ser mayor que 0",
       "year": "Año entre 1900 y 2100",
       "baselineAfterComparison": "El año base no puede ser posterior al de comparación",
-      "countries": "Elige al menos un país",
       "reference": "Debe empezar con http:// o https://",
       "invalid": "Revisa los campos marcados."
     }

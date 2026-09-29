@@ -73,7 +73,7 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
     getAdminSession(stored.token)
-      .then(() => setSession(stored))
+      .then(({ country }) => setSession({ ...stored, country }))
       .catch(() => sessionStorage.removeItem(STORAGE_KEY))
       .finally(() => setReady(true));
   }, []);

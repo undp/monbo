@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { Text } from "@/components/reusable/Text";
+import { getCountryName } from "@/utils/countries";
 
 interface Props {
   title: string;
@@ -15,14 +16,15 @@ interface Props {
   children: React.ReactNode;
 }
 
-/** Layout for signed-in admin pages; sends visitors without a session to login. */
+/** Layout for signed-in admin pages; sends visitors without a session to login.
+ * Shows the country the session administers. */
 export const AdminPageContainer: React.FC<Props> = ({
   title,
   subtitle,
   actions,
   children,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, ready, logout } = useContext(AdminSessionContext);
 
@@ -51,7 +53,9 @@ export const AdminPageContainer: React.FC<Props> = ({
       >
         <Box>
           <Text color="secondary" variant="body2">
-            {t("admin:title")}
+            {t("admin:title")} ·{" "}
+            {getCountryName(session.country, i18n.language as "en" | "es") ??
+              session.country}
           </Text>
           <Text variant="h3" component="h1" bold>
             {title}

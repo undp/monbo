@@ -53,7 +53,7 @@ export const createAdminSession = (passkey: string) =>
   request<AdminSession>("/session", { method: "POST", body: { passkey } });
 
 export const getAdminSession = (token: string) =>
-  request<{ expiresAt: string }>("/session", { token });
+  request<{ expiresAt: string; country: string }>("/session", { token });
 
 export const listAdminLayers = (token: string) =>
   request<AdminLayer[]>("/layers", { token });

@@ -115,7 +115,6 @@ export const AdminLayersPageContent: React.FC = () => {
                 <TableCell>{t("admin:layers:columns:id")}</TableCell>
                 <TableCell>{t("admin:layers:columns:name")}</TableCell>
                 <TableCell>{t("admin:layers:columns:alias")}</TableCell>
-                <TableCell>{t("admin:layers:columns:countries")}</TableCell>
                 <TableCell>{t("admin:layers:columns:raster")}</TableCell>
                 <TableCell align="right">
                   {t("admin:layers:columns:version")}
@@ -129,7 +128,7 @@ export const AdminLayersPageContent: React.FC = () => {
             <TableBody>
               {layers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8}>{t("admin:layers:empty")}</TableCell>
+                  <TableCell colSpan={7}>{t("admin:layers:empty")}</TableCell>
                 </TableRow>
               )}
               {layers.map((layer) => (
@@ -137,7 +136,6 @@ export const AdminLayersPageContent: React.FC = () => {
                   <TableCell>{layer.id}</TableCell>
                   <TableCell>{layerText(layer, "name", language)}</TableCell>
                   <TableCell>{layerText(layer, "alias", language)}</TableCell>
-                  <TableCell>{layer.available_countries_codes.join(", ")}</TableCell>
                   <TableCell>
                     {layer.has_raster ? (
                       layer.raster_filename

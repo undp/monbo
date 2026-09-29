@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import {
-  Autocomplete,
   Box,
   Button,
   Grid,
@@ -16,7 +15,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import {
-  Controller,
   FieldPath,
   FieldPathByValue,
   useController,
@@ -27,7 +25,6 @@ import {
 } from "react-hook-form";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
 import { Text } from "@/components/reusable/Text";
-import { countries } from "@/utils/countries";
 import {
   ADMIN_LANGUAGES,
   AdminLanguage,
@@ -147,24 +144,12 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
 };
 
 export const LayerForm: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const uiLanguage = i18n.language === "en" ? "en" : "es";
+  const { t } = useTranslation();
   const {
     control,
     formState: { errors },
   } = useFormContext<LayerFormValues>();
   const references = useFieldArray({ control, name: "references" });
-
-  const countryOptions = useMemo(
-    () =>
-      countries
-        .map((c) => ({
-          code: c.code,
-          label: `${uiLanguage === "en" ? c.nameEn : c.nameEs} (${c.code})`,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label, uiLanguage)),
-    [uiLanguage]
-  );
 
   return (
     <>
@@ -196,34 +181,6 @@ export const LayerForm: React.FC = () => {
               required
               validate={validators.year}
               deps={["baseline"]}
-            />
-          </Grid>
-          <Grid size={12}>
-            <Controller
-              name="available_countries_codes"
-              control={control}
-              rules={{ validate: validators.countries }}
-              render={({ field, fieldState: { error } }) => (
-                <Autocomplete
-                  multiple
-                  options={countryOptions}
-                  value={countryOptions.filter((o) => field.value.includes(o.code))}
-                  onChange={(_, selected) => field.onChange(selected.map((o) => o.code))}
-                  onBlur={field.onBlur}
-                  isOptionEqualToValue={(option, value) => option.code === value.code}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      inputRef={field.ref}
-                      label={t("admin:form:countries")}
-                      required
-                      error={!!error}
-                      helperText={error?.message && t(error.message)}
-                      size="small"
-                    />
-                  )}
-                />
-              )}
             />
           </Grid>
           <Grid size={12}>
