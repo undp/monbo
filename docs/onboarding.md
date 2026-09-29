@@ -43,9 +43,9 @@ Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin  
 
 Key points for building the right mental model:
 
-- **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which the **layers admin** edits (behind a shared passkey; see §4.8 and `docs/maps.md`).
+- **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which each country's **layers admin** edits (one passkey per country; see §4.8 and `docs/maps.md`).
 - **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home).
-- **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `monbo-api/app/maps` (rasters in **Git LFS**); in Azure, an **Azure Files share** mounted at `/mnt/maps`, which the admin writes to.
+- **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `monbo-api/app/maps` (rasters in **Git LFS**, flat layout, read-only); in Azure, the per-country layout on an **Azure Files share** (`/mnt/maps`), which the admin writes to. Each country has its own folder and numbers its layers from 0, so analysis, tiles and report images send the country with the layer id.
 - **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token.
 
 ### 2.2 End-to-end flow (the user's journey)
@@ -60,9 +60,9 @@ The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module
 3. The frontend stores the result (`setFarmsData`) and fires **`POST /polygons_validation/validate`** (sending only `{id, type, details}`). The backend rebuilds the polygons with **Shapely**, detects overlaps and invalid geometries, and marks each farm `VALID` / `NOT_VALID`.
 
 **Module 2 — Deforestation analysis**
-4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{farms:[{id,type,details}], maps:[ids]}`. *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
+4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country). *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
 5. The backend iterates **per map × per farm** and returns `[{mapId, farmResults:[{farmId, value}]}]`, where `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
-6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
+6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
 
 **Module 3 — Report**
 7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background).
@@ -135,9 +135,9 @@ modules/                   # One package per module, each with router.py + helpe
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
 ├── deforestation_analysis/#   POST /analize, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
-├── maps/                  #   GET /maps — catalog of the published layers from index.json + metadata
-├── layers/                #   LayerStore (reads/writes MAPS_ROOT), raster checks + COG conversion, seed command
-└── admin/                 #   /admin/* — passkey login, layer CRUD, raster uploads (only when configured)
+├── maps/                  #   GET /maps (?country=) and GET /countries — the published layers and their countries
+├── layers/                #   LayersRoot/LayerStore (read/write MAPS_ROOT), raster checks + COG conversion, seed and migration commands
+└── admin/                 #   /admin/* — per-country passkey login, layer CRUD, raster uploads (only when configured); countries CLI
 maps/                      # Git-tracked layers: index.json, .tif rasters (Git LFS), bilingual metadata per layer
 models/                    # Shared Pydantic schemas (farms, maps, polygons)
 helpers/GeometryCalculator.py  # Geodesic area computation (Albers Equal Area)
@@ -279,23 +279,21 @@ Trace a single farm through the whole pipeline to internalize §2.2 and §2.3 �
 
 ### 4.8 Trying the layers admin locally
 
-The admin is off unless the API has both admin secrets. To try it without touching the Git-tracked layers:
+The admin is off unless the API has a session secret and a layers root in the per-country layout. To try it without touching the Git-tracked layers (flat layout), migrate a copy:
 
 ```bash
 cd monbo-api
-cp -r app/maps .local-maps              # a copy the admin can write to (ignored by Git)
-uv run python -m app.modules.admin.passkey
+uv run python -m app.modules.layers.migrate_countries --source app/maps --target .local-maps
 ```
 
-The last command prints a passkey, its hash and a session secret. Put these in `monbo-api/.env` and restart the backend:
+It writes the per-country layout to `.local-maps` (ignored by Git) and prints one passkey per country (EC, CO, CR). Put these in `monbo-api/.env` and restart the backend:
 
 ```bash
 MAPS_ROOT=.local-maps
-ADMIN_PASSKEY_HASH=<the printed hash>
-ADMIN_SESSION_SECRET=<the printed secret>
+ADMIN_SESSION_SECRET=<a random string of 32+ characters>
 ADMIN_ALLOWED_ORIGIN=http://localhost:3000
 ```
 
-Then open **`http://localhost:3000/admin`** and log in with the passkey. The passkey itself never goes in `.env`: only its hash does. The frontend needs no extra setting (it calls `${NEXT_PUBLIC_API_URL}/admin`). `http://localhost:8000/health` shows which `mapsRoot` the API is using.
+Then open **`http://localhost:3000/admin`** and log in with one country's passkey: the admin only shows that country's layers. Passkeys never go in `.env`; only their hashes, in `.local-maps/countries.json`. To add a country or get a new passkey, use `uv run python -m app.modules.admin.countries add|rotate <CC>` (see `docs/maps.md`). The frontend needs no extra setting (it calls `${NEXT_PUBLIC_API_URL}/admin`). `http://localhost:8000/health` shows which `mapsRoot` the API is using.
 
-To test raster uploads, use a binary GeoTIFF (see the requirements in `docs/maps.md`). To start over, delete `.local-maps` and copy it again.
+To test raster uploads, use a binary GeoTIFF (see the requirements in `docs/maps.md`). To start over, delete `.local-maps` and migrate again.

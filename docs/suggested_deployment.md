@@ -8,15 +8,17 @@ idempotent: it creates what is missing and updates the rest. Configuration lives
 ./azure/deploy.sh               # build, push and deploy both apps
 ./azure/deploy.sh --skip-build  # redeploy an image tag already in the registry
 ./azure/deploy.sh storage       # only ensure the persistent layer storage
+./azure/deploy.sh countries …   # manage the countries and their admin passkeys (below)
 ./azure/deploy.sh destroy       # delete the apps' resource group (layer storage is kept)
 ```
 
 ## Layer storage
 
 Without `STORAGE_ACCOUNT_NAME`, the API serves the layers baked into its image
-(`monbo-api/app/maps`). With it, the API reads them from an Azure Files share mounted
-at `/mnt/maps` (`MAPS_ROOT`), which the layers admin writes to. The share outlives
-releases, restarts and new revisions.
+(`monbo-api/app/maps`, read-only). With it, the API reads them from an Azure Files
+share mounted at `/mnt/maps` (`MAPS_ROOT`), in the per-country layout the layers
+admin writes to ([maps.md](maps.md#per-country-layout)). The share outlives releases,
+restarts and new revisions.
 
 | Resource | Default | Why |
 |---|---|---|
@@ -39,57 +41,91 @@ live in the API's memory. Don't scale it out while the admin is enabled.
 
 1. Create the storage: set `STORAGE_ACCOUNT_NAME` in `azure/deploy.env`, then
    `./azure/deploy.sh storage`.
-2. Seed the share from the Git-tracked layers (needs `git lfs pull`). The seed
-   validates every raster, converts it to a Cloud Optimized GeoTIFF and writes an
-   index with every layer enabled at version 1 (about 52 MB for the current six):
+2. Fill the share with the Git-tracked layers (needs `git lfs pull` and `uv`):
+
+   ```sh
+   ./azure/deploy.sh seed
+   ```
+
+   It validates every raster and converts it to a Cloud Optimized GeoTIFF
+   (`app.modules.layers.seed`), splits the layers by country
+   (`app.modules.layers.migrate_countries`, which copies GFW and TMF into each
+   country and numbers each country's layers from 0), and uploads the result to the
+   share's root. It prints **one admin passkey per country**: put each one in the
+   password manager straight away. It also writes each country's old id → new id to
+   `/tmp/monbo-seed-ids.json` (`SEED_MAPPING_OUT`), for step 4.
+3. Deploy: `./azure/deploy.sh`. `deploy.sh` refuses to mount a share without
+   `countries.json`, and after the API is up it checks that `/health` reports
+   `mapsRoot: /mnt/maps` and `mapsRootWritable: true`.
+4. Optionally, compare the deployment with the Git layers on the regression farms.
+   Every layer copy, in every country, must give the results of the original:
 
    ```sh
    cd monbo-api
-   uv run python -m app.modules.layers.seed --target /tmp/maps-seed
-   az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" \
-     --account-key "$(az storage account keys list -g monbo-data -n "$STORAGE_ACCOUNT_NAME" --query '[0].value' -o tsv)" \
-     --destination maps --source /tmp/maps-seed
+   MAPS_ROOT=app/maps uv run uvicorn app.main:app --port 8001 &
+   uv run python -m tests.regression.parity --mapping /tmp/monbo-seed-ids.json \
+     http://localhost:8001 <api-url>
    ```
 
-   `deploy.sh` refuses to mount a share without an `index.json`.
-3. Deploy: `./azure/deploy.sh`. After the API is up, the script checks that `/health`
-   reports `mapsRoot: /mnt/maps` and `mapsRootWritable: true`, and fails otherwise.
-4. Compare the new deployment with the previous one on the regression farms; every
-   value must be identical:
+### Starting an environment's layers over
 
-   ```sh
-   cd monbo-api
-   uv run python -m tests.regression.parity <previous-api-url> <new-api-url>
-   ```
+`./azure/deploy.sh seed` also works on a share that already has layers, for example
+a development environment filled before countries had their own folders. After you
+type the share's name to confirm, it prepares the new layers, **deletes every file on
+the share** (layers, raster versions, admin edits, ingestion jobs), and uploads the
+Git-tracked layers again. Deploy right after, so the API reads the new layout. Every
+country gets a new passkey. The share's snapshots and backups keep the previous
+content (see [Rollback](#rollback)).
 
 ### Rollback
 
-While the layers are still in Git, removing `STORAGE_ACCOUNT_NAME` and redeploying
-makes the API serve the image's layers again. Admin changes stay on the share.
-
-To restore files from a backup, use the vault's "Restore" on the `maps` item in the
-Azure portal (whole share or single files), or undelete the share within 14 days.
+- **Back to the image's layers:** remove `STORAGE_ACCOUNT_NAME` and redeploy. The API
+  serves the Git-tracked layers baked into the image, read-only, with the admin off.
+  The share is left as it is.
+- **Back to a release from before per-country layers:** that release reads the old
+  flat layout. Restore the share from a snapshot taken before the seed, then deploy
+  that release with its own `deploy.sh` and `deploy.env`.
+- **Restoring files:** use the vault's "Restore" on the `maps` item in the Azure
+  portal (whole share or single files), or undelete the share within 14 days.
 
 ## Layers admin
 
-With `ADMIN_PASSKEY_HASH` and `ADMIN_SESSION_SECRET` set (and layer storage enabled),
-the admin is available at `https://<frontend>/admin`. Generate the values with:
+With `ADMIN_SESSION_SECRET` set (and layer storage in the per-country layout), the
+admin is available at `https://<frontend>/admin`. Each country's admin logs in with
+their own passkey and only sees their country's layers. Generate the secret with:
 
 ```sh
-cd monbo-api && uv run python -m app.modules.admin.passkey
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-It prints the passkey the admin logs in with (keep it in a password manager, never
-in `deploy.env` or Azure), its hash and a session secret. `deploy.sh` stores the hash
-and the secret as Container App secrets and sets `ADMIN_ALLOWED_ORIGIN` to the
-frontend's URL. How to manage layers there is in [maps.md](maps.md).
+`deploy.sh` stores it as a Container App secret and sets `ADMIN_ALLOWED_ORIGIN` to the
+frontend's URL. Rotating it (replace it in `deploy.env`, then
+`TAG=<deployed tag> ./azure/deploy.sh --skip-build`) signs every admin of every
+country out. How to manage layers is in [maps.md](maps.md).
 
-### Rotating the admin credentials
+### Countries and admin passkeys
 
-1. `uv run python -m app.modules.admin.passkey` to generate a new set.
-2. Replace `ADMIN_PASSKEY_HASH` and `ADMIN_SESSION_SECRET` in `azure/deploy.env`.
-3. `TAG=<deployed tag> ./azure/deploy.sh --skip-build` (it updates the secrets and restarts the API; without `TAG` it uses the current commit, which may not be in the registry).
+Each country's passkey hash lives in the share's `countries.json`, not in Azure.
+`deploy.sh countries` edits it without redeploying: the API applies the change on its
+next request.
 
-The old passkey stops working, and every open admin session is signed out because
-tokens are signed with the session secret. Rotating only `ADMIN_SESSION_SECRET` signs
-everyone out but keeps the passkey.
+```sh
+./azure/deploy.sh countries list             # countries, their state and layers
+./azure/deploy.sh countries add PE           # new country (empty); prints its passkey once
+./azure/deploy.sh countries rotate CR        # new passkey for CR; its sessions end
+./azure/deploy.sh countries disable EC       # hidden from the app, admin locked out
+./azure/deploy.sh countries enable EC
+```
+
+It needs `uv` and the repository: it runs the same command as
+`uv run python -m app.modules.admin.countries` on a local copy of the registry, then
+uploads it. If someone else changed the registry meanwhile, it stops without
+uploading; run it again.
+
+- **Adding a country**: `countries add <code>`, then give the passkey to that
+  country's admin. The country appears on the landing map once it publishes a layer.
+  Its GFW and TMF need their own rasters: the current ones only cover Ecuador,
+  Colombia and Costa Rica.
+- **A leaked passkey**: `countries rotate <code>`. Only that country is affected.
+- Keep each passkey in the password manager and share it only with that country's
+  admin. It is never stored anywhere else.
