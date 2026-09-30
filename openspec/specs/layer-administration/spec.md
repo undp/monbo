@@ -107,10 +107,10 @@ The frontend SHALL provide admin pages under `/[locale]/admin`:
 
 - a login page that asks only for the passkey;
 - a layers list showing name, alias, id, version, enabled state, and raster presence, with an enable/disable control;
-- a create/edit form for the index fields, with en/es tabs for attributes and considerations and a rendered markdown preview of the considerations, and with no countries field;
+- a create/edit form for the index fields, with en/es tabs for attributes and considerations and a rendered markdown preview of the considerations, and with no countries field; each tab labels its fields in the tab's language, and an info button next to the texts section opens an example of a filled-in layer;
 - a raster upload area on the edit page that shows upload progress and then the ingestion job status and report.
 
-Every admin page SHALL show the name of the country the session administers. All UI text SHALL be translated in `en` and `es`. The admin pages SHALL NOT be linked from the public home page or header.
+Every admin page SHALL show the name of the country the session administers. On the admin pages the header SHALL show only the language selector and, once logged in, the administered country's name as plain text; it SHALL NOT show the public navigation or the country selector. All UI text SHALL be translated in `en` and `es`. The admin pages SHALL NOT be linked from the public home page or header.
 
 #### Scenario: Create and publish a layer from the UI
 
@@ -120,12 +120,12 @@ Every admin page SHALL show the name of the country the session administers. All
 #### Scenario: Country shown
 
 - **WHEN** an admin logs in with EC's passkey
-- **THEN** the admin pages show "Ecuador" as the administered country
+- **THEN** the admin pages and the header show "Ecuador" as the administered country
 
 #### Scenario: Language switch
 
 - **WHEN** an admin switches the UI language to `es`
-- **THEN** every admin label, message, and validation error is shown in Spanish
+- **THEN** every admin label, message, and validation error is shown in Spanish, except the fields of the English tab, which stay in English
 
 #### Scenario: Not discoverable from public pages
 
