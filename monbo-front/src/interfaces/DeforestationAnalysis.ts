@@ -14,6 +14,7 @@ export interface MapData {
   considerations: string;
   availableCountriesCodes: string[];
   version: number;
+  pixelSize: number;
 }
 
 export interface DeforestationAnalysisMapResults {

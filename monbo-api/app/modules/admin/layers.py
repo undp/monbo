@@ -5,7 +5,14 @@ reports refer to layers by id. Rasters are uploaded separately (raster ingestion
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from rasterio import open as rasterio_open
+from rasterio.errors import RasterioIOError
 
+from app.modules.layers.processing import (
+    IngestionError,
+    check_pixel_size,
+    raster_pixel_size_m,
+)
 from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, get_layer_store
 
 from .auth import logger, require_admin
@@ -86,6 +93,23 @@ def _apply_input(store: LayerStore, entry: dict, body: LayerInput) -> None:
     )
 
 
+def _check_existing_raster_pixel_size(
+    store: LayerStore, entry: dict, pixel_size: float
+) -> None:
+    filename = entry.get("raster_filename")
+    if not filename or not store.has_raster(filename):
+        return
+    try:
+        with rasterio_open(store.raster_path(filename)) as raster:
+            check_pixel_size(pixel_size, raster_pixel_size_m(raster))
+    except IngestionError as error:
+        raise HTTPException(status_code=409, detail=error.as_issue()) from error
+    except RasterioIOError as error:
+        raise HTTPException(
+            status_code=409, detail="Layer raster is unreadable"
+        ) from error
+
+
 @router.get("", response_model=list[AdminLayer])
 def list_layers():
     """Every layer, enabled or not, with its metadata in every language."""
@@ -129,6 +153,8 @@ def update_layer(layer_id: int, body: LayerInput):
     with store.locked():
         index = _index_or_500(store)
         position = _position(index, layer_id)
+        if body.pixel_size != index[position]["pixel_size"]:
+            _check_existing_raster_pixel_size(store, index[position], body.pixel_size)
         _apply_input(store, index[position], body)
         store.write_index(index)
         entry = index[position]

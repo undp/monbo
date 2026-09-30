@@ -28,6 +28,7 @@ MAPS_MOCK_DATA = [
         "available_countries_codes": ["EC", "CO", "CR"],
         "enabled": True,
         "version": 2,
+        "pixel_size": 30,
     },
     {
         "id": 1,
@@ -39,6 +40,7 @@ MAPS_MOCK_DATA = [
         "available_countries_codes": ["EC"],
         "enabled": False,
         "version": 1,
+        "pixel_size": 30,
     },
 ]
 
@@ -89,6 +91,7 @@ EXPECTED_MAPS_DATA = [
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
         "version": 2,
+        "pixelSize": 30,
     }
 ]
 

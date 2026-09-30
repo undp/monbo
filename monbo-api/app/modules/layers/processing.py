@@ -19,6 +19,9 @@ from rasterio.windows import Window
 WINDOW_SIZE = 2048
 MAX_REPORTED_VALUES = 10
 LOSS_YEARS = range(1980, 2101)
+# Existing layers use nominal 10 m or 30 m sizes. Their measured resolution
+# differs by up to ~1.6% because of projection and geographic approximation.
+PIXEL_SIZE_RELATIVE_TOLERANCE = 0.05
 COG_OPTIONS = {
     "compress": "DEFLATE",
     "predictor": 2,
@@ -66,15 +69,42 @@ def _distinct_values(block: np.ndarray) -> set[int]:
     return {int(value) for value in np.unique(block)}
 
 
-def _approx_resolution_m(src) -> float | None:
-    res_x, res_y = src.res
+def raster_pixel_size_m(src) -> float | None:
+    """Nominal pixel side in metres, derived from the raster cell area.
+
+    For geographic CRSs this is an approximation at the raster's middle latitude.
+    The geometric mean keeps the area correct for non-square or rotated cells.
+    """
     try:
+        cell_area = abs(
+            src.transform.a * src.transform.e - src.transform.b * src.transform.d
+        )
         if src.crs.is_geographic:
             lat = math.radians((src.bounds.top + src.bounds.bottom) / 2)
-            return round((res_x * 111_320 * math.cos(lat) + res_y * 110_574) / 2, 2)
-        return round((res_x + res_y) / 2 * src.crs.linear_units_factor[1], 2)
-    except Exception:  # noqa: BLE001 - only a hint for the admin
+            cell_area *= 111_320 * math.cos(lat) * 110_574
+        else:
+            cell_area *= src.crs.linear_units_factor[1] ** 2
+        pixel_size = math.sqrt(cell_area)
+        return pixel_size if math.isfinite(pixel_size) and pixel_size > 0 else None
+    except Exception:  # noqa: BLE001 - unsupported CRS or transform
         return None
+
+
+def check_pixel_size(declared: float, measured: float | None) -> None:
+    """Reject a layer size that would materially change the calculated area."""
+    if measured is None:
+        raise IngestionError(
+            "resolution_unavailable",
+            "The raster pixel size could not be determined from its CRS and transform",
+        )
+    if abs(declared - measured) / measured > PIXEL_SIZE_RELATIVE_TOLERANCE:
+        raise IngestionError(
+            "resolution_mismatch",
+            f"The layer pixel size ({declared:g} m) differs from the raster "
+            f"({measured:.2f} m); update the layer pixel size or use another raster",
+            declared=declared,
+            measured=round(measured, 2),
+        )
 
 
 def _format(value: float) -> str:
@@ -88,6 +118,7 @@ class Validation:
     # The nodata to store; set on the file first when it didn't declare one.
     nodata: float | None
     needs_nodata: bool
+    pixel_size_m: float | None
 
 
 def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
@@ -135,6 +166,11 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
                     requested=requested_nodata,
                 )
             )
+        if nodata == 1:
+            raise IngestionError(
+                "nodata_is_loss",
+                "Nodata cannot be 1 because 1 represents forest loss",
+            )
         allowed = {0, 1} | ({int(nodata)} if nodata is not None else set())
 
         values: set[int] = set()
@@ -143,6 +179,7 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
             if len(values - allowed) >= MAX_REPORTED_VALUES:
                 break  # enough to reject it
 
+        pixel_size = raster_pixel_size_m(src)
         report = {
             "crs": src.crs.to_string(),
             "width": src.width,
@@ -151,7 +188,9 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
             "dtype": dtype,
             "nodata": nodata,
             "values": sorted(values)[:20],
-            "approxResolutionM": _approx_resolution_m(src),
+            "approxResolutionM": (
+                round(pixel_size, 2) if pixel_size is not None else None
+            ),
         }
 
     offending = sorted(values - allowed)[:MAX_REPORTED_VALUES]
@@ -176,7 +215,13 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
         found_warnings.append(
             issue("no_loss_pixels", "No deforestation pixels (value 1) were found")
         )
-    return Validation(report, found_warnings, nodata, needs_nodata=declared is None)
+    return Validation(
+        report,
+        found_warnings,
+        nodata,
+        needs_nodata=declared is None,
+        pixel_size_m=pixel_size,
+    )
 
 
 # --- Conversion and verification ---------------------------------------------------

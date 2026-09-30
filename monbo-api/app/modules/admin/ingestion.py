@@ -19,6 +19,7 @@ from pathlib import Path
 from app.config import env
 from app.modules.layers.processing import (
     IngestionError,
+    check_pixel_size,
     convert_to_cog,
     issue,
     set_nodata,
@@ -114,7 +115,9 @@ def _raster_stem(entry: dict) -> str:
     return re.sub(r"-v\d+$", "", Path(filename).stem)
 
 
-def activate(store: LayerStore, layer_id: int, cog: Path, job_id: str) -> dict:
+def activate(
+    store: LayerStore, layer_id: int, cog: Path, job_id: str, pixel_size: float | None
+) -> dict:
     """Copy the COG to the share, give it a new versioned name and point the layer
     at it. Returns the updated index entry."""
     share_staging = store.staging_dir / f"{job_id}.tif"
@@ -127,6 +130,8 @@ def activate(store: LayerStore, layer_id: int, cog: Path, job_id: str) -> dict:
             entry = next((e for e in index or [] if e["id"] == layer_id), None)
             if index is None or entry is None:
                 raise IngestionError("layer_not_found", "The layer no longer exists")
+            # An admin may have edited pixel_size while the COG was converting.
+            check_pixel_size(entry["pixel_size"], pixel_size)
             version = entry["version"] + 1
             stem = _raster_stem(entry)
             while store.raster_path(f"{stem}-v{version}.tif").exists():
@@ -157,11 +162,17 @@ def run_ingestion(
         _save(store, job, status="running")
         validation = validate_raster(staged, requested_nodata)
         _save(store, job, report=validation.report, warnings=validation.warnings)
+        index = store.read_index()
+        entry = next((e for e in index or [] if e["id"] == layer_id), None)
+        if entry is None:
+            raise IngestionError("layer_not_found", "The layer no longer exists")
+        pixel_size = validation.pixel_size_m
+        check_pixel_size(entry["pixel_size"], pixel_size)
         if validation.nodata is not None and validation.needs_nodata:
             set_nodata(staged, validation.nodata)
         convert_to_cog(staged, cog)
         verify_same_pixels(staged, cog)
-        entry = activate(store, layer_id, cog, job_id)
+        entry = activate(store, layer_id, cog, job_id, pixel_size)
         _save(
             store,
             job,

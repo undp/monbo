@@ -230,6 +230,59 @@ def test_declared_nodata_wins_over_the_requested_one(
     assert job["report"]["nodata"] == 255
 
 
+@pytest.mark.parametrize("declared", [True, False])
+def test_loss_value_cannot_be_nodata(layers, client, admin_headers, tmp_path, declared):
+    content = write_tif(tmp_path / "in.tif", binary(), nodata=1 if declared else None)
+    params = {} if declared else {"nodata": 1}
+
+    job = job_for(
+        client, admin_headers, upload(client, admin_headers, content, **params)
+    )
+
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "nodata_is_loss"
+    assert entry(layers, 6)["raster_filename"] is None
+
+
+def test_upload_rejects_resolution_mismatch(layers, client, admin_headers, tmp_path):
+    # 10 m raster, but the layer is configured as 30 m. Accepting it would
+    # multiply every deforested area by nine.
+    content = write_tif(
+        tmp_path / "in.tif",
+        binary(),
+        transform=from_origin(-76.5, -0.2, 0.00009, 0.00009),
+    )
+
+    job = job_for(client, admin_headers, upload(client, admin_headers, content))
+
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "resolution_mismatch"
+    assert job["error"]["params"]["declared"] == 30
+    assert 9 < job["error"]["params"]["measured"] < 11
+    assert entry(layers, 6)["raster_filename"] is None
+
+
+def test_edit_during_conversion_cannot_activate_a_mismatched_raster(
+    layers, client, admin_headers, tmp_path, monkeypatch
+):
+    content = write_tif(tmp_path / "in.tif", binary())
+    real_convert = ingestion.convert_to_cog
+
+    def edit_layer_while_converting(src, dst):
+        index = layers.store.read_index()
+        index[1]["pixel_size"] = 10
+        layers.store.write_index(index)
+        real_convert(src, dst)
+
+    monkeypatch.setattr(ingestion, "convert_to_cog", edit_layer_while_converting)
+
+    job = job_for(client, admin_headers, upload(client, admin_headers, content))
+
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "resolution_mismatch"
+    assert entry(layers, 6)["raster_filename"] is None
+
+
 def test_all_zeros_succeeds_with_a_warning(layers, client, admin_headers, tmp_path):
     content = write_tif(tmp_path / "in.tif", np.zeros((64, 64), "uint8"))
 
