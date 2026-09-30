@@ -48,23 +48,18 @@ export const AdminPageContainer: React.FC<Props> = ({
           justifyContent: "space-between",
           alignItems: "flex-start",
           gap: 2,
-          marginBottom: 3,
+          marginBottom: subtitle ? 1.5 : 3,
         }}
       >
         <Box>
           <Text color="secondary" variant="body2">
-            {t("admin:title")} ·{" "}
+            {t("admin:title")}
+          </Text>
+          <Text variant="h3" component="h1" bold>
+            {title} ·{" "}
             {getCountryName(session.country, i18n.language as "en" | "es") ??
               session.country}
           </Text>
-          <Text variant="h3" component="h1" bold>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text color="secondary" variant="body2" sx={{ marginTop: 1 }}>
-              {subtitle}
-            </Text>
-          )}
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
           {actions}
@@ -79,6 +74,12 @@ export const AdminPageContainer: React.FC<Props> = ({
           </Button>
         </Box>
       </Box>
+      {subtitle && (
+        // Below the title row, so it can use the page's full width.
+        <Text color="secondary" variant="body2" sx={{ marginBottom: 3 }}>
+          {subtitle}
+        </Text>
+      )}
       {children}
     </Box>
   );
