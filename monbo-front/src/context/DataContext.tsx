@@ -141,28 +141,59 @@ export const DataContext = createContext<DataContextValue>({
   resetAnalysis: () => {},
 });
 
+// The loaded flow, kept in memory outside the provider. Changing the language
+// changes the root layout's `[locale]` segment, which remounts this provider on a
+// client-side navigation; without this the farms and results would be lost and
+// the pages would send the user back to /home. A full page reload still starts
+// over.
+type KeptKey =
+  | "farmsData"
+  | "polygonsValidationResults"
+  | "deforestationAnalysisParams"
+  | "deforestationAnalysisResults"
+  | "analysisOutdated"
+  | "reportGenerationParams";
+const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
+
+function useKeptState<K extends KeptKey>(
+  key: K,
+  initial: DataContextValue[K]
+): [DataContextValue[K], Dispatch<SetStateAction<DataContextValue[K]>>] {
+  const [value, setValue] = useState<DataContextValue[K]>(() =>
+    key in keptState ? (keptState[key] as DataContextValue[K]) : initial
+  );
+  useEffect(() => {
+    keptState[key] = value;
+  }, [key, value]);
+  return [value, setValue];
+}
+
 const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   children,
   locale,
 }) => {
-  const [farmsData, setFarmsData] =
-    useState<DataContextValue["farmsData"]>(null);
+  const [farmsData, setFarmsData] = useKeptState("farmsData", null);
 
   const [polygonsValidationResults, setPolygonsValidationResults] =
-    useState<DataContextValue["polygonsValidationResults"]>(null);
+    useKeptState("polygonsValidationResults", null);
 
   const [deforestationAnalysisParams, setDeforestationAnalysisParams] =
-    useState<DataContextValue["deforestationAnalysisParams"]>(
+    useKeptState(
+      "deforestationAnalysisParams",
       initialDeforestationAnalysisParams
     );
 
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
-    useState<DataContextValue["deforestationAnalysisResults"]>(null);
-  const [analysisOutdated, setAnalysisOutdated] = useState(false);
+    useKeptState("deforestationAnalysisResults", null);
+  const [analysisOutdated, setAnalysisOutdated] = useKeptState(
+    "analysisOutdated",
+    false
+  );
 
-  const [reportGenerationParams, setReportGenerationParams] = useState<
-    DataContextValue["reportGenerationParams"]
-  >(initialReportGenerationParams);
+  const [reportGenerationParams, setReportGenerationParams] = useKeptState(
+    "reportGenerationParams",
+    initialReportGenerationParams
+  );
 
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
@@ -197,7 +228,14 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setAnalysisOutdated(false);
     setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
     setReportGenerationParams(initialReportGenerationParams);
-  }, []);
+  }, [
+    setFarmsData,
+    setPolygonsValidationResults,
+    setDeforestationAnalysisResults,
+    setAnalysisOutdated,
+    setDeforestationAnalysisParams,
+    setReportGenerationParams,
+  ]);
 
   // Read the current analysis state on each poll without restarting the timer.
   const onMapsLoaded = useEffectEvent((maps: MapData[]) => {
