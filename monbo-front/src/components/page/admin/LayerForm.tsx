@@ -32,6 +32,14 @@ import {
   OPTIONAL_ATTRIBUTE_KEYS,
 } from "@/interfaces/AdminLayer";
 import { LayerFormValues, validators } from "./layerFormState";
+import enAdmin from "@/locales/en/admin.json";
+import esAdmin from "@/locales/es/admin.json";
+
+// Each language tab labels its fields in its own language, whatever the page's.
+const TAB_LABELS: Record<AdminLanguage, typeof enAdmin.form> = {
+  en: enAdmin.form,
+  es: esAdmin.form,
+};
 
 export const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
@@ -83,7 +91,7 @@ const FormTextField: React.FC<FormTextFieldProps> = ({
 };
 
 const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => {
-  const { t } = useTranslation();
+  const labels = TAB_LABELS[language];
   const considerations = useWatch<LayerFormValues, `considerations.${AdminLanguage}`>({
     name: `considerations.${language}`,
   });
@@ -94,10 +102,10 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
       {keys.map((key) => {
         const required = key === "name" || key === "alias";
         return (
-          <Grid key={key} size={{ xs: 12, md: key === "name" ? 8 : key === "alias" ? 4 : 6 }}>
+          <Grid key={key} size={{ xs: 12, md: 6 }}>
             <FormTextField
               name={`attributes.${language}.${key}`}
-              label={t(`admin:form:attributes:${key}`)}
+              label={labels.attributes[key]}
               required={required}
               validate={required ? validators.required : undefined}
             />
@@ -107,15 +115,17 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
       <Grid size={{ xs: 12, md: 6 }}>
         <FormTextField
           name={`considerations.${language}`}
-          label={t("admin:form:considerations")}
+          label={labels.considerations}
           multiline
           minRows={10}
           size="medium"
+          // Always on the border: a tall box whose label moves reads oddly.
+          slotProps={{ inputLabel: { shrink: true } }}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <Text color="secondary" variant="body2" sx={{ marginBottom: 1 }}>
-          {t("admin:form:preview")}
+          {labels.preview}
         </Text>
         <Box
           sx={{
@@ -134,7 +144,7 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
             <ReactMarkdown>{considerations}</ReactMarkdown>
           ) : (
             <Text color="secondary" variant="body2">
-              {t("admin:form:emptyPreview")}
+              {labels.emptyPreview}
             </Text>
           )}
         </Box>
