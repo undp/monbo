@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import TranslationsProvider from "@/context/TranslationProvider";
-import { AdminSessionProvider } from "@/context/AdminSessionContext";
 import { LayoutProps } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 
@@ -21,7 +20,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
       namespaces={namespaces}
       resources={resources}
     >
-      <AdminSessionProvider>{children}</AdminSessionProvider>
+      {children}
     </TranslationsProvider>
   );
 }

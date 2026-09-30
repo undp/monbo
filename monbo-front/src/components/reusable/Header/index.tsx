@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { Suspense } from "react";
 import { HeaderButton } from "./HeaderButton";
+import { HeaderNavigation } from "./HeaderNavigation";
 
 import { LanguageMenu } from "../LanguageMenu";
 import { CountryMenu } from "../CountryMenu";
@@ -51,18 +52,20 @@ export const Header = async ({ locale }: HeaderProps) => {
               />
             </Link>
             <Box sx={{ display: "flex", gap: 2 }}>
-              <HeaderButton path="/">{t("home:header:home")}</HeaderButton>
-              <HeaderButton path="/polygons-validation">
-                {t("home:header:validation")}
-              </HeaderButton>
-              <HeaderButton path="/deforestation-analysis">
-                {t("home:header:deforestation")}
-              </HeaderButton>
-              <HeaderButton path="/report-generation">
-                {t("home:header:report")}
-              </HeaderButton>
-              <Suspense>
+              <HeaderNavigation>
+                <HeaderButton path="/">{t("home:header:home")}</HeaderButton>
+                <HeaderButton path="/polygons-validation">
+                  {t("home:header:validation")}
+                </HeaderButton>
+                <HeaderButton path="/deforestation-analysis">
+                  {t("home:header:deforestation")}
+                </HeaderButton>
+                <HeaderButton path="/report-generation">
+                  {t("home:header:report")}
+                </HeaderButton>
                 <CountryMenu />
+              </HeaderNavigation>
+              <Suspense>
                 <LanguageMenu />
               </Suspense>
             </Box>

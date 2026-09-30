@@ -78,13 +78,15 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
       .finally(() => setReady(true));
   }, []);
 
-  // Sign out when the token expires.
+  // Sign out when the token expires. Only sign out: the provider wraps the whole
+  // app (the header shows the session's country), and the admin pages already
+  // send a visitor without a session to the login.
   useEffect(() => {
     if (!session) return;
     const remaining = Date.parse(session.expiresAt) - Date.now();
-    const timer = setTimeout(signOutToLogin, Math.max(0, remaining));
+    const timer = setTimeout(logout, Math.max(0, remaining));
     return () => clearTimeout(timer);
-  }, [session, signOutToLogin]);
+  }, [session, logout]);
 
   const login = useCallback(async (passkey: string) => {
     const newSession = await createAdminSession(passkey);

@@ -11,6 +11,7 @@ import { LayoutProps } from "@/interfaces";
 import { Header } from "@/components/reusable/Header";
 import DataProvider from "@/context/DataContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
+import { AdminSessionProvider } from "@/context/AdminSessionContext";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -51,12 +52,16 @@ export default async function MainLayout({ children, params }: LayoutProps) {
           <ThemeProvider theme={theme}>
             <SnackbarProvider>
               <DataProvider locale={locale}>
-                <CssBaseline />
-                <Header locale={locale} />
-                <main>
-                  <Toolbar />
-                  {children}
-                </main>
+                {/* Here rather than in the admin layout: the header shows the
+                    admin session's country. */}
+                <AdminSessionProvider>
+                  <CssBaseline />
+                  <Header locale={locale} />
+                  <main>
+                    <Toolbar />
+                    {children}
+                  </main>
+                </AdminSessionProvider>
               </DataProvider>
             </SnackbarProvider>
           </ThemeProvider>
