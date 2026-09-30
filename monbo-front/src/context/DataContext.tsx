@@ -5,6 +5,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  useEffectEvent,
   useMemo,
   useState,
 } from "react";
@@ -36,6 +37,8 @@ export interface DataContextValue {
   setDeforestationAnalysisResults: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisResults"]>
   >;
+  analysisOutdated: boolean;
+  setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
   reportGenerationParams: {
     initialFarmSelection: "all" | "select";
     selectedMaps: MapData[];
@@ -61,6 +64,8 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisParams: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
+  analysisOutdated: false,
+  setAnalysisOutdated: () => {},
   reportGenerationParams: {
     initialFarmSelection: "all",
     selectedMaps: [],
@@ -90,6 +95,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
 
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
     useState<DataContextValue["deforestationAnalysisResults"]>(null);
+  const [analysisOutdated, setAnalysisOutdated] = useState(false);
 
   const [reportGenerationParams, setReportGenerationParams] = useState<
     DataContextValue["reportGenerationParams"]
@@ -105,18 +111,51 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     DataContextValue["availableMaps"]
   >([]);
 
-  useEffect(() => {
-    const fetchAvailableMaps = async () => {
-      const maps = await getMaps(locale);
-      setAvailableMaps(maps);
-      // Keep already selected layers in step (language, and the raster version
-      // used to bust the tile cache); a layer no longer listed keeps its data.
+  // Read the current analysis state on each poll without restarting the timer.
+  const onMapsLoaded = useEffectEvent((maps: MapData[]) => {
+    setAvailableMaps(maps);
+    const selectedMaps = deforestationAnalysisParams.selectedMaps;
+    if (!selectedMaps.length) return;
+
+    // A hidden layer keeps its last metadata so an existing analysis can still
+    // refer to it; public /maps only returns enabled layers.
+    const refreshed = selectedMaps.map(
+      (selected) => maps.find((map) => map.id === selected.id) ?? selected
+    );
+    const calculationChanged = refreshed.some(
+      (map, index) =>
+        map.version !== selectedMaps[index].version ||
+        map.pixelSize !== selectedMaps[index].pixelSize ||
+        map.baseline !== selectedMaps[index].baseline ||
+        map.comparedAgainst !== selectedMaps[index].comparedAgainst
+    );
+
+    if (calculationChanged && deforestationAnalysisResults) {
+      // The API results and report used previous calculation inputs. Hide them
+      // before the map or its interpretation switches to the new values.
+      setDeforestationAnalysisResults(null);
+      setReportGenerationParams((prev) => ({
+        ...prev,
+        selectedMaps: [],
+        selectedFarms: [],
+        downloadType: null,
+      }));
+      setAnalysisOutdated(true);
+    }
+
+    if (refreshed.some((map, index) => map !== selectedMaps[index])) {
       setDeforestationAnalysisParams((prev) => ({
         ...prev,
-        selectedMaps: prev.selectedMaps.map(
-          (selected) => maps.find((map) => map.id === selected.id) ?? selected
-        ),
+        selectedMaps: refreshed,
       }));
+    }
+  });
+
+  useEffect(() => {
+    let active = true;
+    const fetchAvailableMaps = async () => {
+      const maps = await getMaps(locale);
+      if (active) onMapsLoaded(maps);
     };
     const interval = setInterval(
       fetchAvailableMaps,
@@ -124,7 +163,10 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     );
 
     fetchAvailableMaps();
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [locale]);
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
@@ -145,6 +187,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setDeforestationAnalysisParams,
       deforestationAnalysisResults,
       setDeforestationAnalysisResults,
+      analysisOutdated,
+      setAnalysisOutdated,
       reportGenerationParams,
       setReportGenerationParams,
       availableMaps,
@@ -160,6 +204,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setDeforestationAnalysisParams,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
+    analysisOutdated,
+    setAnalysisOutdated,
     reportGenerationParams,
     setReportGenerationParams,
     availableMaps,

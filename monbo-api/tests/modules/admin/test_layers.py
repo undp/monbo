@@ -1,8 +1,11 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
 import pytest
+import rasterio
 from fastapi.testclient import TestClient
+from rasterio.transform import from_origin
 
 from app.main import create_app
 from app.modules.admin.layers import create_layer
@@ -218,6 +221,7 @@ def test_edit_updates_metadata_in_place(layers, client, admin_headers):
     assert gfw["considerations"] == "nuevas notas"
     assert gfw["alias"] == "GFW 2021-2024"
     assert gfw["baseline"] == 2021
+    assert gfw["pixelSize"] == 30
 
 
 def test_removing_considerations_deletes_the_file(layers, client, admin_headers):
@@ -234,6 +238,40 @@ def test_edit_unknown_layer_is_404(layers, client, admin_headers):
     response = client.put("/admin/layers/999", json=layer_body(), headers=admin_headers)
 
     assert response.status_code == 404
+
+
+def test_edit_rejects_pixel_size_that_disagrees_with_existing_raster(
+    layers, client, admin_headers
+):
+    with rasterio.open(
+        layers.store.rasters_dir / "gfw.tif",
+        "w",
+        driver="GTiff",
+        width=16,
+        height=16,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_origin(-76.5, -0.2, 0.00027, 0.00027),
+    ) as raster:
+        raster.write(np.zeros((16, 16), dtype="uint8"), 1)
+    original_index = layers.store.index_path.read_bytes()
+    original_attributes = (
+        layers.root / "metadata" / "attributes" / "en" / "gfw.json"
+    ).read_bytes()
+
+    response = client.put(
+        "/admin/layers/0",
+        json=layer_body(pixel_size=10),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "resolution_mismatch"
+    assert layers.store.index_path.read_bytes() == original_index
+    assert (
+        layers.root / "metadata" / "attributes" / "en" / "gfw.json"
+    ).read_bytes() == original_attributes
 
 
 # --- Enable / disable ------------------------------------------------------------

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from app.modules.layers.processing import (
     IngestionError,
+    check_pixel_size,
     convert_to_cog,
     validate_raster,
     verify_same_pixels,
@@ -66,6 +67,7 @@ def _seed_layer(
     written.append(destination)
     try:
         validation = validate_raster(raster, None)
+        check_pixel_size(entry["pixel_size"], validation.pixel_size_m)
         convert_to_cog(raster, destination)
         verify_same_pixels(raster, destination)
     except IngestionError as e:

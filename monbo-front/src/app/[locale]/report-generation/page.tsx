@@ -9,6 +9,7 @@ import { SectionBackground } from "@/components/reusable/SectionBackground";
 import { PageTitle } from "@/components/page/reportGeneration/PageTitle";
 import { DeforestationResultsTable } from "@/components/page/reportGeneration/DeforestationResultsTable";
 import { PageFooter } from "@/components/page/reportGeneration/PageFooter";
+import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
 
 const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
 
@@ -22,41 +23,43 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
       namespaces={namespaces}
       resources={resources}
     >
-      <NavigateHomepageWhenEmptyData />
-      <Box
-        sx={{
-          padding: 3,
-          paddingBottom: 11,
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          height: "calc(100vh - 64px)",
-        }}
-      >
+      <AnalysisOutdatedGuard locale={locale}>
+        <NavigateHomepageWhenEmptyData />
         <Box
           sx={{
+            padding: 3,
+            paddingBottom: 11,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: "column",
+            gap: 2,
+            height: "calc(100vh - 64px)",
           }}
         >
-          <PageTitle />
-          <Suspense>
-            <SearchBar
-              placeholder={t("reportGeneration:searchPlaceholder")}
-              style={{ minWidth: "400px" }}
-            />
-          </Suspense>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <PageTitle />
+            <Suspense>
+              <SearchBar
+                placeholder={t("reportGeneration:searchPlaceholder")}
+                style={{ minWidth: "400px" }}
+              />
+            </Suspense>
+          </Box>
+          <SectionBackground
+            sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300, padding: 0 }}
+          >
+            <Suspense>
+              <DeforestationResultsTable />
+            </Suspense>
+          </SectionBackground>
         </Box>
-        <SectionBackground
-          sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300, padding: 0 }}
-        >
-          <Suspense>
-            <DeforestationResultsTable />
-          </Suspense>
-        </SectionBackground>
-      </Box>
-      <PageFooter />
+        <PageFooter />
+      </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );
 }

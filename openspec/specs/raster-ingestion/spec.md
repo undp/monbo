@@ -66,7 +66,7 @@ Ingestion SHALL reject the raster when it cannot be opened as a GeoTIFF, when it
 
 ### Requirement: Exhaustive binary validation
 
-Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL accept it only when all values belong to {0, 1} plus the nodata value (declared in the file or given at upload). On failure, the message SHALL list up to 10 offending values. When the offending values fall within 1980–2100, the message SHALL add that they look like loss-year values that must be binarized against the baseline. A raster with no pixel equal to 1 SHALL be accepted with a warning.
+Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL accept it only when all values belong to {0, 1} plus the nodata value (declared in the file or given at upload). Nodata SHALL NOT be 1, because 1 represents forest loss in the analysis. On failure, the message SHALL list up to 10 offending values. When the offending values fall within 1980–2100, the message SHALL add that they look like loss-year values that must be binarized against the baseline. A raster with no pixel equal to 1 SHALL be accepted with a warning.
 
 #### Scenario: Binary raster accepted
 
@@ -87,6 +87,20 @@ Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL
 
 - **WHEN** a raster contains 0, 1, and 3, and the upload specifies `nodata=3`
 - **THEN** validation passes and the stored raster declares nodata 3
+
+#### Scenario: Nodata equals the forest-loss value
+
+- **WHEN** a raster declares nodata 1, or the upload specifies `nodata=1`
+- **THEN** ingestion fails and the layer keeps its previous raster
+
+### Requirement: Raster resolution matches the layer pixel size
+
+Ingestion SHALL compare the raster pixel area, expressed as a nominal pixel side in meters, with the layer's `pixel_size`. A geographic CRS SHALL use the raster's middle latitude for this approximation. The relative difference SHALL be at most 5%. The check SHALL run before conversion and again before activation, so an edit during conversion cannot activate a mismatched raster. Seeding SHALL apply the same check.
+
+#### Scenario: Resolution mismatch
+
+- **WHEN** a layer declares 30 m pixels and the uploaded raster has 10 m pixels
+- **THEN** the job fails, reporting both sizes, and the layer's raster and version stay unchanged
 
 #### Scenario: No deforestation pixels
 
@@ -125,4 +139,3 @@ Only after conversion and verification succeed SHALL ingestion move the COG to i
 
 - **WHEN** a job fails validation
 - **THEN** the layer's `raster_filename` and `version` are unchanged and no staging file remains
-

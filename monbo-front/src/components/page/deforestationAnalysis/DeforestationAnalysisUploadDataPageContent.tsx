@@ -42,6 +42,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
     setDeforestationAnalysisParams,
     setDeforestationAnalysisResults,
+    analysisOutdated,
+    setAnalysisOutdated,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(() => !!farmsData);
@@ -114,9 +116,12 @@ export function DeforestationAnalysisUploadDataPageContent() {
           selectedMapsForDeforestation
         );
         setDeforestationAnalysisResults(response);
-        router.push("/deforestation-analysis");
+        setAnalysisOutdated(false);
+        router.push(`/${i18n.language}/deforestation-analysis`);
         openSnackbar({
-          message: t("common:snackbarAlerts:dataAnalizedSuccessfully"),
+          message: analysisOutdated
+            ? t("deforestationAnalysis:uploadDataPage:analysisUpdated")
+            : t("common:snackbarAlerts:dataAnalizedSuccessfully"),
           type: "success",
         });
       } catch {
@@ -133,20 +138,32 @@ export function DeforestationAnalysisUploadDataPageContent() {
       selectedMapsForDeforestation,
       router,
       setDeforestationAnalysisResults,
+      setAnalysisOutdated,
+      analysisOutdated,
       openSnackbar,
       t,
+      i18n.language,
     ]
   );
 
   useEffect(() => {
-    const serializedData = JSON.stringify(farmsData?.map((d) => d.id));
+    const serializedData = JSON.stringify({
+      farms: farmsData?.map((farm) => farm.id),
+      calculationInputs: selectedMapsForDeforestation.map((map) => [
+        map.id,
+        map.version,
+        map.pixelSize,
+        map.baseline,
+        map.comparedAgainst,
+      ]),
+    });
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
     if (!farmsData) return;
 
     performDeforestationAnalysis(farmsData);
-  }, [farmsData, performDeforestationAnalysis]);
+  }, [farmsData, selectedMapsForDeforestation, performDeforestationAnalysis]);
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
@@ -178,7 +195,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
   if (loading)
     return (
       <LoadingScreen
-        text={t("deforestationAnalysis:uploadDataPage:loadingText")}
+        text={t(
+          analysisOutdated
+            ? "deforestationAnalysis:uploadDataPage:recalculatingText"
+            : "deforestationAnalysis:uploadDataPage:loadingText"
+        )}
       />
     );
 

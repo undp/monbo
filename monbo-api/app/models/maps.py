@@ -17,6 +17,7 @@ class BaseMapData(BaseModel):
     considerations: str | None
     availableCountriesCodes: list[str]
     version: int
+    pixelSize: float
 
 
 class MapData(BaseMapData):

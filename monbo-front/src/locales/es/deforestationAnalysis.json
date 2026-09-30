@@ -5,6 +5,8 @@
   "deforestationMapFooter": "Línea base de {{baselineYear}} comparada con datos de {{comparedToYear}}",
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
+    "recalculatingText": "Cambió una capa de mapa. Recalculando el análisis…",
+    "analysisUpdated": "El análisis se recalculó con la capa de mapa actualizada.",
     "title": "Carga de polígonos y/o puntos",
     "templateStep": {
       "stepTitle": "Paso 1: Descarga la plantilla",
@@ -23,7 +25,8 @@
       "inactiveDragzoneCallToAction": "Sube tu archivo",
       "activeDragzoneCallToAction": "Suelta el archivo aquí",
       "dragzoneButtonText": "Click para cargar",
-      "dragzoneText": "o arrastra y suelta el archivo"
+      "dragzoneText": "o arrastra y suelta el archivo",
+      "allowedExtensions": ".xlsx o .xls"
     }
   },
   "deforestationFreeShortText": "Libre Def.",

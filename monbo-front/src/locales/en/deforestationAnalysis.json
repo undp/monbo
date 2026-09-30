@@ -5,6 +5,8 @@
   "deforestationMapFooter": "{{baselineYear}} baseline compared to {{comparedToYear}} data",
   "uploadDataPage": {
     "loadingText": "Loading the data",
+    "recalculatingText": "A map layer changed. Recalculating the analysis…",
+    "analysisUpdated": "The analysis was recalculated with the updated map layer.",
     "title": "Upload Polygons or Points",
     "templateStep": {
       "stepTitle": "Step 1: Download the Template",
