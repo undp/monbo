@@ -4,6 +4,7 @@ import { ReportGenerationPreviewPageContent } from "@/components/page/reportGene
 import initTranslations from "@/utils/i18n";
 import { PageWithSearchParams } from "@/interfaces";
 import { PageFooter } from "@/components/page/reportGeneration/preview/PageFooter";
+import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
 
 const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
 
@@ -19,9 +20,11 @@ export default async function ReportGenerationPreviewPage({
       namespaces={namespaces}
       resources={resources}
     >
-      <NavigateHomepageWhenEmptyData />
-      <ReportGenerationPreviewPageContent />
-      <PageFooter />
+      <AnalysisOutdatedGuard locale={locale}>
+        <NavigateHomepageWhenEmptyData />
+        <ReportGenerationPreviewPageContent />
+        <PageFooter />
+      </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );
 }

@@ -6,6 +6,7 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -40,6 +41,8 @@ export interface DataContextValue {
   setDeforestationAnalysisResults: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisResults"]>
   >;
+  analysisOutdated: boolean;
+  setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
   reportGenerationParams: {
     initialFarmSelection: "all" | "select";
     selectedMaps: MapData[];
@@ -84,7 +87,7 @@ const subscribeToSelectedCountry = (listener: () => void) => {
   };
 };
 
-const readSelectedCountry = () => {
+export const readSelectedCountry = () => {
   try {
     return sessionStorage.getItem(SELECTED_COUNTRY_STORAGE_KEY);
   } catch {
@@ -126,6 +129,8 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisParams: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
+  analysisOutdated: false,
+  setAnalysisOutdated: () => {},
   reportGenerationParams: initialReportGenerationParams,
   setReportGenerationParams: () => {},
   availableMaps: [],
@@ -156,6 +161,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
 
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
     useState<DataContextValue["deforestationAnalysisResults"]>(null);
+  const [analysisOutdated, setAnalysisOutdated] = useState(false);
 
   const [reportGenerationParams, setReportGenerationParams] = useState<
     DataContextValue["reportGenerationParams"]
@@ -193,28 +199,82 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setFarmsData(null);
     setPolygonsValidationResults(null);
     setDeforestationAnalysisResults(null);
+    setAnalysisOutdated(false);
     setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
     setReportGenerationParams(initialReportGenerationParams);
   }, []);
 
+  // Read the current analysis state on each poll without restarting the timer.
+  const onMapsLoaded = useEffectEvent((maps: MapData[]) => {
+    setAvailableMaps(maps);
+    const selectedMaps = deforestationAnalysisParams.selectedMaps;
+    if (!selectedMaps.length) return;
+
+    // A hidden layer keeps its last metadata so an existing analysis can still
+    // refer to it; public /maps only returns enabled layers.
+    const refreshed = selectedMaps.map(
+      (selected) => maps.find((map) => map.id === selected.id) ?? selected
+    );
+    const calculationChanged = refreshed.some(
+      (map, index) =>
+        map.version !== selectedMaps[index].version ||
+        map.pixelSize !== selectedMaps[index].pixelSize ||
+        map.baseline !== selectedMaps[index].baseline ||
+        map.comparedAgainst !== selectedMaps[index].comparedAgainst
+    );
+
+    if (calculationChanged && deforestationAnalysisResults) {
+      // The API results and report used previous calculation inputs. Hide them
+      // before the map or its interpretation switches to the new values.
+      setDeforestationAnalysisResults(null);
+      setReportGenerationParams((prev) => ({
+        ...prev,
+        selectedMaps: [],
+        selectedFarms: [],
+        downloadType: null,
+      }));
+      setAnalysisOutdated(true);
+    }
+
+    if (refreshed.some((map, index) => map !== selectedMaps[index])) {
+      setDeforestationAnalysisParams((prev) => ({
+        ...prev,
+        selectedMaps: refreshed,
+      }));
+    }
+  });
+
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     const fetchAvailableCountries = async () => {
       try {
         const countries = await getCountries();
-        if (cancelled) return;
+        if (!active) return;
         setAvailableCountries(countries.map(({ code }) => code));
         setAvailableCountriesLoaded(true);
         setAvailableCountriesError(false);
       } catch (error) {
         console.error(error);
         // Once a list has arrived, a failed refresh keeps it.
-        if (!cancelled) setAvailableCountriesError(true);
+        if (active) setAvailableCountriesError(true);
       }
     };
+    const interval = setInterval(
+      fetchAvailableCountries,
+      AVAILABLE_MAPS_POLLING_INTERVAL
+    );
+    fetchAvailableCountries();
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    // The layers are only needed once a country is chosen.
+    if (!selectedCountry) return;
+    let active = true;
     const fetchAvailableMaps = async () => {
-      // The layers are only needed once a country is chosen.
-      if (!selectedCountry) return;
       let maps: MapData[];
       try {
         maps = await getMaps(locale, selectedCountry);
@@ -222,26 +282,13 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         console.error(error);
         return;
       }
-      if (cancelled) return;
-      setAvailableMaps(maps);
-      // Keep already selected layers in step (language, and the raster version
-      // used to bust the tile cache); a layer no longer listed keeps its data.
-      setDeforestationAnalysisParams((prev) => ({
-        ...prev,
-        selectedMaps: prev.selectedMaps.map(
-          (selected) => maps.find((map) => map.id === selected.id) ?? selected
-        ),
-      }));
+      if (!active) return;
+      onMapsLoaded(maps);
     };
-    const fetchAll = () => {
-      fetchAvailableCountries();
-      fetchAvailableMaps();
-    };
-    const interval = setInterval(fetchAll, AVAILABLE_MAPS_POLLING_INTERVAL);
-
-    fetchAll();
+    const interval = setInterval(fetchAvailableMaps, AVAILABLE_MAPS_POLLING_INTERVAL);
+    fetchAvailableMaps();
     return () => {
-      cancelled = true;
+      active = false;
       clearInterval(interval);
     };
   }, [locale, selectedCountry]);
@@ -282,6 +329,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setDeforestationAnalysisParams,
       deforestationAnalysisResults,
       setDeforestationAnalysisResults,
+      analysisOutdated,
+      setAnalysisOutdated,
       reportGenerationParams,
       setReportGenerationParams,
       availableMaps,
@@ -304,6 +353,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setDeforestationAnalysisParams,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
+    analysisOutdated,
+    setAnalysisOutdated,
     reportGenerationParams,
     setReportGenerationParams,
     availableMaps,

@@ -50,7 +50,7 @@ Key points for building the right mental model:
 
 ### 2.2 End-to-end flow (the user's journey)
 
-**Everything starts with the country.** The landing page (`/`) shows a world map where only the countries with at least one layer are highlighted (derived from the `availableCountriesCodes` of `GET /maps`); the user picks one and lands on `/home`. The country is one ISO code kept in `DataContext` (`selectedCountry`, persisted in `sessionStorage` for the tab); the module pages redirect to `/` without it, and the layer lists only show that country's layers. The header shows it next to the language menu: it can change freely until a deforestation analysis exists, and after that changing it means starting over (a modal asks, and accepting clears every loaded result). All country changes go through `hooks/useCountryChange.ts`.
+**Everything starts with the country.** The landing page (`/`) shows a world map where only the countries with at least one layer are highlighted (derived from the `availableCountriesCodes` of `GET /maps`); the user picks one and lands on `/home`. The country is one ISO code kept in `DataContext` (`selectedCountry`, persisted in `sessionStorage` for the tab); the module pages redirect to `/` without it, and the layer lists only show that country's layers. The header shows it next to the language menu: before a deforestation analysis exists, changing it keeps the farms and validation results, updates each farm's country, and clears the selected layers. After an analysis, changing it means starting over (a modal asks, and accepting clears every loaded result). All country changes go through `hooks/useCountryChange.ts`.
 
 The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`monbo-front/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
@@ -63,6 +63,9 @@ The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module
 4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country). *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
 5. The backend iterates **per map × per farm** and returns `[{mapId, farmResults:[{farmId, value}]}]`, where `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
 6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
+   If an admin replaces a selected raster or changes its calculation fields while
+   the page is open, the browser discards the earlier percentages and recalculates
+   them before showing the updated map or report.
 
 **Module 3 — Report**
 7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background).
@@ -93,6 +96,9 @@ This is the core concept worth understanding clearly.
 - **Google Maps Platform**: base map and satellite background (requires `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` on the frontend and credentials on the backend).
 - **Google Earth Engine**: only in the offline raster-generation script.
 - **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
+- **Raster ingestion checks the calculation inputs.** Nodata cannot be `1`, and
+  the configured `pixel_size` must be within 5% of the raster's measured pixel
+  size. The same size check applies when an admin edits a layer with a raster.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.
 
 ---

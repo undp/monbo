@@ -46,6 +46,7 @@ def get_maps(language: str = "en", country: str | None = None):
           layer lists)
         - version: Raster version, incremented on every raster replacement (the
           frontend appends it to tile URLs to bypass cached tiles)
+        - pixelSize: Nominal pixel size in meters, used by the analysis formula
     """
     enabled_countries = get_layers_root().enabled_countries()
     maps = [
@@ -91,6 +92,7 @@ def get_maps(language: str = "en", country: str | None = None):
                 considerations=considerations_text,
                 availableCountriesCodes=map.get("available_countries_codes", []),
                 version=map["version"],
+                pixelSize=map["pixel_size"],
             )
         )
 

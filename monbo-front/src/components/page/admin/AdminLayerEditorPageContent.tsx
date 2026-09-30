@@ -90,13 +90,26 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
           openSnackbar({ message: t("admin:form:saved"), type: "success" });
         }
       } catch (e) {
-        const details =
+        const validationDetails =
           e instanceof AdminApiError && e.status === 422
             ? describeValidationError(e)
             : null;
+        const issue =
+          e instanceof AdminApiError &&
+          e.status === 409 &&
+          typeof e.detail === "object" &&
+          e.detail !== null &&
+          "code" in e.detail
+            ? (e.detail as { code: string; params?: Record<string, unknown> })
+            : null;
+        const issueDetails =
+          issue?.code === "resolution_mismatch" ||
+          issue?.code === "resolution_unavailable"
+            ? t(`admin:raster:issues:${issue.code}`, issue.params)
+            : null;
         openSnackbar({
-          message: details
-            ? `${t("admin:form:saveError")} ${details}`
+          message: validationDetails || issueDetails
+            ? `${t("admin:form:saveError")} ${validationDetails ?? issueDetails}`
             : t("admin:form:saveError"),
           type: "error",
         });

@@ -79,8 +79,12 @@ Each country's `index.json` is a list with one entry per layer:
   reference it keep working. Missing means `true`.
 - **version**: Goes up by one with every successful raster upload. The frontend adds
   it to tile URLs (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
+  If a version or calculation field changes during an open analysis, the browser
+  discards the old results and recalculates them before showing the map or report.
   Missing means `1`.
 - **pixel_size**: Pixel size in meters; the analysis uses it for the pixel area.
+  Uploads and later edits must agree with the raster's measured pixel area within
+  5%. Geographic raster sizes are approximated at the middle latitude.
 - **baseline** / **compared_against**: First and last year of the loss period.
 - **references**: http(s) links shown with the layer.
 - **available_countries_codes**: only in the flat layout, the countries the layer
@@ -101,7 +105,8 @@ The admin shows and changes only that country's layers. Then:
   raster until the new one has been fully processed.
 - **Publish or hide it**: a layer can only be published once it has a raster.
 - **Edit it**: fields and metadata can be changed at any time, and the change is live
-  immediately. The id, raster, version and published state are not edited there.
+  immediately. Changing `pixel_size` is rejected if it disagrees with the current
+  raster. The id, raster, version and published state are not edited there.
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 
@@ -138,7 +143,8 @@ values. A raster must be:
 - a GeoTIFF with **exactly one band** of **integer** values and a **coordinate
   reference system**;
 - **binary**: only `0` (no loss), `1` (loss) and, optionally, a nodata value. Every
-  pixel is checked.
+  pixel is checked. Nodata cannot be `1`, because the analysis counts `1` as loss.
+- have a pixel size consistent with the layer's `pixel_size` (within 5%).
 - no larger than `ADMIN_MAX_UPLOAD_MB` (500 MB by default).
 
 If the file doesn't declare its nodata value, enter it in the upload form.
@@ -150,7 +156,8 @@ warning.
 
 ### What happens to an upload
 
-1. The whole raster is scanned to confirm it is binary.
+1. The whole raster is scanned to confirm it is binary, and its pixel size is
+   compared with the layer before and after conversion.
 2. It is converted to a Cloud Optimized GeoTIFF: DEFLATE compression, 512×512
    tiles and overviews resampled with `nearest`. Bit-packed samples are stored as
    8-bit.

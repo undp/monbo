@@ -19,6 +19,7 @@ export function useCountryChange() {
     setSelectedCountry,
     deforestationAnalysisResults,
     resetAnalysis,
+    setFarmsData,
     setDeforestationAnalysisParams,
     setReportGenerationParams,
   } = useContext(DataContext);
@@ -35,14 +36,25 @@ export function useCountryChange() {
         setPendingCountry(code);
         return;
       }
-      setSelectedCountry(code);
       setDeforestationAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
-      setReportGenerationParams((prev) => ({ ...prev, selectedMaps: [] }));
+      setFarmsData(
+        (prev) => prev?.map((farm) => ({ ...farm, country: code })) ?? null
+      );
+      setReportGenerationParams((prev) => ({
+        ...prev,
+        selectedMaps: [],
+        selectedFarms: prev.selectedFarms.map((farm) => ({
+          ...farm,
+          country: code,
+        })),
+      }));
+      setSelectedCountry(code);
       if (navigateTo) router.push(navigateTo);
     },
     [
       selectedCountry,
       deforestationAnalysisResults,
+      setFarmsData,
       setSelectedCountry,
       setDeforestationAnalysisParams,
       setReportGenerationParams,

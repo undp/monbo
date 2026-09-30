@@ -139,6 +139,20 @@ def test_seed_refuses_a_target_that_already_has_an_index(source, tmp_path):
     assert (target / "index.json").read_text() == "[]"
 
 
+def test_seed_refuses_a_layer_with_the_wrong_pixel_size(source, tmp_path):
+    index_path = source / "index.json"
+    index = json.loads(index_path.read_text())
+    index[1]["pixel_size"] = 10
+    index_path.write_text(json.dumps(index))
+    target = tmp_path / "target"
+
+    with pytest.raises(SeedError, match="Layer 4.*pixel size"):
+        seed(source, target, log=lambda _: None)
+
+    assert not (target / "index.json").exists()
+    assert not list((target / "layers" / "rasters").glob("*.tif"))
+
+
 def test_a_non_binary_layer_aborts_and_leaves_nothing(source, tmp_path):
     data = binary(1)
     data[-1, -1] = 2
