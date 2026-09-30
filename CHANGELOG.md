@@ -8,7 +8,7 @@
 - Add the `MAPS_ROOT` environment variable to the API to read the layers from another directory (by default the Git-tracked `app/maps`), and report it in `/health`
 - Add a seed command (`uv run python -m app.modules.layers.seed`) that prepares a layers root from the Git-tracked layers
 - Add a 10-farm regression suite and a parity script (`uv run python -m tests.regression.parity`) that compares the results of two deployed APIs
-- Add a landing page with a world map to choose the analysis country first: only countries with layers can be picked, and a "Contact us to add your country" button opens `NEXT_PUBLIC_CONTACT_URL` (hidden when unset)
+- Add a landing page to choose the analysis country first: one card per country with layers, with its silhouette, and a "Your country could be next" card that opens `NEXT_PUBLIC_CONTACT_URL` (hidden when unset)
 - Add a country selector to the header. The country can change until a deforestation analysis exists; after that, changing it asks to start over
 - Give each country its own layers and its own admin. Layers live in one folder per country under `MAPS_ROOT`, with a country registry (`countries.json`) holding each country's passkey hash. Manage countries with `uv run python -m app.modules.admin.countries add|list|rotate|disable|enable` (in Azure, `./azure/deploy.sh countries …`); changes apply without a restart
 - Add `GET /countries` (the countries with at least one published layer) and a `country` filter to `GET /maps`. The landing page and the header selector use them
@@ -18,7 +18,7 @@
 
 - In Azure, the API reads its layers from an Azure Files share mounted at `/mnt/maps`, in its own resource group with a delete lock, share soft delete and daily backups. `azure/deploy.sh storage` creates it, and the API app is rendered by `azure/render_api_app.py` instead of `azure/monbo-api-app.yml`
 - The API image runs as uid/gid 10001
-- The module cards move from `/` to `/home`, and the module pages send the user to the landing page when no country is selected
+- The module cards move from `/` to `/home` ("Home" and the logo in the header go to the landing page), and the module pages send the user to the landing page when no country is selected
 - The layers admin needs the per-country layout and uses one passkey per country (`ADMIN_PASSKEY_HASH`, from earlier builds of this release, is ignored), and each admin only sees and edits their country's layers. Each country numbers its layers from 0, so `POST /deforestation_analysis/analize` and `POST /deforestation_analysis/generate-image` take a `country` in the body, and tiles move to `/deforestation_analysis/tiles/{country}/{id}/…` (the country is optional in the body with a flat root). The admin form no longer asks for countries. A flat root (like the Git-tracked `app/maps`) is still served, read-only
 - In Azure the share holds the per-country layout at `/mnt/maps`. `./azure/deploy.sh seed` fills it from the Git-tracked layers (emptying it first after a confirmation), for a new environment or to start one over
 - The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers

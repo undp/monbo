@@ -1,124 +1,143 @@
 "use client";
 
-import { useCallback, useContext } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Paper,
-} from "@mui/material";
-import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import { useContext, useEffect } from "react";
+import { Alert, Box, Button, Skeleton, alpha, useTheme } from "@mui/material";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Text } from "@/components/reusable/Text";
 import { RestartAnalysisModal } from "@/components/reusable/Modals/RestartAnalysisModal";
 import { DataContext } from "@/context/DataContext";
 import { useAvailableCountries } from "@/hooks/useAvailableCountries";
 import { useCountryChange } from "@/hooks/useCountryChange";
 import { CONTACT_URL } from "@/config/env";
-import { CountryMap } from "./CountryMap";
+import { CountryCard } from "./CountryCard";
+import { InviteCard } from "./InviteCard";
+
+// Selected when the user arrives without a country, if it has layers.
+const DEFAULT_COUNTRY = "CO";
 
 export const LandingPageContent: React.FC = () => {
   const { t } = useTranslation();
-  const { selectedCountry } = useContext(DataContext);
+  const colors = useTheme().palette.landing;
+  const router = useRouter();
+  const { selectedCountry, setSelectedCountry, countryHydrated } =
+    useContext(DataContext);
   const { countries, loading, error } = useAvailableCountries();
   const { requestCountryChange, pendingCountry, confirmRestart, cancelRestart } =
     useCountryChange();
 
-  const onSelect = useCallback(
-    (code: string) => requestCountryChange(code, { navigateTo: "/home" }),
-    [requestCountryChange]
-  );
+  // Start with a country chosen, so "Continue" is always possible.
+  useEffect(() => {
+    if (!countryHydrated || selectedCountry || !countries.length) return;
+    const initial =
+      countries.find(({ code }) => code === DEFAULT_COUNTRY) ?? countries[0];
+    setSelectedCountry(initial.code);
+  }, [countryHydrated, selectedCountry, countries, setSelectedCountry]);
+
+  const selected = countries.find(({ code }) => code === selectedCountry);
 
   return (
     <Box
+      component="section"
       sx={{
-        maxWidth: 1280,
+        maxWidth: 1120,
         margin: "0 auto",
-        padding: 3,
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
+        padding: { xs: "40px 20px 56px", md: "56px 32px 72px" },
+        color: colors.text,
       }}
     >
-      <Box sx={{ textAlign: "center", marginTop: 1 }}>
-        <Text variant="h1" sx={{ fontSize: 34, fontWeight: 500, mb: 2 }}>
-          {t("home:landing:title")}
-        </Text>
-        <Text variant="h2" sx={{ fontSize: 20, fontWeight: 400 }}>
-          {t("home:landing:subtitle")}
-        </Text>
+      <Box
+        component="h1"
+        sx={{
+          fontSize: { xs: 32, md: 40 },
+          fontWeight: 500,
+          textAlign: "center",
+          margin: "0 0 16px",
+          letterSpacing: "-.01em",
+        }}
+      >
+        {t("home:landing:title")}
       </Box>
+      <Box
+        component="p"
+        sx={{
+          fontSize: 19,
+          color: colors.textSecondary,
+          textAlign: "center",
+          margin: "0 auto 48px",
+          maxWidth: 760,
+          lineHeight: 1.45,
+          textWrap: "pretty",
+        }}
+      >
+        {t("home:landing:subtitle")}
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {t("home:landing:loadError")}
+        </Alert>
+      )}
+      {!loading && !error && countries.length === 0 && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {t("home:landing:noCountries")}
+        </Alert>
+      )}
 
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 280px" },
-          gap: 3,
-          alignItems: "start",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "28px",
+          // auto-fit widens a lone card to the whole row (e.g. only the invite
+          // card when the countries can't load): keep every card card-sized.
+          "& > *": { width: "100%", maxWidth: 280, justifySelf: "center" },
         }}
       >
-        <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <CountryMap
-            countries={countries}
-            selectedCountry={selectedCountry}
-            onSelect={onSelect}
-          />
-        </Paper>
+        {loading
+          ? [0, 1, 2].map((index) => (
+              <Skeleton
+                key={index}
+                variant="rounded"
+                sx={{ aspectRatio: "1 / 1", height: "auto", borderRadius: "24px" }}
+              />
+            ))
+          : countries.map(({ code, name }) => (
+              <CountryCard
+                key={code}
+                code={code}
+                name={name}
+                selected={code === selectedCountry}
+                onSelect={(country) => requestCountryChange(country)}
+              />
+            ))}
+        {CONTACT_URL && <InviteCard href={CONTACT_URL} />}
+      </Box>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Text variant="h3" bold>
-            {t("home:landing:availableCountries")}
-          </Text>
-          {error ? (
-            <Alert severity="error">{t("home:landing:loadError")}</Alert>
-          ) : loading ? (
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <CircularProgress size={20} />
-              <Text>{t("home:landing:loading")}</Text>
-            </Box>
-          ) : countries.length === 0 ? (
-            <Text>{t("home:landing:noCountries")}</Text>
-          ) : (
-            <Box
-              component="ul"
-              sx={{
-                listStyle: "none",
-                margin: 0,
-                padding: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-              }}
-            >
-              {countries.map(({ code, name }) => (
-                <li key={code}>
-                  <Button
-                    fullWidth
-                    variant={code === selectedCountry ? "contained" : "outlined"}
-                    onClick={() => onSelect(code)}
-                    sx={{ justifyContent: "flex-start" }}
-                  >
-                    {name}
-                  </Button>
-                </li>
-              ))}
-            </Box>
-          )}
-          {CONTACT_URL && (
-            <Button
-              variant="text"
-              startIcon={<MailOutlineIcon />}
-              href={CONTACT_URL}
-              {...(CONTACT_URL.startsWith("mailto:")
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-              sx={{ alignSelf: "flex-start", mt: 1 }}
-            >
-              {t("home:landing:contact")}
-            </Button>
-          )}
-        </Box>
+      <Box sx={{ marginTop: 5, display: "flex", justifyContent: "center" }}>
+        <Button
+          variant="contained"
+          disabled={!selected}
+          onClick={() => router.push("/home")}
+          endIcon={<span aria-hidden>→</span>}
+          sx={{
+            minWidth: { xs: "100%", sm: 360 },
+            justifyContent: "space-between",
+            gap: 6,
+            backgroundColor: colors.primary,
+            borderRadius: "10px",
+            padding: "18px 22px",
+            fontSize: 20,
+            fontWeight: 500,
+            textTransform: "none",
+            boxShadow: `0 2px 4px ${alpha(colors.primary, 0.25)}`,
+            "&:hover": { backgroundColor: colors.primaryDark },
+            "& .MuiButton-endIcon": { fontSize: 22, marginLeft: 0 },
+          }}
+        >
+          {selected
+            ? t("home:landing:continueWith", { country: selected.name })
+            : t("home:landing:continue")}
+        </Button>
       </Box>
 
       <RestartAnalysisModal

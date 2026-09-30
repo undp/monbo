@@ -1,6 +1,7 @@
 interface Country {
   code: string;
-  /** ISO 3166-1 numeric, the id `world-atlas` gives each country */
+  // ISO 3166-1 numeric: the key of the landing page's country shapes
+  // (scripts/generate-country-shapes.mjs).
   numericCode: string;
   nameEn: string;
   nameEs: string;
@@ -724,6 +725,3 @@ export const getCountryName = (code: string, language: "en" | "es") => {
   if (!country) return null;
   return language === "en" ? country.nameEn : country.nameEs;
 };
-
-export const getCountryByNumericCode = (numericCode: string) =>
-  countries.find((c) => c.numericCode === numericCode) ?? null;

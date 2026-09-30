@@ -2,73 +2,74 @@
 
 ## Purpose
 
-Define how the analysis country is chosen first: the landing map with the countries that have
-layers, the `/` and `/home` routes, the single selected country and its persistence, the header
-selector and its lock after an analysis, layer lists limited to that country, and the upload
-template without a country column.
+Define how the analysis country is chosen first: the landing page's country cards (only the
+countries that have layers), the `/` and `/home` routes, the single selected country and its
+persistence, the header selector and its lock after an analysis, layer lists limited to that
+country, and the upload template without a country column.
 
 ## Requirements
 
-### Requirement: Landing page with a country map
+### Requirement: Landing page with country cards
 
-The frontend SHALL serve a landing page at `/[locale]` that shows a world map and asks the user to choose the country for the deforestation analysis. The countries with layers SHALL be highlighted and SHALL be the only ones that respond to hover and click. The other countries SHALL be drawn in a neutral style and SHALL NOT be selectable. The map's initial view SHALL frame every country with layers. The page SHALL show a loading state until the list of layers has been fetched. If fetching the list fails before any list has arrived, the page SHALL show an error message asking the user to reload the page, instead of the loading state.
+The frontend SHALL serve a landing page at `/[locale]` that asks the user to choose the country for the deforestation analysis. It SHALL show one card per country with layers, and only those countries. Each card SHALL show the country's name, translated to the current language, over its silhouette. The selected card SHALL be highlighted. Choosing a card SHALL select that country; exactly one card SHALL be selected at a time, and the cards SHALL be usable with the keyboard. When the user arrives without a selected country, Colombia SHALL be selected, or the first country if Colombia has no layers. A "Continue with {country}" button SHALL navigate to `/home`. The page SHALL show a loading state until the list of countries has been fetched. If fetching the list fails before any list has arrived, the page SHALL show an error message asking the user to reload the page, instead of the loading state.
 
-#### Scenario: Current countries highlighted
+#### Scenario: Current countries
 
-- **WHEN** the layers returned by `GET /maps` list the country codes EC, CO, and CR
-- **THEN** Ecuador, Colombia, and Costa Rica are highlighted on the map and every other country is neutral
+- **WHEN** the layers list the country codes EC, CO, and CR
+- **THEN** the landing page shows the Colombia, Costa Rica, and Ecuador cards, and no card for any other country
 
-#### Scenario: Non-available country is inert
+#### Scenario: Default and change
 
-- **WHEN** the user clicks Peru on the map while Peru has no layers
-- **THEN** nothing happens and no country is selected
+- **WHEN** a user in a new tab opens the landing page and then chooses the Ecuador card
+- **THEN** Colombia is selected at first, and after the choice Ecuador's card is highlighted, the header shows Ecuador, and the button reads "Continue with Ecuador"
 
-#### Scenario: Layers cannot be fetched
+#### Scenario: Continue
 
-- **WHEN** `GET /maps` fails while the landing page loads
-- **THEN** the page shows an error message asking to reload the page, and reloading after the API recovers shows the highlighted countries
-
-#### Scenario: New country appears without a frontend change
-
-- **WHEN** an admin enables a layer whose country codes include PE
-- **THEN** after the next layer refresh Peru is highlighted and selectable, and the initial view includes it
-
-### Requirement: Accessible list of available countries
-
-The landing page SHALL also list the available countries as buttons with their names translated to the current language. Choosing a country from the list SHALL behave exactly like clicking it on the map. The list SHALL be usable with the keyboard alone.
+- **WHEN** the user clicks "Continue with Ecuador"
+- **THEN** the browser navigates to `/home` with Ecuador as the selected country
 
 #### Scenario: Keyboard selection
 
-- **WHEN** a keyboard user tabs to "Costa Rica" in the list and presses Enter
-- **THEN** Costa Rica becomes the selected country and the user is taken to `/home`
+- **WHEN** a keyboard user tabs to the Costa Rica card and presses Enter
+- **THEN** Costa Rica becomes the selected country
 
-### Requirement: Contact button to request a new country
+#### Scenario: Countries cannot be fetched
 
-The landing page SHALL show a "Contact us to add your country" button that opens the value of `NEXT_PUBLIC_CONTACT_URL`, which is configured at container start without rebuilding the image. The value MAY be an `https:` URL or a `mailto:` link. When the variable is empty or unset, the button SHALL NOT be shown.
+- **WHEN** fetching the countries fails while the landing page loads
+- **THEN** the page shows an error message asking to reload the page, and reloading after the API recovers shows the country cards
+
+#### Scenario: New country appears without a frontend change
+
+- **WHEN** an admin enables a layer for PE
+- **THEN** after the next refresh the landing page shows a Peru card
+
+### Requirement: Card to request a new country
+
+After the country cards, the landing page SHALL show a "Your country could be next" card with a "Contact us" link that opens the value of `NEXT_PUBLIC_CONTACT_URL`, configured at container start without rebuilding the image. The value MAY be an `https:` URL or a `mailto:` link. The card SHALL NOT select a country. When the variable is empty or unset, the card SHALL NOT be shown.
 
 #### Scenario: Contact URL configured
 
 - **WHEN** `NEXT_PUBLIC_CONTACT_URL` is `mailto:monbo@undp.org`
-- **THEN** the button opens a new email to that address
+- **THEN** the card opens a new email to that address
 
 #### Scenario: Contact URL not configured
 
 - **WHEN** `NEXT_PUBLIC_CONTACT_URL` is not set
-- **THEN** the landing page shows no contact button
+- **THEN** the landing page shows no card to request a country
 
 ### Requirement: Module cards served at /home
 
-The page with the three module cards SHALL be served at `/[locale]/home`. Selecting a country on the landing page SHALL navigate to `/home`. The header's "Home" button, the header logo, and every redirect that returns the user to the start of the flow SHALL go to `/home`.
+The page with the three module cards SHALL be served at `/[locale]/home`. Continuing from the landing page SHALL navigate to `/home`. The header's "Home" button and the header logo SHALL go to the landing page (`/`). Every redirect that returns the user to the start of the flow SHALL go to `/home`.
 
 #### Scenario: After choosing a country
 
-- **WHEN** the user selects Colombia on the landing page
+- **WHEN** the user selects Colombia on the landing page and continues
 - **THEN** the browser navigates to `/home` and shows the three module cards
 
 #### Scenario: Header home button
 
 - **WHEN** the user is on `/polygons-validation` and clicks "Home" in the header
-- **THEN** the browser navigates to `/home`
+- **THEN** the browser navigates to the landing page
 
 ### Requirement: A single selected country, kept for the browser session
 
@@ -79,10 +80,10 @@ The application SHALL hold exactly one selected country (an ISO 3166-1 alpha-2 c
 - **WHEN** the user selected Ecuador and reloads `/home`
 - **THEN** Ecuador is still the selected country and the landing page is not shown
 
-#### Scenario: New tab starts on the map
+#### Scenario: New tab starts without a country
 
 - **WHEN** the user opens the application in a new tab
-- **THEN** no country is selected
+- **THEN** no country is selected until the landing page preselects Colombia
 
 #### Scenario: Stored country no longer available
 
@@ -105,17 +106,17 @@ Every page under `/home`, `/polygons-validation`, `/deforestation-analysis`, and
 
 ### Requirement: Country selector in the header
 
-On every page except the landing page, the header SHALL show the selected country's name, placed to the left of the language menu, as a control that lists the available countries. The header SHALL NOT show the selector when no country is selected.
+On every page, the landing page included, the header SHALL show the selected country's name, placed to the left of the language menu, as a control that lists the available countries. The header SHALL NOT show the selector when no country is selected.
 
 #### Scenario: Selector shows the current country
 
 - **WHEN** the selected country is CO and the language is Spanish
 - **THEN** the header shows "Colombia" to the left of the language icon
 
-#### Scenario: Hidden on the landing page
+#### Scenario: Follows the landing page's cards
 
-- **WHEN** the user is on the landing page
-- **THEN** the header shows no country selector
+- **WHEN** the user chooses the Costa Rica card on the landing page
+- **THEN** the header shows "Costa Rica"
 
 ### Requirement: Changing the country before an analysis
 
@@ -155,7 +156,7 @@ Once a deforestation analysis result exists, choosing a different country SHALL 
 
 #### Scenario: Landing page cannot bypass the lock
 
-- **WHEN** an analysis exists for CO and the user opens the landing page and clicks Ecuador
+- **WHEN** an analysis exists for CO and the user opens the landing page and chooses the Ecuador card
 - **THEN** the restart modal opens
 
 ### Requirement: Layer choices restricted to the selected country

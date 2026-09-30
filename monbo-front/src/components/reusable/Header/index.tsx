@@ -42,7 +42,7 @@ export const Header = async ({ locale }: HeaderProps) => {
               width: "100%",
             }}
           >
-            <Link href="/home" style={{ height: 40 }}>
+            <Link href="/" style={{ height: 40 }}>
               <Image
                 alt="logo"
                 src="/images/Logo.svg"
@@ -51,7 +51,7 @@ export const Header = async ({ locale }: HeaderProps) => {
               />
             </Link>
             <Box sx={{ display: "flex", gap: 2 }}>
-              <HeaderButton path="/home">{t("home:header:home")}</HeaderButton>
+              <HeaderButton path="/">{t("home:header:home")}</HeaderButton>
               <HeaderButton path="/polygons-validation">
                 {t("home:header:validation")}
               </HeaderButton>
