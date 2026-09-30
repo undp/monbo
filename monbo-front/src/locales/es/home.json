@@ -31,11 +31,11 @@
   "landing": {
     "title": "¿Dónde está tu producción?",
     "subtitle": "Elige el país para el análisis de deforestación. Solo puedes elegir países que tienen mapas disponibles.",
-    "availableCountries": "Países disponibles",
-    "loading": "Cargando países disponibles…",
     "noCountries": "No hay países con mapas disponibles en este momento.",
-    "contact": "Contáctanos para agregar tu país",
-    "mapLabel": "Mapa del mundo con los países disponibles resaltados",
-    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo."
+    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo.",
+    "continueWith": "Continuar con {{country}}",
+    "continue": "Continuar",
+    "inviteTitle": "Tu país puede ser el próximo",
+    "inviteLink": "Contáctanos"
   }
 }
