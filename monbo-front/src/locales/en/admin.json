@@ -67,6 +67,35 @@
     "considerations": "Considerations (Markdown)",
     "preview": "Preview",
     "emptyPreview": "No considerations.",
+    "example": {
+      "open": "See an example of how to fill in the texts",
+      "title": "Example: a layer's texts",
+      "intro": "This is how the texts of the IDEAM deforestation layer of Colombia are filled in. Fill in each language in its tab: the texts are shown in the language chosen by whoever uses Monbo.",
+      "field": "Field",
+      "value": "Example",
+      "hints": {
+        "name": "Full name of the layer.",
+        "alias": "Short name shown in the analysis and the reports.",
+        "coverage": "Territory the map covers.",
+        "source": "Institution or project that produces the map.",
+        "resolution": "Size of a pixel on the ground.",
+        "contentDate": "Period the data covers.",
+        "updateFrequency": "How often a new version is published.",
+        "publishDate": "When it is usually published.",
+        "considerations": "Definitions and limitations, in Markdown: ### for headings, - for lists, **text** for bold."
+      },
+      "values": {
+        "name": "Deforestation by forest cover change of Colombia",
+        "alias": "IDEAM 2020-2023",
+        "coverage": "Colombia",
+        "source": "Institute of Hydrology, Meteorology and Environmental Studies (IDEAM) of Colombia",
+        "resolution": "30 x 30 meters",
+        "contentDate": "Data between 1990 and 2023",
+        "updateFrequency": "Annual (January to December)",
+        "publishDate": "June-July of the following year, approximately",
+        "considerations": "### IDEAM forest definition\n\n- Tree cover of at least 30% and a minimum height of 5 meters.\n- Minimum area of 1 hectare.\n\n**It does not distinguish** between primary and secondary forest."
+      }
+    },
     "save": "Save",
     "saving": "Saving…",
     "created": "Layer created. Now upload its raster so it can be published.",

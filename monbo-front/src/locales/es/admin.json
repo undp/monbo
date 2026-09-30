@@ -67,6 +67,35 @@
     "considerations": "Consideraciones (Markdown)",
     "preview": "Vista previa",
     "emptyPreview": "Sin consideraciones.",
+    "example": {
+      "open": "Ver un ejemplo de cómo llenar los textos",
+      "title": "Ejemplo: textos de una capa",
+      "intro": "Así se llenan los textos de la capa de deforestación del IDEAM de Colombia. Llena cada idioma en su pestaña: los textos se muestran en el idioma que elija quien usa Monbo.",
+      "field": "Campo",
+      "value": "Ejemplo",
+      "hints": {
+        "name": "Nombre completo de la capa.",
+        "alias": "Nombre corto que se muestra en el análisis y los reportes.",
+        "coverage": "Territorio que cubre el mapa.",
+        "source": "Institución o proyecto que produce el mapa.",
+        "resolution": "Tamaño del píxel en terreno.",
+        "contentDate": "Periodo que cubren los datos.",
+        "updateFrequency": "Cada cuánto se publica una versión nueva.",
+        "publishDate": "Cuándo suele publicarse.",
+        "considerations": "Definiciones y limitaciones, en Markdown: ### para títulos, - para listas, **texto** para negritas."
+      },
+      "values": {
+        "name": "Deforestación según cambio de superficie de bosque de Colombia",
+        "alias": "IDEAM 2020-2023",
+        "coverage": "Colombia",
+        "source": "Instituto de Hidrología, Meteorología y Estudios Ambientales (IDEAM) de Colombia",
+        "resolution": "30 x 30 metros",
+        "contentDate": "Datos entre 1990 y 2023",
+        "updateFrequency": "Anual (enero a diciembre)",
+        "publishDate": "Junio-julio del año siguiente, aproximadamente",
+        "considerations": "### Definición de bosque del IDEAM\n\n- Cobertura de árboles de al menos 30 % y altura mínima de 5 metros.\n- Superficie mínima de 1 hectárea.\n\n**No distingue** entre bosque primario y secundario."
+      }
+    },
     "save": "Guardar",
     "saving": "Guardando…",
     "created": "Capa creada. Ahora sube su raster para poder publicarla.",

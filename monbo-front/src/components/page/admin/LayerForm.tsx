@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import {
@@ -32,6 +33,7 @@ import {
   OPTIONAL_ATTRIBUTE_KEYS,
 } from "@/interfaces/AdminLayer";
 import { LayerFormValues, validators } from "./layerFormState";
+import { LayerTextsExampleModal } from "./LayerTextsExampleModal";
 import enAdmin from "@/locales/en/admin.json";
 import esAdmin from "@/locales/es/admin.json";
 
@@ -41,14 +43,19 @@ const TAB_LABELS: Record<AdminLanguage, typeof enAdmin.form> = {
   es: esAdmin.form,
 };
 
-export const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
+export const Section: React.FC<{
+  title: string;
+  // Shown right after the title (e.g. a help button)
+  titleAction?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, titleAction, children }) => (
   <Paper sx={{ padding: 3, marginBottom: 3 }}>
-    <Text variant="h6" component="h2" bold sx={{ marginBottom: 2 }}>
-      {title}
-    </Text>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, marginBottom: 2 }}>
+      <Text variant="h6" component="h2" bold>
+        {title}
+      </Text>
+      {titleAction}
+    </Box>
     {children}
   </Paper>
 );
@@ -160,6 +167,7 @@ export const LayerForm: React.FC = () => {
     formState: { errors },
   } = useFormContext<LayerFormValues>();
   const references = useFieldArray({ control, name: "references" });
+  const [exampleOpen, setExampleOpen] = useState(false);
 
   return (
     <>
@@ -219,7 +227,17 @@ export const LayerForm: React.FC = () => {
         </Grid>
       </Section>
 
-      <Section title={t("admin:form:sections:texts")}>
+      <Section
+        title={t("admin:form:sections:texts")}
+        titleAction={
+          <IconButton
+            aria-label={t("admin:form:example:open")}
+            onClick={() => setExampleOpen(true)}
+          >
+            <InfoOutlined />
+          </IconButton>
+        }
+      >
         <ClassicTabs
           keepMounted
           tabs={ADMIN_LANGUAGES.map((language, index) => {
@@ -241,6 +259,7 @@ export const LayerForm: React.FC = () => {
           })}
         />
       </Section>
+      <LayerTextsExampleModal open={exampleOpen} onClose={() => setExampleOpen(false)} />
     </>
   );
 };
