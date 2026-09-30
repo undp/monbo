@@ -8,10 +8,9 @@ import React, {
   useState,
 } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
-import { Text } from "@/components/reusable/Text";
 import { generateFarmsData } from "@/api/farms";
 import { analizeDeforestation } from "@/api/deforestationAnalysis";
-import { DataContext } from "@/context/DataContext";
+import { DataContext, readSelectedCountry } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -80,7 +79,13 @@ export function DeforestationAnalysisUploadDataPageContent() {
           data.map((row) => ({ ...row, country: selectedCountry })),
           i18n.language
         );
-        setFarmsData(results);
+        // The country can change while the parser request is in flight.
+        setFarmsData(
+          results.map((farm) => ({
+            ...farm,
+            country: readSelectedCountry() ?? farm.country,
+          }))
+        );
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -95,13 +100,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   const performDeforestationAnalysis = useCallback(
-    async (data: FarmData[]) => {
+    async (data: FarmData[], isCurrent: () => boolean) => {
       setLoading(true);
       try {
         const response = await analizeDeforestation(
           data,
           selectedMapsForDeforestation
         );
+        if (!isCurrent()) return;
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
         router.push(`/${i18n.language}/deforestation-analysis`);
@@ -112,6 +118,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           type: "success",
         });
       } catch {
+        if (!isCurrent()) return;
         openSnackbar({
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
@@ -134,8 +141,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   useEffect(() => {
+    if (!farmsData || !selectedMapsForDeforestation.length) {
+      prevDataRef.current = null;
+      return;
+    }
+
     const serializedData = JSON.stringify({
-      farms: farmsData?.map((farm) => farm.id),
+      country: selectedCountry,
+      farms: farmsData.map((farm) => [farm.id, farm.country]),
       calculationInputs: selectedMapsForDeforestation.map((map) => [
         map.id,
         map.version,
@@ -147,10 +160,28 @@ export function DeforestationAnalysisUploadDataPageContent() {
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
-    if (!farmsData) return;
+    let active = true;
+    let pending = true;
+    void performDeforestationAnalysis(
+      farmsData,
+      () => active && readSelectedCountry() === selectedCountry
+    ).finally(() => {
+      pending = false;
+    });
 
-    performDeforestationAnalysis(farmsData);
-  }, [farmsData, selectedMapsForDeforestation, performDeforestationAnalysis]);
+    return () => {
+      active = false;
+      // React Strict Mode replays effects before the first request settles.
+      if (pending && prevDataRef.current === serializedData) {
+        prevDataRef.current = null;
+      }
+    };
+  }, [
+    farmsData,
+    selectedCountry,
+    selectedMapsForDeforestation,
+    performDeforestationAnalysis,
+  ]);
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
@@ -179,7 +210,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
     [openSnackbar, t, performFarmsGeneration, i18n.language]
   );
 
-  if (loading)
+  if (loading && selectedMapsForDeforestation.length > 0)
     return (
       <LoadingScreen
         text={t(

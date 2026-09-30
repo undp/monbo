@@ -129,5 +129,5 @@ export const MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERA
 export const CONTACT_URL = (() => {
   const raw =
     process.env.NEXT_PUBLIC_CONTACT_URL ?? "__NEXT_PUBLIC_CONTACT_URL__";
-  return /^(https?:|mailto:)/i.test(raw.trim()) ? raw.trim() : null;
+  return /^(https:|mailto:)/i.test(raw.trim()) ? raw.trim() : null;
 })();

@@ -85,7 +85,7 @@ const subscribeToSelectedCountry = (listener: () => void) => {
   };
 };
 
-const readSelectedCountry = () => {
+export const readSelectedCountry = () => {
   try {
     return sessionStorage.getItem(SELECTED_COUNTRY_STORAGE_KEY);
   } catch {

@@ -10,7 +10,7 @@ import React, {
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { validatePolygons } from "@/api/polygonValidation";
-import { DataContext } from "@/context/DataContext";
+import { DataContext, readSelectedCountry } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -46,7 +46,13 @@ export function PolygonsValidationUploadDataPageContent() {
           data.map((row) => ({ ...row, country: selectedCountry })),
           i18n.language
         );
-        setFarmsData(results);
+        // The country can change while the parser request is in flight.
+        setFarmsData(
+          results.map((farm) => ({
+            ...farm,
+            country: readSelectedCountry() ?? farm.country,
+          }))
+        );
       } catch (error) {
         console.error(error);
         openSnackbar({

@@ -119,12 +119,17 @@ On every page except the landing page, the header SHALL show the selected countr
 
 ### Requirement: Changing the country before an analysis
 
-While no deforestation analysis result exists, choosing a different country from the header or the landing page SHALL change the selected country immediately. It SHALL keep the uploaded farms and the polygon validation results. It SHALL clear the layers selected for the deforestation analysis and for the report. This SHALL apply on any page, including the direct deforestation upload page.
+While no deforestation analysis result exists, choosing a different country from the header or the landing page SHALL change the selected country immediately. It SHALL keep the uploaded farms and the polygon validation results, and update the country of every retained farm to the new selection. It SHALL clear the layers selected for the deforestation analysis and for the report. Any in-flight analysis for the previous selection SHALL NOT publish results. This SHALL apply on any page, including the direct deforestation upload page.
 
 #### Scenario: Change during polygon validation
 
 - **WHEN** the user has validated 10 polygons under CO and picks Ecuador in the header
-- **THEN** the selected country is EC, the 10 polygons and their validation results remain, and no layer is selected
+- **THEN** the selected country is EC, the 10 polygons and their validation results remain, every retained farm has `country: "EC"`, and no layer is selected
+
+#### Scenario: Change while an analysis is running
+
+- **WHEN** the user selects Ecuador while an analysis of Colombian layers is still in flight
+- **THEN** the Colombian response is ignored, no analysis is sent with an empty layer list, and the user can select Ecuadorian layers
 
 ### Requirement: Country locked after an analysis, with a restart confirmation
 
@@ -185,4 +190,3 @@ The farm upload templates (en and es) SHALL NOT contain a country column, and th
 
 - **WHEN** the selected country is CO and the user uploads a file whose country column says EC
 - **THEN** the upload succeeds and every farm has `country: "CO"`
-

@@ -22,6 +22,8 @@
 ### Fixed
 
 - Show layer names, aliases and considerations in the page's language (they were always in English)
+- Keep retained farms and report selections aligned with the analysis country, and ignore analysis responses from an earlier country or layer selection
+- Accept only `https:` and `mailto:` links for the landing page contact button
 
 ### Other
 
