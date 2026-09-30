@@ -107,7 +107,8 @@ country out. How to manage layers is in [maps.md](maps.md).
 
 Each country's passkey hash lives in the share's `countries.json`, not in Azure.
 `deploy.sh countries` edits it without redeploying: the API applies the change on its
-next request.
+next request. The command needs the `azure` uv dependency group, which `uv run`
+installs from `monbo-api/uv.lock`.
 
 ```sh
 ./azure/deploy.sh countries list             # countries, their state and layers
@@ -115,12 +116,18 @@ next request.
 ./azure/deploy.sh countries rotate CR        # new passkey for CR; its sessions end
 ./azure/deploy.sh countries disable EC       # hidden from the app, admin locked out
 ./azure/deploy.sh countries enable EC
+./azure/deploy.sh countries unlock           # recover after an interrupted update
 ```
 
 It needs `uv` and the repository: it runs the same command as
 `uv run python -m app.modules.admin.countries` on a local copy of the registry, then
-uploads it. If someone else changed the registry meanwhile, it stops without
-uploading; run it again.
+leases `countries.json`, checks its ETag and uploads it. If someone else changed
+the registry meanwhile, it stops without uploading; run it again. For `add`, the
+new passkey is printed only after the folder and registry are uploaded.
+
+If a process dies during an update, Azure Files can retain its file lease. After
+checking that no `countries` command is still running, use `countries unlock` to
+break that lease and retry the update.
 
 - **Adding a country**: `countries add <code>`, then give the passkey to that
   country's admin. The country appears on the landing map once it publishes a layer.

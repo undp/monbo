@@ -193,6 +193,20 @@ def test_maps_of_an_unknown_country_is_empty(countries):
     assert public("/maps?country=PE").json() == []
 
 
+@pytest.mark.parametrize("contents", [None, "{ invalid json"])
+def test_unreadable_country_index_does_not_publish_partial_lists(countries, contents):
+    index = countries.root / "CR" / "index.json"
+    if contents is None:
+        index.unlink()
+    else:
+        index.write_text(contents)
+
+    for path in ("/maps?country=CO", "/countries"):
+        response = public(path)
+        assert response.status_code == 500
+        assert response.json() == {"detail": "Failed to read map data"}
+
+
 def test_a_disabled_country_disappears_from_the_listing(countries):
     registry = countries.layers_root.read_registry()
     for country in registry:

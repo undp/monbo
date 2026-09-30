@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.modules.layers.store import get_layers_root
@@ -17,4 +17,7 @@ def get_countries():
     at least one enabled layer, sorted by ISO 3166-1 alpha-2 code. With the legacy
     flat layout, the countries listed by the enabled layers.
     """
-    return [CountryData(code=code) for code in get_layers_root().public_countries()]
+    countries = get_layers_root().public_countries()
+    if countries is None:
+        raise HTTPException(status_code=500, detail="Failed to read map data")
+    return [CountryData(code=code) for code in countries]

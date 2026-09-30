@@ -10,6 +10,7 @@
 #   ./azure/deploy.sh countries list             # the countries on the share and their layers
 #   ./azure/deploy.sh countries add|rotate CC    # prints the country's new admin passkey once
 #   ./azure/deploy.sh countries disable|enable CC
+#   ./azure/deploy.sh countries unlock            # only after an interrupted command
 #   ./azure/deploy.sh destroy       # delete the apps' resource group (layer storage is kept)
 #
 # With STORAGE_ACCOUNT_NAME set, the API reads its layers from an Azure Files share
@@ -527,40 +528,43 @@ seed_share() {
   ok "The share has the per-country layers. Deploy now so the API reads them: ./azure/deploy.sh"
 }
 
-share_file_etag() {
-  az storage file show --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$1" \
-    --share-name "$MAPS_SHARE_NAME" --path "$2" --query properties.etag -o tsv 2>/dev/null || true
-}
-
 # Runs the country registry command (app.modules.admin.countries) against the share
 # without redeploying: the registry (and, for `list`, each country's index) is
 # downloaded to a temporary folder, the command runs there, and only what changed is
-# uploaded. The API picks the new registry up on its next request. Aborts without
-# uploading if the registry changed on the share while the command ran.
+# uploaded. A lease protects the ETag check and upload from concurrent operators.
+# The API picks the new registry up on its next request.
 countries() {
-  local command="${1:-}" code key tmp registry etag listed
+  local command="${1:-}" code key tmp etag listed output answer
   code="$(printf '%s' "${2:-}" | tr '[:lower:]' '[:upper:]')"
   case "$command" in
-    list|add|rotate|disable|enable) ;;
-    *) die "Usage: ./azure/deploy.sh countries list|add|rotate|disable|enable [CC]" ;;
+    list|add|rotate|disable|enable|unlock) ;;
+    *) die "Usage: ./azure/deploy.sh countries list|add|rotate|disable|enable [CC] or unlock" ;;
   esac
-  [ "$command" = list ] || [ -n "$code" ] || die "'countries $command' needs a country code"
+  [ "$command" = list ] || [ "$command" = unlock ] || [ -n "$code" ] \
+    || die "'countries $command' needs a country code"
   layer_storage_enabled || die "'countries' needs STORAGE_ACCOUNT_NAME"
   require_cmd az
   require_cmd uv
   select_subscription
 
   key="$(storage_key)"
+  if [ "$command" = unlock ]; then
+    echo "  Only break the lease after confirming no country command is running."
+    read -r -p "Type unlock to continue: " answer
+    [ "$answer" = unlock ] || die "Aborted; the lease is unchanged"
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+      python -m app.modules.admin.azure_registry break-stale-lease \
+      --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME"
+    ok "Country registry lease released"
+    return 0
+  fi
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"; trap - RETURN' RETURN
-  registry=countries.json
-  etag="$(share_file_etag "$key" "$registry")"
-  if [ -n "$etag" ]; then
-    az storage file download --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
-      --share-name "$MAPS_SHARE_NAME" --path "$registry" --dest "$tmp/countries.json" -o none
-  elif [ "$command" != add ]; then
-    die "The share has no $registry: seed it first with ./azure/deploy.sh seed"
-  fi
+  etag="$(AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+    python -m app.modules.admin.azure_registry snapshot \
+    --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
+    --dest "$tmp/countries.json")" \
+    || die "Cannot read countries.json from the share; seed it first if it is empty"
   if [ "$command" = list ]; then
     for listed in $(python3 -c 'import json, sys
 print(" ".join(c["code"] for c in json.load(open(sys.argv[1]))["countries"]))' "$tmp/countries.json"); do
@@ -571,20 +575,30 @@ print(" ".join(c["code"] for c in json.load(open(sys.argv[1]))["countries"]))' "
     done
   fi
 
-  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.admin.countries \
-    "$command" ${code:+"$code"} --root "$tmp" || die "'countries $command' failed; nothing was uploaded"
-  [ "$command" = list ] && return 0
-
-  [ "$(share_file_etag "$key" "$registry")" = "$etag" ] \
-    || die "$registry changed on the share while this ran; nothing was uploaded. Run the command again"
-  if [ "$command" = add ]; then
-    az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
-      --destination "$MAPS_SHARE_NAME" --destination-path "$code" \
-      --source "$tmp/$code" -o none
+  output="$(uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" python -m app.modules.admin.countries \
+    "$command" ${code:+"$code"} --root "$tmp")" \
+    || die "'countries $command' failed; nothing was uploaded"
+  if [ "$command" = list ]; then
+    printf '%s\n' "$output"
+    return 0
   fi
-  az storage file upload --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$key" \
-    --share-name "$MAPS_SHARE_NAME" --source "$tmp/countries.json" --path "$registry" -o none
-  ok "Updated $registry on the share; the API applies it on its next request"
+
+  if [ "$command" = add ]; then
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+      python -m app.modules.admin.azure_registry publish \
+      --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
+      --expected-etag "$etag" --source "$tmp/countries.json" \
+      --country "$code" --country-index "$tmp/$code/index.json" \
+      || die "The country was not registered; run the command again"
+  else
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+      python -m app.modules.admin.azure_registry publish \
+      --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
+      --expected-etag "$etag" --source "$tmp/countries.json" \
+      || die "The registry was not updated; run the command again"
+  fi
+  printf '%s\n' "$output"
+  ok "Updated countries.json on the share; the API applies it on its next request"
 }
 
 destroy() {

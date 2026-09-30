@@ -454,7 +454,9 @@ class LayersRoot:
             for country in registry:
                 code = country["code"]
                 index = self.country_store(code).read_index()
-                for entry in index or []:
+                if index is None:
+                    return None
+                for entry in index:
                     layers.append(
                         {**entry, "country": code, "available_countries_codes": [code]}
                     )
@@ -481,11 +483,14 @@ class LayersRoot:
             return None
         return {c["code"] for c in self.read_registry() or [] if c["enabled"]}
 
-    def public_countries(self) -> list[str]:
+    def public_countries(self) -> list[str] | None:
         """Countries a visitor can pick: in the per-country layout, those enabled in
         the registry with at least one enabled layer; in the flat layout, the
-        countries of the enabled layers."""
-        enabled_layers = [entry for entry in self.layers() or [] if entry["enabled"]]
+        countries of the enabled layers. None if any index cannot be read."""
+        layers = self.layers()
+        if layers is None:
+            return None
+        enabled_layers = [entry for entry in layers if entry["enabled"]]
         codes = {
             code
             for entry in enabled_layers
