@@ -322,8 +322,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   }, [locale]);
 
   // A country kept from earlier in the tab session may have lost its layers
-  // meanwhile: drop it once, when the first layer list arrives. Later changes
-  // keep the selection (the layer lists then say no layers are available).
+  // meanwhile: drop it once per mount, when the first layer list arrives. Later
+  // changes keep the selection (the layer lists then say no layers are
+  // available). The provider also remounts on a language change with the flow
+  // kept (keptState), so dropping the country clears that flow too: farms and
+  // results of a country that is no longer selected must not stay loaded.
   const storedCountryChecked = useRef(false);
   useEffect(() => {
     if (storedCountryChecked.current || !countryHydrated) return;
@@ -334,8 +337,15 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       !getLayersCountryCodes(availableMaps).includes(selectedCountry)
     ) {
       writeSelectedCountry(null);
+      resetAnalysis();
     }
-  }, [countryHydrated, availableMapsLoaded, availableMaps, selectedCountry]);
+  }, [
+    countryHydrated,
+    availableMapsLoaded,
+    availableMaps,
+    selectedCountry,
+    resetAnalysis,
+  ]);
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
     () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
