@@ -100,7 +100,16 @@ cd monbo-api && uv run python -m app.modules.admin.passkey
 It prints the passkey the admin logs in with (keep it in a password manager, never
 in `deploy.env` or Azure), its hash and a session secret. `deploy.sh` stores the hash
 and the secret as Container App secrets and sets `ADMIN_ALLOWED_ORIGIN` to the
-frontend's URL. How to manage layers there is in [maps.md](maps.md).
+frontend's Container Apps URL by default. How to manage layers there is in [maps.md](maps.md).
+
+**Custom domains.** If the frontend is served from its own domain, set
+`ADMIN_ALLOWED_ORIGIN` (for example `https://monbo.example.org`) in `azure/deploy.env`:
+the admin rejects calls from any other origin. A custom domain bound directly to the
+Container Apps keeps the login rate limit working, because it keys on the client IP
+that the Container Apps ingress appends to `X-Forwarded-For`. A proxy in front of the
+API (Front Door, Application Gateway) would become that IP for everyone, so 5 wrong
+guesses from anyone would block all admins: that setup needs the API to trust the
+proxy's hop first.
 
 ### Rotating the admin credentials
 

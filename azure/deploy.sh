@@ -81,6 +81,9 @@ DATA_LOCK_NAME="${DATA_LOCK_NAME:-monbo-data-no-delete}"
 # Layers admin (optional): generate both with `uv run python -m app.modules.admin.passkey`.
 ADMIN_PASSKEY_HASH="${ADMIN_PASSKEY_HASH:-}"
 ADMIN_SESSION_SECRET="${ADMIN_SESSION_SECRET:-}"
+# The frontend origin the admin accepts calls from; defaults to the frontend's
+# Container Apps URL. Set it when the frontend is served from a custom domain.
+ADMIN_ALLOWED_ORIGIN="${ADMIN_ALLOWED_ORIGIN:-}"
 
 # --- Helpers -----------------------------------------------------------------
 
@@ -375,10 +378,11 @@ deploy_api() {
     mount=true
   fi
 
-  local env_id default_domain body existing previous_revision=""
+  local env_id default_domain body existing previous_revision="" admin_origin
   env_id="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" --query id -o tsv)"
   default_domain="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
     --query properties.defaultDomain -o tsv)"
+  admin_origin="${ADMIN_ALLOWED_ORIGIN:-https://$FRONT_APP_NAME.$default_domain}"
   body="$(mktemp)"
   existing="$(mktemp)"
   TEMP_FILES+=("$body" "$existing")
@@ -396,7 +400,7 @@ deploy_api() {
     OVERLAP_THRESHOLD_PERCENTAGE="$OVERLAP_THRESHOLD_PERCENTAGE" \
     MAPS_MOUNT="$mount" ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
     ADMIN_PASSKEY_HASH="$ADMIN_PASSKEY_HASH" ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
-    ADMIN_ALLOWED_ORIGIN="https://$FRONT_APP_NAME.$default_domain" \
+    ADMIN_ALLOWED_ORIGIN="$admin_origin" \
     EXISTING_APP_FILE="$existing" \
     python3 "$SCRIPT_DIR/render_api_app.py" > "$body"
 
@@ -419,7 +423,7 @@ deploy_api() {
   API_URL="https://$(app_fqdn "$API_APP_NAME")"
   wait_for_health "$API_URL/health"
   [ "$mount" = true ] && verify_maps_root "$API_URL"
-  admin_enabled && ok "Layers admin: https://$FRONT_APP_NAME.$default_domain/admin"
+  admin_enabled && ok "Layers admin: $admin_origin/admin"
   return 0
 }
 
