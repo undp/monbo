@@ -15,12 +15,16 @@ const LANGUAGE_CHANGE_MS = 10_000;
 let languageChangedAt = 0;
 // droppedAt: when its page unmounted during a language change
 const kept = new Map<string, { value: unknown; droppedAt?: number }>();
+// Keys whose page already mounted again in the new language: their input was taken
+// over, so a later unmount (e.g. leaving the page) discards it like any other.
+const settled = new Set<string>();
 
 const changingLanguage = () => Date.now() - languageChangedAt < LANGUAGE_CHANGE_MS;
 
 /** Called by the language menu just before it navigates. */
 export const startLanguageChange = () => {
   languageChangedAt = Date.now();
+  settled.clear();
 };
 
 /** Publishes a mounted page's current input under `key`. */
@@ -28,10 +32,18 @@ export const keepForLanguageChange = (key: string, value: unknown) => {
   kept.set(key, { value });
 };
 
-/** Called when the page unmounts: kept for its next instance only during a language change. */
+/** Called once the page has mounted: its input no longer needs handing over. */
+export const settleLanguageChange = (key: string) => {
+  settled.add(key);
+};
+
+/**
+ * Called when the page unmounts: kept for its next instance only while the
+ * language is changing and that instance hasn't mounted yet.
+ */
 export const dropKept = (key: string) => {
   const entry = kept.get(key);
-  if (entry && changingLanguage()) entry.droppedAt = Date.now();
+  if (entry && changingLanguage() && !settled.has(key)) entry.droppedAt = Date.now();
   else kept.delete(key);
 };
 

@@ -19,6 +19,7 @@ import { AdminLayer } from "@/interfaces/AdminLayer";
 import {
   dropKept,
   keepForLanguageChange,
+  settleLanguageChange,
   localizedPath,
   takeOverOnLanguageChange,
 } from "@/utils/languageChange";
@@ -72,7 +73,10 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
       }),
     [draftKey, subscribe, getValues]
   );
-  useEffect(() => () => dropKept(draftKey), [draftKey]);
+  useEffect(() => {
+    settleLanguageChange(draftKey);
+    return () => dropKept(draftKey);
+  }, [draftKey]);
 
   const load = useCallback(async () => {
     if (isNew) return null;

@@ -41,6 +41,7 @@ import { formatNumber } from "@/utils/numbers";
 import {
   dropKept,
   keepForLanguageChange,
+  settleLanguageChange,
   takeOverOnLanguageChange,
 } from "@/utils/languageChange";
 import { RasterDropZone } from "./RasterDropZone";
@@ -263,7 +264,10 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
       upload: activeUpload,
     } satisfies HandedOver);
   }, [handOverKey, state, activeUpload]);
-  useEffect(() => () => dropKept(handOverKey), [handOverKey]);
+  useEffect(() => {
+    settleLanguageChange(handOverKey);
+    return () => dropKept(handOverKey);
+  }, [handOverKey]);
   // The parent passes a new callback on every render; polling must not restart.
   const onLayerChangedRef = useRef(onLayerChanged);
   useEffect(() => {
