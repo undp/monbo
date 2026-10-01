@@ -42,6 +42,9 @@ const describeValidationError = (error: AdminApiError) =>
         .join("; ")
     : null;
 
+// The Raster section's anchor: creating a layer leads there, its next step.
+export const RASTER_SECTION_ID = "raster";
+
 export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -91,6 +94,17 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
       .catch(() => setNotFound(true));
   }, [session, load, reset, draft]);
 
+  // After creating a layer: bring its next step, the raster, into view once it
+  // renders, then drop the anchor so later reloads of the layer don't scroll.
+  const hasLayer = layer !== null;
+  useEffect(() => {
+    if (!hasLayer || window.location.hash !== `#${RASTER_SECTION_ID}`) return;
+    document
+      .getElementById(RASTER_SECTION_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [hasLayer]);
+
   // After a raster upload: refresh the layer without discarding form edits.
   const reload = useCallback(() => {
     load().catch(() => setNotFound(true));
@@ -103,7 +117,9 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         if (isNew) {
           const created = await withToken((token) => createAdminLayer(token, input));
           openSnackbar({ message: t("admin:form:created"), type: "success" });
-          router.replace(localizedPath(`/admin/layers/${created.id}`, i18n.language));
+          router.replace(
+            localizedPath(`/admin/layers/${created.id}#${RASTER_SECTION_ID}`, i18n.language)
+          );
         } else {
           const updated = await withToken((token) =>
             updateAdminLayer(token, layerId, input)
@@ -190,7 +206,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         </form>
       </FormProvider>
       {layer && (
-        <Section title={t("admin:form:sections:raster")}>
+        <Section id={RASTER_SECTION_ID} title={t("admin:form:sections:raster")}>
           <RasterUploadSection layer={layer} onLayerChanged={reload} />
         </Section>
       )}

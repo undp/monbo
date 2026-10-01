@@ -47,9 +47,12 @@ export const Section: React.FC<{
   title: string;
   // Shown right after the title (e.g. a help button)
   titleAction?: React.ReactNode;
+  // An anchor to scroll to
+  id?: string;
   children: React.ReactNode;
-}> = ({ title, titleAction, children }) => (
-  <Paper sx={{ padding: 3, marginBottom: 3 }}>
+}> = ({ title, titleAction, id, children }) => (
+  // The scroll margin keeps the title clear of the fixed header.
+  <Paper id={id} sx={{ padding: 3, marginBottom: 3, scrollMarginTop: 88 }}>
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, marginBottom: 2 }}>
       <Text variant="h6" component="h2" bold>
         {title}
