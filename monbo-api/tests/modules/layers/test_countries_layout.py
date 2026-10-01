@@ -366,3 +366,10 @@ def test_a_tile_reads_only_its_countrys_index(countries):
         get_map_by_id(1, "CR")
 
     assert reads == ["CR"]
+
+
+def test_maps_say_which_country_each_layer_belongs_to(countries):
+    # Without a filter, CO/0, CR/0 and EC/0 all have id 0: the country tells them apart.
+    listed = {(entry["country"], entry["id"]) for entry in public("/maps").json()}
+
+    assert ("CO", 0) in listed and ("CR", 0) in listed and ("EC", 0) in listed

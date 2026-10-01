@@ -90,6 +90,7 @@ EXPECTED_MAPS_DATA = [
         ],
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
+        "country": None,  # the legacy flat layout
         "version": 2,
         "pixelSize": 30,
     }

@@ -46,6 +46,8 @@ def get_maps(
         - references: Reference URLs for the data source
         - considerations: Special considerations and notes about the layer
           (in Markdown format)
+        - country: The layer's country (None in the legacy flat layout). Ids are
+          numbered within each country, so country and id identify a layer.
         - availableCountriesCodes: The layer's country, as a one-element list of
           ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
           layer lists)
@@ -73,6 +75,7 @@ def get_maps(
         parsed_maps.append(
             BaseMapData(
                 id=map["id"],
+                country=map.get("country"),
                 name=attributes_dict.get("name") if attributes_dict else None,
                 alias=attributes_dict.get("alias") if attributes_dict else None,
                 baseline=int(map["baseline"]) if map["baseline"] else None,

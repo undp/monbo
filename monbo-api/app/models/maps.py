@@ -22,6 +22,9 @@ class BaseMapData(BaseModel):
     references: list[str]
     considerations: str | None
     availableCountriesCodes: list[str]
+    # The layer's country: ids are numbered within each country, so (country, id)
+    # identifies it. None in the legacy flat layout, where ids are global.
+    country: str | None = None
     version: int
     pixelSize: float
 
