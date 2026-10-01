@@ -150,10 +150,19 @@ def update_layer(layer_id: int, body: LayerInput):
     raster, version and enabled state are not changed here.
     """
     store = get_layer_store()
+    # Checked before taking the store lock: it may open the raster over the share,
+    # and every tile and image request waits on that lock.
+    current = _index_or_500(store)
+    checked = current[_position(current, layer_id)]
+    if body.pixel_size != checked["pixel_size"]:
+        _check_existing_raster_pixel_size(store, checked, body.pixel_size)
     with store.locked():
         index = _index_or_500(store)
         position = _position(index, layer_id)
-        if body.pixel_size != index[position]["pixel_size"]:
+        # A new raster was activated meanwhile: check against that one instead.
+        if body.pixel_size != index[position]["pixel_size"] and index[position].get(
+            "raster_filename"
+        ) != checked.get("raster_filename"):
             _check_existing_raster_pixel_size(store, index[position], body.pixel_size)
         _apply_input(store, index[position], body)
         store.write_index(index)
