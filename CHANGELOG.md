@@ -17,7 +17,7 @@
 - The API image runs as uid/gid 10001
 - The module cards move from `/` to `/home` ("Home" and the logo in the header go to the landing page), and the module pages send the user to the landing page when no country is selected
 - The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers
-- The upload templates no longer have a country column; every farm gets the selected country, and a country column in an older file is ignored
+- The upload templates no longer have a country column; every farm gets the selected country. An older file's country column must be empty or name the selected country; a file with farms in another country is rejected
 
 ### Fixed
 

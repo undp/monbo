@@ -122,7 +122,8 @@ export function PolygonsValidationUploadDataPageContent() {
       const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
-        i18n.language
+        i18n.language,
+        selectedCountry
       );
 
       if (errorMessages.length > 0) {
@@ -138,7 +139,7 @@ export function PolygonsValidationUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [performFarmsGeneration, openSnackbar, t, i18n.language]
+    [performFarmsGeneration, openSnackbar, t, i18n.language, selectedCountry]
   );
 
   if (loading)

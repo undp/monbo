@@ -207,7 +207,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
       const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
-        i18n.language
+        i18n.language,
+        selectedCountry
       );
 
       if (errorMessages.length > 0) {
@@ -223,7 +224,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [openSnackbar, t, performFarmsGeneration, setAnalysisOutdated, i18n.language]
+    [
+      openSnackbar,
+      t,
+      performFarmsGeneration,
+      setAnalysisOutdated,
+      i18n.language,
+      selectedCountry,
+    ]
   );
 
   if (loading && selectedMapsForDeforestation.length > 0)

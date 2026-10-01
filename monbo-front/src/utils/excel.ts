@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { TFunction } from "i18next";
+import { uniq } from "lodash";
+import { getCountryName } from "@/utils/countries";
 
 // TODO: refactor to use only the exceljs library
 
@@ -579,6 +581,9 @@ const headerKeywordsMappings: Record<string, string[]> = {
     "production measurement unit",
   ],
   region: ["región", "region"],
+  // Only in older templates. Checked against the selected country (see
+  // loadExcelFileFarmsData), never used as the farm's country.
+  country: ["país", "country"],
   coordinatesFormat: ["formato coordenadas", "coordinates format"],
   geometryType: ["tipo geometría", "geometry type"],
   farmCoordinates: ["coordenadas finca", "land coordinates"],
@@ -773,10 +778,12 @@ interface LoadExcelFileReturn {
  *   - Converts numeric IDs to strings
  *   - Converts production dates to ISO strings
  *   - Consolidates document fields into a documents array
+ * - Rejects an older template whose country column names another country than
+ *   the selected one
  * - Validates mandatory fields and returns any validation errors
  *
  * @example
- * const result = await loadExcelFileFarmsData(file, t, 'en');
+ * const result = await loadExcelFileFarmsData(file, t, 'en', 'CO');
  * if (result.errorMessages.length > 0) {
  *   // Handle validation errors
  * } else {
@@ -786,7 +793,9 @@ interface LoadExcelFileReturn {
 export const loadExcelFileFarmsData = async (
   file: File,
   t: TFunction<"translation", undefined>,
-  language: string
+  language: string,
+  // The analysis country: every farm gets it, so a file can't list another one.
+  selectedCountry: string | null
 ): Promise<LoadExcelFileReturn> => {
   const excel = await readExcel(file);
   const worksheet = getSheetDataById(excel, 0);
@@ -875,6 +884,28 @@ export const loadExcelFileFarmsData = async (
     delete row.documentName3;
     delete row.documentUrl3;
   });
+
+  // An older template's country column must agree with the selected country,
+  // which every farm gets: otherwise the report would state the wrong country.
+  const otherCountries = uniq(
+    mappedData
+      .map((row) => (row.country as string | null | undefined)?.toUpperCase())
+      .filter((code): code is string => !!code && code !== selectedCountry)
+  );
+  mappedData.forEach((row) => delete row.country);
+  if (otherCountries.length > 0) {
+    const name = (code: string) =>
+      getCountryName(code, language === "en" ? "en" : "es") ?? code;
+    return {
+      data: mappedData,
+      errorMessages: [
+        t("common:parseFileError:otherCountry", {
+          countries: otherCountries.map(name).join(", "),
+          country: selectedCountry ? name(selectedCountry) : "",
+        }),
+      ],
+    };
+  }
 
   // Validate data
   const errorMessages = validateData({
