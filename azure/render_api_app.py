@@ -44,8 +44,8 @@ def env(name: str, default: str | None = None) -> str:
     return value
 
 
-def probe(kind: str, **timing) -> dict:
-    return {"type": kind, "httpGet": {"path": "/health", "port": 8000}, **timing}
+def probe(kind: str, path: str = "/health", **timing) -> dict:
+    return {"type": kind, "httpGet": {"path": path, "port": 8000}, **timing}
 
 
 def carry_over(body: dict, existing: dict) -> None:
@@ -98,7 +98,15 @@ def main() -> None:
         "probes": [
             probe("Startup", initialDelaySeconds=5, periodSeconds=5, failureThreshold=24),
             probe("Readiness", periodSeconds=15, timeoutSeconds=3, failureThreshold=3),
-            probe("Liveness", periodSeconds=30, timeoutSeconds=5, failureThreshold=3),
+            # Not /health: it checks the share, and a slow share must not restart
+            # the only replica (it only takes it out of rotation via readiness).
+            probe(
+                "Liveness",
+                "/health/live",
+                periodSeconds=30,
+                timeoutSeconds=5,
+                failureThreshold=3,
+            ),
         ],
     }
     template: dict = {

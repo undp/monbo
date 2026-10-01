@@ -66,6 +66,14 @@ def health_check():
     }
 
 
+@router.get("/health/live")
+async def liveness_check():
+    # The liveness probe: whether the process answers at all. It doesn't touch the
+    # maps root, so a slow share doesn't get the only replica restarted; /health
+    # (startup and readiness) reports the share.
+    return {"status": "OK"}
+
+
 @router.get("/download-geojson")
 async def download_geojson(content: str | None = None):
     if content:

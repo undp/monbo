@@ -27,6 +27,19 @@ def test_health_check():
     assert isinstance(body["mapsRootWritable"], bool)
 
 
+def test_liveness_does_not_touch_the_maps_root(monkeypatch):
+    """The liveness probe must answer even if the share is slow or gone."""
+    from app.modules.layers.store import LayerStore
+
+    def unavailable(self):
+        raise AssertionError("liveness touched the maps root")
+
+    monkeypatch.setattr(LayerStore, "is_writable", unavailable)
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "OK"}
+
+
 def test_download_geojson_with_valid_content():
     """
     Test the /download-geojson endpoint with a valid JSON string as the "content" parameter.

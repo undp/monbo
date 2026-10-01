@@ -135,7 +135,7 @@ monbo/
 ### 3.2 Backend — `monbo-api/app/`
 
 ```
-main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /download-geojson
+main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /health/live, /download-geojson
 modules/                   # One package per module, each with router.py + helpers.py + models.py
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
