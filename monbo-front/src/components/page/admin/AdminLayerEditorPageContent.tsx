@@ -16,6 +16,7 @@ import {
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminLayer } from "@/interfaces/AdminLayer";
+import { localizedPath } from "@/utils/languageChange";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { LayerForm, Section } from "./LayerForm";
 import { LayerFormValues, toFormValues, toLayerInput } from "./layerFormState";
@@ -37,7 +38,7 @@ const describeValidationError = (error: AdminApiError) =>
     : null;
 
 export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, withToken } = useContext(AdminSessionContext);
   const { openSnackbar } = useContext(SnackbarContext);
@@ -80,7 +81,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         if (isNew) {
           const created = await withToken((token) => createAdminLayer(token, input));
           openSnackbar({ message: t("admin:form:created"), type: "success" });
-          router.replace(`/admin/layers/${created.id}`);
+          router.replace(localizedPath(`/admin/layers/${created.id}`, i18n.language));
         } else {
           const updated = await withToken((token) =>
             updateAdminLayer(token, layerId, input)
@@ -123,7 +124,10 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     : t("admin:form:editTitle", { id: layerId });
 
   const back = (
-    <Button startIcon={<ArrowBackIcon />} onClick={() => router.push("/admin/layers")}>
+    <Button
+      startIcon={<ArrowBackIcon />}
+      onClick={() => router.push(localizedPath("/admin/layers", i18n.language))}
+    >
       {t("admin:form:back")}
     </Button>
   );

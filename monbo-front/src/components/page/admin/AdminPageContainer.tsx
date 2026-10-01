@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { Text } from "@/components/reusable/Text";
 import { getCountryName } from "@/utils/countries";
+import { localizedPath } from "@/utils/languageChange";
 
 interface Props {
   title: string;
@@ -29,8 +30,8 @@ export const AdminPageContainer: React.FC<Props> = ({
   const { session, ready, logout } = useContext(AdminSessionContext);
 
   useEffect(() => {
-    if (ready && !session) router.replace("/admin");
-  }, [ready, session, router]);
+    if (ready && !session) router.replace(localizedPath("/admin", i18n.language));
+  }, [ready, session, router, i18n.language]);
 
   if (!ready || !session) {
     return (
@@ -67,7 +68,7 @@ export const AdminPageContainer: React.FC<Props> = ({
             startIcon={<LogoutIcon />}
             onClick={() => {
               logout();
-              router.replace("/admin");
+              router.replace(localizedPath("/admin", i18n.language));
             }}
           >
             {t("admin:logout")}

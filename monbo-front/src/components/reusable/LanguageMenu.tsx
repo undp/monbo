@@ -7,6 +7,7 @@ import { Text } from "@/components/reusable/Text";
 import { useTranslation } from "react-i18next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import i18nConfig from "@/i18nConfig";
+import { localizedPath } from "@/utils/languageChange";
 
 const languages = [
   { name: "common:language:es", locale: "es" },
@@ -39,22 +40,18 @@ export const LanguageMenu: React.FC = ({}) => {
       const expires = date.toUTCString();
       document.cookie = `NEXT_LOCALE=${locale};expires=${expires};path=/`;
 
-      // redirect to the new locale path
-      if (currentLocale === i18nConfig.defaultLocale) {
-        router.push(`/${locale}${currentPathname}?${searchParams.toString()}`);
-      } else {
-        router.push(
-          `${currentPathname.replace(
-            `/${currentLocale}`,
-            `/${locale}`
-          )}?${searchParams.toString()}`
-        );
-      }
+      // Redirect to the same page in the new locale. The path may carry a locale
+      // prefix, even the default one (e.g. /es/admin): strip whichever it has.
+      const [, first, ...rest] = currentPathname.split("/");
+      const path = i18nConfig.locales.includes(first)
+        ? `/${rest.join("/")}`
+        : currentPathname;
+      router.push(`${localizedPath(path, locale)}?${searchParams.toString()}`);
 
       router.refresh();
       handleClose();
     },
-    [currentLocale, currentPathname, router, searchParams]
+    [currentPathname, router, searchParams]
   );
 
   return (

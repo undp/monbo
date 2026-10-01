@@ -54,7 +54,7 @@ export default async function MainLayout({ children, params }: LayoutProps) {
               <DataProvider locale={locale}>
                 {/* Here rather than in the admin layout: the header shows the
                     admin session's country. */}
-                <AdminSessionProvider>
+                <AdminSessionProvider locale={locale}>
                   <CssBaseline />
                   <Header locale={locale} />
                   <main>

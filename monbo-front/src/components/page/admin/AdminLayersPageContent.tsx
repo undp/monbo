@@ -28,6 +28,7 @@ import {
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminLanguage, AdminLayer } from "@/interfaces/AdminLayer";
+import { localizedPath } from "@/utils/languageChange";
 import { AdminPageContainer } from "./AdminPageContainer";
 
 const layerText = (
@@ -95,7 +96,7 @@ export const AdminLayersPageContent: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => router.push("/admin/layers/new")}
+          onClick={() => router.push(localizedPath("/admin/layers/new", i18n.language))}
         >
           {t("admin:layers:new")}
         </Button>
@@ -164,7 +165,9 @@ export const AdminLayersPageContent: React.FC = () => {
                     <Button
                       size="small"
                       startIcon={<EditIcon />}
-                      onClick={() => router.push(`/admin/layers/${layer.id}`)}
+                      onClick={() =>
+                        router.push(localizedPath(`/admin/layers/${layer.id}`, i18n.language))
+                      }
                     >
                       {t("admin:layers:edit")}
                     </Button>

@@ -14,6 +14,7 @@ import {
   getAdminSession,
 } from "@/api/adminLayers";
 import { AdminSession } from "@/interfaces/AdminLayer";
+import { localizedPath } from "@/utils/languageChange";
 
 // sessionStorage only: the token dies with the tab. The passkey is never stored.
 const STORAGE_KEY = "monbo.adminSession";
@@ -48,9 +49,11 @@ const readStoredSession = (): AdminSession | null => {
   return null;
 };
 
-export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AdminSessionProvider: React.FC<{
+  children: React.ReactNode;
+  // The page's language, to send an expired session to the login in it
+  locale: string;
+}> = ({ children, locale }) => {
   const router = useRouter();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [ready, setReady] = useState(false);
@@ -62,8 +65,8 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOutToLogin = useCallback(() => {
     logout();
-    router.replace("/admin");
-  }, [logout, router]);
+    router.replace(localizedPath("/admin", locale));
+  }, [logout, router, locale]);
 
   // Restore and re-check a token from a previous page load.
   useEffect(() => {
