@@ -105,6 +105,12 @@ in `deploy.env` or Azure), its hash and a session secret. `deploy.sh` stores the
 and the secret as Container App secrets and sets `ADMIN_ALLOWED_ORIGIN` to the
 frontend's Container Apps URL by default. How to manage layers there is in [maps.md](maps.md).
 
+**Always generate the passkey with that command; never choose one by hand.** Only an
+unsalted SHA-256 of it is stored, which is safe for its random 64-character value but
+not for a memorable password: anyone who gets the hash could recover a weak passkey
+offline, and the login rate limit would then be the only protection. If an
+`ADMIN_PASSKEY_HASH` ever came from a chosen password, rotate it (below).
+
 **Custom domains.** If the frontend is served from its own domain, set
 `ADMIN_ALLOWED_ORIGIN` (for example `https://monbo.example.org`) in `azure/deploy.env`:
 the admin rejects calls from any other origin. A custom domain bound directly to the
