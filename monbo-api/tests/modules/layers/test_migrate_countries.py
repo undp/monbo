@@ -133,6 +133,18 @@ def test_a_non_empty_target_is_refused(tmp_path):
     assert [p.name for p in target.iterdir()] == ["something"]
 
 
+def test_a_missing_source_raster_writes_nothing(tmp_path):
+    source = tmp_path / "flat"
+    shutil.copytree(FIXTURE_MAPS_ROOT, source)
+    (source / "layers" / "rasters" / "gfw.tif").unlink()
+    target = tmp_path / "v2"
+
+    with pytest.raises(MigrationError, match="Missing source rasters: gfw.tif"):
+        migrate(source, target, log=lambda _: None)
+
+    assert not target.exists() or not any(target.iterdir())
+
+
 def test_a_per_country_source_is_refused(migrated, tmp_path):
     root, _ = migrated
 

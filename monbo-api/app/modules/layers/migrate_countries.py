@@ -91,6 +91,20 @@ def migrate(
         raise MigrationError(f"{target} is not empty; migrate into an empty directory")
 
     copies = plan(index)
+    # Checked before writing anything: a missing raster found halfway would leave a
+    # half-built target that refuses the next run ("not empty").
+    missing = sorted(
+        {
+            entry["raster_filename"]
+            for _, _, entry in copies
+            if entry.get("raster_filename")
+            and not source_root.flat.raster_path(entry["raster_filename"]).is_file()
+        }
+    )
+    if missing:
+        raise MigrationError(
+            f"Missing source rasters: {', '.join(missing)}; nothing was written"
+        )
     target.mkdir(parents=True, exist_ok=True)
     target_root = LayersRoot(target)
     passkeys: dict[str, str] = {}
