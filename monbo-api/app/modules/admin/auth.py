@@ -26,6 +26,8 @@ from app.config.logger import get_logger
 logger = get_logger("modules.admin.auth")
 
 MAX_FAILED_LOGINS = 5
+# Upper bound on the IPs the login rate limiter tracks at once.
+MAX_TRACKED_IPS = 1000
 FAILED_LOGIN_WINDOW_SECONDS = 15 * 60
 
 
@@ -148,11 +150,24 @@ class LoginRateLimiter:
         failures = self._failures.setdefault(ip, deque())
         while failures and failures[0] <= cutoff:
             failures.popleft()
-        # Forget idle IPs so the table can't grow without bound.
-        if len(self._failures) > 1000:
-            for other in [k for k, v in self._failures.items() if not v and k != ip]:
-                del self._failures[other]
+        if len(self._failures) > MAX_TRACKED_IPS:
+            self._sweep(cutoff, keep=ip)
         return failures
+
+    def _sweep(self, cutoff: float, keep: str) -> None:
+        """Keep the table bounded: forget IPs with no failure inside the window, then,
+        if many IPs are still failing, the ones that started failing first."""
+        for other in [
+            k
+            for k, v in self._failures.items()
+            if k != keep and (not v or v[-1] <= cutoff)
+        ]:
+            del self._failures[other]
+        excess = len(self._failures) - int(MAX_TRACKED_IPS * 0.9)
+        if excess > 0:
+            # Dicts keep insertion order: the first keys are the oldest entries.
+            for other in [k for k in self._failures if k != keep][:excess]:
+                del self._failures[other]
 
 
 login_rate_limiter = LoginRateLimiter()

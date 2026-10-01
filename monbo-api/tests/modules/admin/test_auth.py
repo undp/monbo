@@ -204,6 +204,27 @@ def test_rate_limit_window_expires():
     assert limiter.try_acquire("ip") is None
 
 
+def test_rate_limit_table_forgets_idle_ips():
+    now = [1000.0]
+    limiter = LoginRateLimiter(clock=lambda: now[0])
+    for n in range(auth.MAX_TRACKED_IPS):
+        limiter.try_acquire(f"10.0.{n // 256}.{n % 256}")  # one failure each
+    now[0] += 15 * 60 + 1  # and they never come back
+
+    limiter.try_acquire("203.0.113.7")
+    limiter.try_acquire("203.0.113.8")
+
+    assert len(limiter._failures) <= 2
+
+
+def test_rate_limit_table_stays_bounded_under_many_failing_ips():
+    limiter = LoginRateLimiter()
+    for n in range(3 * auth.MAX_TRACKED_IPS):
+        limiter.try_acquire(f"ip-{n}")
+
+    assert len(limiter._failures) <= auth.MAX_TRACKED_IPS + 1
+
+
 def test_parallel_attempts_cannot_get_past_the_limit():
     limiter = LoginRateLimiter()
     start = threading.Barrier(40)
