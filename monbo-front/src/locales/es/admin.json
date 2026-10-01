@@ -121,7 +121,8 @@
     "uploadErrors": {
       "tooLarge": "El archivo supera el tamaño máximo que acepta el servidor.",
       "busy": "Ya se está procesando otro raster. Intenta en unos minutos.",
-      "generic": "No se pudo subir el raster."
+      "generic": "No se pudo subir el raster.",
+      "statusUnavailable": "El estado de esta subida ya no está disponible. Recarga la capa para ver si cambió su raster."
     },
     "issues": {
       "not_geotiff": "El archivo no es un GeoTIFF legible.",

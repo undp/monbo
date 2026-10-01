@@ -121,7 +121,8 @@
     "uploadErrors": {
       "tooLarge": "The file is larger than the server accepts.",
       "busy": "Another raster is being processed. Try again in a few minutes.",
-      "generic": "The raster could not be uploaded."
+      "generic": "The raster could not be uploaded.",
+      "statusUnavailable": "The status of this upload is no longer available. Reload the layer to see whether its raster changed."
     },
     "issues": {
       "not_geotiff": "The file is not a readable GeoTIFF.",
