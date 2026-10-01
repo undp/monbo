@@ -46,8 +46,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
     setAnalysisOutdated,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(() => !!farmsData);
+  // With farms already loaded the analysis starts right away, unless no map is
+  // selected yet: then the form is shown so the user can pick one.
+  const [loading, setLoading] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
   const prevDataRef = useRef<string | null>(null);
+  // Only the latest analysis request may store its results.
+  const latestRequestRef = useRef(0);
 
   const onCountrySelectionChangeEffect = useCallback(() => {
     // When the user selects a country, we need to clear the selected maps
@@ -109,12 +115,15 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const performDeforestationAnalysis = useCallback(
     async (data: FarmData[]) => {
+      const request = ++latestRequestRef.current;
       setLoading(true);
       try {
         const response = await analizeDeforestation(
           data,
           selectedMapsForDeforestation
         );
+        // A newer request (e.g. after a layer changed again) supersedes this one.
+        if (request !== latestRequestRef.current) return;
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
         router.push(`/${i18n.language}/deforestation-analysis`);
@@ -125,6 +134,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           type: "success",
         });
       } catch {
+        if (request !== latestRequestRef.current) return;
         openSnackbar({
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
@@ -149,21 +159,30 @@ export function DeforestationAnalysisUploadDataPageContent() {
   useEffect(() => {
     const serializedData = JSON.stringify({
       farms: farmsData?.map((farm) => farm.id),
-      calculationInputs: selectedMapsForDeforestation.map((map) => [
-        map.id,
-        map.version,
-        map.pixelSize,
-        map.baseline,
-        map.comparedAgainst,
-      ]),
+      // Only an analysis invalidated by a layer change re-runs when the selected
+      // layers' calculation inputs change; ticking maps on the form doesn't.
+      calculationInputs: analysisOutdated
+        ? selectedMapsForDeforestation.map((map) => [
+            map.id,
+            map.version,
+            map.pixelSize,
+            map.baseline,
+            map.comparedAgainst,
+          ])
+        : null,
     });
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
-    if (!farmsData) return;
+    if (!farmsData || !selectedMapsForDeforestation.length) return;
 
     performDeforestationAnalysis(farmsData);
-  }, [farmsData, selectedMapsForDeforestation, performDeforestationAnalysis]);
+  }, [
+    farmsData,
+    selectedMapsForDeforestation,
+    analysisOutdated,
+    performDeforestationAnalysis,
+  ]);
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
