@@ -88,6 +88,8 @@ type Flow =
       // 0 to 1 while uploading and validating; null while converting
       progress: number | null;
       jobId?: string;
+      // Cancel was pressed and the section is waiting for the API to confirm it
+      cancelling?: boolean;
     }
   | { kind: "readyToPublish"; filename: string }
   | { kind: "done"; filename: string; published: boolean };
@@ -108,6 +110,7 @@ type Action =
   | { type: "uploaded"; jobId: string }
   | { type: "jobProgress"; phase: Phase; progress: number | null }
   | { type: "fail"; error: string }
+  | { type: "cancelling"; cancelling: boolean }
   | { type: "succeeded" }
   | { type: "published" };
 
@@ -140,7 +143,17 @@ const reducer = (state: State, action: Action): State => {
         : state;
     case "uploaded":
       return flow.kind === "processing" && !flow.jobId
-        ? next({ ...flow, jobId: action.jobId, phase: "validating", progress: 0 })
+        ? next({
+            ...flow,
+            jobId: action.jobId,
+            phase: "validating",
+            progress: 0,
+            cancelling: false,
+          })
+        : state;
+    case "cancelling":
+      return flow.kind === "processing"
+        ? next({ ...flow, cancelling: action.cancelling })
         : state;
     case "jobProgress":
       return flow.kind === "processing"
@@ -212,6 +225,11 @@ interface Upload {
   onProgress: (progress: number) => void;
 }
 
+// Uploads whose Cancel was pressed once the whole file was sent: aborting could
+// no longer stop the job, so it is cancelled by id as soon as the API answers.
+// Module-level, so a section remounted for a language change still knows.
+const cancelOnAccept = new WeakSet<Upload>();
+
 interface HandedOver {
   state: State;
   upload: Upload | null;
@@ -251,6 +269,11 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
   useEffect(() => {
     onLayerChangedRef.current = onLayerChanged;
   }, [onLayerChanged]);
+  // Read by the polling and the upload follow-up without restarting them.
+  const layerRef = useRef(layer);
+  useEffect(() => {
+    layerRef.current = layer;
+  }, [layer]);
 
   const { flow } = state;
   const jobId = flow.kind === "processing" ? flow.jobId : undefined;
@@ -279,8 +302,11 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
             type: "fail",
             error: job.error ? issueText(t, job.error) : t("admin:raster:failed"),
           });
+        } else if (job.status === "cancelled") {
+          // Usually the section already went back to "no file"; not when the
+          // cancel's own response was lost, or across a language change.
+          dispatch({ type: "reset", layer: layerRef.current });
         }
-        // "cancelled": the section already went back to "no file".
       } catch (e) {
         if (cancelled) return;
         // A 4xx other than 401 (which signs out) won't change by retrying, e.g. a
@@ -309,10 +335,16 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
       current.onProgress = (progress) => dispatch({ type: "uploadProgress", progress });
       try {
         const { jobId: newJobId } = await current.request;
-        if (current.controller.signal.aborted) {
-          // Cancelled just as the server accepted it: stop the job it started.
-          await withToken((token) => cancelIngestionJob(token, newJobId)).catch(() => {});
-          return;
+        if (cancelOnAccept.has(current) || current.controller.signal.aborted) {
+          // Cancelled once the file was sent: stop the job the API started. Only
+          // its confirmation resets the section; otherwise (too late, or the call
+          // failed) the section follows the job and shows its outcome.
+          const outcome = await withToken((token) =>
+            cancelIngestionJob(token, newJobId)
+          ).catch(() => "failed" as const);
+          if (outcome === "cancelled") {
+            return dispatch({ type: "reset", layer: layerRef.current });
+          }
         }
         dispatch({ type: "uploaded", jobId: newJobId });
       } catch (e) {
@@ -350,18 +382,29 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
   };
 
   const cancel = async () => {
-    if (flow.kind !== "processing") return;
+    if (flow.kind !== "processing" || flow.cancelling) return;
     if (!flow.jobId) {
-      activeUpload?.controller.abort();
-      dispatch({ type: "reset", layer });
+      if ((flow.progress ?? 0) < 1 && activeUpload) {
+        // Still sending the file: closing the request makes the API drop it.
+        activeUpload.controller.abort();
+        dispatch({ type: "reset", layer });
+        return;
+      }
+      // The whole file was sent, so the API may already be starting the job:
+      // cancel it by id once the API answers (followUpload).
+      if (activeUpload) cancelOnAccept.add(activeUpload);
+      dispatch({ type: "cancelling", cancelling: true });
       return;
     }
     const currentJob = flow.jobId;
+    dispatch({ type: "cancelling", cancelling: true });
     try {
       const outcome = await withToken((token) => cancelIngestionJob(token, currentJob));
       // "tooLate": the raster is being activated; polling shows the outcome.
       if (outcome === "cancelled") dispatch({ type: "reset", layer });
+      else dispatch({ type: "cancelling", cancelling: false });
     } catch {
+      dispatch({ type: "cancelling", cancelling: false });
       openSnackbar({ message: t("admin:raster:uploadErrors:generic"), type: "error" });
     }
   };
@@ -474,8 +517,13 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
             <Text color="secondary" variant="body2">
               {t("admin:raster:slow")}
             </Text>
-            <Button variant="outlined" onClick={cancel} sx={rasterButtonSx}>
-              {t("admin:raster:cancel")}
+            <Button
+              variant="outlined"
+              onClick={cancel}
+              disabled={flow.cancelling}
+              sx={rasterButtonSx}
+            >
+              {flow.cancelling ? t("admin:raster:cancelling") : t("admin:raster:cancel")}
             </Button>
           </Box>
         </>

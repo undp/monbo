@@ -86,6 +86,10 @@ async def upload_raster(
                 await run_in_threadpool(file.write, chunk)
         if size == 0:
             raise HTTPException(status_code=400, detail="The request body is empty")
+        # The client may have given up once the whole body was sent (the admin UI's
+        # Cancel at 100%): don't start a job nobody will follow.
+        if await request.is_disconnected():
+            raise HTTPException(status_code=400, detail="The upload was cancelled")
         await run_in_threadpool(
             get_layers_root().flat.write_job,
             new_job(job_id, country, layer_id, nodata),

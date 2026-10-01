@@ -793,3 +793,23 @@ def test_a_failed_job_is_never_brought_back(layers, staging, tmp_path):
 
     assert layers.jobs.read_job("a" * 32)["status"] == "failed"
     assert entry(layers, 6)["raster_filename"] is None
+
+
+def test_an_upload_whose_client_left_starts_no_job(
+    layers, staging, client, admin_headers, tmp_path, monkeypatch
+):
+    """The admin cancelled once the whole file was sent: the API must not ingest it."""
+    from starlette.requests import Request
+
+    async def disconnected(self):
+        return True
+
+    monkeypatch.setattr(Request, "is_disconnected", disconnected)
+
+    response = upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary()))
+
+    assert response.status_code == 400
+    assert layers.jobs.list_jobs() == []
+    assert entry(layers, 6)["raster_filename"] is None
+    assert_no_staging_left(layers, staging)
+    assert ingestion_slot.job_id is None

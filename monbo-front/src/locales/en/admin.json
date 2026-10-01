@@ -160,6 +160,7 @@
     },
     "slow": "This can take a few minutes. Don't close this page.",
     "cancel": "Cancel",
+    "cancelling": "Cancelling…",
     "failed": "This raster could not be used.",
     "validated": {
       "title": "Raster validated and active",
