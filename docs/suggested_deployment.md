@@ -82,8 +82,11 @@ as interrupted (after up to 15 minutes) and has to upload the raster again.
 
 ### Rollback
 
-While the layers are still in Git, removing `STORAGE_ACCOUNT_NAME` and redeploying
-makes the API serve the image's layers again. Admin changes stay on the share.
+While the layers are still in Git, removing `STORAGE_ACCOUNT_NAME` **and the
+`ADMIN_*` values** from `azure/deploy.env` and redeploying makes the API serve the
+image's layers again, with the admin off (`deploy.sh` refuses to enable the admin
+without persistent storage). Admin changes stay on the share. As with any deploy,
+don't do it while a raster upload is being processed (see above).
 
 To restore files from a backup, use the vault's "Restore" on the `maps` item in the
 Azure portal (whole share or single files), or undelete the share within 14 days.
