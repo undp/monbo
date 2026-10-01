@@ -500,3 +500,195 @@ def test_restart_marks_interrupted_jobs_failed_and_cleans_staging(
     assert layers.jobs.read_job("c" * 32)["status"] == "succeeded"
     assert_no_staging_left(layers, staging)
     assert entry(layers, 6)["raster_filename"] is None
+
+
+# --- Phase and progress ------------------------------------------------------------
+
+
+def test_job_reports_its_phase_and_validation_progress(
+    layers, client, admin_headers, tmp_path, monkeypatch
+):
+    """A 4x4-window raster: progress is written as validation advances, throttled,
+    then the job moves to converting."""
+    from app.modules.layers import processing
+
+    monkeypatch.setattr(processing, "WINDOW_SIZE", 16)
+    monkeypatch.setattr(ingestion, "PROGRESS_INTERVAL_S", 0)
+    monkeypatch.setattr(ingestion, "PROGRESS_STEP", 0.25)
+    seen = []
+    real_write = layers.jobs.write_job
+
+    def record(job):
+        seen.append((job["status"], job["phase"], job["progress"]))
+        real_write(job)
+
+    monkeypatch.setattr(type(layers.jobs), "write_job", lambda self, job: record(job))
+
+    job = job_for(
+        client,
+        admin_headers,
+        upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary())),
+    )
+
+    assert job["status"] == "succeeded"
+    assert (job["phase"], job["progress"]) == (None, None)
+    validating = [p for status, phase, p in seen if phase == "validating"]
+    assert validating == [0, 0.25, 0.5, 0.75, 1.0]  # 16 windows, one write per 25%
+    assert ("running", "converting", None) in seen
+    assert seen.index(("running", "converting", None)) > len(validating)
+
+
+def test_progress_writes_are_throttled_in_time(layers, monkeypatch):
+    monkeypatch.setattr(ingestion, "PROGRESS_INTERVAL_S", 3600)
+    job = new_job("d" * 32, "CO", 6, None)
+    writes = []
+    monkeypatch.setattr(
+        type(layers.jobs), "write_job", lambda self, j: writes.append(j)
+    )
+    progress = ingestion._ValidationProgress(layers.jobs, job)
+
+    for done in range(1, 1001):
+        progress(done, 1000)
+
+    assert writes == []
+
+
+# --- Cancellation ------------------------------------------------------------------
+
+
+def cancel(client, headers, job_id):
+    return client.delete(f"/admin/jobs/{job_id}", headers=headers)
+
+
+def cancel_during(monkeypatch, function_name):
+    """Cancel the job from inside `function_name`, as a DELETE arriving meanwhile
+    would (TestClient runs the background task within the upload request)."""
+    real = getattr(ingestion, function_name)
+    outcome = {}
+
+    def cancelling(src, *args, **kwargs):
+        if "cancel" not in outcome:  # only the first job
+            outcome["cancel"] = ingestion_slot.cancel(ingestion_slot.job_id)
+        return real(src, *args, **kwargs)
+
+    monkeypatch.setattr(ingestion, function_name, cancelling)
+    return outcome
+
+
+def test_cancel_during_validation(
+    layers, staging, client, admin_headers, tmp_path, monkeypatch
+):
+    from app.modules.layers import processing
+
+    monkeypatch.setattr(processing, "WINDOW_SIZE", 16)
+    outcome = cancel_during(monkeypatch, "validate_raster")
+
+    job = job_for(
+        client,
+        admin_headers,
+        upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary())),
+    )
+
+    assert outcome["cancel"] == "cancelled"
+    assert job["status"] == "cancelled"
+    assert job["error"] is None
+    assert entry(layers, 6)["raster_filename"] is None
+    assert_no_staging_left(layers, staging)
+    # The slot was released: a new upload goes through.
+    ok = upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary()))
+    assert job_for(client, admin_headers, ok)["status"] == "succeeded"
+
+
+def test_cancel_during_conversion_takes_effect_when_it_returns(
+    layers, staging, client, admin_headers, tmp_path, monkeypatch
+):
+    outcome = cancel_during(monkeypatch, "convert_to_cog")
+
+    job = job_for(
+        client,
+        admin_headers,
+        upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary())),
+    )
+
+    assert outcome["cancel"] == "cancelled"
+    assert job["status"] == "cancelled"
+    assert entry(layers, 6)["raster_filename"] is None
+    assert entry(layers, 6)["version"] == 0
+    assert_no_staging_left(layers, staging)
+
+
+def test_cancelling_once_activation_began_is_too_late(
+    layers, client, admin_headers, tmp_path, monkeypatch
+):
+    outcome = cancel_during(monkeypatch, "activate")
+
+    job = job_for(
+        client,
+        admin_headers,
+        upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary())),
+    )
+
+    assert outcome["cancel"] == "too_late"
+    assert job["status"] == "succeeded"
+    assert entry(layers, 6)["raster_filename"] == "layer-6-v1.tif"
+
+
+def running_job(layers, job_id, country="CO"):
+    """A job holding the slot, as while the background task runs."""
+    layers.jobs.write_job({**new_job(job_id, country, 6, None), "status": "running"})
+    assert ingestion_slot.acquire(job_id)
+
+
+def test_cancel_endpoint(layers, client, admin_headers):
+    running_job(layers, "e" * 32)
+    try:
+        response = cancel(client, admin_headers, "e" * 32)
+        assert response.status_code == 202
+        assert ingestion_slot.is_cancelled("e" * 32)
+        # Once cancelled, activation is refused.
+        assert ingestion_slot.begin_activation("e" * 32) is False
+    finally:
+        ingestion_slot.release("e" * 32)
+
+
+def test_cancel_endpoint_after_activation_began_is_409(layers, client, admin_headers):
+    running_job(layers, "e" * 32)
+    try:
+        assert ingestion_slot.begin_activation("e" * 32)
+        assert cancel(client, admin_headers, "e" * 32).status_code == 409
+        assert not ingestion_slot.is_cancelled("e" * 32)
+    finally:
+        ingestion_slot.release("e" * 32)
+
+
+def test_cancelling_an_ended_job_is_409(layers, client, admin_headers, tmp_path):
+    response = upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary()))
+    job = job_for(client, admin_headers, response)
+
+    assert cancel(client, admin_headers, job["jobId"]).status_code == 409
+    assert job_for(client, admin_headers, response)["status"] == "succeeded"
+
+
+def test_cancelling_another_countrys_job_is_404(layers, client):
+    running_job(layers, "f" * 32)
+    try:
+        assert cancel(client, ecuador_headers(client), "f" * 32).status_code == 404
+        assert not ingestion_slot.is_cancelled("f" * 32)
+    finally:
+        ingestion_slot.release("f" * 32)
+
+
+def test_cancelling_an_unknown_job_is_404(layers, client, admin_headers):
+    assert cancel(client, admin_headers, "0" * 32).status_code == 404
+
+
+def test_cancel_preflight_allows_delete(layers, client):
+    response = client.options(
+        "/admin/jobs/" + "0" * 32,
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "DELETE",
+        },
+    )
+    assert response.status_code == 200
+    assert "DELETE" in response.headers["access-control-allow-methods"]

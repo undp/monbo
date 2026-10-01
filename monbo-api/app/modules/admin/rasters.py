@@ -43,9 +43,9 @@ async def upload_raster(
     """
     Upload a GeoTIFF for a layer as the raw request body (not multipart). It is
     validated, converted to a Cloud Optimized GeoTIFF and activated in the
-    background; poll `GET /admin/jobs/{jobId}` for the result. The layer keeps its
-    current raster until the job succeeds. Only one upload is processed at a time,
-    across every country.
+    background; poll `GET /admin/jobs/{jobId}` for the result, or cancel it with
+    `DELETE /admin/jobs/{jobId}`. The layer keeps its current raster until the job
+    succeeds. Only one upload is processed at a time, across every country.
     """
     if nodata is not None and not nodata.is_integer():
         raise HTTPException(status_code=422, detail="nodata must be a whole number")
@@ -90,11 +90,33 @@ async def upload_raster(
     return {"jobId": job_id}
 
 
-@router.get("/jobs/{job_id}")
-def get_job(job_id: str, session: Session = Depends(require_admin)):
-    """Status of an ingestion job of the session's country: queued, running,
-    succeeded or failed."""
+def _country_job(job_id: str, session: Session) -> dict:
     job = get_layers_root().flat.read_job(job_id)
     if job is None or job.get("country") != session.country:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str, session: Session = Depends(require_admin)):
+    """Status of an ingestion job of the session's country: queued, running,
+    succeeded, failed or cancelled, with the phase and progress while running."""
+    return _country_job(job_id, session)
+
+
+@router.delete("/jobs/{job_id}", status_code=202)
+def cancel_job(job_id: str, session: Session = Depends(require_admin)):
+    """
+    Cancel a queued or running job of the session's country. A 202 guarantees the
+    layer keeps its raster; the job reports `cancelled` once it stops (at the
+    latest when a running conversion returns). 409 when the job has ended or its
+    activation has begun.
+    """
+    job = _country_job(job_id, session)
+    if job["status"] not in ("queued", "running"):
+        raise HTTPException(status_code=409, detail="The job has already ended")
+    if ingestion_slot.cancel(job_id) != "cancelled":
+        raise HTTPException(
+            status_code=409, detail="The job is activating its raster or has ended"
+        )
+    return {"jobId": job_id, "cancelled": True}
