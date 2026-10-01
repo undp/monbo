@@ -68,7 +68,13 @@ def analize(body: AnalizeBody):
             print(f"Error opening map {map_data['id']}: {e}")
             farmsResults = [{"farmId": farm.id, "value": None} for farm in farms]
         finally:
-            results.append({"mapId": map_data["id"], "farmResults": farmsResults})
+            results.append(
+                {
+                    "mapId": map_data["id"],
+                    "version": map_data["version"],
+                    "farmResults": farmsResults,
+                }
+            )
 
     return sorted(results, key=lambda x: x["mapId"])
 
@@ -111,6 +117,9 @@ async def serve_tile(map_id: int, z: int, x: int, y: int):
 class GenerateImageBody(BaseModel):
     feature: dict  # geojson feature
     mapId: int
+    # The layer version the analysis used (from /analize). When given and the layer
+    # has a newer raster, the image would not match the results: 409.
+    version: int | None = None
 
 
 @router.post("/generate-image")
@@ -123,6 +132,11 @@ async def generate_image(
     map_data = get_map_by_id(body.mapId)
     if map_data is None:
         raise HTTPException(status_code=404, detail="Map not found")
+    if body.version is not None and body.version != map_data["version"]:
+        raise HTTPException(
+            status_code=409,
+            detail="The map layer changed since the analysis; run it again",
+        )
     try:
         raster_path = get_map_raster_path(map_data["raster_filename"])
     except FileNotFoundError:

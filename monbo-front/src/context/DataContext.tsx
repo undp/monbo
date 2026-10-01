@@ -4,6 +4,7 @@ import {
   createContext,
   Dispatch,
   SetStateAction,
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -39,6 +40,8 @@ export interface DataContextValue {
   >;
   analysisOutdated: boolean;
   setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
+  /** Drop results computed on a layer that changed since, and ask for a re-run. */
+  invalidateAnalysis: () => void;
   reportGenerationParams: {
     initialFarmSelection: "all" | "select";
     selectedMaps: MapData[];
@@ -66,6 +69,7 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisResults: () => {},
   analysisOutdated: false,
   setAnalysisOutdated: () => {},
+  invalidateAnalysis: () => {},
   reportGenerationParams: {
     initialFarmSelection: "all",
     selectedMaps: [],
@@ -106,6 +110,19 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     downloadType: null,
   });
 
+  const invalidateAnalysis = useCallback(() => {
+    // The API results and report used previous calculation inputs. Hide them
+    // before the map or its interpretation switches to the new values.
+    setDeforestationAnalysisResults(null);
+    setReportGenerationParams((prev) => ({
+      ...prev,
+      selectedMaps: [],
+      selectedFarms: [],
+      downloadType: null,
+    }));
+    setAnalysisOutdated(true);
+  }, []);
+
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
@@ -131,16 +148,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     );
 
     if (calculationChanged && deforestationAnalysisResults) {
-      // The API results and report used previous calculation inputs. Hide them
-      // before the map or its interpretation switches to the new values.
-      setDeforestationAnalysisResults(null);
-      setReportGenerationParams((prev) => ({
-        ...prev,
-        selectedMaps: [],
-        selectedFarms: [],
-        downloadType: null,
-      }));
-      setAnalysisOutdated(true);
+      invalidateAnalysis();
     }
 
     if (refreshed.some((map, index) => map !== selectedMaps[index])) {
@@ -189,6 +197,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setDeforestationAnalysisResults,
       analysisOutdated,
       setAnalysisOutdated,
+      invalidateAnalysis,
       reportGenerationParams,
       setReportGenerationParams,
       availableMaps,
@@ -206,6 +215,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setDeforestationAnalysisResults,
     analysisOutdated,
     setAnalysisOutdated,
+    invalidateAnalysis,
     reportGenerationParams,
     setReportGenerationParams,
     availableMaps,

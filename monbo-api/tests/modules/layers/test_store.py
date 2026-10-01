@@ -111,7 +111,7 @@ def test_analysis_includes_disabled_layers(maps_root):
     # No raster file exists, so the value is None, but the disabled layer is analyzed.
     assert response.status_code == 200
     assert response.json() == [
-        {"mapId": 7, "farmResults": [{"farmId": "f1", "value": None}]}
+        {"mapId": 7, "version": 3, "farmResults": [{"farmId": "f1", "value": None}]}
     ]
 
 

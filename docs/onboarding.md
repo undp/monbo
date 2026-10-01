@@ -59,14 +59,14 @@ The 3 modules are **not a rigid wizard**: the home page shows 3 cards, and both 
 
 **Module 2 — Deforestation analysis**
 4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{farms:[{id,type,details}], maps:[ids]}`. *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
-5. The backend iterates **per map × per farm** and returns `[{mapId, farmResults:[{farmId, value}]}]`, where `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
+5. The backend iterates **per map × per farm** and returns `[{mapId, version, farmResults:[{farmId, value}]}]`, where `version` is the layer's raster version the results were computed on, and `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
 6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
    If an admin replaces a selected raster or changes its calculation fields while
    the page is open, the browser discards the earlier percentages and recalculates
    them before showing the updated map or report.
 
 **Module 3 — Report**
-7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background).
+7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background). The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
 8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
 
 ### 2.3 The heart of the product: the deforestation calculation

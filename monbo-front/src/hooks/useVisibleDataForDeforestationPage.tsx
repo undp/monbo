@@ -45,8 +45,9 @@ export const useVisibleDataForDeforestationPage = (): ReturnType => {
 
     return deforestationAnalysisResults
       .filter(({ mapId }) => selectedMaps.some(({ id }) => id === mapId))
-      .map(({ mapId, farmResults }) => ({
-        mapId,
+      .map(({ farmResults, ...mapResults }) => ({
+        // Keeps `version`: report images are checked against it.
+        ...mapResults,
         farmResults: farmResults.filter(({ farmId }) =>
           visibleFarms.some(({ id }) => id === farmId)
         ),
