@@ -87,6 +87,12 @@ const subscribeToSelectedCountry = (listener: () => void) => {
   };
 };
 
+// Goes up every time the flow is reset, so a request started before a reset
+// (e.g. a file still being parsed when the user starts over) can tell that its
+// response no longer belongs to the current flow.
+let flowGeneration = 0;
+export const readFlowGeneration = () => flowGeneration;
+
 export const readSelectedCountry = () => {
   try {
     return sessionStorage.getItem(SELECTED_COUNTRY_STORAGE_KEY);
@@ -238,6 +244,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   }, []);
 
   const resetAnalysis = useCallback(() => {
+    flowGeneration += 1;
     setFarmsData(null);
     setPolygonsValidationResults(null);
     setDeforestationAnalysisResults(null);

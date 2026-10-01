@@ -10,7 +10,11 @@ import React, {
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { validatePolygons } from "@/api/polygonValidation";
-import { DataContext, readSelectedCountry } from "@/context/DataContext";
+import {
+  DataContext,
+  readFlowGeneration,
+  readSelectedCountry,
+} from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -37,15 +41,26 @@ export function PolygonsValidationUploadDataPageContent() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const prevDataRef = useRef<string | null>(null);
+  // A parser response that arrives after the page was left is dropped.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
       try {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
           data.map((row) => ({ ...row, country: selectedCountry })),
           i18n.language
         );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
         // The country can change while the parser request is in flight.
         setFarmsData(
           results.map((farm) => ({
