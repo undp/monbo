@@ -17,6 +17,7 @@ export const DeforestationModuleCard: React.FC = () => {
     setFarmsData,
     setDeforestationAnalysisResults,
     setPolygonsValidationResults,
+    setAnalysisOutdated,
   } = useContext(DataContext);
   const [newDataModalIsOpen, setNewDataModalIsOpen] = useState(false);
   const goToModule = useModuleRouter("/deforestation-analysis");
@@ -50,6 +51,7 @@ export const DeforestationModuleCard: React.FC = () => {
             title: t("home:sameDataModal:uploadNewData"),
             handler: () => {
               setFarmsData(null);
+              setAnalysisOutdated(false);
               setPolygonsValidationResults(null);
               setDeforestationAnalysisResults(null);
               router.push("/deforestation-analysis/upload-data");

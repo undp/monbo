@@ -186,6 +186,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
+      // A new file is a new analysis, not a recalculation of an outdated one.
+      setAnalysisOutdated(false);
       setLoading(true);
 
       const file = acceptedFiles[0];
@@ -208,7 +210,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [openSnackbar, t, performFarmsGeneration, i18n.language]
+    [openSnackbar, t, performFarmsGeneration, setAnalysisOutdated, i18n.language]
   );
 
   if (loading)
