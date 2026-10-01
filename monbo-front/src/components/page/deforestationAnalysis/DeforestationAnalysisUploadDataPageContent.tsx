@@ -27,6 +27,7 @@ import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionS
 import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
 import { Box, Button } from "@mui/material";
+import { getCountryName } from "@/utils/countries";
 import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
@@ -73,6 +74,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
       mountedRef.current = false;
     };
   }, []);
+
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
 
   const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForDeforestation,
@@ -307,7 +313,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
         {!mapOptions.length && (
           <MessageBox
             message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
+              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              { country: countryName }
             )}
           />
         )}

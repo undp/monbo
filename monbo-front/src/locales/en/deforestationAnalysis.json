@@ -16,7 +16,7 @@
     },
     "mapSelectionStep": {
       "stepTitle": "Step 3: Select the map layers for the analysis",
-      "noMapsAvailable": "No maps available for the selected countries"
+      "noMapsAvailable": "No layers available for {{country}}"
     },
     "uploadStep": {
       "stepTitle": "Step 3: Upload the Template",

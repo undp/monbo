@@ -16,7 +16,7 @@
     },
     "mapSelectionStep": {
       "stepTitle": "Paso 2: Selecciona las capas de mapas para el análisis",
-      "noMapsAvailable": "No hay mapas disponibles para los países seleccionados"
+      "noMapsAvailable": "No hay capas disponibles para {{country}}"
     },
     "uploadStep": {
       "stepTitle": "Paso 3: Carga la plantilla para el análisis de deforestación",

@@ -17,19 +17,25 @@ import { useTranslation } from "react-i18next";
 import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
 import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
+import { getCountryName } from "@/utils/countries";
 
 export const DeforestationModal: React.FC<
   Pick<BaseModalProps, "isOpen" | "handleClose">
 > = ({ isOpen, handleClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     farmsData,
     availableMaps,
+    selectedCountry,
     polygonsValidationResults,
     deforestationAnalysisParams: { polygonsSubset, selectedMaps },
     setDeforestationAnalysisParams,
   } = useContext(DataContext);
   const router = useRouter();
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
 
   const allFarmsAmount = useMemo(() => farmsData?.length || 0, [farmsData]);
 
@@ -131,7 +137,8 @@ export const DeforestationModal: React.FC<
           {!mapOptions.length && (
             <MessageBox
               message={t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
+                "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+                { country: countryName }
               )}
             />
           )}
