@@ -2,7 +2,8 @@
 
 `azure/deploy.sh` deploys the API and the frontend to Azure Container Apps. It is
 idempotent: it creates what is missing and updates the rest. Configuration lives in
-`azure/deploy.env` (copy `azure/deploy.env.example`; it is gitignored).
+`azure/deploy.env` (copy `azure/deploy.env.example`; it is gitignored). How the
+resources fit together is in [architecture.md](architecture.md).
 
 ```sh
 ./azure/deploy.sh               # build, push and deploy both apps
