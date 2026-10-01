@@ -138,7 +138,8 @@
       "active": "Drop the file here",
       "or": "or",
       "button": "Select file",
-      "hint": ".tif or .tiff · one band · values 0 and 1"
+      "hint": ".tif or .tiff · one band · values 0 and 1",
+      "rejected": "That file can't be used: upload a single .tif or .tiff file."
     },
     "file": {
       "ready": "{{size}} · ready to upload",

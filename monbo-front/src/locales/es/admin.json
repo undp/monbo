@@ -138,7 +138,8 @@
       "active": "Suelta el archivo aquí",
       "or": "o",
       "button": "Seleccionar archivo",
-      "hint": ".tif o .tiff · una banda · valores 0 y 1"
+      "hint": ".tif o .tiff · una banda · valores 0 y 1",
+      "rejected": "Ese archivo no se puede usar: sube un solo archivo .tif o .tiff."
     },
     "file": {
       "ready": "{{size}} · listo para subir",

@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useContext } from "react";
 import { Box, Button, alpha, useTheme } from "@mui/material";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
+import { SnackbarContext } from "@/context/SnackbarContext";
 import { rasterButtonSx } from "./rasterStyles";
 
 /** Where the admin drops or selects the raster (.tif or .tiff, one file). */
@@ -13,11 +14,15 @@ export const RasterDropZone: React.FC<{ onFile: (file: File) => void }> = ({
 }) => {
   const { t } = useTranslation();
   const primary = useTheme().palette.primary.main;
+  const { openSnackbar } = useContext(SnackbarContext);
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: { "image/tiff": [".tif", ".tiff"] },
     multiple: false,
     noClick: true,
     onDropAccepted: ([file]) => onFile(file),
+    // Another format, or several files: say why nothing happened.
+    onDropRejected: () =>
+      openSnackbar({ message: t("admin:raster:drop:rejected"), type: "error" }),
   });
 
   return (
