@@ -52,12 +52,15 @@ domains, IP restrictions, CORS, the identity, tags and the workload profile are 
    ```sh
    cd monbo-api
    uv run python -m app.modules.layers.seed --target /tmp/maps-seed
-   az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" \
-     --account-key "$(az storage account keys list -g monbo-data -n "$STORAGE_ACCOUNT_NAME" --query '[0].value' -o tsv)" \
+   AZURE_STORAGE_KEY="$(az storage account keys list -g monbo-data -n "$STORAGE_ACCOUNT_NAME" --query '[0].value' -o tsv)" \
+     az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" \
      --destination maps --source /tmp/maps-seed
    ```
 
-   `deploy.sh` refuses to mount a share without an `index.json`.
+   `deploy.sh` refuses to mount a share without an `index.json`. **Only seed an empty
+   share**: the upload overwrites `index.json` and the metadata, and would drop every
+   layer created or edited in the admin. If `deploy.sh` says it could not check the
+   share, fix that error (network, storage firewall, key access) instead of seeding.
 3. Deploy: `./azure/deploy.sh`. After the API is up, the script checks that `/health`
    reports `mapsRoot: /mnt/maps` and `mapsRootWritable: true`, and fails otherwise.
 4. Compare the new deployment with the previous one on the regression farms; every

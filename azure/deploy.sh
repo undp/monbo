@@ -265,10 +265,24 @@ ensure_layer_storage() {
   fi
   ok "Delete lock: $DATA_LOCK_NAME"
 
-  az containerapp env storage set -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
-    --storage-name "$ENV_STORAGE_NAME" --storage-type AzureFile \
-    --azure-file-account-name "$STORAGE_ACCOUNT_NAME" --azure-file-account-key "$(storage_key)" \
-    --azure-file-share-name "$MAPS_SHARE_NAME" --access-mode ReadWrite -o none --only-show-errors
+  # Through a body file, not `env storage set` flags: the account key controls the
+  # only durable copy of the layers and must not appear on a command line.
+  local storage_body
+  storage_body="$(mktemp)"
+  TEMP_FILES+=("$storage_body")
+  STORAGE_ACCOUNT_KEY="$(storage_key)" STORAGE_ACCOUNT_NAME="$STORAGE_ACCOUNT_NAME" \
+    MAPS_SHARE_NAME="$MAPS_SHARE_NAME" python3 -c '
+import json, os, sys
+json.dump({"properties": {"azureFile": {
+    "accountName": os.environ["STORAGE_ACCOUNT_NAME"],
+    "accountKey": os.environ["STORAGE_ACCOUNT_KEY"],
+    "shareName": os.environ["MAPS_SHARE_NAME"],
+    "accessMode": "ReadWrite",
+}}}, sys.stdout)' > "$storage_body"
+  az rest --method put --only-show-errors -o none \
+    --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/managedEnvironments/$CONTAINERAPPS_ENV/storages/$ENV_STORAGE_NAME?api-version=2024-03-01" \
+    --body "@$storage_body"
+  rm -f "$storage_body"
   ok "Share registered on $CONTAINERAPPS_ENV as '$ENV_STORAGE_NAME'"
 }
 
@@ -319,9 +333,17 @@ POLICY
   ok "Backup: $BACKUP_VAULT_NAME / $BACKUP_POLICY_NAME (daily, 30 days)"
 }
 
+# Whether the share has an index.json. Dies when az itself fails (network, storage
+# firewall, shared-key access disabled): that is not the same as an unseeded share, and
+# seeding a share that already holds admin-created layers would overwrite them.
 share_has_index() {
-  [ "$(az storage file exists --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$(storage_key)" \
-    --share-name "$MAPS_SHARE_NAME" --path index.json --query exists -o tsv 2>/dev/null)" = "true" ]
+  local key exists
+  key="$(storage_key)" || die "Could not read the key of storage account $STORAGE_ACCOUNT_NAME"
+  # The key goes through the environment, not argv (visible in `ps`).
+  exists="$(AZURE_STORAGE_KEY="$key" az storage file exists --account-name "$STORAGE_ACCOUNT_NAME" \
+    --share-name "$MAPS_SHARE_NAME" --path index.json --query exists -o tsv --only-show-errors)" \
+    || die "Could not check the '$MAPS_SHARE_NAME' share for index.json (see the az error above)"
+  [ "$exists" = "true" ]
 }
 
 build_and_push() {
