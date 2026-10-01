@@ -134,24 +134,32 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     const selectedMaps = deforestationAnalysisParams.selectedMaps;
     if (!selectedMaps.length) return;
 
-    // A hidden layer keeps its last metadata so an existing analysis can still
-    // refer to it; public /maps only returns enabled layers.
-    const refreshed = selectedMaps.map(
-      (selected) => maps.find((map) => map.id === selected.id) ?? selected
-    );
-    const calculationChanged = refreshed.some(
-      (map, index) =>
-        map.version !== selectedMaps[index].version ||
-        map.pixelSize !== selectedMaps[index].pixelSize ||
-        map.baseline !== selectedMaps[index].baseline ||
-        map.comparedAgainst !== selectedMaps[index].comparedAgainst
-    );
+    // Public /maps only returns enabled layers. A hidden layer keeps its last
+    // metadata only while an existing analysis refers to it; otherwise it is
+    // deselected, so a hidden layer is never used for a new analysis.
+    const refreshed = selectedMaps.flatMap((selected) => {
+      const listed = maps.find((map) => map.id === selected.id);
+      if (listed) return [listed];
+      return deforestationAnalysisResults ? [selected] : [];
+    });
+    const calculationChanged =
+      refreshed.length === selectedMaps.length &&
+      refreshed.some(
+        (map, index) =>
+          map.version !== selectedMaps[index].version ||
+          map.pixelSize !== selectedMaps[index].pixelSize ||
+          map.baseline !== selectedMaps[index].baseline ||
+          map.comparedAgainst !== selectedMaps[index].comparedAgainst
+      );
 
     if (calculationChanged && deforestationAnalysisResults) {
       invalidateAnalysis();
     }
 
-    if (refreshed.some((map, index) => map !== selectedMaps[index])) {
+    if (
+      refreshed.length !== selectedMaps.length ||
+      refreshed.some((map, index) => map !== selectedMaps[index])
+    ) {
       setDeforestationAnalysisParams((prev) => ({
         ...prev,
         selectedMaps: refreshed,
