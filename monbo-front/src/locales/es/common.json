@@ -53,7 +53,8 @@
     "mandatoryDataMissing": "Falta dato obligatorio ({{header}}) en la fila {{row}}",
     "invalidCoordinatesFormat": "Formato de coordenadas inválido en la fila {{row}}",
     "invalidGeometryType": "Tipo de geometría inválido en la fila {{row}}",
-    "invalidCoordinates": "Coordenadas inválidas en la fila {{row}}"
+    "invalidCoordinates": "Coordenadas inválidas en la fila {{row}}",
+    "otherCountry": "Este archivo tiene fincas en {{countries}}. Monbo analiza un país a la vez: sube solo las fincas de {{country}}, o elige otro país."
   },
   "countrySelection": {
     "menuLabel": "País del análisis",

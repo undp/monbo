@@ -53,7 +53,8 @@
     "mandatoryDataMissing": "Missing mandatory data ({{header}}) in row {{row}}",
     "invalidCoordinatesFormat": "Invalid coordinates format in row {{row}}",
     "invalidGeometryType": "Invalid geometry type in row {{row}}",
-    "invalidCoordinates": "Invalid coordinates in row {{row}}"
+    "invalidCoordinates": "Invalid coordinates in row {{row}}",
+    "otherCountry": "This file has farms in {{countries}}. Monbo analyzes one country at a time: upload only the farms in {{country}}, or choose another country."
   },
   "countrySelection": {
     "menuLabel": "Analysis country",

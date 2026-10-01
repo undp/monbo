@@ -13,7 +13,7 @@ from rasterio.errors import RasterioIOError
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
-    raster_pixel_size_m,
+    raster_pixel_size_range_m,
 )
 from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, get_layers_root
 
@@ -104,8 +104,8 @@ def _check_existing_raster_pixel_size(
     if not filename or not store.has_raster(filename):
         return
     try:
-        with rasterio_open(store.raster_path(filename)) as raster:
-            check_pixel_size(pixel_size, raster_pixel_size_m(raster))
+        with rasterio_open(store.raster_path(filename), driver="GTiff") as raster:
+            check_pixel_size(pixel_size, raster_pixel_size_range_m(raster))
     except IngestionError as error:
         raise HTTPException(status_code=409, detail=error.as_issue()) from error
     except RasterioIOError as error:
@@ -159,10 +159,19 @@ def update_layer(
     raster, version, enabled state and country are not changed here.
     """
     store = _country_store(session)
+    # Checked before taking the store lock: it may open the raster over the share,
+    # and every tile and image request waits on that lock.
+    current = _index_or_500(store)
+    checked = current[_position(current, layer_id)]
+    if body.pixel_size != checked["pixel_size"]:
+        _check_existing_raster_pixel_size(store, checked, body.pixel_size)
     with store.locked():
         index = _index_or_500(store)
         position = _position(index, layer_id)
-        if body.pixel_size != index[position]["pixel_size"]:
+        # A new raster was activated meanwhile: check against that one instead.
+        if body.pixel_size != index[position]["pixel_size"] and index[position].get(
+            "raster_filename"
+        ) != checked.get("raster_filename"):
             _check_existing_raster_pixel_size(store, index[position], body.pixel_size)
         _apply_input(store, index[position], body)
         store.write_index(index)

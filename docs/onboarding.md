@@ -44,7 +44,7 @@ Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin  
 Key points for building the right mental model:
 
 - **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which each country's **layers admin** edits (one passkey per country; see §4.8 and `docs/maps.md`).
-- **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home).
+- **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home). Changing the language does keep it: the language is the root layout's `[locale]` segment, so switching it remounts `DataProvider`, and the flow is kept in a module-level `keptState` that the remounted provider picks up. Logic that runs once per mount inside the provider runs again after a language change, so it must not assume a fresh flow.
 - **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `monbo-api/app/maps` (rasters in **Git LFS**, flat layout, read-only); in Azure, the per-country layout on an **Azure Files share** (`/mnt/maps`), which the admin writes to. Each country has its own folder and numbers its layers from 0, so analysis, tiles and report images send the country with the layer id.
 - **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token.
 
@@ -57,20 +57,20 @@ The Azure resources, how the API reads the rasters and how the per-country admin
 The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`monbo-front/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
 **Module 1 — Validation**
-1. The user downloads an Excel template (`public/files/m1-upload-file-template-{en,es}.xlsx`) and uploads their file. The frontend reads it with `exceljs`/`xlsx` and validates required columns (producer, production, coordinates, crop type, etc.). The file has **no country column**: every row gets the selected country before it is sent (an old template's country column is ignored).
+1. The user downloads an Excel template (`public/files/m1-upload-file-template-{en,es}.xlsx`) and uploads their file. The frontend reads it with `exceljs`/`xlsx` and validates required columns (producer, production, coordinates, crop type, etc.). The file has **no country column**: every row gets the selected country before it is sent (an old template's country column must be empty or match it; a file with farms in another country is rejected).
 2. The frontend sends the rows to **`POST /farms/parse?locale=`**. The backend parses coordinates (supports **WKT and GeoJSON**, `Point` and `Polygon`), interprets numbers according to the locale, auto-generates missing IDs, and — a non-obvious detail — **converts points into circles**: it uses the declared `area` as the radius, and if there is no area it uses a **default of 1 hectare**. It returns `FarmData` with the polygon already normalized.
 3. The frontend stores the result (`setFarmsData`) and fires **`POST /polygons_validation/validate`** (sending only `{id, type, details}`). The backend rebuilds the polygons with **Shapely**, detects overlaps and invalid geometries, and marks each farm `VALID` / `NOT_VALID`.
 
 **Module 2 — Deforestation analysis**
 4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country). *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
-5. The backend iterates **per map × per farm** and returns `[{mapId, farmResults:[{farmId, value}]}]`, where `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
+5. The backend iterates **per map × per farm** and returns `[{mapId, version, farmResults:[{farmId, value}]}]`, where `version` is the layer's raster version the results were computed on, and `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
 6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
    If an admin replaces a selected raster or changes its calculation fields while
    the page is open, the browser discards the earlier percentages and recalculates
    them before showing the updated map or report.
 
 **Module 3 — Report**
-7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background).
+7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background). The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
 8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
 
 ### 2.3 The heart of the product: the deforestation calculation
@@ -99,8 +99,9 @@ This is the core concept worth understanding clearly.
 - **Google Earth Engine**: only in the offline raster-generation script.
 - **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
 - **Raster ingestion checks the calculation inputs.** Nodata cannot be `1`, and
-  the configured `pixel_size` must be within 5% of the raster's measured pixel
-  size. The same size check applies when an admin edits a layer with a raster.
+  the area of the configured `pixel_size` must be within 5% of the raster's cell
+  area at every latitude it covers. The same size check applies when an admin edits
+  a layer with a raster.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.
 
 ---
@@ -138,7 +139,7 @@ monbo/
 ### 3.2 Backend — `monbo-api/app/`
 
 ```
-main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /download-geojson
+main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /health/live, /download-geojson
 modules/                   # One package per module, each with router.py + helpers.py + models.py
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
@@ -158,7 +159,7 @@ tests/                     # pytest, mirrors the modules/ structure; tests/regre
 
 ```
 app/[locale]/              # App Router; the language is a route segment (en/es)
-├── page.tsx               #   Landing: pick the analysis country on a map
+├── page.tsx               #   Landing: pick the analysis country on a card
 ├── home/                  #   The 3 module cards
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)

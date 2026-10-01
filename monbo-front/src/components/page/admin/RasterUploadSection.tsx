@@ -281,9 +281,19 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
           });
         }
         // "cancelled": the section already went back to "no file".
-      } catch {
-        // A transient network error: keep polling, a bit slower.
-        if (!cancelled) timer = setTimeout(tick, POLL_INTERVAL_MS * 2);
+      } catch (e) {
+        if (cancelled) return;
+        // A 4xx other than 401 (which signs out) won't change by retrying, e.g. a
+        // job that no longer exists: stop and tell the admin.
+        if (e instanceof AdminApiError && e.status >= 400 && e.status < 500) {
+          dispatch({
+            type: "fail",
+            error: t("admin:raster:uploadErrors:statusUnavailable"),
+          });
+          return;
+        }
+        // A network error or a 5xx: keep polling, a bit slower.
+        timer = setTimeout(tick, POLL_INTERVAL_MS * 2);
       }
     };
     tick();

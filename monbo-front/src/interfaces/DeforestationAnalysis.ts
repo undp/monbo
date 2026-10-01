@@ -19,6 +19,8 @@ export interface MapData {
 
 export interface DeforestationAnalysisMapResults {
   mapId: number;
+  // The layer version the results were computed against.
+  version: number;
   farmResults: {
     farmId: string;
     value: number;

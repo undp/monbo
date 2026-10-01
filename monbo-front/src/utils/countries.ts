@@ -709,16 +709,6 @@ export const countries: Country[] = [
   { code: "ZW", numericCode: "716", nameEn: "Zimbabwe", nameEs: "Zimbabue" },
 ];
 
-// Helper function to get country codes
-export const countryCodesSet: Set<string> = new Set(
-  countries.map((c) => c.code)
-);
-
-// Updated function to check if a code is valid
-export const isCountryCode = (code: string) => {
-  return countryCodesSet.has(code);
-};
-
 // New helper functions
 export const getCountryName = (code: string, language: "en" | "es") => {
   const country = countries.find((c) => c.code === code);

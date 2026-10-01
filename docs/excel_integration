@@ -29,7 +29,7 @@ Cada módulo de la aplicación permite ingresar datos mediante archivos Excel. P
 
 Los campos opcionales permiten adjuntar documentos útiles para la elaboración de reportes relacionados al cumplimiento de la regulación EUDR. Cada usuario puede incluir un nombre descriptivo para estos documentos. En la columna del Excel denominada **"Link"**, se debe colocar un enlace válido para acceder o descargar cada documento referido.
 
-La plantilla no incluye el país: se elige al comienzo, en la página de inicio, y se asigna a todos los predios cargados. Si un archivo trae una columna de país (plantillas antiguas), se ignora.
+La plantilla no incluye el país: se elige al comienzo, en la página de inicio, y se asigna a todos los predios cargados. Si un archivo trae una columna de país (plantillas antiguas), debe estar vacía o indicar el país elegido: un archivo con predios de otro país se rechaza, porque Monbo analiza un país a la vez.
 
 Este método asegura una integración organizada y eficiente de los datos proporcionados por los productores, incluyendo la ubicación de sus fincas, información sobre producción y detalles adicionales necesarios para el uso de los módulos disponibles en la plataforma.
 

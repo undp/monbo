@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { fetchDeforestationImages } from "@/utils/deforestationImages";
+import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 
 export const useDeforestationReportDownload = () => {
   const { t } = useTranslation(["deforestationAnalysis", "common"]);
@@ -22,6 +23,7 @@ export const useDeforestationReportDownload = () => {
       selectedFarms: selectedFarmsForReport,
     },
     selectedCountry,
+    invalidateAnalysis,
   } = useContext(DataContext);
 
   const filteredDeforestationAnalysisResults = useMemo(() => {
@@ -105,25 +107,29 @@ export const useDeforestationReportDownload = () => {
     try {
       await downloadSeparatedReportsToFile();
     } catch (error) {
+      // A layer got a new raster after the analysis: re-run it instead of
+      // producing reports that mix both rasters.
+      if (error instanceof MapLayerChangedError) return invalidateAnalysis();
       console.error("Error downloading separated reports:", error);
       openSnackbar({
         message: t("common:snackbarAlerts:errorDownloadingSeparatedReports"),
         type: "error",
       });
     }
-  }, [downloadSeparatedReportsToFile, openSnackbar, t]);
+  }, [downloadSeparatedReportsToFile, invalidateAnalysis, openSnackbar, t]);
 
   const downloadCompleteReportWrapper = useCallback(async () => {
     try {
       await downloadCompleteReportToFile();
     } catch (error) {
+      if (error instanceof MapLayerChangedError) return invalidateAnalysis();
       console.error("Error downloading complete report:", error);
       openSnackbar({
         message: t("common:snackbarAlerts:errorDownloadingCompleteReport"),
         type: "error",
       });
     }
-  }, [downloadCompleteReportToFile, openSnackbar, t]);
+  }, [downloadCompleteReportToFile, invalidateAnalysis, openSnackbar, t]);
 
   return {
     downloadCompleteReport: downloadCompleteReportWrapper,

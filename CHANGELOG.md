@@ -23,7 +23,7 @@
 - The layers admin needs the per-country layout and uses one passkey per country (`ADMIN_PASSKEY_HASH`, from earlier builds of this release, is ignored), and each admin only sees and edits their country's layers. Each country numbers its layers from 0, so `POST /deforestation_analysis/analize` and `POST /deforestation_analysis/generate-image` take a `country` in the body, and tiles move to `/deforestation_analysis/tiles/{country}/{id}/…` (the country is optional in the body with a flat root). The admin form no longer asks for countries. A flat root (like the Git-tracked `app/maps`) is still served, read-only
 - In Azure the share holds the per-country layout at `/mnt/maps`. `./azure/deploy.sh seed` fills it from the Git-tracked layers (emptying it first after a confirmation), for a new environment or to start one over
 - The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers
-- The upload templates no longer have a country column; every farm gets the selected country, and a country column in an older file is ignored
+- The upload templates no longer have a country column; every farm gets the selected country. An older file's country column must be empty or name the selected country; a file with farms in another country is rejected
 
 ### Fixed
 

@@ -10,7 +10,11 @@ import React, {
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { analizeDeforestation } from "@/api/deforestationAnalysis";
-import { DataContext, readSelectedCountry } from "@/context/DataContext";
+import {
+  DataContext,
+  readFlowGeneration,
+  readSelectedCountry,
+} from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -22,6 +26,8 @@ import { FarmData } from "@/interfaces/Farm";
 import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
 import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
+import { Box, Button } from "@mui/material";
+import { getCountryName } from "@/utils/countries";
 import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
@@ -43,8 +49,36 @@ export function DeforestationAnalysisUploadDataPageContent() {
     setAnalysisOutdated,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(() => !!farmsData);
+  // With farms already loaded the analysis starts right away, unless no map is
+  // selected yet: then the form is shown so the user can pick one.
+  const [loading, setLoading] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // Whether the analysis may start: when the page opens with farms and layers
+  // (from the deforestation modal, or to recalculate an outdated analysis),
+  // after a file is parsed, or from the "Analyze" button. Choosing layers on
+  // the form never starts it, so the user can tick more than one.
+  const [analysisRequested, setAnalysisRequested] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // The inputs of the latest analysis request, and whether the page is mounted:
+  // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
+  // Counts analysis requests, so a stale one can tell whether a newer one is
+  // still pending (and owns the loading screen).
+  const latestRequestRef = useRef(0);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
 
   const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForDeforestation,
@@ -53,6 +87,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const onMapSelectionChange = useCallback(
     (id: string, checked: boolean) => {
+      setAnalysisRequested(false);
       if (checked) {
         setDeforestationAnalysisParams((prev) => ({
           ...prev,
@@ -73,12 +108,15 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
       try {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
           data.map((row) => ({ ...row, country: selectedCountry })),
           i18n.language
         );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
         // The country can change while the parser request is in flight.
         setFarmsData(
           results.map((farm) => ({
@@ -86,6 +124,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
             country: readSelectedCountry() ?? farm.country,
           }))
         );
+        setAnalysisRequested(true);
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -101,6 +140,12 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const performDeforestationAnalysis = useCallback(
     async (data: FarmData[], isCurrent: () => boolean) => {
+      const request = ++latestRequestRef.current;
+      // A stale response turns the loading screen off, unless a newer request
+      // is pending.
+      const settleStale = () => {
+        if (request === latestRequestRef.current) setLoading(false);
+      };
       setLoading(true);
       try {
         const response = await analizeDeforestation(
@@ -108,7 +153,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
           selectedMapsForDeforestation,
           selectedCountry!
         );
-        if (!isCurrent()) return;
+        // A newer request (another country, or a layer that changed again)
+        // supersedes this one.
+        if (!isCurrent()) return settleStale();
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
         router.push(`/${i18n.language}/deforestation-analysis`);
@@ -119,7 +166,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           type: "success",
         });
       } catch {
-        if (!isCurrent()) return;
+        if (!isCurrent()) return settleStale();
         openSnackbar({
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
@@ -127,6 +174,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // TODO: we should navigate back to polygons validation page only if coming from there
         // router.push("/polygons-validation");
         setLoading(false);
+        // Back to the form: the "Analyze" button retries.
+        setAnalysisRequested(false);
       }
     },
     [
@@ -143,7 +192,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   useEffect(() => {
-    if (!farmsData || !selectedMapsForDeforestation.length) {
+    if (
+      !analysisRequested ||
+      !farmsData ||
+      !selectedMapsForDeforestation.length
+    ) {
       prevDataRef.current = null;
       return;
     }
@@ -151,49 +204,52 @@ export function DeforestationAnalysisUploadDataPageContent() {
     const serializedData = JSON.stringify({
       country: selectedCountry,
       farms: farmsData.map((farm) => [farm.id, farm.country]),
-      calculationInputs: selectedMapsForDeforestation.map((map) => [
-        map.id,
-        map.version,
-        map.pixelSize,
-        map.baseline,
-        map.comparedAgainst,
-      ]),
+      // Only an analysis invalidated by a layer change re-runs when the selected
+      // layers' calculation inputs change; ticking maps on the form doesn't.
+      calculationInputs: analysisOutdated
+        ? selectedMapsForDeforestation.map((map) => [
+            map.id,
+            map.version,
+            map.pixelSize,
+            map.baseline,
+            map.comparedAgainst,
+          ])
+        : null,
     });
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
-    let active = true;
-    let pending = true;
+    // Superseded once the inputs change (prevDataRef moves on), the country
+    // changes or the page unmounts. A re-run with the same inputs (e.g. the maps
+    // list refreshed, or Strict Mode replaying the effect) keeps it current.
     void performDeforestationAnalysis(
       farmsData,
-      () => active && readSelectedCountry() === selectedCountry
-    ).finally(() => {
-      pending = false;
-    });
-
-    return () => {
-      active = false;
-      // React Strict Mode replays effects before the first request settles.
-      if (pending && prevDataRef.current === serializedData) {
-        prevDataRef.current = null;
-      }
-    };
+      () =>
+        mountedRef.current &&
+        prevDataRef.current === serializedData &&
+        readSelectedCountry() === selectedCountry
+    );
   }, [
+    analysisRequested,
     farmsData,
     selectedCountry,
     selectedMapsForDeforestation,
+    analysisOutdated,
     performDeforestationAnalysis,
   ]);
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
+      // A new file is a new analysis, not a recalculation of an outdated one.
+      setAnalysisOutdated(false);
       setLoading(true);
 
       const file = acceptedFiles[0];
       const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
-        i18n.language
+        i18n.language,
+        selectedCountry
       );
 
       if (errorMessages.length > 0) {
@@ -209,7 +265,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [openSnackbar, t, performFarmsGeneration, i18n.language]
+    [
+      openSnackbar,
+      t,
+      performFarmsGeneration,
+      setAnalysisOutdated,
+      i18n.language,
+      selectedCountry,
+    ]
   );
 
   if (loading && selectedMapsForDeforestation.length > 0)
@@ -252,7 +315,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
         {!mapOptions.length && (
           <MessageBox
             message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
+              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              { country: countryName }
             )}
           />
         )}
@@ -287,6 +351,28 @@ export function DeforestationAnalysisUploadDataPageContent() {
           onDrop={onFileDropped}
           disabled={selectedMapsForDeforestation.length === 0}
         />
+        {farmsData && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
+              count: farmsData.length,
+            })}
+            <Button
+              variant="contained"
+              onClick={() => setAnalysisRequested(true)}
+              disabled={selectedMapsForDeforestation.length === 0}
+            >
+              {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
+            </Button>
+          </Box>
+        )}
       </TextHeaderStepContainer>
     </UploadPageContent>
   );

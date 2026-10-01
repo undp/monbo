@@ -19,9 +19,14 @@ from rasterio.windows import Window
 WINDOW_SIZE = 2048
 MAX_REPORTED_VALUES = 10
 LOSS_YEARS = range(1980, 2101)
-# Existing layers use nominal 10 m or 30 m sizes. Their measured resolution
-# differs by up to ~1.6% because of projection and geographic approximation.
-PIXEL_SIZE_RELATIVE_TOLERANCE = 0.05
+# The analysis applies one pixel area (`pixel_size`²) to the whole layer, so the
+# declared size must match the raster's cell area at every latitude it covers within
+# this relative tolerance, which bounds the area (and ratio) bias. Existing layers
+# differ by up to ~3.6% (ideam's projection, gfw at its northern edge).
+PIXEL_AREA_RELATIVE_TOLERANCE = 0.05
+# Metres per degree of longitude at the equator and of latitude.
+_M_PER_DEG_LON = 111_320
+_M_PER_DEG_LAT = 110_574
 COG_OPTIONS = {
     "compress": "DEFLATE",
     "predictor": 2,
@@ -78,19 +83,16 @@ def _distinct_values(block: np.ndarray) -> set[int]:
     return {int(value) for value in np.unique(block)}
 
 
-def raster_pixel_size_m(src) -> float | None:
-    """Nominal pixel side in metres, derived from the raster cell area.
-
-    For geographic CRSs this is an approximation at the raster's middle latitude.
-    The geometric mean keeps the area correct for non-square or rotated cells.
-    """
+def _pixel_side_m(src, lat: float | None) -> float | None:
+    """Nominal pixel side in metres from the cell area (at `lat` for a geographic
+    CRS). The geometric mean keeps the area right for non-square or rotated cells."""
     try:
         cell_area = abs(
             src.transform.a * src.transform.e - src.transform.b * src.transform.d
         )
         if src.crs.is_geographic:
-            lat = math.radians((src.bounds.top + src.bounds.bottom) / 2)
-            cell_area *= 111_320 * math.cos(lat) * 110_574
+            assert lat is not None
+            cell_area *= _M_PER_DEG_LON * math.cos(math.radians(lat)) * _M_PER_DEG_LAT
         else:
             cell_area *= src.crs.linear_units_factor[1] ** 2
         pixel_size = math.sqrt(cell_area)
@@ -99,21 +101,70 @@ def raster_pixel_size_m(src) -> float | None:
         return None
 
 
-def check_pixel_size(declared: float, measured: float | None) -> None:
-    """Reject a layer size that would materially change the calculated area."""
+def raster_pixel_size_m(src) -> float | None:
+    """Nominal pixel side in metres; at the middle latitude for a geographic CRS."""
+    return _pixel_side_m(src, (src.bounds.top + src.bounds.bottom) / 2)
+
+
+def raster_pixel_size_range_m(src) -> tuple[float, float] | None:
+    """Smallest and largest nominal pixel side in metres over the raster.
+
+    Projected CRSs have one cell area. In a geographic CRS the cell area shrinks with
+    the cosine of the latitude: it is largest at the latitude closest to the equator
+    and smallest at the one farthest from it.
+    """
+    if not src.crs.is_geographic:
+        size = _pixel_side_m(src, None)
+        return (size, size) if size is not None else None
+    top, bottom = src.bounds.top, src.bounds.bottom
+    nearest_equator = min(max(0.0, min(top, bottom)), max(top, bottom))
+    farthest = max(abs(top), abs(bottom))
+    smallest = _pixel_side_m(src, farthest)
+    largest = _pixel_side_m(src, nearest_equator)
+    if smallest is None or largest is None:
+        return None
+    return (smallest, largest)
+
+
+def _area_difference(declared: float, measured: float) -> float:
+    return abs(declared**2 - measured**2) / measured**2
+
+
+def check_pixel_size(declared: float, measured: tuple[float, float] | None) -> None:
+    """Reject a layer size whose pixel area differs from the raster's, anywhere in
+    the raster, by more than the tolerance (it would bias the calculated areas)."""
     if measured is None:
         raise IngestionError(
             "resolution_unavailable",
             "The raster pixel size could not be determined from its CRS and transform",
         )
-    if abs(declared - measured) / measured > PIXEL_SIZE_RELATIVE_TOLERANCE:
+    smallest, largest = measured
+    if max(_area_difference(declared, size) for size in measured) <= (
+        PIXEL_AREA_RELATIVE_TOLERANCE
+    ):
+        return
+    # The best single size for this raster (the geometric mean of its extremes)
+    # still doesn't fit: the raster covers too wide a range of latitudes.
+    best = math.sqrt(smallest * largest)
+    if max(_area_difference(best, size) for size in measured) > (
+        PIXEL_AREA_RELATIVE_TOLERANCE
+    ):
         raise IngestionError(
-            "resolution_mismatch",
-            f"The layer pixel size ({declared:g} m) differs from the raster "
-            f"({measured:.2f} m); update the layer pixel size or use another raster",
+            "resolution_varies",
+            f"The raster's pixel size varies from {smallest:.2f} m to {largest:.2f} m "
+            "across its latitudes, too much for a single layer pixel size; "
+            "reproject it to an equal-area CRS or split it",
             declared=declared,
-            measured=round(measured, 2),
+            min=round(smallest, 2),
+            max=round(largest, 2),
         )
+    raise IngestionError(
+        "resolution_mismatch",
+        f"The layer pixel size ({declared:g} m) differs from the raster "
+        f"({best:.2f} m); update the layer pixel size or use another raster",
+        declared=declared,
+        measured=round(best, 2),
+    )
 
 
 def _format(value: float) -> str:
@@ -127,7 +178,7 @@ class Validation:
     # The nodata to store; set on the file first when it didn't declare one.
     nodata: float | None
     needs_nodata: bool
-    pixel_size_m: float | None
+    pixel_size_range_m: tuple[float, float] | None
 
 
 def validate_raster(
@@ -138,7 +189,9 @@ def validate_raster(
         with warnings.catch_warnings():
             # Rejected below with a clear message; no need for GDAL's warning.
             warnings.simplefilter("ignore", NotGeoreferencedWarning)
-            src = rasterio.open(path)
+            # Only the GTiff driver: other drivers (VRT, WMS XML...) would be
+            # parsed at open time and can reference local files or URLs.
+            src = rasterio.open(path, driver="GTiff")
     except RasterioIOError:
         raise IngestionError("not_geotiff", "The file is not a readable GeoTIFF")
     with src:
@@ -194,6 +247,7 @@ def validate_raster(
                 on_window(done, total)
 
         pixel_size = raster_pixel_size_m(src)
+        pixel_size_range = raster_pixel_size_range_m(src)
         report = {
             "crs": src.crs.to_string(),
             "width": src.width,
@@ -234,7 +288,7 @@ def validate_raster(
         found_warnings,
         nodata,
         needs_nodata=declared is None,
-        pixel_size_m=pixel_size,
+        pixel_size_range_m=pixel_size_range,
     )
 
 

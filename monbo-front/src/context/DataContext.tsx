@@ -43,6 +43,8 @@ export interface DataContextValue {
   >;
   analysisOutdated: boolean;
   setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
+  /** Drop results computed on a layer that changed since, and ask for a re-run. */
+  invalidateAnalysis: () => void;
   reportGenerationParams: {
     initialFarmSelection: "all" | "select";
     selectedMaps: MapData[];
@@ -86,6 +88,12 @@ const subscribeToSelectedCountry = (listener: () => void) => {
     selectedCountryListeners.delete(listener);
   };
 };
+
+// Goes up every time the flow is reset, so a request started before a reset
+// (e.g. a file still being parsed when the user starts over) can tell that its
+// response no longer belongs to the current flow.
+let flowGeneration = 0;
+export const readFlowGeneration = () => flowGeneration;
 
 export const readSelectedCountry = () => {
   try {
@@ -131,6 +139,7 @@ export const DataContext = createContext<DataContextValue>({
   setDeforestationAnalysisResults: () => {},
   analysisOutdated: false,
   setAnalysisOutdated: () => {},
+  invalidateAnalysis: () => {},
   reportGenerationParams: initialReportGenerationParams,
   setReportGenerationParams: () => {},
   availableMaps: [],
@@ -198,6 +207,19 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     initialReportGenerationParams
   );
 
+  const invalidateAnalysis = useCallback(() => {
+    // The API results and report used previous calculation inputs. Hide them
+    // before the map or its interpretation switches to the new values.
+    setDeforestationAnalysisResults(null);
+    setReportGenerationParams((prev) => ({
+      ...prev,
+      selectedMaps: [],
+      selectedFarms: [],
+      downloadType: null,
+    }));
+    setAnalysisOutdated(true);
+  }, [setDeforestationAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
+
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
@@ -227,6 +249,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   }, []);
 
   const resetAnalysis = useCallback(() => {
+    flowGeneration += 1;
     setFarmsData(null);
     setPolygonsValidationResults(null);
     setDeforestationAnalysisResults(null);
@@ -248,33 +271,32 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     const selectedMaps = deforestationAnalysisParams.selectedMaps;
     if (!selectedMaps.length) return;
 
-    // A hidden layer keeps its last metadata so an existing analysis can still
-    // refer to it; public /maps only returns enabled layers.
-    const refreshed = selectedMaps.map(
-      (selected) => maps.find((map) => map.id === selected.id) ?? selected
-    );
-    const calculationChanged = refreshed.some(
-      (map, index) =>
-        map.version !== selectedMaps[index].version ||
-        map.pixelSize !== selectedMaps[index].pixelSize ||
-        map.baseline !== selectedMaps[index].baseline ||
-        map.comparedAgainst !== selectedMaps[index].comparedAgainst
-    );
+    // Public /maps only returns enabled layers. A hidden layer keeps its last
+    // metadata only while an existing analysis refers to it; otherwise it is
+    // deselected, so a hidden layer is never used for a new analysis.
+    const refreshed = selectedMaps.flatMap((selected) => {
+      const listed = maps.find((map) => map.id === selected.id);
+      if (listed) return [listed];
+      return deforestationAnalysisResults ? [selected] : [];
+    });
+    const calculationChanged =
+      refreshed.length === selectedMaps.length &&
+      refreshed.some(
+        (map, index) =>
+          map.version !== selectedMaps[index].version ||
+          map.pixelSize !== selectedMaps[index].pixelSize ||
+          map.baseline !== selectedMaps[index].baseline ||
+          map.comparedAgainst !== selectedMaps[index].comparedAgainst
+      );
 
     if (calculationChanged && deforestationAnalysisResults) {
-      // The API results and report used previous calculation inputs. Hide them
-      // before the map or its interpretation switches to the new values.
-      setDeforestationAnalysisResults(null);
-      setReportGenerationParams((prev) => ({
-        ...prev,
-        selectedMaps: [],
-        selectedFarms: [],
-        downloadType: null,
-      }));
-      setAnalysisOutdated(true);
+      invalidateAnalysis();
     }
 
-    if (refreshed.some((map, index) => map !== selectedMaps[index])) {
+    if (
+      refreshed.length !== selectedMaps.length ||
+      refreshed.some((map, index) => map !== selectedMaps[index])
+    ) {
       setDeforestationAnalysisParams((prev) => ({
         ...prev,
         selectedMaps: refreshed,
@@ -332,8 +354,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   }, [locale, selectedCountry]);
 
   // A country kept from earlier in the tab session may have lost its layers
-  // meanwhile: drop it once, when the first country list arrives. Later changes
-  // keep the selection (the layer lists then say no layers are available).
+  // meanwhile: drop it once per mount, when the first country list arrives.
+  // Later changes keep the selection (the layer lists then say no layers are
+  // available). The provider also remounts on a language change with the flow
+  // kept (keptState), so dropping the country clears that flow too: farms and
+  // results of a country that is no longer selected must not stay loaded.
   const storedCountryChecked = useRef(false);
   useEffect(() => {
     if (storedCountryChecked.current || !countryHydrated) return;
@@ -341,12 +366,14 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     storedCountryChecked.current = true;
     if (selectedCountry && !availableCountries.includes(selectedCountry)) {
       writeSelectedCountry(null);
+      resetAnalysis();
     }
   }, [
     countryHydrated,
     availableCountriesLoaded,
     availableCountries,
     selectedCountry,
+    resetAnalysis,
   ]);
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
@@ -369,6 +396,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setDeforestationAnalysisResults,
       analysisOutdated,
       setAnalysisOutdated,
+      invalidateAnalysis,
       reportGenerationParams,
       setReportGenerationParams,
       availableMaps,
@@ -393,6 +421,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setDeforestationAnalysisResults,
     analysisOutdated,
     setAnalysisOutdated,
+    invalidateAnalysis,
     reportGenerationParams,
     setReportGenerationParams,
     availableMaps,
