@@ -375,7 +375,7 @@ deploy_api() {
     mount=true
   fi
 
-  local env_id default_domain body existing
+  local env_id default_domain body existing previous_revision=""
   env_id="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" --query id -o tsv)"
   default_domain="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
     --query properties.defaultDomain -o tsv)"
@@ -385,6 +385,7 @@ deploy_api() {
   # Settings configured outside this script that the PUT must not drop.
   if app_exists "$API_APP_NAME"; then
     az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" -o json > "$existing"
+    previous_revision="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["properties"].get("latestRevisionName") or "")' "$existing")"
   else
     echo '{}' > "$existing"
   fi
@@ -407,10 +408,13 @@ deploy_api() {
   wait_for_provisioning "$API_APP_NAME"
   local revision
   revision="$(wait_for_latest_revision "$API_APP_NAME")"
-  # Secrets are only read at container start; restart so a changed secret takes effect
-  # even when the PUT didn't create a new revision.
-  az containerapp revision restart -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
-    --revision "$revision" -o none
+  # Secrets are only read at container start. A new revision already started with the
+  # current ones; otherwise restart so a changed secret takes effect. (A needless
+  # restart would bounce the only replica and interrupt an ingestion.)
+  if [ "$revision" = "$previous_revision" ]; then
+    az containerapp revision restart -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
+      --revision "$revision" -o none
+  fi
 
   API_URL="https://$(app_fqdn "$API_APP_NAME")"
   wait_for_health "$API_URL/health"
