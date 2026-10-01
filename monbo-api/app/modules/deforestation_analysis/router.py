@@ -16,7 +16,7 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.layers.store import is_layer
-from app.modules.maps.helpers import get_all_maps, get_map_by_id, require_country
+from app.modules.maps.helpers import get_country_maps, get_map_by_id, require_country
 from app.utils.farms import get_farm_coords_and_radius
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
@@ -33,7 +33,7 @@ router = APIRouter()
 @router.post("/analize", response_model=list[MapData])
 def analize(body: AnalizeBody):
     require_country(body.country)
-    maps = get_all_maps()
+    maps = get_country_maps(body.country)
 
     farms = body.farms
     requested_maps = [

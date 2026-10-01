@@ -495,6 +495,22 @@ class LayersRoot:
                     )
             return layers
 
+    def country_layers(self, code: str) -> list[dict] | None:
+        """One country's layers, enabled or not, tagged like `layers()`. For the
+        per-country layout only. It reads just that country's index, so another
+        country's unreadable index doesn't affect it. [] for a country that isn't
+        registered; None if its index can't be read."""
+        with self._lock:
+            if self.registered_country(code) is None:
+                return []
+            index = self.country_store(code).read_index()
+            if index is None:
+                return None
+            return [
+                {**entry, "country": code, "available_countries_codes": [code]}
+                for entry in index
+            ]
+
     def find_layer(self, country: str | None, layer_id: int) -> dict | None:
         return next(
             (

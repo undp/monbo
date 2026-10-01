@@ -313,3 +313,29 @@ def test_the_git_tracked_layers_are_served_as_a_flat_root():
         assert {entry["id"] for entry in colombia} == {0, 1, 3}
     finally:
         set_layers_root(None)
+
+
+def test_one_countrys_broken_index_only_breaks_that_country(countries):
+    """Analysis, tiles and images read only their country's index."""
+    (countries.root / "EC" / "index.json").write_text("{ invalid json")
+
+    assert analysis({"country": "CR", "maps": [0, 1], "farms": []}).status_code == 200
+    assert get_map_by_id(1, "CR")["raster_filename"] == "mocupp.tif"
+    with pytest.raises(HTTPException) as error:
+        get_map_by_id(0, "EC")
+    assert error.value.status_code == 500
+    assert get_map_by_id(0, "PE") is None  # not registered
+
+
+def test_a_tile_reads_only_its_countrys_index(countries):
+    reads = []
+    real = LayerStore.read_index
+
+    def spy(self):
+        reads.append(self.root.name)
+        return real(self)
+
+    with patch.object(LayerStore, "read_index", spy):
+        get_map_by_id(1, "CR")
+
+    assert reads == ["CR"]

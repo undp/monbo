@@ -179,7 +179,7 @@ def test_parse_farms():
 
 @patch("app.modules.deforestation_analysis.router.get_map_raster_path")
 @patch("app.modules.deforestation_analysis.router.rasterio_open")
-@patch("app.modules.deforestation_analysis.router.get_all_maps")
+@patch("app.modules.deforestation_analysis.router.get_country_maps")
 @patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
 @patch("app.modules.deforestation_analysis.router.get_pixel_area")
 @patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
@@ -187,7 +187,7 @@ def test_analize(
     mock_get_deforestation_percentage,
     mock_get_pixel_area,
     mock_get_map_pixels_inside_polygon,
-    mock_get_all_maps,
+    mock_get_country_maps,
     mock_raster_open,
     mock_get_map_raster_path,
 ):
@@ -200,7 +200,7 @@ def test_analize(
     mock_raster_open.return_value.__enter__.return_value = mock_dataset
 
     # Mock map data
-    mock_get_all_maps.return_value = [
+    mock_get_country_maps.return_value = [
         {
             "id": 1,
             "name": "Deforestation Map A",
