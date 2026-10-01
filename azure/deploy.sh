@@ -98,11 +98,12 @@ ADMIN_ALLOWED_ORIGIN="${ADMIN_ALLOWED_ORIGIN:-}"
 
 # --- Helpers -----------------------------------------------------------------
 
-# Temporary files, some holding secrets: removed however the script exits (a `die`, a
-# failed command under `set -e`, Ctrl-C). Add each one right after creating it.
+# Temporary files and folders, some holding secrets: removed however the script exits
+# (a `die`, a failed command under `set -e`, Ctrl-C). Add each one right after
+# creating it.
 TEMP_FILES=()
 remove_temp_files() {
-  [ "${#TEMP_FILES[@]}" -eq 0 ] || rm -f "${TEMP_FILES[@]}"
+  [ "${#TEMP_FILES[@]}" -eq 0 ] || rm -rf "${TEMP_FILES[@]}"
 }
 trap remove_temp_files EXIT
 
@@ -560,7 +561,7 @@ seed_share() {
   fi
 
   tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"; trap - RETURN' RETURN
+  TEMP_FILES+=("$tmp")
   log "Preparing the layers (validation and COG conversion take a few minutes)"
   uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.layers.seed \
     --target "$tmp/flat" || die "Seeding failed; the share is unchanged"
@@ -570,15 +571,28 @@ seed_share() {
   echo "  Put each passkey above in the password manager now: it is not stored anywhere."
   echo "  Old id -> new id per country, for tests.regression.parity --mapping: $SEED_MAPPING_OUT"
 
-  # Only now, with the new layers ready, empty the share.
+  # Only now, with the new layers ready, empty the share: after a snapshot of what it
+  # holds, so this exact content can be restored (the daily backup may be hours old).
   if ! share_is_empty "$key"; then
+    local snapshot
+    snapshot="$(AZURE_STORAGE_KEY="$key" az storage share snapshot --name "$MAPS_SHARE_NAME" \
+      --account-name "$STORAGE_ACCOUNT_NAME" --query snapshot -o tsv --only-show-errors)" \
+      || die "Could not snapshot the '$MAPS_SHARE_NAME' share; it is unchanged"
+    ok "Snapshot of the current content: $snapshot (restore it from the portal if needed)"
     log "Emptying the '$MAPS_SHARE_NAME' share"
     AZURE_STORAGE_KEY="$key" az storage file delete-batch --account-name "$STORAGE_ACCOUNT_NAME" \
       --source "$MAPS_SHARE_NAME" -o none
   fi
+  # countries.json goes last: deploy.sh only mounts a share that has it, so an upload
+  # that dies midway leaves a share it refuses instead of a half-filled one.
+  local incomplete="The upload failed: the share is incomplete and has no countries.json, so deploy.sh won't mount it. Run ./azure/deploy.sh seed again"
+  mv "$tmp/layers/countries.json" "$tmp/countries.json"
   log "Uploading the layers"
   AZURE_STORAGE_KEY="$key" az storage file upload-batch --account-name "$STORAGE_ACCOUNT_NAME" \
-    --destination "$MAPS_SHARE_NAME" --source "$tmp/layers" -o none
+    --destination "$MAPS_SHARE_NAME" --source "$tmp/layers" -o none || die "$incomplete"
+  AZURE_STORAGE_KEY="$key" az storage file upload --account-name "$STORAGE_ACCOUNT_NAME" \
+    --share-name "$MAPS_SHARE_NAME" --source "$tmp/countries.json" --path countries.json \
+    -o none --only-show-errors || die "$incomplete"
   ok "The share has the per-country layers. Deploy now so the API reads them: ./azure/deploy.sh"
 }
 
@@ -613,7 +627,7 @@ countries() {
     return 0
   fi
   tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"; trap - RETURN' RETURN
+  TEMP_FILES+=("$tmp")
   etag="$(AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
     python -m app.modules.admin.azure_registry snapshot \
     --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \

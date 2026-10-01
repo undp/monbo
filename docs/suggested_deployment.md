@@ -83,8 +83,15 @@ a development environment filled before countries had their own folders. After y
 type the share's name to confirm, it prepares the new layers, **deletes every file on
 the share** (layers, raster versions, admin edits, ingestion jobs), and uploads the
 Git-tracked layers again. Deploy right after, so the API reads the new layout. Every
-country gets a new passkey. The share's snapshots and backups keep the previous
-content (see [Rollback](#rollback)).
+country gets a new passkey.
+
+Before emptying the share, `seed` takes a snapshot of it and prints its timestamp:
+that is the one to restore (see [Rollback](#rollback)), since the daily backup may be
+hours old. `countries.json` is uploaded last, so if the upload dies midway the share
+has none and `deploy.sh` refuses to mount it: run `seed` again. The running API keeps
+serving during the swap, so analyses, tiles and the admin fail until the upload
+ends, and admin edits made meanwhile are lost: run it when nobody is using the
+environment.
 
 ### Deploying while the admin is in use
 
