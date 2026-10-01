@@ -116,7 +116,11 @@ def _raster_stem(entry: dict) -> str:
 
 
 def activate(
-    store: LayerStore, layer_id: int, cog: Path, job_id: str, pixel_size: float | None
+    store: LayerStore,
+    layer_id: int,
+    cog: Path,
+    job_id: str,
+    pixel_size: tuple[float, float] | None,
 ) -> dict:
     """Copy the COG to the share, give it a new versioned name and point the layer
     at it. Returns the updated index entry."""
@@ -166,7 +170,7 @@ def run_ingestion(
         entry = next((e for e in index or [] if e["id"] == layer_id), None)
         if entry is None:
             raise IngestionError("layer_not_found", "The layer no longer exists")
-        pixel_size = validation.pixel_size_m
+        pixel_size = validation.pixel_size_range_m
         check_pixel_size(entry["pixel_size"], pixel_size)
         if validation.nodata is not None and validation.needs_nodata:
             set_nodata(staged, validation.nodata)

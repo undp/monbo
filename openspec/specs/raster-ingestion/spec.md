@@ -95,12 +95,17 @@ Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL
 
 ### Requirement: Raster resolution matches the layer pixel size
 
-Ingestion SHALL compare the raster pixel area, expressed as a nominal pixel side in meters, with the layer's `pixel_size`. A geographic CRS SHALL use the raster's middle latitude for this approximation. The relative difference SHALL be at most 5%. The check SHALL run before conversion and again before activation, so an edit during conversion cannot activate a mismatched raster. Seeding SHALL apply the same check.
+Ingestion SHALL compare the raster cell area, in square meters, with the area of the layer's `pixel_size` (`pixel_size`²). For a geographic CRS, the cell area SHALL be computed at the raster's latitudes nearest to and farthest from the equator, and both SHALL be within the tolerance. The relative area difference SHALL be at most 5%. When no single pixel size fits every latitude of the raster within 5%, ingestion SHALL reject it as spanning too many latitudes. The check SHALL run before conversion and again before activation, so an edit during conversion cannot activate a mismatched raster. Seeding SHALL apply the same check.
 
 #### Scenario: Resolution mismatch
 
 - **WHEN** a layer declares 30 m pixels and the uploaded raster has 10 m pixels
 - **THEN** the job fails, reporting both sizes, and the layer's raster and version stay unchanged
+
+#### Scenario: Geographic raster spanning too many latitudes
+
+- **WHEN** an EPSG:4326 raster covers 5° N to 34° S
+- **THEN** the job fails, reporting the smallest and largest pixel sizes, whatever `pixel_size` the layer declares
 
 #### Scenario: No deforestation pixels
 

@@ -95,8 +95,9 @@ This is the core concept worth understanding clearly.
 - **Google Earth Engine**: only in the offline raster-generation script.
 - **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
 - **Raster ingestion checks the calculation inputs.** Nodata cannot be `1`, and
-  the configured `pixel_size` must be within 5% of the raster's measured pixel
-  size. The same size check applies when an admin edits a layer with a raster.
+  the area of the configured `pixel_size` must be within 5% of the raster's cell
+  area at every latitude it covers. The same size check applies when an admin edits
+  a layer with a raster.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.
 
 ---
