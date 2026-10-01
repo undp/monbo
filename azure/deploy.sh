@@ -84,6 +84,14 @@ ADMIN_SESSION_SECRET="${ADMIN_SESSION_SECRET:-}"
 
 # --- Helpers -----------------------------------------------------------------
 
+# Temporary files, some holding secrets: removed however the script exits (a `die`, a
+# failed command under `set -e`, Ctrl-C). Add each one right after creating it.
+TEMP_FILES=()
+remove_temp_files() {
+  [ "${#TEMP_FILES[@]}" -eq 0 ] || rm -f "${TEMP_FILES[@]}"
+}
+trap remove_temp_files EXIT
+
 log() { printf '\n\033[1;34m► %s\033[0m\n' "$*"; }
 ok() { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
 die() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
@@ -351,8 +359,7 @@ deploy_api() {
     --query properties.defaultDomain -o tsv)"
   body="$(mktemp)"
   existing="$(mktemp)"
-  # The body carries secrets: never leave it behind.
-  trap 'rm -f "$body" "$existing"; trap - RETURN' RETURN
+  TEMP_FILES+=("$body" "$existing")
   # Settings configured outside this script that the PUT must not drop.
   if app_exists "$API_APP_NAME"; then
     az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" -o json > "$existing"
@@ -373,6 +380,8 @@ deploy_api() {
   az rest --method put --only-show-errors -o none \
     --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$API_APP_NAME?api-version=2024-03-01" \
     --body "@$body"
+  # The body carries secrets and nothing needs it anymore.
+  rm -f "$body" "$existing"
   wait_for_provisioning "$API_APP_NAME"
   local revision
   revision="$(wait_for_latest_revision "$API_APP_NAME")"
