@@ -295,7 +295,14 @@ class _ValidationProgress:
             now - self.written_at >= PROGRESS_INTERVAL_S
             and progress - self.written >= PROGRESS_STEP
         ):
-            _save(self.store, self.job, progress=round(progress, 3))
+            try:
+                _save(self.store, self.job, progress=round(progress, 3))
+            except OSError:
+                # Only the progress bar depends on it: a share hiccup here must
+                # not fail the ingestion.
+                logger.warning(
+                    "Could not record the progress of job %s", self.job["jobId"]
+                )
             self.written, self.written_at = progress, now
 
 

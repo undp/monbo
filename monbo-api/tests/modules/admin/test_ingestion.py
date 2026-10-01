@@ -587,6 +587,31 @@ def test_job_reports_its_phase_and_validation_progress(
     assert seen.index(("running", "converting", None)) > len(validating)
 
 
+def test_a_failed_progress_write_doesnt_fail_the_ingestion(
+    layers, client, admin_headers, tmp_path, monkeypatch
+):
+    from app.modules.layers import processing
+
+    monkeypatch.setattr(processing, "WINDOW_SIZE", 16)
+    monkeypatch.setattr(ingestion, "PROGRESS_INTERVAL_S", 0)
+    real_write = type(layers.jobs).write_job
+
+    def flaky(self, job):
+        if job["phase"] == "validating" and job["progress"]:
+            raise OSError("the share hiccuped")
+        real_write(self, job)
+
+    monkeypatch.setattr(type(layers.jobs), "write_job", flaky)
+
+    job = job_for(
+        client,
+        admin_headers,
+        upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary())),
+    )
+
+    assert job["status"] == "succeeded"
+
+
 def test_progress_writes_are_throttled_in_time(layers, monkeypatch):
     monkeypatch.setattr(ingestion, "PROGRESS_INTERVAL_S", 3600)
     job = new_job("d" * 32, "CO", 6, None)
