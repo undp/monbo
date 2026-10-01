@@ -62,7 +62,7 @@
 
 ## 8. Rollout
 
-- [x] 8.1 Development: `./azure/deploy.sh seed` (confirm the share name), store the three passkeys in the password manager, and deploy this release with `ADMIN_SESSION_SECRET`
-- [x] 8.2 Optionally check parity against the Git layers (`tests.regression.parity --mapping /tmp/monbo-seed-ids.json`)
-- [x] 8.3 Smoke test: each country admin sees only their own layers, an analysis in each country works, and `GET /countries` returns CO, CR and EC
+- [x] 8.1 Development: `./azure/deploy.sh seed` (confirm the share name), store the three passkeys in the password manager, and deploy this release with `ADMIN_SESSION_SECRET` (done on 2026-09-29: the seed migrated 6 layers into 10 in 3 countries, and the deploy reported the admin enabled with `/mnt/maps` writable)
+- [ ] 8.2 Optionally check parity against the Git layers (`tests.regression.parity --mapping /tmp/monbo-seed-ids.json`). Pending: parity was only checked locally (flat against per-country, also in CI), not against the dev deployment
+- [ ] 8.3 Smoke test: each country admin sees only their own layers, an analysis in each country works, and `GET /countries` returns CO, CR and EC. Pending: only `GET /countries` (CO, CR, EC) was checked on dev
 - [ ] 8.4 Production: `storage`, `seed`, deploy; hand each passkey to its country admin
