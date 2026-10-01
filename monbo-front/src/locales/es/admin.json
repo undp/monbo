@@ -113,37 +113,68 @@
     }
   },
   "raster": {
-    "current": "Raster actual: {{filename}} (versión {{version}})",
-    "none": "Esta capa todavía no tiene raster.",
-    "requirements": "GeoTIFF de una banda con valores 0 (sin pérdida) y 1 (pérdida). Se valida cada píxel y se convierte a un GeoTIFF optimizado; la capa sigue usando su raster actual hasta que el proceso termine bien.",
-    "dropActive": "Suelta el archivo aquí",
-    "dropInactive": "Arrastra aquí el raster",
-    "dropButton": "Selecciona un archivo",
-    "dropText": "o arrástralo a este recuadro",
-    "dropHint": ".tif o .tiff",
+    "intro": "GeoTIFF de una banda con valores 0 (sin pérdida) y 1 (pérdida). Validamos cada píxel y lo convertimos a GeoTIFF optimizado. La capa sigue usando su raster actual hasta que el nuevo termine de validarse.",
+    "steps": {
+      "label": "Paso {{number}}",
+      "select": {
+        "title": "Selecciona el archivo",
+        "hint": "Arrastra o elige un .tif"
+      },
+      "upload": {
+        "title": "Sube y valida",
+        "hint": "Revisamos cada píxel",
+        "running": "En curso…",
+        "done": "Validado"
+      },
+      "publish": {
+        "title": "Publica la capa",
+        "hint": "Para que aparezca en el análisis",
+        "pending": "Pendiente de publicar",
+        "done": "Publicada"
+      }
+    },
+    "drop": {
+      "title": "Arrastra aquí tu raster",
+      "active": "Suelta el archivo aquí",
+      "or": "o",
+      "button": "Seleccionar archivo",
+      "hint": ".tif o .tiff · una banda · valores 0 y 1"
+    },
+    "file": {
+      "ready": "{{size}} · listo para subir",
+      "change": "Cambiar archivo"
+    },
     "nodata": "Valor nodata (opcional)",
-    "nodataHelp": "Solo si el archivo no declara uno, por ejemplo 3.",
-    "upload": "Subir raster",
-    "uploading": "Subiendo… {{percent}} %",
+    "nodataPlaceholder": "Ej. 3",
+    "nodataHelp": "Solo si el archivo no declara uno.",
+    "uploadAndValidate": "Subir y validar",
+    "phases": {
+      "uploading": "Subiendo archivo",
+      "validating": "Validando píxeles (valores 0 y 1)",
+      "converting": "Convirtiendo a GeoTIFF optimizado"
+    },
+    "phaseStatus": {
+      "uploading": "Subiendo…",
+      "validating": "Validando píxeles…",
+      "converting": "Convirtiendo…"
+    },
+    "slow": "Puede tardar unos minutos. No cierres esta página.",
+    "cancel": "Cancelar",
+    "failed": "No se pudo usar este raster.",
+    "validated": {
+      "title": "Raster validado y activo",
+      "text": "{{filename}} · todos los píxeles tienen valores 0 o 1."
+    },
+    "publishNotice": "Falta publicar. Hasta entonces, la capa no aparece en el análisis de deforestación.",
     "publish": "Publicar capa",
-    "status": {
-      "queued": "En cola",
-      "running": "Validando y convirtiendo…",
-      "succeeded": "Raster activado: {{filename}} (versión {{version}}).",
-      "failed": "El raster no se activó."
+    "publishing": "Publicando…",
+    "publishError": "No se pudo publicar la capa.",
+    "done": {
+      "updated": "Raster actualizado",
+      "published": "Capa publicada",
+      "text": "La capa ya usa {{filename}}."
     },
-    "report": {
-      "title": "Detalle del raster",
-      "crs": "Sistema de referencia",
-      "size": "Tamaño",
-      "sizeValue": "{{width}} × {{height}} píxeles",
-      "resolution": "Resolución aproximada",
-      "resolutionValue": "{{meters}} m (úsala como tamaño de píxel)",
-      "dtype": "Tipo de dato",
-      "nodata": "Nodata",
-      "values": "Valores encontrados",
-      "none": "ninguno"
-    },
+    "replace": "Reemplazar raster",
     "uploadErrors": {
       "tooLarge": "El archivo supera el tamaño máximo que acepta el servidor.",
       "busy": "Ya se está procesando otro raster. Intenta en unos minutos.",

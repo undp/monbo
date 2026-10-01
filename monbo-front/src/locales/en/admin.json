@@ -113,37 +113,68 @@
     }
   },
   "raster": {
-    "current": "Current raster: {{filename}} (version {{version}})",
-    "none": "This layer has no raster yet.",
-    "requirements": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). Every pixel is checked and the file is converted to an optimized GeoTIFF; the layer keeps its current raster until the process succeeds.",
-    "dropActive": "Drop the file here",
-    "dropInactive": "Drag the raster here",
-    "dropButton": "Choose a file",
-    "dropText": "or drag it into this box",
-    "dropHint": ".tif or .tiff",
+    "intro": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
+    "steps": {
+      "label": "Step {{number}}",
+      "select": {
+        "title": "Select the file",
+        "hint": "Drop or choose a .tif"
+      },
+      "upload": {
+        "title": "Upload and validate",
+        "hint": "We check every pixel",
+        "running": "In progress…",
+        "done": "Validated"
+      },
+      "publish": {
+        "title": "Publish the layer",
+        "hint": "So it shows up in the analysis",
+        "pending": "Waiting to be published",
+        "done": "Published"
+      }
+    },
+    "drop": {
+      "title": "Drop your raster here",
+      "active": "Drop the file here",
+      "or": "or",
+      "button": "Select file",
+      "hint": ".tif or .tiff · one band · values 0 and 1"
+    },
+    "file": {
+      "ready": "{{size}} · ready to upload",
+      "change": "Change file"
+    },
     "nodata": "Nodata value (optional)",
-    "nodataHelp": "Only if the file doesn't declare one, e.g. 3.",
-    "upload": "Upload raster",
-    "uploading": "Uploading… {{percent}} %",
+    "nodataPlaceholder": "E.g. 3",
+    "nodataHelp": "Only if the file doesn't declare one.",
+    "uploadAndValidate": "Upload and validate",
+    "phases": {
+      "uploading": "Uploading the file",
+      "validating": "Validating pixels (values 0 and 1)",
+      "converting": "Converting to an optimized GeoTIFF"
+    },
+    "phaseStatus": {
+      "uploading": "Uploading…",
+      "validating": "Validating pixels…",
+      "converting": "Converting…"
+    },
+    "slow": "This can take a few minutes. Don't close this page.",
+    "cancel": "Cancel",
+    "failed": "This raster could not be used.",
+    "validated": {
+      "title": "Raster validated and active",
+      "text": "{{filename}} · every pixel has the value 0 or 1."
+    },
+    "publishNotice": "Not published yet. Until then, the layer doesn't show up in the deforestation analysis.",
     "publish": "Publish layer",
-    "status": {
-      "queued": "Queued",
-      "running": "Validating and converting…",
-      "succeeded": "Raster activated: {{filename}} (version {{version}}).",
-      "failed": "The raster was not activated."
+    "publishing": "Publishing…",
+    "publishError": "The layer could not be published.",
+    "done": {
+      "updated": "Raster updated",
+      "published": "Layer published",
+      "text": "The layer now uses {{filename}}."
     },
-    "report": {
-      "title": "Raster details",
-      "crs": "Reference system",
-      "size": "Size",
-      "sizeValue": "{{width}} × {{height}} pixels",
-      "resolution": "Approximate resolution",
-      "resolutionValue": "{{meters}} m (use it as the pixel size)",
-      "dtype": "Data type",
-      "nodata": "Nodata",
-      "values": "Values found",
-      "none": "none"
-    },
+    "replace": "Replace raster",
     "uploadErrors": {
       "tooLarge": "The file is larger than the server accepts.",
       "busy": "Another raster is being processed. Try again in a few minutes.",

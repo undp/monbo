@@ -76,13 +76,19 @@ export interface RasterReport {
   approxResolutionM: number | null;
 }
 
-export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+// While running: validating, then converting (conversion, verification, activation)
+export type JobPhase = "validating" | "converting";
 
 export interface IngestionJob {
   jobId: string;
   country: string;
   layerId: number;
   status: JobStatus;
+  phase: JobPhase | null;
+  // Fraction of the raster scanned, while validating
+  progress: number | null;
   createdAt: string;
   updatedAt: string;
   requestedNodata: number | null;
