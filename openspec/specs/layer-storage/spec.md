@@ -6,7 +6,6 @@ Define where and how the API stores layers under `MAPS_ROOT`: the per-country la
 registry and one folder per country) and the legacy flat one, layer ids numbered within each
 country, the `enabled` and `version` fields, versioned raster filenames and safe concurrent
 writes.
-
 ## Requirements
 ### Requirement: Configurable layer storage root
 
@@ -34,7 +33,7 @@ The API SHALL resolve the country registry, the layer indexes, the per-language 
 
 ### Requirement: Backward-compatible index entries
 
-Each index entry SHALL support the optional fields `enabled` (boolean) and `version` (positive integer). Entries without `enabled` SHALL be treated as enabled. Entries without `version` SHALL be treated as version 1. Existing index files SHALL load without migration.
+Each index entry SHALL support the optional fields `enabled` (boolean) and `version` (non-negative integer: 0 for a layer that has never had a raster). Entries without `enabled` SHALL be treated as enabled. Entries without `version` SHALL be treated as version 1. Existing index files SHALL load without migration.
 
 #### Scenario: Legacy index loads
 

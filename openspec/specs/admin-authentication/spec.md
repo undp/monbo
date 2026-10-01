@@ -6,7 +6,6 @@ Define how the layers admin is enabled and how each country's administrator prov
 one long passkey per country stored only as a hash in the country registry, short-lived signed
 session tokens bound to that country and passkey, a login rate limit and an Origin check on the
 admin routes.
-
 ## Requirements
 ### Requirement: Admin feature is opt-in
 
@@ -126,12 +125,17 @@ The API SHALL allow at most 5 failed login attempts per client IP within 15 minu
 
 ### Requirement: CORS and origin checks for admin routes
 
-The API SHALL allow the `GET`, `POST`, `PUT`, and `PATCH` methods and the `Authorization` and `Content-Type` headers in CORS, without credentials (cookies). When `ADMIN_ALLOWED_ORIGIN` is set, admin routes, including the login, SHALL reject with 403 any request whose `Origin` header is present and differs from that value.
+The API SHALL allow the `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` methods and the `Authorization` and `Content-Type` headers in CORS, without credentials (cookies). When `ADMIN_ALLOWED_ORIGIN` is set, admin routes, including the login, SHALL reject with 403 any request whose `Origin` header is present and differs from that value.
 
 #### Scenario: Admin call from the configured frontend
 
 - **WHEN** the admin UI at the configured origin calls `PUT /admin/layers/3` with a valid token
 - **THEN** the preflight succeeds and the request is processed
+
+#### Scenario: Cancelling a job from the admin UI
+
+- **WHEN** the admin UI at the configured origin sends the preflight for `DELETE /admin/jobs/{jobId}`
+- **THEN** the preflight allows `DELETE`
 
 #### Scenario: Admin call from another origin
 
