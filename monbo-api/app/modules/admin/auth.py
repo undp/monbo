@@ -122,17 +122,22 @@ class LoginRateLimiter:
         self._failures: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
-    def retry_after(self, ip: str) -> int | None:
-        """Seconds until `ip` may try again, or None if it isn't blocked."""
+    def try_acquire(self, ip: str) -> int | None:
+        """Start a login attempt from `ip`.
+
+        Returns None and counts the attempt as a failure, or the seconds until `ip`
+        may try again if it is blocked. Checking and counting happen under one lock,
+        so parallel attempts can't all get past the limit; `reset` forgets them after
+        a successful login.
+        """
         with self._lock:
             failures = self._prune(ip)
-            if len(failures) < self.max_failures:
-                return None
-            return max(1, int(failures[0] + self.window_seconds - self._clock()) + 1)
-
-    def record_failure(self, ip: str) -> None:
-        with self._lock:
-            self._prune(ip).append(self._clock())
+            if len(failures) >= self.max_failures:
+                return max(
+                    1, int(failures[0] + self.window_seconds - self._clock()) + 1
+                )
+            failures.append(self._clock())
+            return None
 
     def reset(self, ip: str) -> None:
         with self._lock:

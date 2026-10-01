@@ -2,7 +2,9 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -195,11 +197,25 @@ def test_rate_limit_window_expires():
     now = [1000.0]
     limiter = LoginRateLimiter(clock=lambda: now[0])
     for _ in range(5):
-        limiter.record_failure("ip")
+        assert limiter.try_acquire("ip") is None
 
-    assert limiter.retry_after("ip") == 15 * 60 + 1
+    assert limiter.try_acquire("ip") == 15 * 60 + 1
     now[0] += 15 * 60 + 1
-    assert limiter.retry_after("ip") is None
+    assert limiter.try_acquire("ip") is None
+
+
+def test_parallel_attempts_cannot_get_past_the_limit():
+    limiter = LoginRateLimiter()
+    start = threading.Barrier(40)
+
+    def attempt():
+        start.wait()
+        return limiter.try_acquire("ip")
+
+    with ThreadPoolExecutor(max_workers=40) as pool:
+        results = list(pool.map(lambda _: attempt(), range(40)))
+
+    assert results.count(None) == 5
 
 
 def test_login_attempts_are_logged_without_the_passkey(client, caplog):
