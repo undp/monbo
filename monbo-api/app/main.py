@@ -107,9 +107,10 @@ def _warn_about_admin_configuration() -> None:
     if not admin_enabled():
         if env.ADMIN_SESSION_SECRET:
             logger.warning(
-                "Layers admin disabled: MAPS_ROOT (%s) has the flat layout; the admin "
-                "needs the per-country layout (see "
-                "app.modules.layers.migrate_countries)",
+                "Layers admin disabled: MAPS_ROOT (%s) doesn't have the per-country "
+                "layout. Migrate a flat root (app.modules.layers.migrate_countries) "
+                "or add a first country (app.modules.admin.countries add), then "
+                "restart the API: the admin is only turned on at startup",
                 env.MAPS_ROOT,
             )
         return

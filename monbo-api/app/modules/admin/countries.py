@@ -9,8 +9,10 @@
 `--root` defaults to MAPS_ROOT. The root must use the per-country layout (an empty
 directory becomes one with the first `add`). `add` and `rotate` print the new
 passkey once: give it to that country's admin through a password manager. Only its
-SHA-256 is written, to `countries.json`. The running API picks up every change on
-its next request; nothing here deletes a country's folder or its layers.
+SHA-256 is written, to `countries.json`. A running API picks up every registry
+change on its next request, except the first `add` on an empty root: the admin
+routes are only registered at startup, so restart the API then. Nothing here
+deletes a country's folder or its layers.
 """
 
 import argparse

@@ -139,9 +139,11 @@ uv run python -m app.modules.admin.countries enable PE
 ```
 
 `--root <dir>` works on another root than `MAPS_ROOT`. The running API applies the
-change on its next request: no restart. A new country starts with an empty folder
-and doesn't appear on the landing map until its admin publishes a layer. Give each
-passkey only to that country's admin, through a password manager.
+change on its next request: no restart. The exception is the first `add` on an empty
+root: the admin routes are only registered at startup, so restart the API after it.
+A new country starts with an empty folder and doesn't appear on the landing page
+until its admin publishes a layer. Give each passkey only to that country's admin,
+through a password manager.
 
 ## Raster requirements
 
