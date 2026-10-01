@@ -332,7 +332,10 @@ build_and_push() {
 }
 
 # The API app is PUT whole from render_api_app.py: flags can't add volumes, and
-# `az containerapp update --yaml` is broken on az CLI 2.90.
+# `az containerapp update --yaml` is broken on az CLI 2.90. The PUT replaces the app:
+# render_api_app.py owns its container, env vars, secrets, registry and scale, so an
+# env var, secret or scale rule added in the portal is dropped on the next deploy. Custom
+# domains, IP restrictions, CORS, identity, tags and the workload profile are kept.
 deploy_api() {
   log "Deploying $API_APP_NAME"
   local mount=false
@@ -342,13 +345,20 @@ deploy_api() {
     mount=true
   fi
 
-  local env_id default_domain body
+  local env_id default_domain body existing
   env_id="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" --query id -o tsv)"
   default_domain="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
     --query properties.defaultDomain -o tsv)"
   body="$(mktemp)"
+  existing="$(mktemp)"
   # The body carries secrets: never leave it behind.
-  trap 'rm -f "$body"; trap - RETURN' RETURN
+  trap 'rm -f "$body" "$existing"; trap - RETURN' RETURN
+  # Settings configured outside this script that the PUT must not drop.
+  if app_exists "$API_APP_NAME"; then
+    az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" -o json > "$existing"
+  else
+    echo '{}' > "$existing"
+  fi
   LOCATION="$LOCATION" ENV_ID="$env_id" API_IMAGE="$API_IMAGE" API_CPU="$API_CPU" API_MEMORY="$API_MEMORY" \
     ACR_SERVER="$ACR_SERVER" ACR_USERNAME="$ACR_USERNAME" ACR_PASSWORD="$ACR_PASSWORD" \
     GCP_MAPS_PLATFORM_API_KEY="$GCP_MAPS_PLATFORM_API_KEY" \
@@ -357,6 +367,7 @@ deploy_api() {
     MAPS_MOUNT="$mount" ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
     ADMIN_PASSKEY_HASH="$ADMIN_PASSKEY_HASH" ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
     ADMIN_ALLOWED_ORIGIN="https://$FRONT_APP_NAME.$default_domain" \
+    EXISTING_APP_FILE="$existing" \
     python3 "$SCRIPT_DIR/render_api_app.py" > "$body"
 
   az rest --method put --only-show-errors -o none \

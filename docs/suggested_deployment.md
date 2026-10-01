@@ -35,6 +35,12 @@ The API is pinned to one replica (`minReplicas`/`maxReplicas: 1`): the lock that
 serializes writes to the share, the login rate limit and the single ingestion slot
 live in the API's memory. Don't scale it out while the admin is enabled.
 
+`deploy.sh` replaces the whole API app on every deploy (`azure/render_api_app.py`
+defines it). Its container, env vars, secrets, registry and scale settings come only
+from that script, so change them there or in `azure/deploy.env`, not in the portal: an
+env var, secret or scale rule added in the portal is dropped by the next deploy. Custom
+domains, IP restrictions, CORS, the identity, tags and the workload profile are kept.
+
 ### First-time setup
 
 1. Create the storage: set `STORAGE_ACCOUNT_NAME` in `azure/deploy.env`, then

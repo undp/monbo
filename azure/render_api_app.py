@@ -7,6 +7,13 @@ travel in the body (a temporary file deploy.sh deletes), never on a command line
 
 Layer storage (the Azure Files share mounted at /mnt/maps) is added when
 MAPS_MOUNT=true, and the layers admin when both ADMIN_* secrets are set.
+
+A PUT replaces the whole app. This body owns the container (image, resources, env
+vars, probes, volumes), the secrets, the registry, the scale settings and the basic
+ingress; anything else set on those (an env var or secret added in the portal, a
+scale rule) is dropped on the next deploy. Settings outside them that are usually
+configured by hand are carried over from the current app when EXISTING_APP_FILE
+points at its JSON (`az containerapp show`): see CARRIED_OVER.
 """
 
 import json
@@ -14,6 +21,20 @@ import os
 import sys
 
 MAPS_MOUNT_PATH = "/mnt/maps"
+
+# (path in the app resource, as nested keys) kept from the current app if present.
+CARRIED_OVER = [
+    ("identity",),
+    ("tags",),
+    ("properties", "workloadProfileName"),
+    ("properties", "configuration", "maxInactiveRevisions"),
+    ("properties", "configuration", "dapr"),
+    ("properties", "configuration", "ingress", "customDomains"),
+    ("properties", "configuration", "ingress", "ipSecurityRestrictions"),
+    ("properties", "configuration", "ingress", "corsPolicy"),
+    ("properties", "configuration", "ingress", "stickySessions"),
+    ("properties", "configuration", "ingress", "clientCertificateMode"),
+]
 
 
 def env(name: str, default: str | None = None) -> str:
@@ -25,6 +46,28 @@ def env(name: str, default: str | None = None) -> str:
 
 def probe(kind: str, **timing) -> dict:
     return {"type": kind, "httpGet": {"path": "/health", "port": 8000}, **timing}
+
+
+def carry_over(body: dict, existing: dict) -> None:
+    """Copy CARRIED_OVER settings from the current app into the body."""
+    for path in CARRIED_OVER:
+        value = existing
+        for key in path:
+            value = value.get(key) if isinstance(value, dict) else None
+        if value in (None, [], {}):
+            continue
+        target = body
+        for key in path[:-1]:
+            target = target.setdefault(key, {})
+        target[path[-1]] = value
+    identity = body.get("identity")
+    if identity:
+        # Only the writable part: principalId and tenantId are read-only.
+        body["identity"] = {"type": identity.get("type", "None")}
+        if identity.get("userAssignedIdentities"):
+            body["identity"]["userAssignedIdentities"] = {
+                resource_id: {} for resource_id in identity["userAssignedIdentities"]
+            }
 
 
 def main() -> None:
@@ -115,6 +158,10 @@ def main() -> None:
             "template": template,
         },
     }
+    existing_file = os.environ.get("EXISTING_APP_FILE")
+    if existing_file:
+        with open(existing_file, encoding="utf-8") as file:
+            carry_over(body, json.load(file))
     json.dump(body, sys.stdout, indent=2)
 
 
