@@ -81,7 +81,8 @@ Each country's `index.json` is a list with one entry per layer:
   it to tile URLs (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
   If a version or calculation field changes during an open analysis, the browser
   discards the old results and recalculates them before showing the map or report.
-  Missing means `1`.
+  A layer created in the admin starts at `0`, before it has a raster. Missing means
+  `1`.
 - **pixel_size**: Pixel size in meters; the analysis uses it for the pixel area.
   Uploads and later edits must agree with the raster's measured pixel area within
   5%. Geographic raster sizes are approximated at the middle latitude.
@@ -101,9 +102,13 @@ The admin shows and changes only that country's layers. Then:
 
 - **Create a layer**: fill in the layer fields and the metadata in both languages. It
   belongs to your country, and starts unpublished and without a raster.
-- **Upload its raster**: see the requirements below. The layer keeps its current
-  raster until the new one has been fully processed.
-- **Publish or hide it**: a layer can only be published once it has a raster.
+- **Upload its raster**, in the Raster section of the layer's page: choose the file,
+  then "Upload and validate". The section shows each phase (uploading, validating
+  pixels, converting) and can cancel it. The layer keeps its current raster until
+  the new one has been fully processed. See the requirements below.
+- **Publish or hide it**: a layer can only be published once it has a raster. An
+  unpublished layer's Raster section ends with a "Publish layer" step; the layers
+  list also publishes and hides layers.
 - **Edit it**: fields and metadata can be changed at any time, and the change is live
   immediately. Changing `pixel_size` is rejected if it disagrees with the current
   raster. The id, raster, version and published state are not edited there.
@@ -151,8 +156,8 @@ If the file doesn't declare its nodata value, enter it in the upload form.
 
 The upload is rejected with an explanation when a check fails. When the other values
 look like years (1980–2100), the raster has loss years instead of a binary mask:
-binarize it first (see below). An upload with no `1` pixels is accepted with a
-warning.
+binarize it first (see below). An upload with no `1` pixels is accepted (its job
+records a warning).
 
 ### What happens to an upload
 
@@ -165,8 +170,8 @@ warning.
    aborts the upload.
 4. It is saved as `<stem>-v<version>.tif`, and the index points the layer at it.
    `<stem>` is `layer-<id>` for layers created in the admin, and the original name
-   for the seeded ones (e.g. `gfw`). A layer's first raster is `v2`, because the
-   layer is created at version 1.
+   for the seeded ones (e.g. `gfw`). A new layer's first raster is `v1`, because the
+   layer is created at version 0.
 
 Rasters are never overwritten: previous versions stay on the share. The admin has no
 rollback button; to go back, point the layer's `raster_filename` in `index.json` at
@@ -174,6 +179,10 @@ the older file, or restore it from a backup.
 
 Only one upload is processed at a time. A large raster takes about a minute
 (57601×69601 pixels: 51 s on the Azure API).
+
+Cancelling (`DELETE /admin/jobs/{jobId}`) stops the job within one window while it
+validates or verifies, or when the conversion returns, and the layer keeps its
+raster. Once the new raster is being put in place, it is too late to cancel (409).
 
 The overviews make low-zoom tiles fast, and at low zoom levels they draw a
 downsampled version of the raster. Analyses and report images always read the full

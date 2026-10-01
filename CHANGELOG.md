@@ -3,8 +3,9 @@
 ### Added
 
 - Add a layers admin at `/admin` to create and edit deforestation layers, upload their rasters and publish or hide them, protected by a long passkey per country. The `/admin` API routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout (see below)
+- Guide the admin's raster upload in steps (select the file, upload and validate, and publish the layer when it isn't published yet), showing the progress of each phase, with a Cancel button. Ingestion jobs report their `phase` and validation `progress`, and `DELETE /admin/jobs/{jobId}` cancels a job before its raster is activated
 - Validate uploaded rasters (one integer band, a CRS, only 0/1/nodata values, with a hint when the values look like loss years), convert them to Cloud Optimized GeoTIFFs, verify the conversion pixel by pixel and store them under versioned filenames (`<stem>-v<version>.tif`) without overwriting previous ones
-- Add the `enabled` and `version` fields to the layers index. `GET /maps` lists only enabled layers and returns each layer's `version`, which the frontend adds to tile URLs
+- Add the `enabled` and `version` fields to the layers index. `GET /maps` lists only enabled layers and returns each layer's `version`, which the frontend adds to tile URLs. A layer created in the admin starts at version 0, so its first raster is `v1`
 - Add the `MAPS_ROOT` environment variable to the API to read the layers from another directory (by default the Git-tracked `app/maps`), and report it in `/health`
 - Add a seed command (`uv run python -m app.modules.layers.seed`) that prepares a layers root from the Git-tracked layers
 - Add a 10-farm regression suite and a parity script (`uv run python -m tests.regression.parity`) that compares the results of two deployed APIs
