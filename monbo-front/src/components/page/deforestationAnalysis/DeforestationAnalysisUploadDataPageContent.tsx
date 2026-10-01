@@ -63,6 +63,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
   // The inputs of the latest analysis request, and whether the page is mounted:
   // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
+  // Counts analysis requests, so a stale one can tell whether a newer one is
+  // still pending (and owns the loading screen).
+  const latestRequestRef = useRef(0);
   const mountedRef = useRef(false);
   useEffect(() => {
     mountedRef.current = true;
@@ -131,6 +134,12 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const performDeforestationAnalysis = useCallback(
     async (data: FarmData[], isCurrent: () => boolean) => {
+      const request = ++latestRequestRef.current;
+      // A stale response turns the loading screen off, unless a newer request
+      // is pending.
+      const settleStale = () => {
+        if (request === latestRequestRef.current) setLoading(false);
+      };
       setLoading(true);
       try {
         const response = await analizeDeforestation(
@@ -139,7 +148,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         );
         // A newer request (another country, or a layer that changed again)
         // supersedes this one.
-        if (!isCurrent()) return;
+        if (!isCurrent()) return settleStale();
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
         router.push(`/${i18n.language}/deforestation-analysis`);
@@ -150,7 +159,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           type: "success",
         });
       } catch {
-        if (!isCurrent()) return;
+        if (!isCurrent()) return settleStale();
         openSnackbar({
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
