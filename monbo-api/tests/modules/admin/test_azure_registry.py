@@ -7,6 +7,7 @@ import pytest
 from app.modules.admin.azure_registry import (
     CountryFolderConflict,
     RegistryChanged,
+    RegistryLeased,
     publish,
     snapshot,
 )
@@ -101,6 +102,23 @@ def test_publish_rejects_an_outdated_registry_after_another_operator_writes(tmp_
 
     assert share.files["countries.json"].data == first_update
     assert not share.files["countries.json"].leased
+
+
+def test_a_stale_lease_points_to_unlock(tmp_path):
+    class LeaseAlreadyPresent(Exception):
+        status_code = 409
+        error_code = "LeaseAlreadyPresent"
+
+    share = FakeShare()
+    local = tmp_path / "countries.json"
+    etag = snapshot(share, local)
+
+    def refuse():
+        raise LeaseAlreadyPresent("There is already a lease present.")
+
+    share.files["countries.json"].acquire_lease = refuse
+    with pytest.raises(RegistryLeased, match="countries unlock"):
+        publish(share, etag, local)
 
 
 def test_publish_adds_country_folder_while_holding_registry_lease(tmp_path):

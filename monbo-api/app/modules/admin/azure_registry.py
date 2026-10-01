@@ -24,6 +24,17 @@ class CountryFolderConflict(Exception):
     """An unregistered country folder contains an existing layer index."""
 
 
+class RegistryLeased(Exception):
+    """countries.json still holds a lease, most likely from an interrupted run."""
+
+
+def _is_lease_conflict(error: Exception) -> bool:
+    # Duck-typed: the Azure SDK is only imported in main() (an optional group).
+    return getattr(error, "status_code", None) == 409 or (
+        getattr(error, "error_code", None) == "LeaseAlreadyPresent"
+    )
+
+
 def snapshot(share, destination: Path) -> str:
     """Download the registry and return the ETag used for optimistic concurrency."""
     registry = share.get_file_client("countries.json")
@@ -70,7 +81,16 @@ def publish(
 ) -> None:
     """Publish only if the registry still has the downloaded ETag."""
     registry = share.get_file_client("countries.json")
-    lease = registry.acquire_lease()
+    try:
+        lease = registry.acquire_lease()
+    except Exception as error:
+        if _is_lease_conflict(error):
+            raise RegistryLeased(
+                "countries.json is still leased, probably by an earlier command "
+                "that was interrupted. If no other `countries` command is running, "
+                "run ./azure/deploy.sh countries unlock and try again"
+            ) from error
+        raise
     try:
         if registry.get_file_properties().etag != expected_etag:
             raise RegistryChanged(
@@ -128,7 +148,13 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             ShareLeaseClient(share.get_file_client("countries.json")).break_lease()
-    except (AzureError, RegistryChanged, CountryFolderConflict, ValueError) as error:
+    except (
+        AzureError,
+        RegistryChanged,
+        RegistryLeased,
+        CountryFolderConflict,
+        ValueError,
+    ) as error:
         print(f"Country registry update failed: {error}", file=sys.stderr)
         return 1
     finally:
