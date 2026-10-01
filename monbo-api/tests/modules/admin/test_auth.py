@@ -2,7 +2,9 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -195,11 +197,46 @@ def test_rate_limit_window_expires():
     now = [1000.0]
     limiter = LoginRateLimiter(clock=lambda: now[0])
     for _ in range(5):
-        limiter.record_failure("ip")
+        assert limiter.try_acquire("ip") is None
 
-    assert limiter.retry_after("ip") == 15 * 60 + 1
+    assert limiter.try_acquire("ip") == 15 * 60 + 1
     now[0] += 15 * 60 + 1
-    assert limiter.retry_after("ip") is None
+    assert limiter.try_acquire("ip") is None
+
+
+def test_rate_limit_table_forgets_idle_ips():
+    now = [1000.0]
+    limiter = LoginRateLimiter(clock=lambda: now[0])
+    for n in range(auth.MAX_TRACKED_IPS):
+        limiter.try_acquire(f"10.0.{n // 256}.{n % 256}")  # one failure each
+    now[0] += 15 * 60 + 1  # and they never come back
+
+    limiter.try_acquire("203.0.113.7")
+    limiter.try_acquire("203.0.113.8")
+
+    assert len(limiter._failures) <= 2
+
+
+def test_rate_limit_table_stays_bounded_under_many_failing_ips():
+    limiter = LoginRateLimiter()
+    for n in range(3 * auth.MAX_TRACKED_IPS):
+        limiter.try_acquire(f"ip-{n}")
+
+    assert len(limiter._failures) <= auth.MAX_TRACKED_IPS + 1
+
+
+def test_parallel_attempts_cannot_get_past_the_limit():
+    limiter = LoginRateLimiter()
+    start = threading.Barrier(40)
+
+    def attempt():
+        start.wait()
+        return limiter.try_acquire("ip")
+
+    with ThreadPoolExecutor(max_workers=40) as pool:
+        results = list(pool.map(lambda _: attempt(), range(40)))
+
+    assert results.count(None) == 5
 
 
 def test_login_attempts_are_logged_without_the_passkey(client, caplog):

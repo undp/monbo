@@ -44,7 +44,9 @@ def create_session(body: LoginBody, request: Request):
     ip = client_ip(request)
     # Looked up on the module so tests can swap the limiter.
     limiter = auth.login_rate_limiter
-    retry_after = limiter.retry_after(ip)
+    # Counted as a failure up front (and forgotten on success), so parallel guesses
+    # can't all pass the check before any failure is recorded.
+    retry_after = limiter.try_acquire(ip)
     if retry_after is not None:
         logger.warning("Admin login rate-limited for %s", ip)
         raise HTTPException(
@@ -54,7 +56,6 @@ def create_session(body: LoginBody, request: Request):
         )
 
     if not passkey_matches(body.passkey):
-        limiter.record_failure(ip)
         logger.warning("Admin login failed from %s", ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

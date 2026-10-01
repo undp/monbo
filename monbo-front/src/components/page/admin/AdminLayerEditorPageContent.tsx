@@ -104,6 +104,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
             : null;
         const issueDetails =
           issue?.code === "resolution_mismatch" ||
+          issue?.code === "resolution_varies" ||
           issue?.code === "resolution_unavailable"
             ? t(`admin:raster:issues:${issue.code}`, issue.params)
             : null;

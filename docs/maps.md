@@ -66,7 +66,10 @@ metadata/considerations/<en|es>/<name>.md   # Markdown notes per language (optio
   Missing means `1`.
 - **pixel_size**: Pixel size in meters; the analysis uses it for the pixel area.
   Uploads and later edits must agree with the raster's measured pixel area within
-  5%. Geographic raster sizes are approximated at the middle latitude.
+  5% everywhere in the raster. For a geographic CRS (degrees) the cell area changes
+  with latitude, so it is checked at the latitudes nearest to and farthest from the
+  equator; a raster spanning too many latitudes is rejected (reproject it to an
+  equal-area CRS or split it).
 - **baseline** / **compared_against**: First and last year of the loss period.
 - **references**: http(s) links shown with the layer.
 - **available_countries_codes**: ISO 3166-1 alpha-2 codes of the countries covered.
@@ -101,7 +104,8 @@ values. A raster must be:
   reference system**;
 - **binary**: only `0` (no loss), `1` (loss) and, optionally, a nodata value. Every
   pixel is checked. Nodata cannot be `1`, because the analysis counts `1` as loss.
-- have a pixel size consistent with the layer's `pixel_size` (within 5%).
+- have a pixel area consistent with the layer's `pixel_size` (within 5% at every
+  latitude of the raster).
 - no larger than `ADMIN_MAX_UPLOAD_MB` (500 MB by default).
 
 If the file doesn't declare its nodata value, enter it in the upload form.

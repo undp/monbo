@@ -1,6 +1,7 @@
 import errno
 import json
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -111,7 +112,7 @@ def test_analysis_includes_disabled_layers(maps_root):
     # No raster file exists, so the value is None, but the disabled layer is analyzed.
     assert response.status_code == 200
     assert response.json() == [
-        {"mapId": 7, "farmResults": [{"farmId": "f1", "value": None}]}
+        {"mapId": 7, "version": 3, "farmResults": [{"farmId": "f1", "value": None}]}
     ]
 
 
@@ -268,7 +269,27 @@ def test_persistently_refused_rename_keeps_the_existing_index(maps_root):
 
     assert replace.call_count == store_module.REPLACE_ATTEMPTS
     assert store.index_path.read_bytes() == before
-    assert leftover_temp_files(maps_root.root) == []
+    # On SMB the refused target may still vanish once a foreign handle closes it:
+    # the intended index is kept next to it until someone restores it.
+    (kept,) = leftover_temp_files(maps_root.root)
+    assert json.loads((maps_root.root / kept).read_text()) == [GFW, DISABLED]
+
+
+def test_rename_that_does_not_read_back_keeps_the_intended_contents(maps_root):
+    maps_root.write_index([GFW])
+    store = maps_root.store
+    real_replace = os.replace
+
+    def corrupt(src, dst):
+        real_replace(src, dst)
+        Path(dst).write_bytes(b"[]\n")
+
+    with patch("app.modules.layers.store.os.replace", side_effect=corrupt):
+        with pytest.raises(OSError, match="Read-back"):
+            store.write_index([GFW, DISABLED])
+
+    (kept,) = leftover_temp_files(maps_root.root)
+    assert json.loads((maps_root.root / kept).read_text()) == [GFW, DISABLED]
 
 
 def test_writes_never_change_permissions(maps_root):

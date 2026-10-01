@@ -26,6 +26,8 @@ from app.config.logger import get_logger
 logger = get_logger("modules.admin.auth")
 
 MAX_FAILED_LOGINS = 5
+# Upper bound on the IPs the login rate limiter tracks at once.
+MAX_TRACKED_IPS = 1000
 FAILED_LOGIN_WINDOW_SECONDS = 15 * 60
 
 
@@ -122,17 +124,22 @@ class LoginRateLimiter:
         self._failures: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
-    def retry_after(self, ip: str) -> int | None:
-        """Seconds until `ip` may try again, or None if it isn't blocked."""
+    def try_acquire(self, ip: str) -> int | None:
+        """Start a login attempt from `ip`.
+
+        Returns None and counts the attempt as a failure, or the seconds until `ip`
+        may try again if it is blocked. Checking and counting happen under one lock,
+        so parallel attempts can't all get past the limit; `reset` forgets them after
+        a successful login.
+        """
         with self._lock:
             failures = self._prune(ip)
-            if len(failures) < self.max_failures:
-                return None
-            return max(1, int(failures[0] + self.window_seconds - self._clock()) + 1)
-
-    def record_failure(self, ip: str) -> None:
-        with self._lock:
-            self._prune(ip).append(self._clock())
+            if len(failures) >= self.max_failures:
+                return max(
+                    1, int(failures[0] + self.window_seconds - self._clock()) + 1
+                )
+            failures.append(self._clock())
+            return None
 
     def reset(self, ip: str) -> None:
         with self._lock:
@@ -143,11 +150,24 @@ class LoginRateLimiter:
         failures = self._failures.setdefault(ip, deque())
         while failures and failures[0] <= cutoff:
             failures.popleft()
-        # Forget idle IPs so the table can't grow without bound.
-        if len(self._failures) > 1000:
-            for other in [k for k, v in self._failures.items() if not v and k != ip]:
-                del self._failures[other]
+        if len(self._failures) > MAX_TRACKED_IPS:
+            self._sweep(cutoff, keep=ip)
         return failures
+
+    def _sweep(self, cutoff: float, keep: str) -> None:
+        """Keep the table bounded: forget IPs with no failure inside the window, then,
+        if many IPs are still failing, the ones that started failing first."""
+        for other in [
+            k
+            for k, v in self._failures.items()
+            if k != keep and (not v or v[-1] <= cutoff)
+        ]:
+            del self._failures[other]
+        excess = len(self._failures) - int(MAX_TRACKED_IPS * 0.9)
+        if excess > 0:
+            # Dicts keep insertion order: the first keys are the oldest entries.
+            for other in [k for k in self._failures if k != keep][:excess]:
+                del self._failures[other]
 
 
 login_rate_limiter = LoginRateLimiter()

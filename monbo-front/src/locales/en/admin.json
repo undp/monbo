@@ -121,7 +121,8 @@
     "uploadErrors": {
       "tooLarge": "The file is larger than the server accepts.",
       "busy": "Another raster is being processed. Try again in a few minutes.",
-      "generic": "The raster could not be uploaded."
+      "generic": "The raster could not be uploaded.",
+      "statusUnavailable": "The status of this upload is no longer available. Reload the layer to see whether its raster changed."
     },
     "issues": {
       "not_geotiff": "The file is not a readable GeoTIFF.",
@@ -131,6 +132,7 @@
       "nodata_is_loss": "Nodata cannot be 1 because 1 represents forest loss. Use a different nodata value.",
       "resolution_unavailable": "The raster's pixel size could not be determined from its reference system and grid.",
       "resolution_mismatch": "The layer pixel size ({{declared}} m) differs from the raster ({{measured}} m). Update the layer pixel size or choose another raster.",
+      "resolution_varies": "The raster's pixel size varies from {{min}} m to {{max}} m across its latitudes, too much for a single layer pixel size. Reproject it to an equal-area reference system or split it.",
       "not_binary": "The raster must be binary (0 = no loss, 1 = loss). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
       "loss_years": "The raster has values that look like loss years ({{values}}). Binarize it against its baseline year before uploading.",
       "conversion_mismatch": "The conversion didn't keep every pixel, so nothing was changed.",

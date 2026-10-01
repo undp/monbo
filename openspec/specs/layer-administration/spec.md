@@ -46,7 +46,7 @@ editing a layer's fields and bilingual metadata, and publishing or hiding it.
 
 ### Requirement: Edit a layer
 
-`PUT /admin/layers/{id}` SHALL replace a layer's editable index fields and its en/es attributes and considerations, using the same validation as creation. If the layer has a raster, changing `pixel_size` SHALL be rejected with 409 when it differs from the raster's measured nominal pixel size by more than 5%. It SHALL write to the layer's existing metadata filenames. It SHALL NOT change `id`, `raster_filename`, `version`, or `enabled`. Unknown ids SHALL return 404.
+`PUT /admin/layers/{id}` SHALL replace a layer's editable index fields and its en/es attributes and considerations, using the same validation as creation. If the layer has a raster, changing `pixel_size` SHALL be rejected with 409 when its area differs from the raster's cell area by more than 5% at any latitude of the raster. It SHALL write to the layer's existing metadata filenames. It SHALL NOT change `id`, `raster_filename`, `version`, or `enabled`. Unknown ids SHALL return 404.
 
 #### Scenario: Edit a seeded layer
 

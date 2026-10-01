@@ -61,14 +61,14 @@ The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module
 
 **Module 2 — Deforestation analysis**
 4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{farms:[{id,type,details}], maps:[ids]}`. *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
-5. The backend iterates **per map × per farm** and returns `[{mapId, farmResults:[{farmId, value}]}]`, where `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
+5. The backend iterates **per map × per farm** and returns `[{mapId, version, farmResults:[{farmId, value}]}]`, where `version` is the layer's raster version the results were computed on, and `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
 6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
    If an admin replaces a selected raster or changes its calculation fields while
    the page is open, the browser discards the earlier percentages and recalculates
    them before showing the updated map or report.
 
 **Module 3 — Report**
-7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background).
+7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background). The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
 8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
 
 ### 2.3 The heart of the product: the deforestation calculation
@@ -97,8 +97,9 @@ This is the core concept worth understanding clearly.
 - **Google Earth Engine**: only in the offline raster-generation script.
 - **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
 - **Raster ingestion checks the calculation inputs.** Nodata cannot be `1`, and
-  the configured `pixel_size` must be within 5% of the raster's measured pixel
-  size. The same size check applies when an admin edits a layer with a raster.
+  the area of the configured `pixel_size` must be within 5% of the raster's cell
+  area at every latitude it covers. The same size check applies when an admin edits
+  a layer with a raster.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.
 
 ---
@@ -136,7 +137,7 @@ monbo/
 ### 3.2 Backend — `monbo-api/app/`
 
 ```
-main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /download-geojson
+main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /health/live, /download-geojson
 modules/                   # One package per module, each with router.py + helpers.py + models.py
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)

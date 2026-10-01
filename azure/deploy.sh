@@ -83,8 +83,19 @@ DATA_LOCK_NAME="${DATA_LOCK_NAME:-monbo-data-no-delete}"
 # Layers admin (optional): generate both with `uv run python -m app.modules.admin.passkey`.
 ADMIN_PASSKEY_HASH="${ADMIN_PASSKEY_HASH:-}"
 ADMIN_SESSION_SECRET="${ADMIN_SESSION_SECRET:-}"
+# The frontend origin the admin accepts calls from; defaults to the frontend's
+# Container Apps URL. Set it when the frontend is served from a custom domain.
+ADMIN_ALLOWED_ORIGIN="${ADMIN_ALLOWED_ORIGIN:-}"
 
 # --- Helpers -----------------------------------------------------------------
+
+# Temporary files, some holding secrets: removed however the script exits (a `die`, a
+# failed command under `set -e`, Ctrl-C). Add each one right after creating it.
+TEMP_FILES=()
+remove_temp_files() {
+  [ "${#TEMP_FILES[@]}" -eq 0 ] || rm -f "${TEMP_FILES[@]}"
+}
+trap remove_temp_files EXIT
 
 log() { printf '\n\033[1;34m► %s\033[0m\n' "$*"; }
 ok() { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
@@ -259,10 +270,24 @@ ensure_layer_storage() {
   fi
   ok "Delete lock: $DATA_LOCK_NAME"
 
-  az containerapp env storage set -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
-    --storage-name "$ENV_STORAGE_NAME" --storage-type AzureFile \
-    --azure-file-account-name "$STORAGE_ACCOUNT_NAME" --azure-file-account-key "$(storage_key)" \
-    --azure-file-share-name "$MAPS_SHARE_NAME" --access-mode ReadWrite -o none --only-show-errors
+  # Through a body file, not `env storage set` flags: the account key controls the
+  # only durable copy of the layers and must not appear on a command line.
+  local storage_body
+  storage_body="$(mktemp)"
+  TEMP_FILES+=("$storage_body")
+  STORAGE_ACCOUNT_KEY="$(storage_key)" STORAGE_ACCOUNT_NAME="$STORAGE_ACCOUNT_NAME" \
+    MAPS_SHARE_NAME="$MAPS_SHARE_NAME" python3 -c '
+import json, os, sys
+json.dump({"properties": {"azureFile": {
+    "accountName": os.environ["STORAGE_ACCOUNT_NAME"],
+    "accountKey": os.environ["STORAGE_ACCOUNT_KEY"],
+    "shareName": os.environ["MAPS_SHARE_NAME"],
+    "accessMode": "ReadWrite",
+}}}, sys.stdout)' > "$storage_body"
+  az rest --method put --only-show-errors -o none \
+    --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/managedEnvironments/$CONTAINERAPPS_ENV/storages/$ENV_STORAGE_NAME?api-version=2024-03-01" \
+    --body "@$storage_body"
+  rm -f "$storage_body"
   ok "Share registered on $CONTAINERAPPS_ENV as '$ENV_STORAGE_NAME'"
 }
 
@@ -313,9 +338,17 @@ POLICY
   ok "Backup: $BACKUP_VAULT_NAME / $BACKUP_POLICY_NAME (daily, 30 days)"
 }
 
+# Whether the share has an index.json. Dies when az itself fails (network, storage
+# firewall, shared-key access disabled): that is not the same as an unseeded share, and
+# seeding a share that already holds admin-created layers would overwrite them.
 share_has_index() {
-  [ "$(az storage file exists --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$(storage_key)" \
-    --share-name "$MAPS_SHARE_NAME" --path index.json --query exists -o tsv 2>/dev/null)" = "true" ]
+  local key exists
+  key="$(storage_key)" || die "Could not read the key of storage account $STORAGE_ACCOUNT_NAME"
+  # The key goes through the environment, not argv (visible in `ps`).
+  exists="$(AZURE_STORAGE_KEY="$key" az storage file exists --account-name "$STORAGE_ACCOUNT_NAME" \
+    --share-name "$MAPS_SHARE_NAME" --path index.json --query exists -o tsv --only-show-errors)" \
+    || die "Could not check the '$MAPS_SHARE_NAME' share for index.json (see the az error above)"
+  [ "$exists" = "true" ]
 }
 
 build_and_push() {
@@ -334,7 +367,10 @@ build_and_push() {
 }
 
 # The API app is PUT whole from render_api_app.py: flags can't add volumes, and
-# `az containerapp update --yaml` is broken on az CLI 2.90.
+# `az containerapp update --yaml` is broken on az CLI 2.90. The PUT replaces the app:
+# render_api_app.py owns its container, env vars, secrets, registry and scale, so an
+# env var, secret or scale rule added in the portal is dropped on the next deploy. Custom
+# domains, IP restrictions, CORS, identity, tags and the workload profile are kept.
 deploy_api() {
   log "Deploying $API_APP_NAME"
   local mount=false
@@ -344,13 +380,21 @@ deploy_api() {
     mount=true
   fi
 
-  local env_id default_domain body
+  local env_id default_domain body existing previous_revision="" admin_origin
   env_id="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" --query id -o tsv)"
   default_domain="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" \
     --query properties.defaultDomain -o tsv)"
+  admin_origin="${ADMIN_ALLOWED_ORIGIN:-https://$FRONT_APP_NAME.$default_domain}"
   body="$(mktemp)"
-  # The body carries secrets: never leave it behind.
-  trap 'rm -f "$body"; trap - RETURN' RETURN
+  existing="$(mktemp)"
+  TEMP_FILES+=("$body" "$existing")
+  # Settings configured outside this script that the PUT must not drop.
+  if app_exists "$API_APP_NAME"; then
+    az containerapp show -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" -o json > "$existing"
+    previous_revision="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["properties"].get("latestRevisionName") or "")' "$existing")"
+  else
+    echo '{}' > "$existing"
+  fi
   LOCATION="$LOCATION" ENV_ID="$env_id" API_IMAGE="$API_IMAGE" API_CPU="$API_CPU" API_MEMORY="$API_MEMORY" \
     ACR_SERVER="$ACR_SERVER" ACR_USERNAME="$ACR_USERNAME" ACR_PASSWORD="$ACR_PASSWORD" \
     GCP_MAPS_PLATFORM_API_KEY="$GCP_MAPS_PLATFORM_API_KEY" \
@@ -358,24 +402,30 @@ deploy_api() {
     OVERLAP_THRESHOLD_PERCENTAGE="$OVERLAP_THRESHOLD_PERCENTAGE" \
     MAPS_MOUNT="$mount" ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
     ADMIN_PASSKEY_HASH="$ADMIN_PASSKEY_HASH" ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
-    ADMIN_ALLOWED_ORIGIN="https://$FRONT_APP_NAME.$default_domain" \
+    ADMIN_ALLOWED_ORIGIN="$admin_origin" \
+    EXISTING_APP_FILE="$existing" \
     python3 "$SCRIPT_DIR/render_api_app.py" > "$body"
 
   az rest --method put --only-show-errors -o none \
     --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$API_APP_NAME?api-version=2024-03-01" \
     --body "@$body"
+  # The body carries secrets and nothing needs it anymore.
+  rm -f "$body" "$existing"
   wait_for_provisioning "$API_APP_NAME"
   local revision
   revision="$(wait_for_latest_revision "$API_APP_NAME")"
-  # Secrets are only read at container start; restart so a changed secret takes effect
-  # even when the PUT didn't create a new revision.
-  az containerapp revision restart -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
-    --revision "$revision" -o none
+  # Secrets are only read at container start. A new revision already started with the
+  # current ones; otherwise restart so a changed secret takes effect. (A needless
+  # restart would bounce the only replica and interrupt an ingestion.)
+  if [ "$revision" = "$previous_revision" ]; then
+    az containerapp revision restart -g "$AZURE_RESOURCE_GROUP" -n "$API_APP_NAME" \
+      --revision "$revision" -o none
+  fi
 
   API_URL="https://$(app_fqdn "$API_APP_NAME")"
   wait_for_health "$API_URL/health"
   [ "$mount" = true ] && verify_maps_root "$API_URL"
-  admin_enabled && ok "Layers admin: https://$FRONT_APP_NAME.$default_domain/admin"
+  admin_enabled && ok "Layers admin: $admin_origin/admin"
   return 0
 }
 

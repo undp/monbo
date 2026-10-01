@@ -10,7 +10,13 @@ from app.config import env
 from app.modules.layers.store import get_layer_store
 
 from .auth import require_admin
-from .ingestion import ingestion_slot, new_job, run_ingestion
+from .ingestion import (
+    ingestion_in_progress,
+    ingestion_slot,
+    new_job,
+    refresh_job,
+    run_ingestion,
+)
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 
@@ -55,11 +61,15 @@ async def upload_raster(
     if declared_size and declared_size.isdigit() and int(declared_size) > limit:
         raise _too_large()
 
+    busy = HTTPException(
+        status_code=409, detail="Another raster is being processed; try later"
+    )
+    # Also covers a previous revision still ingesting while a deploy rolls out.
+    if await run_in_threadpool(ingestion_in_progress, get_layer_store()):
+        raise busy
     job_id = uuid.uuid4().hex
     if not ingestion_slot.acquire(job_id):
-        raise HTTPException(
-            status_code=409, detail="Another raster is being processed; try later"
-        )
+        raise busy
 
     staged = Path(env.ADMIN_STAGING_DIR) / f"{job_id}.tif"
     try:
@@ -89,7 +99,8 @@ async def upload_raster(
 @router.get("/jobs/{job_id}")
 def get_job(job_id: str):
     """Status of an ingestion job: queued, running, succeeded or failed."""
-    job = get_layer_store().read_job(job_id)
+    store = get_layer_store()
+    job = store.read_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    return refresh_job(store, job)

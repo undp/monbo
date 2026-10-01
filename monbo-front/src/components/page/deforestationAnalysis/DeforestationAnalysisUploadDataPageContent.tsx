@@ -43,8 +43,21 @@ export function DeforestationAnalysisUploadDataPageContent() {
     setAnalysisOutdated,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(() => !!farmsData);
+  // With farms already loaded the analysis starts right away, unless no map is
+  // selected yet: then the form is shown so the user can pick one.
+  const [loading, setLoading] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // The inputs of the latest analysis request, and whether the page is mounted:
+  // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForDeforestation,
@@ -107,6 +120,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
           data,
           selectedMapsForDeforestation
         );
+        // A newer request (another country, or a layer that changed again)
+        // supersedes this one.
         if (!isCurrent()) return;
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
@@ -149,42 +164,43 @@ export function DeforestationAnalysisUploadDataPageContent() {
     const serializedData = JSON.stringify({
       country: selectedCountry,
       farms: farmsData.map((farm) => [farm.id, farm.country]),
-      calculationInputs: selectedMapsForDeforestation.map((map) => [
-        map.id,
-        map.version,
-        map.pixelSize,
-        map.baseline,
-        map.comparedAgainst,
-      ]),
+      // Only an analysis invalidated by a layer change re-runs when the selected
+      // layers' calculation inputs change; ticking maps on the form doesn't.
+      calculationInputs: analysisOutdated
+        ? selectedMapsForDeforestation.map((map) => [
+            map.id,
+            map.version,
+            map.pixelSize,
+            map.baseline,
+            map.comparedAgainst,
+          ])
+        : null,
     });
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
-    let active = true;
-    let pending = true;
+    // Superseded once the inputs change (prevDataRef moves on), the country
+    // changes or the page unmounts. A re-run with the same inputs (e.g. the maps
+    // list refreshed, or Strict Mode replaying the effect) keeps it current.
     void performDeforestationAnalysis(
       farmsData,
-      () => active && readSelectedCountry() === selectedCountry
-    ).finally(() => {
-      pending = false;
-    });
-
-    return () => {
-      active = false;
-      // React Strict Mode replays effects before the first request settles.
-      if (pending && prevDataRef.current === serializedData) {
-        prevDataRef.current = null;
-      }
-    };
+      () =>
+        mountedRef.current &&
+        prevDataRef.current === serializedData &&
+        readSelectedCountry() === selectedCountry
+    );
   }, [
     farmsData,
     selectedCountry,
     selectedMapsForDeforestation,
+    analysisOutdated,
     performDeforestationAnalysis,
   ]);
 
   const onFileDropped = useCallback(
     async (acceptedFiles: File[]) => {
+      // A new file is a new analysis, not a recalculation of an outdated one.
+      setAnalysisOutdated(false);
       setLoading(true);
 
       const file = acceptedFiles[0];
@@ -207,7 +223,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [openSnackbar, t, performFarmsGeneration, i18n.language]
+    [openSnackbar, t, performFarmsGeneration, setAnalysisOutdated, i18n.language]
   );
 
   if (loading && selectedMapsForDeforestation.length > 0)

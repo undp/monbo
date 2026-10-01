@@ -1,4 +1,6 @@
 import json
+import os
+import time
 
 import numpy as np
 import pytest
@@ -295,6 +297,18 @@ def test_all_zeros_succeeds_with_a_warning(layers, client, admin_headers, tmp_pa
 # --- Rejected rasters --------------------------------------------------------------
 
 
+def vrt(path):
+    """A VRT (XML) that points GDAL at another file on the server."""
+    source = write_tif(path.with_name("source.tif"), binary())
+    assert source
+    return (
+        '<VRTDataset rasterXSize="64" rasterYSize="64"><VRTRasterBand dataType="Byte" '
+        'band="1"><SimpleSource><SourceFilename relativeToVRT="0">'
+        f"{path.with_name('source.tif')}</SourceFilename><SourceBand>1</SourceBand>"
+        "</SimpleSource></VRTRasterBand></VRTDataset>"
+    ).encode()
+
+
 def stray_value(data):
     data = data.copy()
     data[-1, -1] = 2
@@ -321,8 +335,9 @@ def stray_value(data):
         (lambda p: write_tif(p, binary(), crs=None), "no_crs", {}),
         (lambda p: write_tif(p, binary(), crs=None, driver="PNG"), "not_geotiff", {}),
         (lambda p: b"this is not a raster at all", "not_geotiff", {}),
+        (vrt, "not_geotiff", {}),
     ],
-    ids=["stray", "loss-years", "bands", "float", "no-crs", "png", "garbage"],
+    ids=["stray", "loss-years", "bands", "float", "no-crs", "png", "garbage", "vrt"],
 )
 def test_invalid_rasters_are_rejected(
     layers, staging, client, admin_headers, tmp_path, make, code, params
@@ -339,6 +354,27 @@ def test_invalid_rasters_are_rejected(
     assert entry(layers, 6)["raster_filename"] is None
     assert entry(layers, 6)["version"] == 1
     assert_no_staging_left(layers, staging)
+
+
+def test_only_the_gtiff_driver_parses_uploads(tmp_path, monkeypatch):
+    # GDAL must not even try other drivers: a VRT or WMS XML is parsed at open time
+    # and can make the server read local files or URLs.
+    from app.modules.layers import processing
+
+    path = tmp_path / "in.tif"
+    path.write_bytes(vrt(path))
+    opened = []
+    real_open = processing.rasterio.open
+
+    def spy(path, *args, **kwargs):
+        opened.append(kwargs.get("driver"))
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(processing.rasterio, "open", spy)
+
+    with pytest.raises(processing.IngestionError, match="GeoTIFF"):
+        processing.validate_raster(path, None)
+    assert opened == ["GTiff"]
 
 
 def test_loss_years_message_explains_what_to_do(
@@ -440,10 +476,18 @@ def test_unknown_jobs_are_404(layers, client, admin_headers, job_id):
 # --- Restart ---------------------------------------------------------------------
 
 
+STALE = "2026-01-01T00:00:00Z"
+
+
+def make_old(path):
+    stale = time.time() - ingestion.STALE_JOB_SECONDS - 60
+    os.utime(path, (stale, stale))
+
+
 def test_restart_marks_interrupted_jobs_failed_and_cleans_staging(
     layers, staging, admin_env
 ):
-    running = {**new_job("b" * 32, 6, None), "status": "running"}
+    running = {**new_job("b" * 32, 6, None), "status": "running", "updatedAt": STALE}
     done = {**new_job("c" * 32, 6, None), "status": "succeeded"}
     layers.store.write_job(running)
     layers.store.write_job(done)
@@ -451,6 +495,7 @@ def test_restart_marks_interrupted_jobs_failed_and_cleans_staging(
     (staging / f"{'b' * 32}.tif").write_bytes(b"partial")
     layers.store.staging_dir.mkdir(parents=True)
     (layers.store.staging_dir / f"{'b' * 32}.tif").write_bytes(b"partial")
+    make_old(layers.store.staging_dir / f"{'b' * 32}.tif")
 
     with TestClient(create_app()):  # runs the startup hook
         pass
@@ -459,4 +504,56 @@ def test_restart_marks_interrupted_jobs_failed_and_cleans_staging(
     assert layers.store.read_job("b" * 32)["error"]["code"] == "interrupted"
     assert layers.store.read_job("c" * 32)["status"] == "succeeded"
     assert_no_staging_left(layers, staging)
+    assert entry(layers, 6)["raster_filename"] is None
+
+
+def test_restart_leaves_a_previous_revisions_live_job_alone(layers, staging, admin_env):
+    # During a deploy the old revision is still ingesting when the new one starts.
+    live = {**new_job("d" * 32, 6, None), "status": "running"}
+    layers.store.write_job(live)
+    layers.store.staging_dir.mkdir(parents=True)
+    activating = layers.store.staging_dir / f"{'d' * 32}.tif"
+    activating.write_bytes(b"cog being activated")
+
+    with TestClient(create_app()):
+        pass
+
+    assert layers.store.read_job("d" * 32)["status"] == "running"
+    assert activating.exists()
+
+
+def test_upload_is_refused_while_another_process_is_ingesting(
+    layers, client, admin_headers, tmp_path
+):
+    layers.store.write_job({**new_job("e" * 32, 6, None), "status": "running"})
+
+    response = upload(client, admin_headers, write_tif(tmp_path / "in.tif", binary()))
+
+    assert response.status_code == 409
+
+
+def test_a_job_nobody_updates_is_reported_as_interrupted(layers, client, admin_headers):
+    layers.store.write_job(
+        {**new_job("f" * 32, 6, None), "status": "running", "updatedAt": STALE}
+    )
+
+    job = client.get(f"/admin/jobs/{'f' * 32}", headers=admin_headers).json()
+
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "interrupted"
+    assert layers.store.read_job("f" * 32)["status"] == "failed"
+
+
+def test_a_failed_job_is_never_brought_back(layers, staging, tmp_path):
+    # The old revision's job was marked interrupted; its next update must not
+    # resurrect it, and it must not activate its raster.
+    staged = staging / f"{'a' * 32}.tif"
+    staging.mkdir()
+    staged.write_bytes(write_tif(tmp_path / "in.tif", binary()))
+    job = new_job("a" * 32, 6, None)
+    layers.store.write_job({**job, "status": "failed"})
+
+    ingestion.run_ingestion("a" * 32, 6, staged, None)
+
+    assert layers.store.read_job("a" * 32)["status"] == "failed"
     assert entry(layers, 6)["raster_filename"] is None

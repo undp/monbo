@@ -28,7 +28,7 @@ converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by
 
 ### Requirement: One ingestion at a time with persisted job status
 
-Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` SHALL be marked `failed` with the reason "interrupted by restart", and their staging files SHALL be removed.
+Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409, including a job of another API process sharing the maps root (the previous revision during a deploy) that was updated within the last 15 minutes. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` and not updated for 15 minutes SHALL be marked `failed` with the reason "interrupted by restart", and staging files on the maps root older than that SHALL be removed; more recent jobs may still belong to the previous revision and SHALL be left alone. `GET /admin/jobs/{jobId}` SHALL report a queued or running job that no process has updated for 15 minutes as `failed` with the same reason. A job SHALL never move out of `failed`.
 
 #### Scenario: Poll a running job
 
@@ -42,8 +42,13 @@ Ingestion SHALL run in the background, and only one job SHALL run at a time. An 
 
 #### Scenario: Restart during ingestion
 
-- **WHEN** the API restarts while a job is running
-- **THEN** after startup that job reports `failed` with "interrupted by restart" and the layer's raster is unchanged
+- **WHEN** the API restarts while a job is running and no process updates it for 15 minutes
+- **THEN** that job reports `failed` with "interrupted by restart" and the layer's raster is unchanged
+
+#### Scenario: Deploy during ingestion
+
+- **WHEN** a new revision starts while the previous one is still ingesting an upload
+- **THEN** the new revision leaves that job and its staging file alone, and refuses new uploads with 409 until the job ends
 
 ### Requirement: Structural validation
 
@@ -95,12 +100,17 @@ Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL
 
 ### Requirement: Raster resolution matches the layer pixel size
 
-Ingestion SHALL compare the raster pixel area, expressed as a nominal pixel side in meters, with the layer's `pixel_size`. A geographic CRS SHALL use the raster's middle latitude for this approximation. The relative difference SHALL be at most 5%. The check SHALL run before conversion and again before activation, so an edit during conversion cannot activate a mismatched raster. Seeding SHALL apply the same check.
+Ingestion SHALL compare the raster cell area, in square meters, with the area of the layer's `pixel_size` (`pixel_size`²). For a geographic CRS, the cell area SHALL be computed at the raster's latitudes nearest to and farthest from the equator, and both SHALL be within the tolerance. The relative area difference SHALL be at most 5%. When no single pixel size fits every latitude of the raster within 5%, ingestion SHALL reject it as spanning too many latitudes. The check SHALL run before conversion and again before activation, so an edit during conversion cannot activate a mismatched raster. Seeding SHALL apply the same check.
 
 #### Scenario: Resolution mismatch
 
 - **WHEN** a layer declares 30 m pixels and the uploaded raster has 10 m pixels
 - **THEN** the job fails, reporting both sizes, and the layer's raster and version stay unchanged
+
+#### Scenario: Geographic raster spanning too many latitudes
+
+- **WHEN** an EPSG:4326 raster covers 5° N to 34° S
+- **THEN** the job fails, reporting the smallest and largest pixel sizes, whatever `pixel_size` the layer declares
 
 #### Scenario: No deforestation pixels
 

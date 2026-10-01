@@ -78,9 +78,17 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
         } else if (current.status === "succeeded") {
           onLayerChangedRef.current();
         }
-      } catch {
-        // A transient network error: keep polling, a bit slower.
-        if (!cancelled) timer = setTimeout(tick, POLL_INTERVAL_MS * 2);
+      } catch (e) {
+        if (cancelled) return;
+        // A 4xx other than 401 (which signs out) won't change by retrying, e.g. a
+        // job that no longer exists: stop and tell the admin.
+        if (e instanceof AdminApiError && e.status >= 400 && e.status < 500) {
+          setJobId(null);
+          setUploadError(t("admin:raster:uploadErrors:statusUnavailable"));
+          return;
+        }
+        // A network error or a 5xx: keep polling, a bit slower.
+        timer = setTimeout(tick, POLL_INTERVAL_MS * 2);
       }
     };
     tick();
@@ -88,7 +96,7 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [jobId, withToken]);
+  }, [jobId, withToken, t]);
 
   const upload = async () => {
     if (!file) return;
