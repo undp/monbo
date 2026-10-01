@@ -71,6 +71,31 @@ def test_a_registered_country_cannot_be_added_again(root, capsys):
     assert root.registry_path.read_bytes() == before
 
 
+def test_add_resumes_after_failing_to_write_the_registry(root, capsys, monkeypatch):
+    def refuse(self, countries):
+        raise OSError("SMB refused the replace")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(LayersRoot, "write_registry", refuse)
+        with pytest.raises(OSError):
+            run(root, "add", "PE")
+    assert json.loads((root.root / "PE" / "index.json").read_text()) == []
+
+    assert run(root, "add", "PE") == 0
+
+    passkey = printed_passkey(capsys.readouterr().out)
+    assert country_for_passkey(passkey)["code"] == "PE"
+
+
+def test_a_folder_with_layers_is_not_taken_over(root, capsys):
+    (root.root / "PE").mkdir()
+    (root.root / "PE" / "index.json").write_text(json.dumps([{"id": 0}]))
+
+    assert run(root, "add", "PE") == 1
+
+    assert "already has an index.json" in capsys.readouterr().err
+
+
 def test_a_flat_root_must_be_migrated_first(root, capsys):
     (root.root / "index.json").write_text("[]")
 

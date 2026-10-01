@@ -87,7 +87,9 @@ def add_country(root: LayersRoot, code: str) -> str:
         if any(c["code"] == code for c in registry):
             raise CountryError(f"{code} is already registered")
         store = root.country_store(code)
-        if store.index_path.exists():
+        # An empty index is what an earlier `add` leaves when it fails before
+        # registering the country: resume it. Any layer means real data.
+        if store.index_path.exists() and store.read_index() != []:
             raise CountryError(
                 f"{store.root} already has an index.json but {code} is not "
                 "registered; check the folder before adding it"
