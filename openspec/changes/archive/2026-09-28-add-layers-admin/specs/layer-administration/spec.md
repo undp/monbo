@@ -39,7 +39,7 @@
 
 ### Requirement: Edit a layer
 
-`PUT /admin/layers/{id}` SHALL replace a layer's editable index fields and its en/es attributes and considerations, using the same validation as creation. It SHALL write to the layer's existing metadata filenames. It SHALL NOT change `id`, `raster_filename`, `version`, or `enabled`. Unknown ids SHALL return 404.
+`PUT /admin/layers/{id}` SHALL replace a layer's editable index fields and its en/es attributes and considerations, using the same validation as creation. If the layer has a raster, changing `pixel_size` SHALL be rejected with 409 when its area differs from the raster's cell area by more than 5% at any latitude of the raster. It SHALL write to the layer's existing metadata filenames. It SHALL NOT change `id`, `raster_filename`, `version`, or `enabled`. Unknown ids SHALL return 404.
 
 #### Scenario: Edit a seeded layer
 
@@ -50,6 +50,11 @@
 
 - **WHEN** an admin calls `PUT /admin/layers/999`
 - **THEN** the response is 404
+
+#### Scenario: Edit pixel size to disagree with the raster
+
+- **WHEN** an admin changes a 30 m raster's layer pixel size to 10 m
+- **THEN** the response is 409 and neither the index nor metadata is changed
 
 ### Requirement: Enable and disable layers
 
@@ -67,7 +72,7 @@
 
 ### Requirement: Contracts mirrored between API and frontend
 
-The admin request and response models SHALL be defined as Pydantic models in the API and mirrored as TypeScript interfaces in the frontend, with the same field names and optionality. The public `MapData` interface SHALL gain `version`.
+The admin request and response models SHALL be defined as Pydantic models in the API and mirrored as TypeScript interfaces in the frontend, with the same field names and optionality. The public `MapData` interface SHALL expose `version` and `pixelSize`, so the frontend can invalidate analysis results when a raster or its calculation metadata changes.
 
 #### Scenario: Contract parity
 
