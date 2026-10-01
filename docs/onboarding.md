@@ -44,7 +44,7 @@ Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin  
 Key points for building the right mental model:
 
 - **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which the **layers admin** edits (behind a shared passkey; see §4.8 and `docs/maps.md`).
-- **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home).
+- **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home). Changing the language does keep it: the language is the root layout's `[locale]` segment, so switching it remounts `DataProvider`, and the flow is kept in a module-level `keptState` that the remounted provider picks up. Logic that runs once per mount inside the provider runs again after a language change, so it must not assume a fresh flow.
 - **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `monbo-api/app/maps` (rasters in **Git LFS**); in Azure, an **Azure Files share** mounted at `/mnt/maps`, which the admin writes to.
 - **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token.
 
@@ -157,7 +157,7 @@ tests/                     # pytest, mirrors the modules/ structure; tests/regre
 
 ```
 app/[locale]/              # App Router; the language is a route segment (en/es)
-├── page.tsx               #   Landing: pick the analysis country on a map
+├── page.tsx               #   Landing: pick the analysis country on a card
 ├── home/                  #   The 3 module cards
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
