@@ -295,7 +295,7 @@ cd monbo-api
 uv run python -m app.modules.layers.migrate_countries --source app/maps --target .local-maps
 ```
 
-It writes the per-country layout to `.local-maps` (ignored by Git) and prints one passkey per country (EC, CO, CR). Put these in `monbo-api/.env` and restart the backend:
+It writes the per-country layout to `.local-maps` (ignored by Git) and prints one passkey per country (EC, CO, CR): keep them in a password manager, not in a file. Put these settings in `monbo-api/.env` and restart the backend:
 
 ```bash
 MAPS_ROOT=.local-maps
