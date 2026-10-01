@@ -241,10 +241,37 @@ def test_analysis_needs_the_country(countries):
 
 
 def test_analysis_uses_the_layers_of_its_country(countries):
-    response = analysis({"country": "CR", "maps": [0, 1, 2], "farms": []})
+    response = analysis({"country": "CR", "maps": [0, 1], "farms": []})
 
     assert response.status_code == 200
     assert [result["mapId"] for result in response.json()] == [0, 1]
+
+
+def test_analysis_rejects_ids_its_country_doesnt_have(countries):
+    # CR has layers 0 and 1: an empty "successful" result would hide the mistake.
+    response = analysis({"country": "CR", "maps": [0, 2], "farms": []})
+
+    assert response.status_code == 400
+    assert "[2]" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("country", ["co", "COL", "C0", ""])
+def test_malformed_country_codes_are_422(countries, country):
+    client = TestClient(create_app())
+
+    assert analysis({"country": country, "maps": [0], "farms": []}).status_code == 422
+    assert client.get(f"/maps?country={country}").status_code == 422
+    assert client.get(
+        f"/deforestation_analysis/tiles/{country}/0/dynamic/12/1/1.png"
+    ).status_code in (
+        404,
+        422,
+    )  # "" doesn't even match the route
+    image = client.post(
+        "/deforestation_analysis/generate-image",
+        json={"country": country, "mapId": 0, "feature": {}},
+    )
+    assert image.status_code == 422
 
 
 def test_tiles_of_an_unknown_country_or_id_are_404(countries):

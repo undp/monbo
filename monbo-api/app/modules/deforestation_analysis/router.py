@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import Path as PathParam
 from fastapi.responses import Response
 from pydantic import BaseModel
 from rasterio import open as rasterio_open
@@ -9,6 +11,7 @@ from shapely.geometry import shape
 from starlette.concurrency import run_in_threadpool
 
 from app.helpers.GeometryCalculator import GeometryCalculator
+from app.models.maps import COUNTRY_CODE_PATTERN, CountryCode
 from app.modules.deforestation_analysis.helpers import (
     get_deforestation_ratio,
     get_map_pixels_inside_polygon,
@@ -41,6 +44,13 @@ def analize(body: AnalizeBody):
         for map in maps
         if map["id"] in body.maps and is_layer(map, body.country, map["id"])
     ]
+    unknown = sorted(set(body.maps) - {map["id"] for map in requested_maps})
+    if unknown:
+        # An empty "successful" analysis would hide the mistake.
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown layers for {body.country or 'the request'}: {unknown}",
+        )
     results = []
 
     for map_data in requested_maps:
@@ -87,7 +97,13 @@ def analize(body: AnalizeBody):
 
 
 @router.get("/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png")
-async def serve_tile(country: str, map_id: int, z: int, x: int, y: int):
+async def serve_tile(
+    country: Annotated[str, PathParam(pattern=COUNTRY_CODE_PATTERN)],
+    map_id: int,
+    z: int,
+    x: int,
+    y: int,
+):
     """Serve a tile of a country's layer for the specified z/x/y."""
     # In the threadpool: the layer store takes a lock (held while an admin saves)
     # and may stat a network share, neither of which may block the event loop.
@@ -127,7 +143,7 @@ class GenerateImageBody(BaseModel):
     feature: dict  # geojson feature
     mapId: int
     # Required with the per-country layout (ids are numbered within each country).
-    country: str | None = None
+    country: CountryCode | None = None
     # The layer version the analysis used (from /analize). When given and the layer
     # has a newer raster, the image would not match the results: 409.
     version: int | None = None

@@ -1,6 +1,8 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.models.maps import BaseMapData
+from fastapi import APIRouter, Query
+
+from app.models.maps import COUNTRY_CODE_PATTERN, BaseMapData
 from app.modules.layers.store import get_layers_root
 from app.modules.maps.helpers import get_all_maps
 from app.utils.maps import read_attributes, read_considerations
@@ -9,7 +11,10 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[BaseMapData])
-def get_maps(language: str = "en", country: str | None = None):
+def get_maps(
+    language: str = "en",
+    country: Annotated[str | None, Query(pattern=COUNTRY_CODE_PATTERN)] = None,
+):
     """
     Retrieve the enabled maps with their metadata and attributes.
 

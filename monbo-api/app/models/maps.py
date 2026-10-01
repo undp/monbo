@@ -1,4 +1,10 @@
-from pydantic import BaseModel
+from typing import Annotated
+
+from pydantic import BaseModel, StringConstraints
+
+# An ISO 3166-1 alpha-2 code, uppercase, as the country registry stores them.
+COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
+CountryCode = Annotated[str, StringConstraints(pattern=COUNTRY_CODE_PATTERN)]
 
 
 class BaseMapData(BaseModel):
