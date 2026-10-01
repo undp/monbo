@@ -147,7 +147,7 @@ def test_create_assigns_the_next_id_and_starts_disabled(layers, client, admin_he
     layer = response.json()
     assert layer["id"] == 6
     assert layer["enabled"] is False
-    assert layer["version"] == 1
+    assert layer["version"] == 0  # the first raster makes it 1
     assert layer["raster_filename"] is None
     assert layer["has_raster"] is False
     assert layer["attributes"]["es"]["alias"] == "NUEVA 2020-2024"

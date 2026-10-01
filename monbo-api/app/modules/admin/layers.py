@@ -140,7 +140,8 @@ def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
             "attributes_filename": f"layer-{layer_id}.json",
             "considerations_filename": f"layer-{layer_id}.md",
             "enabled": False,
-            "version": 1,
+            # No raster yet: the first upload makes it version 1 (`layer-<id>-v1.tif`).
+            "version": 0,
         }
         # Metadata first: the index never points at files that don't exist yet.
         _apply_input(store, entry, body)

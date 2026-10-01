@@ -29,7 +29,7 @@ NEW = {
     "attributes_filename": "layer-6.json",
     "considerations_filename": "layer-6.md",
     "enabled": False,
-    "version": 1,
+    "version": 0,  # created in the admin, no raster yet
 }
 # ~30 m pixels over the Ecuadorian Amazon
 TRANSFORM = from_origin(-76.5, -0.2, 0.00027, 0.00027)
@@ -121,8 +121,8 @@ def test_valid_upload_is_converted_and_activated(
     assert job["status"] == "succeeded"
     assert job["error"] is None
     assert job["country"] == "CO"
-    assert job["rasterFilename"] == "layer-6-v2.tif"
-    assert job["version"] == 2
+    assert job["rasterFilename"] == "layer-6-v1.tif"
+    assert job["version"] == 1
     report = job["report"]
     assert report["crs"] == "EPSG:4326"
     assert (report["width"], report["height"]) == (2048, 2048)
@@ -130,9 +130,9 @@ def test_valid_upload_is_converted_and_activated(
     assert report["values"] == [0, 1]
     assert 25 < report["approxResolutionM"] < 35
 
-    assert entry(layers, 6)["raster_filename"] == "layer-6-v2.tif"
-    assert entry(layers, 6)["version"] == 2
-    with rasterio.open(layers.root / "layers" / "rasters" / "layer-6-v2.tif") as cog:
+    assert entry(layers, 6)["raster_filename"] == "layer-6-v1.tif"
+    assert entry(layers, 6)["version"] == 1
+    with rasterio.open(layers.root / "layers" / "rasters" / "layer-6-v1.tif") as cog:
         assert cog.profile["tiled"] is True
         assert cog.profile["compress"] == "deflate"
         assert cog.overviews(1)
@@ -147,7 +147,7 @@ def test_valid_upload_is_converted_and_activated(
         == 200
     )
     public = TestClient(create_app()).get("/maps").json()
-    assert next(layer for layer in public if layer["id"] == 6)["version"] == 2
+    assert next(layer for layer in public if layer["id"] == 6)["version"] == 1
     tile = client.get("/deforestation_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
     assert tile.status_code == 200
 
@@ -344,7 +344,7 @@ def test_invalid_rasters_are_rejected(
         assert job["error"]["params"][key] == value
     # The layer is untouched and nothing is left behind.
     assert entry(layers, 6)["raster_filename"] is None
-    assert entry(layers, 6)["version"] == 1
+    assert entry(layers, 6)["version"] == 0
     assert_no_staging_left(layers, staging)
 
 
