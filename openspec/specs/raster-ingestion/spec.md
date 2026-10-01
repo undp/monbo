@@ -28,7 +28,7 @@ converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by
 
 ### Requirement: One ingestion at a time with persisted job status
 
-Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` SHALL be marked `failed` with the reason "interrupted by restart", and their staging files SHALL be removed.
+Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409, including a job of another API process sharing the maps root (the previous revision during a deploy) that was updated within the last 15 minutes. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` and not updated for 15 minutes SHALL be marked `failed` with the reason "interrupted by restart", and staging files on the maps root older than that SHALL be removed; more recent jobs may still belong to the previous revision and SHALL be left alone. `GET /admin/jobs/{jobId}` SHALL report a queued or running job that no process has updated for 15 minutes as `failed` with the same reason. A job SHALL never move out of `failed`.
 
 #### Scenario: Poll a running job
 
@@ -42,8 +42,13 @@ Ingestion SHALL run in the background, and only one job SHALL run at a time. An 
 
 #### Scenario: Restart during ingestion
 
-- **WHEN** the API restarts while a job is running
-- **THEN** after startup that job reports `failed` with "interrupted by restart" and the layer's raster is unchanged
+- **WHEN** the API restarts while a job is running and no process updates it for 15 minutes
+- **THEN** that job reports `failed` with "interrupted by restart" and the layer's raster is unchanged
+
+#### Scenario: Deploy during ingestion
+
+- **WHEN** a new revision starts while the previous one is still ingesting an upload
+- **THEN** the new revision leaves that job and its staging file alone, and refuses new uploads with 409 until the job ends
 
 ### Requirement: Structural validation
 

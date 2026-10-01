@@ -62,6 +62,15 @@ live in the API's memory. Don't scale it out while the admin is enabled.
    uv run python -m tests.regression.parity <previous-api-url> <new-api-url>
    ```
 
+### Deploying while the admin is in use
+
+Don't deploy while a raster upload is being processed (the admin page shows the job
+as queued or running). During a deploy the previous revision keeps serving until the
+new one is ready, so for a moment two API processes share the layers. The new revision
+leaves a job that is still being updated alone and refuses new uploads until it ends,
+but a deploy that stops the old revision mid-job fails that upload: the admin sees it
+as interrupted (after up to 15 minutes) and has to upload the raster again.
+
 ### Rollback
 
 While the layers are still in Git, removing `STORAGE_ACCOUNT_NAME` and redeploying

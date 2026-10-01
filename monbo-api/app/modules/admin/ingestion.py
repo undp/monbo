@@ -7,12 +7,19 @@ new versioned filename (rasters are never overwritten) and written to the index.
 
 Only one ingestion runs at a time. Job state lives on the share (`.jobs/`), so the
 admin UI can poll it and a restart can mark interrupted jobs as failed.
+
+During a deploy the previous revision keeps serving (and may keep ingesting) until the
+new one is ready, so two processes briefly share the share. A queued or running job is
+therefore only treated as interrupted once it has gone `STALE_JOB_SECONDS` without an
+update, and a new upload is refused while any other process has a job in progress.
 """
 
+import math
 import os
 import re
 import shutil
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -56,6 +63,11 @@ ingestion_slot = IngestionSlot()
 
 # --- Jobs --------------------------------------------------------------------------
 
+# Longer than any gap between two updates of a running job (its slowest step, the
+# exhaustive scan of a large upload, takes a few minutes).
+STALE_JOB_SECONDS = 15 * 60
+IN_PROGRESS = ("queued", "running")
+
 
 def _now() -> str:
     return (
@@ -80,29 +92,82 @@ def new_job(job_id: str, layer_id: int, nodata: float | None) -> dict:
     }
 
 
+def _age_seconds(timestamp: object) -> float:
+    try:
+        moment = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+    except ValueError:
+        return math.inf
+    return (datetime.now(timezone.utc) - moment).total_seconds()
+
+
+def is_in_progress(job: dict) -> bool:
+    """Queued or running, and updated recently enough that its process may be alive."""
+    return (
+        job.get("status") in IN_PROGRESS
+        and _age_seconds(job.get("updatedAt")) < STALE_JOB_SECONDS
+    )
+
+
 def _save(store: LayerStore, job: dict, **changes) -> None:
+    if changes.get("status", job.get("status")) != "failed":
+        # Never bring a job back from `failed`: another process may have marked it
+        # interrupted, and the admin UI has stopped waiting for it.
+        stored = store.read_job(job["jobId"])
+        if stored is not None and stored.get("status") == "failed":
+            raise IngestionError("interrupted", "Interrupted by restart")
     job.update(changes, updatedAt=_now())
     store.write_job(job)
 
 
+def _mark_interrupted(store: LayerStore, job: dict) -> None:
+    _save(
+        store,
+        job,
+        status="failed",
+        error=issue("interrupted", "Interrupted by restart"),
+    )
+    logger.warning("Ingestion job %s was interrupted by a restart", job["jobId"])
+
+
 def recover_interrupted_jobs(store: LayerStore) -> None:
-    """At startup: jobs left queued/running died with the previous process."""
+    """At startup: fail jobs whose process is gone, and clean their staging files.
+
+    A recently updated job may belong to the previous revision, which keeps running
+    during a deploy: it is left alone (`refresh_job` fails it later if it goes stale).
+    """
     for job in store.list_jobs():
-        if job.get("status") in ("queued", "running"):
-            _save(
-                store,
-                job,
-                status="failed",
-                error=issue("interrupted", "Interrupted by restart"),
-            )
-            logger.warning(
-                "Ingestion job %s was interrupted by a restart", job["jobId"]
-            )
-    for directory in (Path(env.ADMIN_STAGING_DIR), store.staging_dir):
-        if directory.is_dir():
-            for path in directory.iterdir():
-                if path.is_file():
-                    path.unlink(missing_ok=True)
+        if job.get("status") in IN_PROGRESS and not is_in_progress(job):
+            _mark_interrupted(store, job)
+    local = Path(env.ADMIN_STAGING_DIR)  # this container's disk: nobody else's files
+    if local.is_dir():
+        for path in local.iterdir():
+            if path.is_file():
+                path.unlink(missing_ok=True)
+    if store.staging_dir.is_dir():  # on the share: may be a live activation's COG
+        for path in store.staging_dir.iterdir():
+            if path.is_file() and time.time() - path.stat().st_mtime > (
+                STALE_JOB_SECONDS
+            ):
+                path.unlink(missing_ok=True)
+
+
+def refresh_job(store: LayerStore, job: dict) -> dict:
+    """The job as the admin should see it: a queued/running job that no process has
+    updated for `STALE_JOB_SECONDS` was interrupted, and is saved as failed."""
+    if (
+        job.get("status") in IN_PROGRESS
+        and not is_in_progress(job)
+        and ingestion_slot.job_id != job.get("jobId")
+    ):
+        _mark_interrupted(store, job)
+    return job
+
+
+def ingestion_in_progress(store: LayerStore) -> bool:
+    """Whether any process (this one or a previous revision) is ingesting."""
+    return ingestion_slot.job_id is not None or any(
+        is_in_progress(job) for job in store.list_jobs()
+    )
 
 
 # --- Activation --------------------------------------------------------------------
