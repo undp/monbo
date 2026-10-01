@@ -166,6 +166,36 @@ def test_create_assigns_the_next_id_and_starts_disabled(layers, client, admin_he
     assert 6 not in [layer["id"] for layer in public]
 
 
+def test_a_new_layer_never_takes_another_layers_metadata(layers, client, admin_headers):
+    """A layer renumbered by the per-country migration keeps its old files: here
+    CO/3 still uses layer-8.*. Creating layers up to id 8 must not overwrite them."""
+    index = json.loads(layers.store.index_path.read_text())
+    renumbered = {
+        **GFW,
+        "id": 3,
+        "attributes_filename": "layer-8.json",
+        "considerations_filename": "layer-8.md",
+    }
+    layers.write_index([*index, renumbered])
+    layers.write_attributes("es", "layer-8.json", {"name": "Migrada", "alias": "M"})
+    layers.write_considerations("es", "layer-8.md", "notas de la migrada")
+
+    created = [
+        client.post("/admin/layers", json=layer_body(), headers=admin_headers).json()
+        for _ in range(3)
+    ]
+
+    assert [layer["id"] for layer in created] == [6, 7, 8]
+    newest = json.loads(layers.store.index_path.read_text())[-1]
+    assert newest["attributes_filename"] == "layer-8-2.json"
+    root = layers.root / "metadata"
+    migrated = json.loads((root / "attributes" / "es" / "layer-8.json").read_text())
+    assert migrated["name"] == "Migrada"
+    assert (root / "considerations" / "es" / "layer-8.md").read_text().strip() == (
+        "notas de la migrada"
+    )
+
+
 def test_ids_are_numbered_within_the_country(
     layers, country_root, client, admin_headers
 ):

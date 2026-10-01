@@ -6,6 +6,8 @@ never deleted and ids are never reused, because saved analyses and reports refer
 layers by id. Rasters are uploaded separately (raster ingestion).
 """
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from rasterio import open as rasterio_open
 from rasterio.errors import RasterioIOError
@@ -122,6 +124,36 @@ def list_layers(session: Session = Depends(require_admin)):
     return [_to_admin_layer(store, entry) for entry in _index_or_500(store)]
 
 
+def _free_metadata_stem(store: LayerStore, index: list[dict], layer_id: int) -> str:
+    """`layer-<id>`, or `layer-<id>-<n>` when another layer already uses that name
+    (e.g. a layer the per-country migration renumbered keeps its old `layer-<old
+    id>` files) or a file with it is left on disk: never overwrite another layer's
+    metadata."""
+    used = {
+        Path(entry[key]).stem
+        for entry in index
+        for key in ("attributes_filename", "considerations_filename")
+        if entry.get(key)
+    }
+
+    def taken(stem: str) -> bool:
+        if stem in used:
+            return True
+        for language in SUPPORTED_LANGUAGES:
+            for path in (
+                store.attributes_path(f"{stem}.json", language),
+                store.considerations_path(f"{stem}.md", language),
+            ):
+                if path is not None and path.exists():
+                    return True
+        return False
+
+    stem, suffix = f"layer-{layer_id}", 2
+    while taken(stem):
+        stem, suffix = f"layer-{layer_id}-{suffix}", suffix + 1
+    return stem
+
+
 @router.post("", response_model=AdminLayer, status_code=201)
 def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
     """
@@ -134,11 +166,12 @@ def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
     with store.locked():
         index = _index_or_500(store)
         layer_id = max((entry["id"] for entry in index), default=-1) + 1
+        stem = _free_metadata_stem(store, index, layer_id)
         entry = {
             "id": layer_id,
             "raster_filename": None,
-            "attributes_filename": f"layer-{layer_id}.json",
-            "considerations_filename": f"layer-{layer_id}.md",
+            "attributes_filename": f"{stem}.json",
+            "considerations_filename": f"{stem}.md",
             "enabled": False,
             # No raster yet: the first upload makes it version 1 (`layer-<id>-v1.tif`).
             "version": 0,
