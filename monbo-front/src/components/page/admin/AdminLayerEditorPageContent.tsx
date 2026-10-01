@@ -16,7 +16,12 @@ import {
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminLayer } from "@/interfaces/AdminLayer";
-import { localizedPath } from "@/utils/languageChange";
+import {
+  dropKept,
+  keepForLanguageChange,
+  localizedPath,
+  takeOverOnLanguageChange,
+} from "@/utils/languageChange";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { LayerForm, Section } from "./LayerForm";
 import { LayerFormValues, toFormValues, toLayerInput } from "./layerFormState";
@@ -51,7 +56,20 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { reset, handleSubmit, formState } = form;
+  const { reset, handleSubmit, formState, getValues, subscribe } = form;
+
+  // Changing the language remounts the page: keep what was typed (languageChange.ts).
+  const draftKey = `admin-layer-form:${layerId ?? "new"}`;
+  const [draft] = useState(() => takeOverOnLanguageChange<LayerFormValues>(draftKey));
+  useEffect(
+    () =>
+      subscribe({
+        formState: { values: true },
+        callback: () => keepForLanguageChange(draftKey, getValues()),
+      }),
+    [draftKey, subscribe, getValues]
+  );
+  useEffect(() => () => dropKept(draftKey), [draftKey]);
 
   const load = useCallback(async () => {
     if (isNew) return null;
@@ -65,9 +83,13 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   useEffect(() => {
     if (!session) return;
     load()
-      .then((found) => found && reset(toFormValues(found)))
+      .then((found) => {
+        if (found) reset(toFormValues(found));
+        // On top of the stored values, so the edits still count as changes.
+        if (draft) reset(draft, { keepDefaultValues: true });
+      })
       .catch(() => setNotFound(true));
-  }, [session, load, reset]);
+  }, [session, load, reset, draft]);
 
   // After a raster upload: refresh the layer without discarding form edits.
   const reload = useCallback(() => {

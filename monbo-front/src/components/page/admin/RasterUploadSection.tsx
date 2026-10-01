@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useContext, useEffect, useReducer, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Box,
@@ -31,6 +38,11 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { Text } from "@/components/reusable/Text";
 import { AdminLayer, JobIssue } from "@/interfaces/AdminLayer";
 import { formatNumber } from "@/utils/numbers";
+import {
+  dropKept,
+  keepForLanguageChange,
+  takeOverOnLanguageChange,
+} from "@/utils/languageChange";
 import { RasterDropZone } from "./RasterDropZone";
 import { RasterStep, RasterSteps } from "./RasterSteps";
 import { rasterButtonSx } from "./rasterStyles";
@@ -191,6 +203,20 @@ const stepsFor = (t: TFunction, { flow, withPublishStep }: State): RasterStep[] 
 
 // --- Section -----------------------------------------------------------------------
 
+// An upload whose body is still being sent. After a language change, the remounted
+// section takes it over (languageChange.ts) and follows it to the job.
+interface Upload {
+  request: Promise<{ jobId: string }>;
+  controller: AbortController;
+  // Reassigned by the section that follows the upload
+  onProgress: (progress: number) => void;
+}
+
+interface HandedOver {
+  state: State;
+  upload: Upload | null;
+}
+
 interface Props {
   layer: AdminLayer;
   onLayerChanged: () => void;
@@ -200,9 +226,26 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
   const { t, i18n } = useTranslation();
   const { withToken } = useContext(AdminSessionContext);
   const { openSnackbar } = useContext(SnackbarContext);
-  const [state, dispatch] = useReducer(reducer, layer, initialState);
+  // Changing the language remounts the page: keep the flow, including an upload
+  // or a job in progress, instead of starting over.
+  const handOverKey = `admin-layer-raster:${layer.id}`;
+  const [handedOver] = useState(() => takeOverOnLanguageChange<HandedOver>(handOverKey));
+  const [state, dispatch] = useReducer(
+    reducer,
+    layer,
+    (l) => handedOver?.state ?? initialState(l)
+  );
   const [publishing, setPublishing] = useState(false);
-  const uploadAbort = useRef<AbortController | null>(null);
+  const [activeUpload, setActiveUpload] = useState<Upload | null>(
+    () => handedOver?.upload ?? null
+  );
+  useEffect(() => {
+    keepForLanguageChange(handOverKey, {
+      state,
+      upload: activeUpload,
+    } satisfies HandedOver);
+  }, [handOverKey, state, activeUpload]);
+  useEffect(() => () => dropKept(handOverKey), [handOverKey]);
   // The parent passes a new callback on every render; polling must not restart.
   const onLayerChangedRef = useRef(onLayerChanged);
   useEffect(() => {
@@ -250,35 +293,56 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
     };
   }, [jobId, withToken, t]);
 
-  const upload = async () => {
+  // Show the upload's progress, then follow its job.
+  const followUpload = useCallback(
+    async (current: Upload) => {
+      current.onProgress = (progress) => dispatch({ type: "uploadProgress", progress });
+      try {
+        const { jobId: newJobId } = await current.request;
+        if (current.controller.signal.aborted) {
+          // Cancelled just as the server accepted it: stop the job it started.
+          await withToken((token) => cancelIngestionJob(token, newJobId)).catch(() => {});
+          return;
+        }
+        dispatch({ type: "uploaded", jobId: newJobId });
+      } catch (e) {
+        if (!isAbortError(e)) dispatch({ type: "fail", error: uploadErrorText(t, e) });
+      } finally {
+        setActiveUpload((active) => (active === current ? null : active));
+      }
+    },
+    [t, withToken]
+  );
+
+  // An upload handed over by the section before the language change.
+  useEffect(() => {
+    if (handedOver?.upload) followUpload(handedOver.upload);
+  }, [handedOver, followUpload]);
+
+  const upload = () => {
     if (flow.kind !== "chosen") return;
     const { file, nodata } = flow;
     const controller = new AbortController();
-    uploadAbort.current = controller;
-    dispatch({ type: "start" });
-    try {
-      const { jobId: newJobId } = await withToken((token) =>
+    const current: Upload = {
+      controller,
+      onProgress: () => {},
+      request: withToken((token) =>
         uploadLayerRaster(token, layer.id, file, {
           nodata: nodata.trim() ? Number(nodata) : null,
-          onProgress: (progress) => dispatch({ type: "uploadProgress", progress }),
+          onProgress: (progress) => current.onProgress(progress),
           signal: controller.signal,
         })
-      );
-      if (controller.signal.aborted) {
-        // Cancelled just as the server accepted it: stop the job it started.
-        await withToken((token) => cancelIngestionJob(token, newJobId)).catch(() => {});
-        return;
-      }
-      dispatch({ type: "uploaded", jobId: newJobId });
-    } catch (e) {
-      if (!isAbortError(e)) dispatch({ type: "fail", error: uploadErrorText(t, e) });
-    }
+      ),
+    };
+    dispatch({ type: "start" });
+    setActiveUpload(current);
+    followUpload(current);
   };
 
   const cancel = async () => {
     if (flow.kind !== "processing") return;
     if (!flow.jobId) {
-      uploadAbort.current?.abort();
+      activeUpload?.controller.abort();
       dispatch({ type: "reset", layer });
       return;
     }

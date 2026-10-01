@@ -7,7 +7,7 @@ import { Text } from "@/components/reusable/Text";
 import { useTranslation } from "react-i18next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import i18nConfig from "@/i18nConfig";
-import { localizedPath } from "@/utils/languageChange";
+import { localizedPath, startLanguageChange } from "@/utils/languageChange";
 
 const languages = [
   { name: "common:language:es", locale: "es" },
@@ -39,6 +39,9 @@ export const LanguageMenu: React.FC = ({}) => {
       date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
       const expires = date.toUTCString();
       document.cookie = `NEXT_LOCALE=${locale};expires=${expires};path=/`;
+
+      // Pages remount in the new language; this lets them keep unsaved input.
+      startLanguageChange();
 
       // Redirect to the same page in the new locale. The path may carry a locale
       // prefix, even the default one (e.g. /es/admin): strip whichever it has.
