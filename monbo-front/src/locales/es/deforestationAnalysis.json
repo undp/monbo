@@ -24,7 +24,9 @@
       "activeDragzoneCallToAction": "Suelta el archivo aquí",
       "dragzoneButtonText": "Click para cargar",
       "dragzoneText": "o arrastra y suelta el archivo",
-      "allowedExtensions": ".xlsx o .xls"
+      "allowedExtensions": ".xlsx o .xls",
+      "loadedFarms": "Ya tienes {{count}} polígonos y/o puntos cargados. Elige las capas y analízalos, o carga otro archivo.",
+      "analyzeLoadedFarms": "Analizar"
     }
   },
   "deforestationFreeShortText": "Libre Def.",

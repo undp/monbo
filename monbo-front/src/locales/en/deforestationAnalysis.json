@@ -24,7 +24,9 @@
       "activeDragzoneCallToAction": "Drop the file here",
       "dragzoneButtonText": "Click to upload",
       "dragzoneText": "or drag and drop your file here",
-      "allowedExtensions": ".xlsx or .xls"
+      "allowedExtensions": ".xlsx or .xls",
+      "loadedFarms": "You already loaded {{count}} polygons and/or points. Choose the layers and analyze them, or upload another file.",
+      "analyzeLoadedFarms": "Analyze"
     }
   },
   "deforestationFreeShortText": "Def. Free",

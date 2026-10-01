@@ -22,6 +22,7 @@ import { FarmData } from "@/interfaces/Farm";
 import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
 import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
+import { Box, Button } from "@mui/material";
 import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
@@ -48,6 +49,13 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const [loading, setLoading] = useState(
     () => !!farmsData && selectedMapsForDeforestation.length > 0
   );
+  // Whether the analysis may start: when the page opens with farms and layers
+  // (from the deforestation modal, or to recalculate an outdated analysis),
+  // after a file is parsed, or from the "Analyze" button. Choosing layers on
+  // the form never starts it, so the user can tick more than one.
+  const [analysisRequested, setAnalysisRequested] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
   // The inputs of the latest analysis request, and whether the page is mounted:
   // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
@@ -66,6 +74,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const onMapSelectionChange = useCallback(
     (id: string, checked: boolean) => {
+      setAnalysisRequested(false);
       if (checked) {
         setDeforestationAnalysisParams((prev) => ({
           ...prev,
@@ -99,6 +108,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
             country: readSelectedCountry() ?? farm.country,
           }))
         );
+        setAnalysisRequested(true);
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -141,6 +151,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // TODO: we should navigate back to polygons validation page only if coming from there
         // router.push("/polygons-validation");
         setLoading(false);
+        // Back to the form: the "Analyze" button retries.
+        setAnalysisRequested(false);
       }
     },
     [
@@ -156,7 +168,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   useEffect(() => {
-    if (!farmsData || !selectedMapsForDeforestation.length) {
+    if (
+      !analysisRequested ||
+      !farmsData ||
+      !selectedMapsForDeforestation.length
+    ) {
       prevDataRef.current = null;
       return;
     }
@@ -190,6 +206,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         readSelectedCountry() === selectedCountry
     );
   }, [
+    analysisRequested,
     farmsData,
     selectedCountry,
     selectedMapsForDeforestation,
@@ -309,6 +326,28 @@ export function DeforestationAnalysisUploadDataPageContent() {
           onDrop={onFileDropped}
           disabled={selectedMapsForDeforestation.length === 0}
         />
+        {farmsData && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
+              count: farmsData.length,
+            })}
+            <Button
+              variant="contained"
+              onClick={() => setAnalysisRequested(true)}
+              disabled={selectedMapsForDeforestation.length === 0}
+            >
+              {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
+            </Button>
+          </Box>
+        )}
       </TextHeaderStepContainer>
     </UploadPageContent>
   );
