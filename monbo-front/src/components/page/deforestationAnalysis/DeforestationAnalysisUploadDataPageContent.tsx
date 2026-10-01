@@ -39,6 +39,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const router = useRouter();
   const {
     availableMaps,
+    availableMapsError,
     farmsData,
     setFarmsData,
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
@@ -315,7 +316,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
         {!mapOptions.length && (
           <MessageBox
             message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              availableMapsError
+                ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
               { country: countryName }
             )}
           />

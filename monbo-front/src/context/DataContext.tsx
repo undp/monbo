@@ -55,6 +55,8 @@ export interface DataContextValue {
     SetStateAction<DataContextValue["reportGenerationParams"]>
   >;
   availableMaps: MapData[];
+  // The selected country's layers could not be fetched (and none arrived yet)
+  availableMapsError: boolean;
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
   // The countries that can be analyzed (`GET /countries`), by ISO code.
   availableCountries: string[];
@@ -143,6 +145,7 @@ export const DataContext = createContext<DataContextValue>({
   reportGenerationParams: initialReportGenerationParams,
   setReportGenerationParams: () => {},
   availableMaps: [],
+  availableMapsError: false,
   setAvailableMaps: () => {},
   availableCountries: [],
   availableCountriesLoaded: false,
@@ -224,6 +227,15 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
   >([]);
+  // The country the current list belongs to, and the one whose fetch failed: a
+  // list is only shown for its own country, and an error only while that
+  // country has no list yet.
+  const [availableMapsCountry, setAvailableMapsCountry] = useState<string | null>(
+    null
+  );
+  const [availableMapsErrorCountry, setAvailableMapsErrorCountry] = useState<
+    string | null
+  >(null);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableCountriesLoaded, setAvailableCountriesLoaded] =
     useState(false);
@@ -266,8 +278,10 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   ]);
 
   // Read the current analysis state on each poll without restarting the timer.
-  const onMapsLoaded = useEffectEvent((maps: MapData[]) => {
+  const onMapsLoaded = useEffectEvent((maps: MapData[], country: string) => {
     setAvailableMaps(maps);
+    setAvailableMapsCountry(country);
+    setAvailableMapsErrorCountry(null);
     const selectedMaps = deforestationAnalysisParams.selectedMaps;
     if (!selectedMaps.length) return;
 
@@ -340,10 +354,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         maps = await getMaps(locale, selectedCountry);
       } catch (error) {
         console.error(error);
+        if (active) setAvailableMapsErrorCountry(selectedCountry);
         return;
       }
       if (!active) return;
-      onMapsLoaded(maps);
+      onMapsLoaded(maps, selectedCountry);
     };
     const interval = setInterval(fetchAvailableMaps, AVAILABLE_MAPS_POLLING_INTERVAL);
     fetchAvailableMaps();
@@ -376,6 +391,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     resetAnalysis,
   ]);
 
+  const currentCountryMaps = useMemo(
+    () => (availableMapsCountry === selectedCountry ? availableMaps : []),
+    [availableMaps, availableMapsCountry, selectedCountry]
+  );
+
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
     () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
     [deforestationAnalysisParams.selectedMaps]
@@ -399,7 +419,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       invalidateAnalysis,
       reportGenerationParams,
       setReportGenerationParams,
-      availableMaps,
+      // Another country's list (still there right after a change) is never shown.
+      availableMaps: currentCountryMaps,
+      availableMapsError:
+        availableMapsErrorCountry === selectedCountry &&
+        availableMapsCountry !== selectedCountry,
       setAvailableMaps,
       availableCountries,
       availableCountriesLoaded,
@@ -424,7 +448,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     invalidateAnalysis,
     reportGenerationParams,
     setReportGenerationParams,
-    availableMaps,
+    currentCountryMaps,
+    availableMapsCountry,
+    availableMapsErrorCountry,
     setAvailableMaps,
     availableCountries,
     availableCountriesLoaded,
