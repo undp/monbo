@@ -100,7 +100,7 @@ def _check_existing_raster_pixel_size(
     if not filename or not store.has_raster(filename):
         return
     try:
-        with rasterio_open(store.raster_path(filename)) as raster:
+        with rasterio_open(store.raster_path(filename), driver="GTiff") as raster:
             check_pixel_size(pixel_size, raster_pixel_size_range_m(raster))
     except IngestionError as error:
         raise HTTPException(status_code=409, detail=error.as_issue()) from error

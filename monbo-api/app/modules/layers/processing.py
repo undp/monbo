@@ -178,7 +178,9 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
         with warnings.catch_warnings():
             # Rejected below with a clear message; no need for GDAL's warning.
             warnings.simplefilter("ignore", NotGeoreferencedWarning)
-            src = rasterio.open(path)
+            # Only the GTiff driver: other drivers (VRT, WMS XML...) would be
+            # parsed at open time and can reference local files or URLs.
+            src = rasterio.open(path, driver="GTiff")
     except RasterioIOError:
         raise IngestionError("not_geotiff", "The file is not a readable GeoTIFF")
     with src:

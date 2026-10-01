@@ -297,6 +297,18 @@ def test_all_zeros_succeeds_with_a_warning(layers, client, admin_headers, tmp_pa
 # --- Rejected rasters --------------------------------------------------------------
 
 
+def vrt(path):
+    """A VRT (XML) that points GDAL at another file on the server."""
+    source = write_tif(path.with_name("source.tif"), binary())
+    assert source
+    return (
+        '<VRTDataset rasterXSize="64" rasterYSize="64"><VRTRasterBand dataType="Byte" '
+        'band="1"><SimpleSource><SourceFilename relativeToVRT="0">'
+        f"{path.with_name('source.tif')}</SourceFilename><SourceBand>1</SourceBand>"
+        "</SimpleSource></VRTRasterBand></VRTDataset>"
+    ).encode()
+
+
 def stray_value(data):
     data = data.copy()
     data[-1, -1] = 2
@@ -323,8 +335,9 @@ def stray_value(data):
         (lambda p: write_tif(p, binary(), crs=None), "no_crs", {}),
         (lambda p: write_tif(p, binary(), crs=None, driver="PNG"), "not_geotiff", {}),
         (lambda p: b"this is not a raster at all", "not_geotiff", {}),
+        (vrt, "not_geotiff", {}),
     ],
-    ids=["stray", "loss-years", "bands", "float", "no-crs", "png", "garbage"],
+    ids=["stray", "loss-years", "bands", "float", "no-crs", "png", "garbage", "vrt"],
 )
 def test_invalid_rasters_are_rejected(
     layers, staging, client, admin_headers, tmp_path, make, code, params
@@ -341,6 +354,27 @@ def test_invalid_rasters_are_rejected(
     assert entry(layers, 6)["raster_filename"] is None
     assert entry(layers, 6)["version"] == 1
     assert_no_staging_left(layers, staging)
+
+
+def test_only_the_gtiff_driver_parses_uploads(tmp_path, monkeypatch):
+    # GDAL must not even try other drivers: a VRT or WMS XML is parsed at open time
+    # and can make the server read local files or URLs.
+    from app.modules.layers import processing
+
+    path = tmp_path / "in.tif"
+    path.write_bytes(vrt(path))
+    opened = []
+    real_open = processing.rasterio.open
+
+    def spy(path, *args, **kwargs):
+        opened.append(kwargs.get("driver"))
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(processing.rasterio, "open", spy)
+
+    with pytest.raises(processing.IngestionError, match="GeoTIFF"):
+        processing.validate_raster(path, None)
+    assert opened == ["GTiff"]
 
 
 def test_loss_years_message_explains_what_to_do(
