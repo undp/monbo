@@ -39,6 +39,10 @@ _LANGUAGE_PATTERN = re.compile(r"^[a-z]{2}$")
 _JOB_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 
 
+class ReadBackMismatch(OSError):
+    """The target, right after the rename, doesn't contain what was written."""
+
+
 def _is_safe_filename(name: str) -> bool:
     """A bare file name: no directories, no parent references."""
     return bool(name) and name not in (".", "..") and Path(name).name == name
@@ -201,7 +205,14 @@ class LayerStore:
             )
 
     def _atomic_write(self, target: Path, data: bytes) -> None:
-        """Write `data` to a temporary file next to `target`, then rename it over."""
+        """Write `data` to a temporary file next to `target`, then rename it over.
+
+        If the rename is refused, or the target doesn't read back, the temporary file
+        is kept with the intended contents: on SMB a refused rename can delete the
+        target once another handle closes it, and the kept file is then the only copy
+        (restore it by renaming it to the target). Other failures leave the target
+        untouched and remove the temporary file.
+        """
         with self._lock:
             target.parent.mkdir(parents=True, exist_ok=True)
             tmp = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
@@ -210,13 +221,35 @@ class LayerStore:
                     file.write(data)
                     file.flush()
                     os.fsync(file.fileno())
+            except BaseException:
+                tmp.unlink(missing_ok=True)  # never written: nothing worth keeping
+                raise
+            try:
                 self._replace(tmp, target, data)
-            finally:
-                # The temporary file only survives if no rename succeeded.
-                try:
-                    tmp.unlink(missing_ok=True)
-                except OSError as e:
-                    logger.warning("Cannot remove temporary file '%s': %s", tmp, e)
+            except (PermissionError, ReadBackMismatch):
+                self._keep_pending(tmp, target, data)
+                raise
+            except BaseException:
+                tmp.unlink(missing_ok=True)
+                raise
+            # Only left after the in-place fallback, once the target matches it.
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError as e:
+                logger.warning("Cannot remove temporary file '%s': %s", tmp, e)
+
+    @staticmethod
+    def _keep_pending(tmp: Path, target: Path, data: bytes) -> None:
+        try:
+            if not tmp.exists():  # renamed over a target that didn't read back right
+                tmp.write_bytes(data)
+            logger.error(
+                "Could not replace '%s'; its intended contents are kept in '%s'",
+                target,
+                tmp,
+            )
+        except OSError as e:
+            logger.error("Could not replace '%s' nor keep '%s': %s", target, tmp, e)
 
     def _replace(self, tmp: Path, target: Path, data: bytes) -> None:
         last_error: PermissionError | None = None
@@ -235,7 +268,7 @@ class LayerStore:
                 time.sleep(REPLACE_BACKOFF_SECONDS)
                 continue
             if target.read_bytes() != data:
-                raise OSError(
+                raise ReadBackMismatch(
                     f"Read-back of '{target}' does not match what was written"
                 )
             return
