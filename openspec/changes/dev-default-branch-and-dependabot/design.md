@@ -123,21 +123,23 @@ Dependabot security updates are switched on once `dev` is the default, so their 
 
 The critical `anyio` alert should get a security PR as soon as the feature is on. If none appears within a day, it is fixed by hand on a branch from `dev`. That can happen because the dependency is transitive in a `uv` project, and Dependabot's coverage there is newer. The manual fix is `uv lock --upgrade-package anyio` in `monbo-api` (4.14.1 → 4.14.2 or later), with `pyproject.toml` unchanged. Production keeps 4.14.1 until the next release, unless it is shipped as a hotfix (D3). Whether it should be is an open question.
 
-### D8 — Reset the open PR queue instead of retargeting
+### D8 — Let Dependabot reconcile the queue, then rebase what survives
 
-Dependabot does not move existing PRs to a new base. Changing a Dependabot PR's base by hand counts as "altering" it, and Dependabot stops rebasing PRs that were altered. So all eleven Dependabot PRs are closed once `dev` is the default and holds the new config, each with a comment saying why. Then each ecosystem's "Check for updates" is triggered. Expected result:
+*Revised during apply (2026-10-02).* The original plan assumed Dependabot leaves existing PRs on their old base, so all eleven would be closed and regenerated. Within minutes of the default-branch switch, Dependabot did the reconciliation itself:
 
-- **Back on `dev`:**
-  - Actions: checkout 7.0.1, pnpm/action-setup 6.1.0, setup-uv 10, setup-node 7;
-  - `concurrently` 10.0.5, which also resolves the high `shell-quote` alert;
-  - `@types/google.maps` 3.66.4;
-  - uvicorn 0.54, ruff 0.16, mypy 2.3;
-  - geemap 0.38.8.
-- **Not reproposed:** #24, #33, #34 and #40, plus the `gdal` half of #36.
+- it **moved the open PRs to `dev`**: #26, #27, #28, #29, #32 and #37;
+- it **closed** #24, #33, #34 and #40 ("no longer being updated by Dependabot"), because it already read the new `ignore` rules from `dev`;
+- it **closed #36**, because `gdal` is now ignored. The geemap 0.38.8 half comes back as a new PR on the next scheduled run (Tuesday).
 
-The cooldown may hold back some of these for a few days. That is expected.
+What is left:
 
-The human PRs #9, #12 and #13 are different. They aren't Dependabot's, so their base can be edited directly to `dev`. Any conflicts with what `dev` already has are for their authors to resolve.
+- add a pointer comment on each closed PR naming the rule that covers it;
+- add the labels by hand to the surviving PRs, which were opened before the labels existed;
+- ask Dependabot to bring them up to date with `dev`: `@dependabot rebase`, or `@dependabot recreate` for #37, whose `uv.lock` conflicts with #35. The strict up-to-date rule requires it anyway.
+
+Then they merge one at a time. Rebasing through Dependabot instead of by hand keeps it maintaining them.
+
+The human PRs #9, #12 and #13 aren't Dependabot's, so their base is edited directly to `dev`. Any conflicts with what `dev` already has are for their authors to resolve.
 
 ## Risks / Trade-offs
 
