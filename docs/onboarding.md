@@ -214,6 +214,12 @@ git lfs pull             # downloads the real .tif rasters (pointers → ~hundre
 > 🔴 **This step is mandatory.** The `.tif` files committed to the repo are ~130-byte LFS pointers. Without `git lfs pull`, module 2 fails when it tries to open the rasters.
 > If `git lfs pull` prints `'lfs' is not a git command`, git-lfs is not installed — go back to 4.0.
 
+**Branches.** A fresh clone checks out `dev`, the default and integration branch. Branch from `dev`, and open pull requests against `dev`: that is GitHub's default, and both `dev` and `main` reject direct pushes. `main` holds the latest release and only changes through a release or a hotfix ([`branch_protection.md`](branch_protection.md#release-and-hotfix-flow)). If you cloned before `dev` became the default, point your clone at the new default once:
+
+```bash
+git remote set-head origin -a   # origin/HEAD → origin/dev
+```
+
 ### 4.2 Backend — terminal 1 (`monbo-api`, port 8000)
 
 ```bash

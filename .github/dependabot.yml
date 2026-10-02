@@ -1,6 +1,7 @@
 # Dependabot policy for the Monbo monorepo.
 #
-# Shape of the policy (see openspec/changes/dependency-upgrade-2026, D8):
+# Shape of the policy (see openspec/changes/archive/2026-09-24-dependency-upgrade-2026,
+# D8, and the OpenSpec change dev-default-branch-and-dependabot):
 #   - weekly schedule, spread across the week so one ecosystem's PRs don't all
 #     land at once;
 #   - minor and patch updates grouped per ecosystem, so routine churn arrives as
@@ -10,7 +11,17 @@
 #     is a long argument for that: several majors in this repo carried silent
 #     behaviour changes that only showed up when looked at one at a time;
 #   - open-pull-requests-limit keeps the queue bounded;
-#   - no automerge anywhere. Every PR passes CI and a human before it lands.
+#   - no automerge anywhere. Every PR passes CI and a human before it lands;
+#   - npm and uv releases wait out a cooldown before they are proposed;
+#   - upgrades a design decision deferred are `ignore` rules, each commented
+#     with its entry condition. Lift a deferral by deleting its rule. The root
+#     README lists the active ones.
+#
+# Every PR, version and security update alike, opens against the default
+# branch, `dev`. That is why no entry sets `target-branch`: Dependabot reads
+# this file from the default branch anyway, and setting `target-branch` would
+# make an entry's options apply to version updates only, so security PRs would
+# lose their labels.
 version: 2
 
 updates:
@@ -28,6 +39,9 @@ updates:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
     labels: ["dependencies", "root-orchestrator"]
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -42,9 +56,32 @@ updates:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
     labels: ["dependencies", "frontend"]
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    # Deferred majors. Each entry condition comes from the 2026 dependency
+    # upgrade (openspec/changes/archive/2026-09-24-dependency-upgrade-2026).
+    ignore:
+      # MUI 9: wait for a visual-regression harness (design D5, Deferred). The
+      # wildcard keeps core, icons and the Next adapter on one major; #34
+      # proposed @mui/material-nextjs 9 alone.
+      - dependency-name: "@mui/*"
+        update-types: ["version-update:semver-major"]
+      # Types follow the real runtime, Node 24 (design D5). Lift together with
+      # the Docker `node` rule.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7: wait until typescript-eslint admits 7.x and
+      # eslint-config-next adopts it (design D10).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # eslint 10: wait until eslint-plugin-react and eslint-plugin-jsx-a11y
+      # support it and eslint-config-next picks them up (design R16).
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # --- Python ---------------------------------------------------------------
   # Both projects are uv-managed. The two dependabot-core defects the plan
@@ -63,6 +100,9 @@ updates:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
     labels: ["dependencies", "api"]
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -76,9 +116,18 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     labels: ["dependencies", "gfw-tmf-script"]
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # The GDAL bindings must match the operator's system libgdal, which is
+      # why pyproject.toml declares a range. Bumping the lock moves that target
+      # for whoever regenerates the rasters next. Lift once task 5.4 of the 2026
+      # dependency upgrade decides the GDAL strategy (design R11).
+      - dependency-name: "gdal"
 
   # --- Docker ---------------------------------------------------------------
   # These directories hold Dockerfile.dev and Dockerfile.prod rather than a
@@ -102,6 +151,13 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # Python 3.14: deferred, the runtime stays on 3.13 with .python-version,
+      # requires-python and CI. A version range, not an update type, because
+      # Dependabot reads the tag 3.13 -> 3.14 as a minor; that is how #24
+      # slipped into the minor-and-patch group.
+      - dependency-name: "python"
+        versions: [">=3.14"]
 
   - package-ecosystem: "docker"
     directory: "/monbo-front"
@@ -115,6 +171,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # Node 26: wait one release cycle of soak after it becomes LTS on
+      # 2026-10-28 (2026 dependency upgrade, Deferred). The runtime is Node 24 in
+      # `engines` and CI. Lift together with the `@types/node` rule.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   # --- GitHub Actions -------------------------------------------------------
   # Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment.

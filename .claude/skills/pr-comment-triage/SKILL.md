@@ -32,7 +32,7 @@ Review comments may come from human maintainers or from automated reviewers (Cod
 
 ## Phase 1 — Setup
 
-1. **Protected-branch gate.** Resolve the PR's head branch via `pull_request_read` (`method: "get"`). If it is `main`, `master`, `release`, `prod`, or `staging`, **abort immediately** with a clear error — do not check out, commit, or push. Also abort if the PR comes from a fork you cannot push to.
+1. **Protected-branch gate.** Resolve the PR's head branch via `pull_request_read` (`method: "get"`). If it is `main`, `dev`, `master`, `release`, `prod`, or `staging`, **abort immediately** with a clear error — do not check out, commit, or push. Also abort if the PR comes from a fork you cannot push to.
 2. **Clean-tree gate.** If the working tree has uncommitted changes, stop and ask the user. Do not stash: the stash stack is shared across worktrees and sessions.
 3. Check out the head branch and pull the latest from `origin`. Other agents or the author may have pushed since the comments were written. If git refuses because the branch is already checked out in another worktree, stop and tell the user which worktree to run in.
 4. Install dependencies for the areas the PR touches: `uv sync --frozen` in `monbo-api/`, `pnpm install --frozen-lockfile` in `monbo-front/`, and `pnpm install --frozen-lockfile` at the root if the orchestrator is involved.
@@ -56,7 +56,7 @@ Evaluate each open comment independently and assign exactly one verdict. Do not 
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | **Fix**                                  | The concern is valid, in scope, and the code should change.                                                                     | Phase 4                           |
 | **Discard — incorrect**                  | The premise is wrong: the behavior is already handled, guarded, or the reviewer misread the code.                               | Reply with evidence               |
-| **Discard — out of scope**               | Valid observation, but unrelated to this PR's stated purpose or pre-existing on `main`.                                         | Reply + propose a follow-up issue |
+| **Discard — out of scope**               | Valid observation, but unrelated to this PR's stated purpose or pre-existing on the PR's base branch.                                         | Reply + propose a follow-up issue |
 | **Discard — conflicts with conventions** | The suggestion contradicts the documented conventions, `docs/onboarding.md`, or the linked OpenSpec spec.                       | Reply citing the convention       |
 | **Discard — preference**                 | A style or taste call with no material effect on correctness, security, or maintainability.                                     | Reply, briefly                    |
 

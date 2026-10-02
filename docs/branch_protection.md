@@ -1,9 +1,11 @@
 # Branch protection
 
-`main` is the branch every release is cut from, and the two CI workflows exist to
-keep it green. Until branch protection is configured those workflows are advisory
-only: a red check does not stop a merge. This document describes the protection to
-apply, why each setting is what it is, and how to apply it.
+Two branches are protected. `dev` is the default and integration branch: every
+pull request targets it. `main` holds the latest release and only changes through a
+release or a hotfix (see [Release and hotfix flow](#release-and-hotfix-flow)). The
+two CI workflows exist to keep both green. Without protection those workflows are
+advisory only: a red check does not stop a merge. This document describes the
+protection, why each setting is what it is, and how to apply and verify it.
 
 ## The two required checks
 
@@ -22,12 +24,12 @@ what appears in the "Checks" list on a pull request.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| Require a pull request before merging | on | Nothing reaches `main` without review. |
+| Require a pull request before merging | on | Nothing reaches `main` or `dev` without a pull request. |
 | Required approvals | **0** — see below | A deliberate concession to team size, not an oversight. |
 | Dismiss stale approvals on new commits | on | An approval should describe the code that merges, not an earlier version of it. |
 | Require status checks to pass | on | The two jobs above. |
 | Require branches to be up to date before merging | **on** (applied 2026-09-24) — see the note below | |
-| Block force pushes | on | History on `main` should be append-only. |
+| Block force pushes | on | History on both branches should be append-only. |
 | Block deletions | on | |
 | Enforce for administrators | on — see the caveat below | An exemption nobody uses is clutter; an exemption people do use is the policy. |
 
@@ -42,7 +44,7 @@ So the count is 0, deliberately. Be clear about what that does and does not leav
 in place:
 
 **Still enforced.** Changes must arrive through a pull request — nobody pushes
-straight to `main`. Both CI jobs must pass. Force pushes and branch deletion are
+straight to `main` or `dev`. Both CI jobs must pass. Force pushes and branch deletion are
 blocked. These are the properties that stop `main` from silently breaking.
 
 **No longer enforced.** Nothing requires a human to read the code. A pull request
@@ -62,7 +64,7 @@ and it costs nothing to change back.
 ### Why "require branches up to date" starts off
 
 This setting (`strict` in the API) forces every pull request to be rebased onto the
-latest `main` before it can merge, and re-run CI after each rebase. It is the right
+latest commit of its base branch before it can merge, and re-run CI after each rebase. It is the right
 end state, but turning it on while a stack of dependent pull requests is landing
 means each merge invalidates everything above it — each one has to be updated and
 re-tested in turn, serially.
@@ -112,41 +114,101 @@ be merged. But it does mean a pull request must be **marked ready for review**
 before its checks appear at all. If someone reports a PR "stuck waiting for checks",
 that is the first thing to look at.
 
+## Release and hotfix flow
+
+- **Release:** open a pull request from `dev` into `main` and merge it with a
+  **merge commit**, never a squash or rebase. A squash gives `main` a commit that
+  `dev` does not have, so the next release pull request carries the same changes
+  again and conflicts.
+- **Hotfix:** for a fix that can't wait for the next release:
+  1. branch from `main` and open a pull request into `main`;
+  2. once it merges, open a pull request from `main` into `dev` (merge commit
+     again), so the next release does not revert the fix.
+
+  Security fixes that production can't wait for take this path. The matching
+  Dependabot PR on `dev` is then merged too, or closed once the back-merge lands.
+
+Because both branches block direct pushes, every one of these steps is a pull
+request with green checks, including the `main` → `dev` back-merge.
+
 ## How to apply it
 
-Two options. A **ruleset** is the modern mechanism and the one to prefer: it can be
+Two options. A **ruleset** is the modern mechanism and the one in use: it can be
 scoped, layered, and exported. **Classic branch protection** is simpler and is what
-the REST snippet below uses.
+the second REST snippet below uses.
 
-### Option A — ruleset (recommended)
+> **Target branches by name, never "default branch".** A ruleset that targets
+> `~DEFAULT_BRANCH` follows whichever branch is the default. When the default moved
+> from `main` to `dev`, a ruleset like that would have moved with it and left
+> `main` with no protection at all. Each ruleset here names its branch
+> (`refs/heads/main`, `refs/heads/dev`), so changing the default can't move or
+> remove anything.
 
-Settings → Rules → Rulesets → New branch ruleset:
+### Option A — rulesets (in use)
 
-1. **Name**: `main protection`. **Enforcement status**: Active.
-2. **Target branches**: Include default branch.
+There are two rulesets, `main protection` and `dev protection`, with the same rules.
+They are separate so `main`, the release gate, can tighten on its own later, for
+example to require an approval, without splitting a shared ruleset first.
+
+Settings → Rules → Rulesets → New branch ruleset, once per branch:
+
+1. **Name**: `main protection` or `dev protection`. **Enforcement status**: Active.
+2. **Target branches**: Add target → Include by pattern → `main` or `dev`. Do
+   **not** use "Include default branch".
 3. Enable **Restrict deletions** and **Block force pushes**.
-4. Enable **Require a pull request before merging** → required approvals `1`,
-   **Dismiss stale pull request approvals when new commits are pushed** on.
+4. Enable **Require a pull request before merging** → required approvals `0` (see
+   above), **Dismiss stale pull request approvals when new commits are pushed** on.
 5. Enable **Require status checks to pass** → add both job names from the table
-   above. Leave **Require branches to be up to date before merging** unchecked for
-   now.
+   above, and check **Require branches to be up to date before merging**.
 6. Leave **Bypass list** empty (this is the ruleset equivalent of enforcing for
    administrators).
 
+The same thing through the API, for `dev` (swap the name and ref for `main`):
+
+```bash
+gh api -X POST repos/undp/monbo/rulesets --input - <<'JSON'
+{
+  "name": "dev protection",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["refs/heads/dev"], "exclude": [] } },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "pull_request", "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false } },
+    { "type": "required_status_checks", "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          { "context": "Test and static checks", "integration_id": 15368 },
+          { "context": "Type-check, lint, build", "integration_id": 15368 } ] } }
+  ]
+}
+JSON
+```
+
+`integration_id` 15368 is GitHub Actions. Pinning it means only a check reported
+by Actions can satisfy the rule.
+
 ### Option B — classic branch protection, via the API
 
-Requires admin on the repository.
+Requires admin on the repository. Run it once per branch (`main`, then `dev`).
 
 ```bash
 gh api -X PUT repos/undp/monbo/branches/main/protection --input - <<'JSON'
 {
   "required_status_checks": {
-    "strict": false,
+    "strict": true,
     "contexts": ["Test and static checks", "Type-check, lint, build"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
-    "required_approving_review_count": 1,
+    "required_approving_review_count": 0,
     "dismiss_stale_reviews": true
   },
   "restrictions": null,
@@ -162,9 +224,14 @@ Configuring the rule is not the same as it working — most commonly the check n
 do not match and the rule matches nothing. Confirm all three:
 
 ```bash
-# 1. The rule exists and lists both contexts, spelled exactly.
-gh api repos/undp/monbo/branches/main/protection \
-  --jq '.required_status_checks.contexts, .enforce_admins.enabled'
+# 1. Each branch reports the rules that apply to it, with both contexts spelled
+#    exactly. This endpoint covers rulesets; the classic
+#    `branches/<b>/protection` endpoint returns 404 when only rulesets are in use.
+for b in main dev; do
+  echo "== $b"
+  gh api repos/undp/monbo/rules/branches/$b --jq '.[] | .type,
+    (.parameters.required_status_checks[]?.context)'
+done
 
 # 2. An open pull request reports both checks as required.
 gh pr view <number> --json statusCheckRollup \

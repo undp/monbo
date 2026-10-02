@@ -1,5 +1,7 @@
 # Monbo
 
+> **Branches.** `dev` is the default and integration branch: it holds work that has not been released yet, and every pull request targets it. `main` holds the latest release and only changes when `dev` is released into it, or through a hotfix. See [`docs/branch_protection.md`](docs/branch_protection.md#release-and-hotfix-flow).
+
 ## Table of Contents
 
 - [About the Tool](#about-the-tool)
@@ -108,8 +110,8 @@ pnpm build   # builds the frontend production bundle
 ## Continuous Integration
 
 - **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
-- **Branch protection:** `main` requires both CI jobs to pass before merging. The policy, the exact required check names, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
-- **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests on a weekly schedule.
+- **Branch protection:** `main` and `dev` each require a pull request and both CI jobs to pass before merging; neither accepts direct pushes. The policy, the exact required check names, the release and hotfix flow, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
+- **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests against `dev` on a weekly schedule.
 
 ### Dependency update policy
 
@@ -126,6 +128,26 @@ Dependabot covers seven manifest locations, one entry per ecosystem and director
 | `github-actions` | `/` | Thursday |
 
 The policy in one paragraph: **minor and patch updates are grouped** per ecosystem so routine churn arrives as a single reviewable pull request, **majors are deliberately left ungrouped** so each gets its own PR and can be read against its changelog in isolation, `open-pull-requests-limit` bounds the queue, and **nothing is automerged** — every update passes CI and a human before it lands. Days are staggered so one ecosystem's PRs don't all arrive at once.
+
+- **Every PR opens against `dev`,** version and security updates alike, because `dev` is the default branch. No entry sets `target-branch`: doing so would make an entry's options apply only to version updates, and security PRs would lose their labels.
+- **Security updates are on.** They reach production with the next release. A fix that can't wait goes through the hotfix flow in [`docs/branch_protection.md`](docs/branch_protection.md#release-and-hotfix-flow).
+- **npm and uv releases wait out a cooldown:** 3 days, or 7 for a major, so a release that gets yanked or flagged shortly after publishing is never proposed. The cooldown does not apply to security updates.
+
+#### Active deferrals
+
+Upgrades that a design decision deferred are `ignore` rules in `dependabot.yml`, each commented with its entry condition. Review this list at each release. Lift a deferral by deleting its rule once the condition is met. Note that `ignore` rules also silence security updates: an advisory whose only fix is an ignored version raises an alert in the Security tab but no PR.
+
+| Dependency | Ignored | Entry condition |
+| --- | --- | --- |
+| `@mui/*` | majors (MUI 9) | A visual-regression harness exists |
+| `@types/node` | majors | The runtime moves past Node 24. Lift with the Docker `node` rule |
+| `typescript` | majors (TS 7) | typescript-eslint admits 7.x and `eslint-config-next` adopts it |
+| `eslint` | majors (eslint 10) | `eslint-plugin-react` and `eslint-plugin-jsx-a11y` support it and `eslint-config-next` picks them up |
+| Docker `node` (`monbo-front`) | majors (Node 26) | One release cycle of soak after Node 26 becomes LTS on 2026-10-28 |
+| Docker `python` (`monbo-api`) | `>=3.14` | A decision to move to Python 3.14; the wheels already exist |
+| `gdal` (`scripts/update-gfw-tmf`) | all updates | The system GDAL strategy is decided (task 5.4 of the 2026 dependency upgrade) |
+
+The sources are `openspec/changes/archive/2026-09-24-dependency-upgrade-2026/design.md` (D5, D10, R11, R16, "Deferred / Out-of-scope") and the OpenSpec change `dev-default-branch-and-dependabot`.
 
 Two things worth knowing about the coverage:
 
