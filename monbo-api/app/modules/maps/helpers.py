@@ -1,43 +1,75 @@
-from typing import cast
-
 from fastapi import HTTPException
 
-from app.utils.json import read_json_file
+from app.modules.layers.store import get_layers_root, is_layer
 
 
 def get_all_maps() -> list[dict]:
     """
-    Retrieve a list of maps with specific attributes.
-    This function reads a JSON file containing map data and returns a list of maps,
-    each represented by a dictionary with the following attributes:
-    - id: The unique identifier of the map.
-    - name: The name of the map.
-    - alias: An alias for the map.
+    Retrieve every layer of every country, enabled or not.
+
+    Each entry is the raw index object (`id`, `raster_filename`,
+    `attributes_filename`, `considerations_filename`, `pixel_size`, `baseline`,
+    `compared_against`, `references`) plus:
+    - `enabled` and `version`, which default to `True` and `1` for entries that
+      predate them;
+    - `country`: the layer's country, or None in the legacy flat layout;
+    - `available_countries_codes`: `[country]`, or the layer's own list in the
+      flat layout.
+    Callers that list layers publicly must filter on `enabled`; analysis, tiles
+    and image generation resolve layers by id regardless of it.
     Returns:
-        list[dict]: A list of dictionaries containing the 'id', 'name', and 'alias'
-        of each map.
+        list[dict]: The layers.
+    Raises:
+        HTTPException: 500 if the index cannot be read.
     """
-    maps = read_json_file("app/maps/index.json")
+    maps = get_layers_root().layers()
     if maps is None:
         raise HTTPException(status_code=500, detail="Failed to read map data")
 
-    return cast(list[dict], maps)
+    return maps
 
 
-def get_map_by_id(mapId: int) -> dict | None:
+def get_country_maps(country: str | None) -> list[dict]:
     """
-    Retrieve a map by its ID.
-    Args:
-        mapId (int): The ID of the map to retrieve.
-    Returns:
-        dict: The map data corresponding to the provided ID.
+    The layers an analysis, a tile or an image of `country` can use, enabled or
+    not, shaped like `get_all_maps`. In the per-country layout only that country's
+    index is read: tiles don't pay for every country, and another country's
+    unreadable index doesn't break this one. In the flat layout (or without a
+    country), every layer.
     Raises:
-        HTTPException: If no map with the given ID is found.
-    This function reads from a JSON file containing map data and returns the map
-    that matches the provided ID. If no such map is found, a 404 HTTP exception
-    is raised with the message "Map not found".
+        HTTPException: 500 if the index cannot be read.
     """
-    maps = get_all_maps()
+    root = get_layers_root()
+    if country is None or not root.is_per_country():
+        return get_all_maps()
+    maps = root.country_layers(country)
+    if maps is None:
+        raise HTTPException(status_code=500, detail="Failed to read map data")
+    return maps
 
-    requested_map = next(filter(lambda x: x["id"] == mapId, maps), None)
-    return requested_map
+
+def require_country(country: str | None) -> None:
+    """Ids are numbered within each country in the per-country layout, so a layer
+    can only be found with its country (the flat layout's ids are global)."""
+    if country is None and get_layers_root().is_per_country():
+        raise HTTPException(status_code=422, detail="country is required")
+
+
+def get_map_by_id(mapId: int, country: str | None = None) -> dict | None:
+    """
+    Retrieve a layer by its country and id, enabled or not.
+    Args:
+        mapId (int): The layer's id within its country.
+        country (str, optional): ISO 3166-1 alpha-2 code. Required in the
+            per-country layout; in the flat layout, the layer must list it.
+    Returns:
+        dict | None: The layer (as in `get_all_maps`), or None if there is none.
+    Raises:
+        HTTPException: 422 if the country is required and missing, 500 if the
+            index cannot be read.
+    """
+    require_country(country)
+    return next(
+        (map for map in get_country_maps(country) if is_layer(map, country, mapId)),
+        None,
+    )

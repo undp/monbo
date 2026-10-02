@@ -12,14 +12,16 @@ function CustomTabPanel(
   props: PropsWithChildren<{
     index: number;
     value: number;
+    keepMounted?: boolean;
   }>
 ) {
-  const { children, value, index, ...other } = props;
+  const { children, value, index, keepMounted, ...other } = props;
 
-  if (value !== index) return null;
+  if (value !== index && !keepMounted) return null;
   return (
     <div
       role="tabpanel"
+      hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       {...other}
@@ -43,6 +45,9 @@ interface TabsProps {
   }[];
   onChange?: (tabId: number) => void;
   fullWidth?: boolean;
+  // Keep inactive panels mounted (hidden), e.g. so form fields in every tab stay
+  // registered and validated.
+  keepMounted?: boolean;
 }
 
 export const ClassicTabs: React.FC<TabsProps> = ({
@@ -50,6 +55,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
   tabs,
   onChange,
   fullWidth = false,
+  keepMounted = false,
 }) => {
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -111,6 +117,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
             key={tab.id}
             value={tabs[selectedTab].id}
             index={tab.id}
+            keepMounted={keepMounted}
           >
             {tab.content}
           </CustomTabPanel>

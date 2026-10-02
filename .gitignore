@@ -82,3 +82,5 @@ vendor/
 
 # Custom scripts
 publish-dockerhub.sh
+# Azure deploy config (secrets)
+azure/deploy.env

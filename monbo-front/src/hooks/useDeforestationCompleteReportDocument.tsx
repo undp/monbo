@@ -8,6 +8,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useParams } from "next/navigation";
 import { fetchDeforestationImages } from "@/utils/deforestationImages";
+import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 
 export const useDeforestationCompleteReportDocument = () => {
   const { t } = useTranslation();
@@ -19,6 +20,8 @@ export const useDeforestationCompleteReportDocument = () => {
       selectedMaps: selectedMapsForReport,
       selectedFarms: selectedFarmsForReport,
     },
+    selectedCountry,
+    invalidateAnalysis,
   } = useContext(DataContext);
 
   const [images, setImages] = useState<DeforestationReportImage[]>([]);
@@ -43,21 +46,31 @@ export const useDeforestationCompleteReportDocument = () => {
     const fetchImages = async () => {
       setAreImagesLoading(true);
 
-      const results = await fetchDeforestationImages(
-        selectedMapsForReport,
-        selectedFarmsForReport,
-        filteredDeforestationAnalysisResults
-      );
-
-      setImages(results);
-      setAreImagesLoading(false);
+      try {
+        const results = await fetchDeforestationImages(
+          selectedCountry!,
+          selectedMapsForReport,
+          selectedFarmsForReport,
+          filteredDeforestationAnalysisResults
+        );
+        setImages(results);
+      } catch (error) {
+        // A layer got a new raster after the analysis: re-run it instead of
+        // previewing a report that mixes both rasters.
+        if (error instanceof MapLayerChangedError) invalidateAnalysis();
+        else throw error;
+      } finally {
+        setAreImagesLoading(false);
+      }
     };
 
     fetchImages();
   }, [
+    selectedCountry,
     selectedFarmsForReport,
     selectedMapsForReport,
     filteredDeforestationAnalysisResults,
+    invalidateAnalysis,
   ]);
 
   const document = useMemo(() => {

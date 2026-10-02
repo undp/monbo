@@ -41,7 +41,9 @@ FROM --platform=linux/amd64 python:3.13-slim AS api-runner
 WORKDIR /app
 
 # Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+# Fixed uid/gid: the Azure Files mount maps file ownership to this user
+# (mountOptions uid=10001,gid=10001), so it must not depend on the image build.
+RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser -s /bin/false appuser
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

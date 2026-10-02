@@ -10,6 +10,7 @@ import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
 import { generatePolygonDeforestationImage } from "@/api/deforestationAnalysis";
 
 export const fetchDeforestationImages = async (
+  country: string,
   selectedMapsForReport: MapData[],
   selectedFarmsForReport: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[]
@@ -18,14 +19,17 @@ export const fetchDeforestationImages = async (
     selectedMapsForReport.map(({ id: mapId }) =>
       selectedFarmsForReport
         .map((farm) => {
-          const hasResults = !!deforestationAnalysisResults
-            .find((m) => m.mapId === mapId)
-            ?.farmResults.some(
-              ({ farmId, value }) => farmId === farm.id && value !== null
-            );
-          if (hasResults)
+          const mapResults = deforestationAnalysisResults.find(
+            (m) => m.mapId === mapId
+          );
+          const hasResults = !!mapResults?.farmResults.some(
+            ({ farmId, value }) => farmId === farm.id && value !== null
+          );
+          if (mapResults && hasResults)
             return {
               mapId,
+              // The image must come from the raster the results were computed on.
+              version: mapResults.version,
               farmId: farm.id,
               farmGeoJson: generateGeoJsonFeature(farm),
             };
@@ -45,9 +49,11 @@ export const fetchDeforestationImages = async (
   const promises = payloads.map((payload) =>
     limit(() =>
       generatePolygonDeforestationImage(
+        country,
         payload.mapId,
         payload.farmGeoJson,
-        includeSatelitalBackground
+        includeSatelitalBackground,
+        payload.version
       ).then((blob) => ({
         mapId: payload.mapId,
         farmId: payload.farmId,

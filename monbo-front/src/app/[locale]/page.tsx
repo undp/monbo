@@ -1,23 +1,22 @@
-import {
-  PolygonValidationModuleCard,
-  DeforestationModuleCard,
-  ReportCreationModuleCard,
-} from "@/components/page/home";
 import TranslationsProvider from "@/context/TranslationProvider";
 import initTranslations from "@/utils/i18n";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { BasePageProps } from "@/interfaces";
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
+import { LandingPageContent } from "@/components/page/landing/LandingPageContent";
 
-export default async function HomePage({ params }: BasePageProps) {
+const namespaces = ["common", "home"];
+
+// Landing page: the analysis country is chosen here, on a map.
+export default async function LandingPage({ params }: BasePageProps) {
   const { locale } = await params;
-  const { t, resources } = await initTranslations(locale, ["common", "home"]);
+  const { resources } = await initTranslations(locale, namespaces);
 
   return (
     <TranslationsProvider
       locale={locale}
-      namespaces={["common", "home"]}
+      namespaces={namespaces}
       resources={resources}
     >
       {SHOW_TESTING_ENVIRONMENT_WARNING && (
@@ -33,62 +32,7 @@ export default async function HomePage({ params }: BasePageProps) {
           <DevEnvWarning />
         </Box>
       )}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          minHeight: "calc(100vh - 64px - 64px)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1280,
-            padding: 24,
-            color: "#3A3541",
-            alignSelf: "stretch",
-            display: "flex",
-            flexDirection: "column",
-            marginTop: "10px",
-          }}
-        >
-          <Typography
-            variant="h1"
-            style={{
-              fontSize: 34,
-              fontWeight: 500,
-              lineHeight: "47px",
-              textAlign: "center",
-              marginBottom: 16,
-            }}
-          >
-            {t("home:title")}
-          </Typography>
-          <Typography
-            variant="h2"
-            style={{
-              fontSize: 20,
-              fontWeight: 400,
-              lineHeight: "27px",
-              textAlign: "center",
-              marginBottom: 54,
-            }}
-          >
-            {t("home:subtitle")}
-          </Typography>
-
-          <Grid container spacing={3}>
-            <Grid size={4}>
-              <PolygonValidationModuleCard />
-            </Grid>
-            <Grid size={4}>
-              <DeforestationModuleCard />
-            </Grid>
-            <Grid size={4}>
-              <ReportCreationModuleCard />
-            </Grid>
-          </Grid>
-        </div>
-      </div>
+      <LandingPageContent />
     </TranslationsProvider>
   );
 }

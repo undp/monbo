@@ -52,7 +52,10 @@ export const generateGeoJsonFarmsDataWithPolygonsValidation = (
 
 export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
   farmsData: FarmData[],
-  deforestationAnalysisResults: DeforestationAnalysisMapResults[],
+  deforestationAnalysisResults: Pick<
+    DeforestationAnalysisMapResults,
+    "mapId" | "farmResults"
+  >[],
   availableMaps: MapData[],
   language?: string
 ) => {

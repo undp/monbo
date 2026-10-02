@@ -15,11 +15,29 @@ def test_health_check():
 
     Assertions:
         - The response status code should be 200.
-        - The response JSON should be {"version": "0.1.0", "status": "OK"}.
+        - The response JSON should carry the version and status, plus the resolved
+          maps root and whether the API can write to it.
     """
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"version": "0.1.0", "status": "OK"}
+    body = response.json()
+    assert body["version"] == "0.1.0"
+    assert body["status"] == "OK"
+    assert body["mapsRoot"].endswith("app/maps")
+    assert isinstance(body["mapsRootWritable"], bool)
+
+
+def test_liveness_does_not_touch_the_maps_root(monkeypatch):
+    """The liveness probe must answer even if the share is slow or gone."""
+    from app.modules.layers.store import LayerStore
+
+    def unavailable(self):
+        raise AssertionError("liveness touched the maps root")
+
+    monkeypatch.setattr(LayerStore, "is_writable", unavailable)
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "OK"}
 
 
 def test_download_geojson_with_valid_content():

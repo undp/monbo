@@ -3,10 +3,13 @@
 import { GoogleMapsContext } from "@vis.gl/react-google-maps";
 import { useContext, useEffect } from "react";
 import { DEFORESTATION_ANALYSIS_TILES_URL } from "@/config/env";
+import { DataContext } from "@/context/DataContext";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 
 export const DeforestationMapOverlay = () => {
-  const { id } = useSelectedMap();
+  const { id, version } = useSelectedMap();
+  // Layer ids are numbered within each country.
+  const { selectedCountry } = useContext(DataContext);
   const map = useContext(GoogleMapsContext)?.map;
 
   useEffect(() => {
@@ -14,10 +17,11 @@ export const DeforestationMapOverlay = () => {
 
     const overlay = new google.maps.ImageMapType({
       name: "Deforestation Analysis",
+      // `v` changes when the layer's raster is replaced, so cached tiles aren't reused
       getTileUrl: (coord, zoom) =>
         zoom < 12
           ? null
-          : `${DEFORESTATION_ANALYSIS_TILES_URL}/${id}/dynamic/${zoom}/${coord.x}/${coord.y}.png`,
+          : `${DEFORESTATION_ANALYSIS_TILES_URL}/${selectedCountry}/${id}/dynamic/${zoom}/${coord.x}/${coord.y}.png?v=${version}`,
       tileSize: new google.maps.Size(256, 256),
       maxZoom: 20,
       minZoom: 12,
@@ -30,7 +34,7 @@ export const DeforestationMapOverlay = () => {
         map.overlayMapTypes.removeAt(idx);
       }
     };
-  }, [id, map]);
+  }, [id, version, selectedCountry, map]);
 
   return null;
 };

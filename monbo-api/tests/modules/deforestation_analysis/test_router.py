@@ -10,9 +10,10 @@ from app.utils.polygons import get_point_area_and_radius
 client = TestClient(app)
 
 
-# get_all_maps returns raw index entries; the router enriches each one with the
-# attributes/considerations metadata files (read_attributes / read_considerations)
-# and maps them onto the BaseMapData response schema.
+# get_all_maps returns raw index entries (with `enabled`/`version` defaults applied);
+# the router drops disabled ones, enriches the rest with the attributes/considerations
+# metadata files (read_attributes / read_considerations) and maps them onto the
+# BaseMapData response schema.
 MAPS_MOCK_DATA = [
     {
         "id": 0,
@@ -25,7 +26,22 @@ MAPS_MOCK_DATA = [
             "old=off;dl=1;lon=20;lat=10;zoom=3;"
         ],
         "available_countries_codes": ["EC", "CO", "CR"],
-    }
+        "enabled": True,
+        "version": 2,
+        "pixel_size": 30,
+    },
+    {
+        "id": 1,
+        "attributes_filename": "tmf.json",
+        "considerations_filename": "tmf.md",
+        "baseline": "2020",
+        "compared_against": "2023",
+        "references": [],
+        "available_countries_codes": ["EC"],
+        "enabled": False,
+        "version": 1,
+        "pixel_size": 30,
+    },
 ]
 
 ATTRIBUTES_MOCK_DATA = {
@@ -74,6 +90,9 @@ EXPECTED_MAPS_DATA = [
         ],
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
+        "country": None,  # the legacy flat layout
+        "version": 2,
+        "pixelSize": 30,
     }
 ]
 
@@ -161,7 +180,7 @@ def test_parse_farms():
 
 @patch("app.modules.deforestation_analysis.router.get_map_raster_path")
 @patch("app.modules.deforestation_analysis.router.rasterio_open")
-@patch("app.modules.deforestation_analysis.router.get_all_maps")
+@patch("app.modules.deforestation_analysis.router.get_country_maps")
 @patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
 @patch("app.modules.deforestation_analysis.router.get_pixel_area")
 @patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
@@ -169,7 +188,7 @@ def test_analize(
     mock_get_deforestation_percentage,
     mock_get_pixel_area,
     mock_get_map_pixels_inside_polygon,
-    mock_get_all_maps,
+    mock_get_country_maps,
     mock_raster_open,
     mock_get_map_raster_path,
 ):
@@ -182,16 +201,18 @@ def test_analize(
     mock_raster_open.return_value.__enter__.return_value = mock_dataset
 
     # Mock map data
-    mock_get_all_maps.return_value = [
+    mock_get_country_maps.return_value = [
         {
             "id": 1,
             "name": "Deforestation Map A",
             "raster_filename": "deforestation_map_a",
+            "version": 3,
         },
         {
             "id": 2,
             "name": "Deforestation Map B",
             "raster_filename": "deforestation_map_b",
+            "version": 1,
         },
     ]
 
@@ -227,6 +248,7 @@ def test_analize(
     expected_response = [
         {
             "mapId": 1,
+            "version": 3,
             "farmResults": [
                 {
                     "farmId": "farm_001",
@@ -250,7 +272,11 @@ def test_analize(
     response = client.post("/deforestation_analysis/analize", json=request_data)
     assert response.status_code == 200
     assert response.json() == [
-        {"mapId": 1, "farmResults": [{"farmId": "farm_001", "value": None}]}
+        {
+            "mapId": 1,
+            "version": 3,
+            "farmResults": [{"farmId": "farm_001", "value": None}],
+        }
     ]
 
 
@@ -260,7 +286,7 @@ def test_analize(
 def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path):
     mock_get_map_raster_path.return_value = "dummy/path.tif"
     mock_get_map_by_id.return_value = None
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Map not found"}
 
@@ -272,7 +298,7 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
     mock_get_tile.side_effect = lambda a, b, c, d: Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)
     )
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
 
@@ -280,6 +306,49 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
         raise Exception("Error")
 
     mock_get_tile.side_effect = raise_exception
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Tile not found"}
+
+
+GENERATE_IMAGE_FEATURE = {
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-84.0, 10.0], [-84.0, 10.1], [-83.9, 10.1], [-84.0, 10.0]]],
+    },
+    "properties": {},
+}
+
+
+@patch("app.modules.deforestation_analysis.router.MapImageGenerator.generate")
+@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
+@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+def test_generate_image_checks_the_analysed_version(
+    mock_get_map_by_id, mock_get_map_raster_path, mock_generate
+):
+    mock_get_map_by_id.return_value = {
+        "id": 1,
+        "raster_filename": "layer-1-v3.tif",
+        "version": 3,
+    }
+    mock_get_map_raster_path.return_value = "dummy/path.tif"
+    mock_generate.return_value = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
+    url = "/deforestation_analysis/generate-image?include_satelital_background=false"
+
+    # The analysis used an older raster: the image would not match its results.
+    response = client.post(
+        url, json={"mapId": 1, "version": 2, "feature": GENERATE_IMAGE_FEATURE}
+    )
+    assert response.status_code == 409
+    mock_generate.assert_not_called()
+
+    response = client.post(
+        url, json={"mapId": 1, "version": 3, "feature": GENERATE_IMAGE_FEATURE}
+    )
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
+
+    # Clients that don't send a version keep working.
+    response = client.post(url, json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE})
+    assert response.status_code == 200
