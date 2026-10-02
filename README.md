@@ -159,3 +159,11 @@ Two things worth knowing about the coverage:
   3. `.github/workflows/api.yml` (the `astral-sh/setup-uv` `version:` input)
 
 Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.
+
+**Verified on real runs (2026-09-24 → 2026-10-02).** Everything above was first checked against dependabot-core's source. The bot's real runs have since confirmed it:
+
+- all seven entries opened PRs;
+- the `uv` entries move `pyproject.toml` and `uv.lock` together (#37, #48), and also fix transitive dependencies in the lock alone (#45, #46);
+- the Docker entries detect both `Dockerfile.dev` and `Dockerfile.prod` (#24 and #40 touched both);
+- the SHA-pinned Actions are bumped with their comment rewritten (#26, #28, #29);
+- once `dev` became the default branch, Dependabot moved its open PRs to `dev`, closed the ones the new `ignore` rules cover, and opened security PRs against `dev` with their labels (#44–#46).
