@@ -3,10 +3,9 @@
 ## Purpose
 
 Define how an uploaded raster becomes a layer's raster: streamed to staging, validated as binary,
-converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by a background job.
-
+converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by a background job,
+within the country of the admin's session.
 ## Requirements
-
 ### Requirement: Raster upload streamed to staging
 
 `PUT /admin/layers/{id}/raster` SHALL accept the raster as the raw request body and stream it in chunks to a file in a local staging directory (`ADMIN_STAGING_DIR`, default `/tmp/monbo-staging`), without holding the whole file in memory. Validation and conversion SHALL run on that local file. Only the finished, verified raster SHALL be written to the maps root. Uploads larger than `ADMIN_MAX_UPLOAD_MB` (default 500) SHALL be rejected with 413 as soon as the limit is exceeded, and the partial file SHALL be deleted. An optional `nodata` query parameter SHALL set the nodata value for rasters that don't declare one. Once the body is fully received, the endpoint SHALL respond 202 with a `jobId`.
@@ -28,12 +27,25 @@ converted to a Cloud Optimized GeoTIFF, verified pixel by pixel and activated by
 
 ### Requirement: One ingestion at a time with persisted job status
 
-Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409, including a job of another API process sharing the maps root (the previous revision during a deploy) that was updated within the last 15 minutes. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`. The state SHALL include: status (`queued`, `running`, `succeeded`, `failed`), the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters). The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` and not updated for 15 minutes SHALL be marked `failed` with the reason "interrupted by restart", and staging files on the maps root older than that SHALL be removed; more recent jobs may still belong to the previous revision and SHALL be left alone. `GET /admin/jobs/{jobId}` SHALL report a queued or running job that no process has updated for 15 minutes as `failed` with the same reason. A job SHALL never move out of `failed`.
+Ingestion SHALL run in the background, and only one job SHALL run at a time. An upload made while another job is queued or running SHALL be rejected with 409, including a job of another API process sharing the maps root (the previous revision during a deploy) that was updated within the last 15 minutes. Job state SHALL be persisted under the maps root and SHALL be retrievable through `GET /admin/jobs/{jobId}`.
+
+The state SHALL include:
+- the status (`queued`, `running`, `succeeded`, `failed`, `cancelled`);
+- the phase of a running job (`validating`, then `converting`, which covers conversion, verification and activation);
+- while validating, the fraction of the raster scanned so far (`progress`, from 0 to 1), updated at least every few seconds but not on every window;
+- the error, the warnings, and a raster report (CRS, width, height, bounds, dtype, nodata, detected distinct values, and an approximate resolution in meters).
+
+The error and each warning SHALL carry a stable `code`, its `params` (for example the offending values or the band count) and an English `message`, so the admin UI can show them in the user's language. On startup, jobs left `queued` or `running` and not updated for 15 minutes SHALL be marked `failed` with the reason "interrupted by restart", and staging files on the maps root older than that SHALL be removed; more recent jobs may still belong to the previous revision and SHALL be left alone. `GET /admin/jobs/{jobId}` SHALL report a queued or running job that no process has updated for 15 minutes as `failed` with the same reason. A job SHALL never move out of `failed`.
 
 #### Scenario: Poll a running job
 
 - **WHEN** the admin UI polls `GET /admin/jobs/{jobId}` during conversion
-- **THEN** it receives `status: running`
+- **THEN** it receives `status: running` and `phase: converting`
+
+#### Scenario: Validation progress
+
+- **WHEN** the admin UI polls a job halfway through scanning a large raster
+- **THEN** it receives `phase: validating` and a `progress` between 0 and 1 that grows between polls
 
 #### Scenario: Parallel upload rejected
 
@@ -138,14 +150,74 @@ After validation, ingestion SHALL convert the raster to a Cloud Optimized GeoTIF
 
 ### Requirement: Atomic activation and cleanup
 
-Only after conversion and verification succeed SHALL ingestion move the COG to its versioned filename and update the layer's `raster_filename` and `version` in a single atomic index write. Staging files SHALL be deleted when a job ends, whether it succeeds or fails.
+Only after conversion and verification succeed SHALL ingestion move the COG to its versioned filename and update the layer's `raster_filename` and `version` in a single atomic index write. A layer created in the admin starts at version 0, so its first raster SHALL be version 1. Staging files SHALL be deleted when a job ends, whether it succeeds, fails or is cancelled.
 
 #### Scenario: Successful ingestion
 
 - **WHEN** a job succeeds for layer 6 at version 1
 - **THEN** the layer points to `layer-6-v2.tif`, its version is 2, and no staging file remains
 
+#### Scenario: First raster of a new layer
+
+- **WHEN** a job succeeds for layer 6, created in the admin and still at version 0
+- **THEN** the layer points to `layer-6-v1.tif` and its version is 1
+
 #### Scenario: Failed ingestion leaves no trace
 
 - **WHEN** a job fails validation
 - **THEN** the layer's `raster_filename` and `version` are unchanged and no staging file remains
+
+### Requirement: Ingestion scoped to the admin's country
+
+`PUT /admin/layers/{id}/raster` SHALL accept only layers of the country in the admin's session. Ids that belong to another country SHALL answer 404, like unknown ids. A successful ingestion SHALL store the raster in that country's `layers/rasters/` folder. Each job SHALL record its country, and `GET /admin/jobs/{jobId}` SHALL answer 404 for jobs of another country. Only one ingestion SHALL run at a time across all countries. The 409 returned while another country's job runs SHALL NOT reveal that country.
+
+#### Scenario: Upload to another country's layer
+
+- **WHEN** a CO admin uploads a raster to layer 3, and only EC has a layer 3
+- **THEN** the response is 404 and no staging file remains
+
+#### Scenario: Raster stored in the country folder
+
+- **WHEN** an EC admin's upload for layer 3 (Ecuador2) at version 1 succeeds
+- **THEN** the layer points to `ecuador2-v2.tif` inside `EC/layers/rasters/`
+
+#### Scenario: Another country's job
+
+- **WHEN** a CR admin polls a job started by a CO admin
+- **THEN** the response is 404
+
+#### Scenario: Concurrent uploads from two countries
+
+- **WHEN** a CR admin uploads while a CO ingestion is running
+- **THEN** the response is 409 with a message that another upload is in progress, without naming CO
+
+### Requirement: Cancel an ingestion job
+
+`DELETE /admin/jobs/{jobId}` SHALL ask a queued or running job of the admin's country to stop, and SHALL respond 202 when the cancellation is recorded. A cancellation recorded with 202 SHALL guarantee that the job does not activate its raster: the layer's `raster_filename` and `version` stay unchanged. The job SHALL stop at the latest before activation, and during validation and verification within one window. It SHALL then report `status: cancelled` without an error, delete its staging files and free the ingestion slot.
+
+The endpoint SHALL respond:
+- 409 when activation has already begun or the job has already ended;
+- 404 for unknown jobs and for jobs of another country.
+
+Cancelling an upload whose body is still being sent SHALL be done by closing the request, which already leaves nothing behind.
+
+#### Scenario: Cancel during validation
+
+- **WHEN** an admin cancels a job while it is validating
+- **THEN** the response is 202, the job soon reports `cancelled`, no staging file remains, the layer's raster is unchanged, and a new upload is accepted
+
+#### Scenario: Cancel during conversion
+
+- **WHEN** an admin cancels a job while its raster is being converted
+- **THEN** the response is 202, the job reports `cancelled` once the conversion returns, and the layer's raster is unchanged
+
+#### Scenario: Too late to cancel
+
+- **WHEN** an admin cancels a job whose activation has begun, or a job that already succeeded or failed
+- **THEN** the response is 409 and the job's outcome is unchanged
+
+#### Scenario: Another country's job
+
+- **WHEN** an EC admin sends `DELETE /admin/jobs/{jobId}` for a CO job
+- **THEN** the response is 404 and the job keeps running
+

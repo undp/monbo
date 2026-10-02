@@ -8,7 +8,9 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
@@ -17,6 +19,7 @@ import {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import { getMaps } from "@/api/deforestationAnalysis";
+import { getCountries } from "@/api/countries";
 import { orderBy } from "lodash";
 import { AVAILABLE_MAPS_POLLING_INTERVAL } from "@/config/constants";
 
@@ -52,63 +55,160 @@ export interface DataContextValue {
     SetStateAction<DataContextValue["reportGenerationParams"]>
   >;
   availableMaps: MapData[];
+  // The selected country's layers could not be fetched (and none arrived yet)
+  availableMapsError: boolean;
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
+  // The countries that can be analyzed (`GET /countries`), by ISO code.
+  availableCountries: string[];
+  // True once the first `GET /countries` has answered.
+  availableCountriesLoaded: boolean;
+  // True when the last `GET /countries` failed.
+  availableCountriesError: boolean;
+  // ISO 3166-1 alpha-2 code of the analysis country, kept for the tab session.
+  selectedCountry: string | null;
+  setSelectedCountry: (code: string | null) => void;
+  // False until `selectedCountry` has been read from sessionStorage.
+  countryHydrated: boolean;
+  // Drops the loaded farms, every result and the analysis and report params.
+  resetAnalysis: () => void;
 }
+
+const SELECTED_COUNTRY_STORAGE_KEY = "monbo.selectedCountry";
+// The country multi-select this app used before the country-first flow.
+const LEGACY_SELECTED_COUNTRIES_STORAGE_KEY =
+  "deforestationAnalysis.selectedCountries";
+
+// The selected country lives in sessionStorage (in memory if it is unavailable),
+// read through useSyncExternalStore: null while server rendering, then the
+// stored value once hydrated.
+let inMemorySelectedCountry: string | null = null;
+const selectedCountryListeners = new Set<() => void>();
+
+const subscribeToSelectedCountry = (listener: () => void) => {
+  selectedCountryListeners.add(listener);
+  return () => {
+    selectedCountryListeners.delete(listener);
+  };
+};
+
+// Goes up every time the flow is reset, so a request started before a reset
+// (e.g. a file still being parsed when the user starts over) can tell that its
+// response no longer belongs to the current flow.
+let flowGeneration = 0;
+export const readFlowGeneration = () => flowGeneration;
+
+export const readSelectedCountry = () => {
+  try {
+    return sessionStorage.getItem(SELECTED_COUNTRY_STORAGE_KEY);
+  } catch {
+    return inMemorySelectedCountry;
+  }
+};
+
+const writeSelectedCountry = (code: string | null) => {
+  inMemorySelectedCountry = code;
+  try {
+    if (code) sessionStorage.setItem(SELECTED_COUNTRY_STORAGE_KEY, code);
+    else sessionStorage.removeItem(SELECTED_COUNTRY_STORAGE_KEY);
+  } catch (error) {
+    console.error("Error storing the selected country:", error);
+  }
+  selectedCountryListeners.forEach((listener) => listener());
+};
+
+const initialDeforestationAnalysisParams: DataContextValue["deforestationAnalysisParams"] =
+  {
+    polygonsSubset: "valid",
+    selectedMaps: [],
+  };
+
+const initialReportGenerationParams: DataContextValue["reportGenerationParams"] =
+  {
+    initialFarmSelection: "all",
+    selectedMaps: [],
+    selectedFarms: [],
+    downloadType: null,
+  };
 
 export const DataContext = createContext<DataContextValue>({
   farmsData: null,
   setFarmsData: () => {},
   polygonsValidationResults: null,
   setPolygonsValidationResults: () => {},
-  deforestationAnalysisParams: {
-    polygonsSubset: "valid",
-    selectedMaps: [],
-  },
+  deforestationAnalysisParams: initialDeforestationAnalysisParams,
   setDeforestationAnalysisParams: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
   analysisOutdated: false,
   setAnalysisOutdated: () => {},
   invalidateAnalysis: () => {},
-  reportGenerationParams: {
-    initialFarmSelection: "all",
-    selectedMaps: [],
-    selectedFarms: [],
-    downloadType: null,
-  },
+  reportGenerationParams: initialReportGenerationParams,
   setReportGenerationParams: () => {},
   availableMaps: [],
+  availableMapsError: false,
   setAvailableMaps: () => {},
+  availableCountries: [],
+  availableCountriesLoaded: false,
+  availableCountriesError: false,
+  selectedCountry: null,
+  setSelectedCountry: () => {},
+  countryHydrated: false,
+  resetAnalysis: () => {},
 });
+
+// The loaded flow, kept in memory outside the provider. Changing the language
+// changes the root layout's `[locale]` segment, which remounts this provider on a
+// client-side navigation; without this the farms and results would be lost and
+// the pages would send the user back to /home. A full page reload still starts
+// over.
+type KeptKey =
+  | "farmsData"
+  | "polygonsValidationResults"
+  | "deforestationAnalysisParams"
+  | "deforestationAnalysisResults"
+  | "analysisOutdated"
+  | "reportGenerationParams";
+const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
+
+function useKeptState<K extends KeptKey>(
+  key: K,
+  initial: DataContextValue[K]
+): [DataContextValue[K], Dispatch<SetStateAction<DataContextValue[K]>>] {
+  const [value, setValue] = useState<DataContextValue[K]>(() =>
+    key in keptState ? (keptState[key] as DataContextValue[K]) : initial
+  );
+  useEffect(() => {
+    keptState[key] = value;
+  }, [key, value]);
+  return [value, setValue];
+}
 
 const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   children,
   locale,
 }) => {
-  const [farmsData, setFarmsData] =
-    useState<DataContextValue["farmsData"]>(null);
+  const [farmsData, setFarmsData] = useKeptState("farmsData", null);
 
   const [polygonsValidationResults, setPolygonsValidationResults] =
-    useState<DataContextValue["polygonsValidationResults"]>(null);
+    useKeptState("polygonsValidationResults", null);
 
   const [deforestationAnalysisParams, setDeforestationAnalysisParams] =
-    useState<DataContextValue["deforestationAnalysisParams"]>({
-      polygonsSubset: "valid",
-      selectedMaps: [],
-    });
+    useKeptState(
+      "deforestationAnalysisParams",
+      initialDeforestationAnalysisParams
+    );
 
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
-    useState<DataContextValue["deforestationAnalysisResults"]>(null);
-  const [analysisOutdated, setAnalysisOutdated] = useState(false);
+    useKeptState("deforestationAnalysisResults", null);
+  const [analysisOutdated, setAnalysisOutdated] = useKeptState(
+    "analysisOutdated",
+    false
+  );
 
-  const [reportGenerationParams, setReportGenerationParams] = useState<
-    DataContextValue["reportGenerationParams"]
-  >({
-    initialFarmSelection: "all",
-    selectedMaps: [],
-    selectedFarms: [],
-    downloadType: null,
-  });
+  const [reportGenerationParams, setReportGenerationParams] = useKeptState(
+    "reportGenerationParams",
+    initialReportGenerationParams
+  );
 
   const invalidateAnalysis = useCallback(() => {
     // The API results and report used previous calculation inputs. Hide them
@@ -121,16 +221,67 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       downloadType: null,
     }));
     setAnalysisOutdated(true);
-  }, []);
+  }, [setDeforestationAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
 
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
   >([]);
+  // The country the current list belongs to, and the one whose fetch failed: a
+  // list is only shown for its own country, and an error only while that
+  // country has no list yet.
+  const [availableMapsCountry, setAvailableMapsCountry] = useState<string | null>(
+    null
+  );
+  const [availableMapsErrorCountry, setAvailableMapsErrorCountry] = useState<
+    string | null
+  >(null);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableCountriesLoaded, setAvailableCountriesLoaded] =
+    useState(false);
+  const [availableCountriesError, setAvailableCountriesError] = useState(false);
+
+  const selectedCountry = useSyncExternalStore(
+    subscribeToSelectedCountry,
+    readSelectedCountry,
+    () => null
+  );
+  const countryHydrated = useSyncExternalStore(
+    subscribeToSelectedCountry,
+    () => true,
+    () => false
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_SELECTED_COUNTRIES_STORAGE_KEY);
+    } catch {
+      // Nothing to clean up without localStorage.
+    }
+  }, []);
+
+  const resetAnalysis = useCallback(() => {
+    flowGeneration += 1;
+    setFarmsData(null);
+    setPolygonsValidationResults(null);
+    setDeforestationAnalysisResults(null);
+    setAnalysisOutdated(false);
+    setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
+    setReportGenerationParams(initialReportGenerationParams);
+  }, [
+    setFarmsData,
+    setPolygonsValidationResults,
+    setDeforestationAnalysisResults,
+    setAnalysisOutdated,
+    setDeforestationAnalysisParams,
+    setReportGenerationParams,
+  ]);
 
   // Read the current analysis state on each poll without restarting the timer.
-  const onMapsLoaded = useEffectEvent((maps: MapData[]) => {
+  const onMapsLoaded = useEffectEvent((maps: MapData[], country: string) => {
     setAvailableMaps(maps);
+    setAvailableMapsCountry(country);
+    setAvailableMapsErrorCountry(null);
     const selectedMaps = deforestationAnalysisParams.selectedMaps;
     if (!selectedMaps.length) return;
 
@@ -169,21 +320,81 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
 
   useEffect(() => {
     let active = true;
-    const fetchAvailableMaps = async () => {
-      const maps = await getMaps(locale);
-      if (active) onMapsLoaded(maps);
+    const fetchAvailableCountries = async () => {
+      try {
+        const countries = await getCountries();
+        if (!active) return;
+        setAvailableCountries(countries.map(({ code }) => code));
+        setAvailableCountriesLoaded(true);
+        setAvailableCountriesError(false);
+      } catch (error) {
+        console.error(error);
+        // Once a list has arrived, a failed refresh keeps it.
+        if (active) setAvailableCountriesError(true);
+      }
     };
     const interval = setInterval(
-      fetchAvailableMaps,
+      fetchAvailableCountries,
       AVAILABLE_MAPS_POLLING_INTERVAL
     );
+    fetchAvailableCountries();
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
+  useEffect(() => {
+    // The layers are only needed once a country is chosen.
+    if (!selectedCountry) return;
+    let active = true;
+    const fetchAvailableMaps = async () => {
+      let maps: MapData[];
+      try {
+        maps = await getMaps(locale, selectedCountry);
+      } catch (error) {
+        console.error(error);
+        if (active) setAvailableMapsErrorCountry(selectedCountry);
+        return;
+      }
+      if (!active) return;
+      onMapsLoaded(maps, selectedCountry);
+    };
+    const interval = setInterval(fetchAvailableMaps, AVAILABLE_MAPS_POLLING_INTERVAL);
     fetchAvailableMaps();
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, [locale]);
+  }, [locale, selectedCountry]);
+
+  // A country kept from earlier in the tab session may have lost its layers
+  // meanwhile: drop it once per mount, when the first country list arrives.
+  // Later changes keep the selection (the layer lists then say no layers are
+  // available). The provider also remounts on a language change with the flow
+  // kept (keptState), so dropping the country clears that flow too: farms and
+  // results of a country that is no longer selected must not stay loaded.
+  const storedCountryChecked = useRef(false);
+  useEffect(() => {
+    if (storedCountryChecked.current || !countryHydrated) return;
+    if (!availableCountriesLoaded) return;
+    storedCountryChecked.current = true;
+    if (selectedCountry && !availableCountries.includes(selectedCountry)) {
+      writeSelectedCountry(null);
+      resetAnalysis();
+    }
+  }, [
+    countryHydrated,
+    availableCountriesLoaded,
+    availableCountries,
+    selectedCountry,
+    resetAnalysis,
+  ]);
+
+  const currentCountryMaps = useMemo(
+    () => (availableMapsCountry === selectedCountry ? availableMaps : []),
+    [availableMaps, availableMapsCountry, selectedCountry]
+  );
 
   const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
     () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
@@ -208,8 +419,19 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       invalidateAnalysis,
       reportGenerationParams,
       setReportGenerationParams,
-      availableMaps,
+      // Another country's list (still there right after a change) is never shown.
+      availableMaps: currentCountryMaps,
+      availableMapsError:
+        availableMapsErrorCountry === selectedCountry &&
+        availableMapsCountry !== selectedCountry,
       setAvailableMaps,
+      availableCountries,
+      availableCountriesLoaded,
+      availableCountriesError,
+      selectedCountry,
+      setSelectedCountry: writeSelectedCountry,
+      countryHydrated,
+      resetAnalysis,
     };
   }, [
     farmsData,
@@ -226,8 +448,16 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     invalidateAnalysis,
     reportGenerationParams,
     setReportGenerationParams,
-    availableMaps,
+    currentCountryMaps,
+    availableMapsCountry,
+    availableMapsErrorCountry,
     setAvailableMaps,
+    availableCountries,
+    availableCountriesLoaded,
+    availableCountriesError,
+    selectedCountry,
+    countryHydrated,
+    resetAnalysis,
   ]);
 
   return (

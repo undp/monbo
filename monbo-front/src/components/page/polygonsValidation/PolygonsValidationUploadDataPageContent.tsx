@@ -10,7 +10,11 @@ import React, {
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { validatePolygons } from "@/api/polygonValidation";
-import { DataContext } from "@/context/DataContext";
+import {
+  DataContext,
+  readFlowGeneration,
+  readSelectedCountry,
+} from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -28,17 +32,42 @@ import {
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
   const { openSnackbar } = useContext(SnackbarContext);
-  const { farmsData, setFarmsData, setPolygonsValidationResults } =
-    useContext(DataContext);
+  const {
+    farmsData,
+    setFarmsData,
+    setPolygonsValidationResults,
+    selectedCountry,
+  } = useContext(DataContext);
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const prevDataRef = useRef<string | null>(null);
+  // A parser response that arrives after the page was left is dropped.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
       try {
-        const results = await generateFarmsData(data, i18n.language);
-        setFarmsData(results);
+        // The upload has no country column: every farm is in the analysis country.
+        const results = await generateFarmsData(
+          data.map((row) => ({ ...row, country: selectedCountry })),
+          i18n.language
+        );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
+        // The country can change while the parser request is in flight.
+        setFarmsData(
+          results.map((farm) => ({
+            ...farm,
+            country: readSelectedCountry() ?? farm.country,
+          }))
+        );
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -49,7 +78,7 @@ export function PolygonsValidationUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t, i18n.language]
+    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
   );
 
   const performValidationAnalysis = useCallback(
@@ -108,7 +137,8 @@ export function PolygonsValidationUploadDataPageContent() {
       const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
-        i18n.language
+        i18n.language,
+        selectedCountry
       );
 
       if (errorMessages.length > 0) {
@@ -124,7 +154,7 @@ export function PolygonsValidationUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [performFarmsGeneration, openSnackbar, t, i18n.language]
+    [performFarmsGeneration, openSnackbar, t, i18n.language, selectedCountry]
   );
 
   if (loading)

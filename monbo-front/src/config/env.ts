@@ -9,6 +9,10 @@ export const GET_MAPS_URL =
   process.env.NEXT_PUBLIC_GET_MAPS_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/maps`;
 
+export const GET_COUNTRIES_URL =
+  process.env.NEXT_PUBLIC_GET_COUNTRIES_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/countries`;
+
 export const FARMS_PARSER_URL =
   process.env.NEXT_PUBLIC_FARMS_PARSER_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/farms/parse`;
@@ -122,3 +126,12 @@ export const MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERA
 
     return value;
   })();
+
+// Where the landing page's "Contact us to add your country" button leads: an
+// https: URL or a mailto: link. Anything else (unset, or the placeholder left
+// when the container sets no value) hides the button.
+export const CONTACT_URL = (() => {
+  const raw =
+    process.env.NEXT_PUBLIC_CONTACT_URL ?? "__NEXT_PUBLIC_CONTACT_URL__";
+  return /^(https:|mailto:)/i.test(raw.trim()) ? raw.trim() : null;
+})();

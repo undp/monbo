@@ -54,6 +54,15 @@
     "invalidCoordinatesFormat": "Invalid coordinates format in row {{row}}",
     "invalidGeometryType": "Invalid geometry type in row {{row}}",
     "invalidCoordinates": "Invalid coordinates in row {{row}}",
-    "invalidCountryCode": "Invalid ISO 3166-1 alpha-2 country code in row {{row}}"
+    "otherCountry": "This file has farms in {{countries}}. Monbo analyzes one country at a time: upload only the farms in {{country}}, or choose another country."
+  },
+  "countrySelection": {
+    "menuLabel": "Analysis country",
+    "restartModal": {
+      "title": "Changing the country restarts the analysis",
+      "description": "You already ran a deforestation analysis. To analyze {{country}} you have to start over and upload your polygons again. The loaded data and results will be lost.",
+      "cancel": "Cancel",
+      "confirm": "Start over"
+    }
   }
 }

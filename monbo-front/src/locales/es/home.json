@@ -27,5 +27,15 @@
     },
     "uploadNewData": "Subir nuevos datos",
     "sameData": "Continuar con los mismos datos"
+  },
+  "landing": {
+    "title": "¿Dónde está tu producción?",
+    "subtitle": "Elige el país para el análisis de deforestación. Solo puedes elegir países que tienen mapas disponibles.",
+    "noCountries": "No hay países con mapas disponibles en este momento.",
+    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo.",
+    "continueWith": "Continuar con {{country}}",
+    "continue": "Continuar",
+    "inviteTitle": "Tu país puede ser el próximo",
+    "inviteLink": "Contáctanos"
   }
 }

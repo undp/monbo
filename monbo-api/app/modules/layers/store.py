@@ -1,5 +1,18 @@
 """Single owner of every file under the layers root (``MAPS_ROOT``).
 
+The root has one of two layouts:
+
+- per country: ``countries.json`` (the country registry) and one folder per country
+  (``CO/``, ``EC/``...), each holding its own ``index.json``, metadata and rasters.
+  Every layer belongs to one country, and ids are numbered within each country, so a
+  layer is identified by its country and its id.
+- flat (legacy, like the Git-tracked ``app/maps``): one ``index.json`` at the root
+  whose layers list their countries in ``available_countries_codes``. It is served
+  read-only: the layers admin needs the per-country layout.
+
+`LayerStore` handles one flat directory (the legacy root, or one country folder);
+`LayersRoot` handles the whole root. Ingestion jobs live at the root in both.
+
 The root may be an Azure Files (SMB) mount, and two properties of that mount shape
 this module (measured in the add-layers-admin spike):
 
@@ -30,6 +43,7 @@ from app.config.logger import get_logger
 logger = get_logger("modules.layers.store")
 
 INDEX_FILENAME = "index.json"
+REGISTRY_FILENAME = "countries.json"
 # Languages every layer's attributes and considerations are kept in.
 SUPPORTED_LANGUAGES = ("en", "es")
 REPLACE_ATTEMPTS = 10
@@ -37,6 +51,17 @@ REPLACE_BACKOFF_SECONDS = 0.1
 
 _LANGUAGE_PATTERN = re.compile(r"^[a-z]{2}$")
 _JOB_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
+_COUNTRY_CODE_PATTERN = re.compile(r"^[A-Z]{2}$")
+_PASSKEY_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+class LayoutError(Exception):
+    """The layers root holds both layouts at once."""
+
+
+def is_country_folder_name(code: str) -> bool:
+    """An uppercase two-letter code: safe as a folder name under the root."""
+    return bool(_COUNTRY_CODE_PATTERN.match(code))
 
 
 class ReadBackMismatch(OSError):
@@ -58,9 +83,12 @@ def _with_defaults(entry: dict) -> dict:
 
 
 class LayerStore:
-    def __init__(self, root: str | os.PathLike[str]):
+    def __init__(
+        self, root: str | os.PathLike[str], lock: "threading.RLock | None" = None
+    ):
         self.root = Path(root)
-        self._lock = threading.RLock()
+        # Shared by every store under one layers root: one lock per process.
+        self._lock = lock or threading.RLock()
         self._index_cache: tuple[tuple[int, int], list[dict]] | None = None
 
     # --- Paths ---------------------------------------------------------------
@@ -323,18 +351,226 @@ class LayerStore:
         return self.root.is_dir() and os.access(self.root, os.W_OK | os.X_OK)
 
 
+def is_layer(entry: dict, country: str | None, layer_id: int) -> bool:
+    """Whether a layer from `LayersRoot.layers()` is `layer_id` of `country`. Ids
+    are numbered within each country; in the flat layout they are unique on their
+    own, and a given country must be one the layer lists."""
+    if entry["id"] != layer_id:
+        return False
+    if entry.get("country") is not None and entry["country"] != country:
+        return False
+    return country is None or country in entry.get("available_countries_codes", [])
+
+
+def _valid_registry(content: Any) -> list[dict] | None:
+    if not isinstance(content, dict) or not isinstance(content.get("countries"), list):
+        return None
+    countries = content["countries"]
+    codes = set()
+    for country in countries:
+        if (
+            not isinstance(country, dict)
+            or not isinstance(country.get("code"), str)
+            or not is_country_folder_name(country["code"])
+            or country["code"] in codes
+            or not isinstance(country.get("enabled"), bool)
+            or not isinstance(country.get("passkey_hash"), str)
+            or not _PASSKEY_HASH_PATTERN.match(country["passkey_hash"])
+        ):
+            return None
+        codes.add(country["code"])
+    return countries
+
+
+class LayersRoot:
+    """The whole layers root, in either layout (see the module docstring)."""
+
+    def __init__(self, root: str | os.PathLike[str]):
+        self.root = Path(root)
+        self._lock = threading.RLock()
+        # The legacy index, and in both layouts the jobs and the share staging area.
+        self.flat = LayerStore(self.root, self._lock)
+        self._country_stores: dict[str, LayerStore] = {}
+        self._registry_cache: tuple[tuple[int, int], list[dict]] | None = None
+
+    # --- Layout --------------------------------------------------------------
+
+    @property
+    def registry_path(self) -> Path:
+        return self.root / REGISTRY_FILENAME
+
+    def is_per_country(self) -> bool:
+        """Whether the root uses the per-country layout. A root without either file
+        counts as flat (its index is just missing, as before)."""
+        has_registry = self.registry_path.is_file()
+        if has_registry and self.flat.index_path.is_file():
+            raise LayoutError(
+                f"{self.root} has both {INDEX_FILENAME} and {REGISTRY_FILENAME}: "
+                "keep only the flat index or only the per-country layout"
+            )
+        return has_registry
+
+    # --- Country registry ----------------------------------------------------
+
+    def read_registry(self) -> list[dict] | None:
+        """The registered countries (`code`, `passkey_hash`, `enabled`).
+
+        Cached while the file is unchanged. If the file can't be parsed, the last
+        valid registry read by this process is kept (and an error logged), so a bad
+        edit doesn't lock every admin out of a running API.
+        """
+        with self._lock:
+            try:
+                stat = self.registry_path.stat()
+            except OSError as e:
+                logger.warning("Cannot read the country registry: %s", e)
+                return self._cached_registry()
+            key = (stat.st_mtime_ns, stat.st_size)
+            if self._registry_cache is not None and self._registry_cache[0] == key:
+                return self._cached_registry()
+            countries = _valid_registry(LayerStore._read_json(self.registry_path))
+            if countries is None:
+                logger.error(
+                    "Invalid country registry at '%s'; keeping the last valid one",
+                    self.registry_path,
+                )
+                return self._cached_registry()
+            self._registry_cache = (key, countries)
+            return self._cached_registry()
+
+    def _cached_registry(self) -> list[dict] | None:
+        if self._registry_cache is None:
+            return None
+        return copy.deepcopy(self._registry_cache[1])
+
+    def write_registry(self, countries: list[dict]) -> None:
+        if _valid_registry({"countries": countries}) is None:
+            raise ValueError("Invalid country registry")
+        data = json.dumps({"countries": countries}, indent=2) + "\n"
+        with self._lock:
+            self.flat._atomic_write(self.registry_path, data.encode("utf-8"))
+            stat = self.registry_path.stat()
+            self._registry_cache = (
+                (stat.st_mtime_ns, stat.st_size),
+                copy.deepcopy(countries),
+            )
+
+    def registered_country(self, code: str) -> dict | None:
+        return next((c for c in self.read_registry() or [] if c["code"] == code), None)
+
+    def country_store(self, code: str) -> LayerStore:
+        """The folder of one country (per-country layout)."""
+        if not is_country_folder_name(code):
+            raise ValueError(f"Invalid country code '{code}'")
+        with self._lock:
+            if code not in self._country_stores:
+                self._country_stores[code] = LayerStore(self.root / code, self._lock)
+            return self._country_stores[code]
+
+    # --- Layers across countries ---------------------------------------------
+
+    def layers(self) -> list[dict] | None:
+        """Every layer, enabled or not, each with its `country` (None in the flat
+        layout, whose layers list theirs in `available_countries_codes`). In the
+        per-country layout `available_countries_codes` is set to `[country]`, so
+        both layouts read the same. None if the index or registry can't be read."""
+        with self._lock:
+            if not self.is_per_country():
+                index = self.flat.read_index()
+                if index is None:
+                    return None
+                return [{**entry, "country": None} for entry in index]
+            registry = self.read_registry()
+            if registry is None:
+                return None
+            layers = []
+            for country in registry:
+                code = country["code"]
+                index = self.country_store(code).read_index()
+                if index is None:
+                    return None
+                for entry in index:
+                    layers.append(
+                        {**entry, "country": code, "available_countries_codes": [code]}
+                    )
+            return layers
+
+    def country_layers(self, code: str) -> list[dict] | None:
+        """One country's layers, enabled or not, tagged like `layers()`. For the
+        per-country layout only. It reads just that country's index, so another
+        country's unreadable index doesn't affect it. [] for a country that isn't
+        registered; None if its index can't be read."""
+        with self._lock:
+            if self.registered_country(code) is None:
+                return []
+            index = self.country_store(code).read_index()
+            if index is None:
+                return None
+            return [
+                {**entry, "country": code, "available_countries_codes": [code]}
+                for entry in index
+            ]
+
+    def find_layer(self, country: str | None, layer_id: int) -> dict | None:
+        return next(
+            (
+                entry
+                for entry in self.layers() or []
+                if is_layer(entry, country, layer_id)
+            ),
+            None,
+        )
+
+    def store_for(self, layer: dict) -> LayerStore:
+        """The store holding a layer returned by `layers()`."""
+        country = layer.get("country")
+        return self.flat if country is None else self.country_store(country)
+
+    def enabled_countries(self) -> set[str] | None:
+        """Codes enabled in the registry; None in the flat layout (no registry)."""
+        if not self.is_per_country():
+            return None
+        return {c["code"] for c in self.read_registry() or [] if c["enabled"]}
+
+    def public_countries(self) -> list[str] | None:
+        """Countries a visitor can pick: in the per-country layout, those enabled in
+        the registry with at least one enabled layer; in the flat layout, the
+        countries of the enabled layers. None if any index cannot be read."""
+        layers = self.layers()
+        if layers is None:
+            return None
+        enabled_layers = [entry for entry in layers if entry["enabled"]]
+        codes = {
+            code
+            for entry in enabled_layers
+            for code in entry.get("available_countries_codes", [])
+        }
+        allowed = self.enabled_countries()
+        if allowed is not None:
+            codes &= allowed
+        return sorted(codes)
+
+    # --- Shared --------------------------------------------------------------
+
+    def locked(self) -> threading.RLock:
+        return self._lock
+
+    def is_writable(self) -> bool:
+        return self.flat.is_writable()
+
+
 # Built once at import time: the constructor doesn't touch the disk, and a single
-# instance means a single lock guarding the index for the whole process.
-_default_store = LayerStore(env.MAPS_ROOT)
-_store = _default_store
+# instance means a single lock guarding every index for the whole process.
+_default_root = LayersRoot(env.MAPS_ROOT)
+_root = _default_root
 
 
-def get_layer_store() -> LayerStore:
-    """The process-wide store for `MAPS_ROOT`."""
-    return _store
+def get_layers_root() -> LayersRoot:
+    """The process-wide layers root for `MAPS_ROOT`."""
+    return _root
 
 
-def set_layer_store(store: LayerStore | None) -> None:
-    """Replace the process-wide store (used by tests). `None` restores the default."""
-    global _store
-    _store = store if store is not None else _default_store
+def set_layers_root(root: LayersRoot | None) -> None:
+    """Replace the process-wide root (used by tests). `None` restores the default."""
+    global _root
+    _root = root if root is not None else _default_root

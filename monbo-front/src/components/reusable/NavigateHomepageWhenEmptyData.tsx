@@ -10,7 +10,7 @@ export const NavigateHomepageWhenEmptyData: React.FC = () => {
 
   useEffect(() => {
     if (!farmsData) {
-      router.push("/");
+      router.push("/home");
     }
   }, [farmsData, router]);
 

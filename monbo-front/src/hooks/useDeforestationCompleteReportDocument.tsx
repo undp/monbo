@@ -20,6 +20,7 @@ export const useDeforestationCompleteReportDocument = () => {
       selectedMaps: selectedMapsForReport,
       selectedFarms: selectedFarmsForReport,
     },
+    selectedCountry,
     invalidateAnalysis,
   } = useContext(DataContext);
 
@@ -47,6 +48,7 @@ export const useDeforestationCompleteReportDocument = () => {
 
       try {
         const results = await fetchDeforestationImages(
+          selectedCountry!,
           selectedMapsForReport,
           selectedFarmsForReport,
           filteredDeforestationAnalysisResults
@@ -64,6 +66,7 @@ export const useDeforestationCompleteReportDocument = () => {
 
     fetchImages();
   }, [
+    selectedCountry,
     selectedFarmsForReport,
     selectedMapsForReport,
     filteredDeforestationAnalysisResults,

@@ -30,6 +30,9 @@ properties:
             value: true
           - name: NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
             value: 210
+          # https: or mailto:; empty hides the landing page's contact card
+          - name: NEXT_PUBLIC_CONTACT_URL
+            value: ""
         resources:
           cpu: 0.5
           memory: 1Gi

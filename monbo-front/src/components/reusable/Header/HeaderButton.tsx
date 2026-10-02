@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useContext, useMemo } from "react";
 import { DataContext } from "@/context/DataContext";
 import { useTranslation } from "react-i18next";
+import { isSamePath } from "@/utils/paths";
 
 interface HeaderButtonProps {
   children: React.ReactNode;
@@ -23,13 +24,16 @@ export const HeaderButton: React.FC<HeaderButtonProps> = ({
   const { polygonsValidationResults, deforestationAnalysisResults } =
     useContext(DataContext);
 
+  // The landing page (country map) and the module cards show no module buttons.
   const currentPathnameIsHomepage = useMemo(
-    () => pathname === "/" || pathname === `/${i18n.language}`,
+    () =>
+      isSamePath(pathname, "/", i18n.language) ||
+      isSamePath(pathname, "/home", i18n.language),
     [pathname, i18n.language]
   );
 
   const isPathActive = useMemo(
-    () => pathname === path || pathname === `/${i18n.language}${path}`,
+    () => isSamePath(pathname, path, i18n.language),
     [pathname, path, i18n.language]
   );
 

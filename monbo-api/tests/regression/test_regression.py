@@ -14,7 +14,11 @@ import json
 import openpyxl
 import pytest
 
-from app.modules.layers.store import LayerStore, get_layer_store, set_layer_store
+from app.modules.layers.store import (
+    LayersRoot,
+    get_layers_root,
+    set_layers_root,
+)
 from tests.regression.generate import is_lfs_pointer
 from tests.regression.pipeline import (
     EXCEL_PATH,
@@ -58,17 +62,17 @@ def test_excel_is_still_a_valid_upload_file():
 
 def test_regression_results_on_fixture_layers():
     """Runs everywhere (CI included): sparse copies of the real layers."""
-    set_layer_store(LayerStore(FIXTURE_MAPS_ROOT))
+    set_layers_root(LayersRoot(FIXTURE_MAPS_ROOT))
     try:
         results = run_pipeline(read_farm_rows())
     finally:
-        set_layer_store(None)
+        set_layers_root(None)
     assert_same_results(results)
 
 
 def test_regression_results_on_real_layers():
     """Also catches changes in the real rasters or index. Needs `git lfs pull`."""
-    store = get_layer_store()
+    store = get_layers_root().flat
     index = store.read_index() or []
     rasters = [store.raster_path(entry["raster_filename"]) for entry in index]
     if not rasters or any(not p.exists() or is_lfs_pointer(p) for p in rasters):

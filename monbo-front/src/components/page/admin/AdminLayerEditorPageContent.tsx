@@ -16,6 +16,13 @@ import {
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminLayer } from "@/interfaces/AdminLayer";
+import {
+  dropKept,
+  keepForLanguageChange,
+  settleLanguageChange,
+  localizedPath,
+  takeOverOnLanguageChange,
+} from "@/utils/languageChange";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { LayerForm, Section } from "./LayerForm";
 import { LayerFormValues, toFormValues, toLayerInput } from "./layerFormState";
@@ -36,8 +43,11 @@ const describeValidationError = (error: AdminApiError) =>
         .join("; ")
     : null;
 
+// The Raster section's anchor: creating a layer leads there, its next step.
+export const RASTER_SECTION_ID = "raster";
+
 export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, withToken } = useContext(AdminSessionContext);
   const { openSnackbar } = useContext(SnackbarContext);
@@ -50,7 +60,23 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { reset, handleSubmit, formState } = form;
+  const { reset, handleSubmit, formState, getValues, subscribe } = form;
+
+  // Changing the language remounts the page: keep what was typed (languageChange.ts).
+  const draftKey = `admin-layer-form:${layerId ?? "new"}`;
+  const [draft] = useState(() => takeOverOnLanguageChange<LayerFormValues>(draftKey));
+  useEffect(
+    () =>
+      subscribe({
+        formState: { values: true },
+        callback: () => keepForLanguageChange(draftKey, getValues()),
+      }),
+    [draftKey, subscribe, getValues]
+  );
+  useEffect(() => {
+    settleLanguageChange(draftKey);
+    return () => dropKept(draftKey);
+  }, [draftKey]);
 
   const load = useCallback(async () => {
     if (isNew) return null;
@@ -64,9 +90,24 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   useEffect(() => {
     if (!session) return;
     load()
-      .then((found) => found && reset(toFormValues(found)))
+      .then((found) => {
+        if (found) reset(toFormValues(found));
+        // On top of the stored values, so the edits still count as changes.
+        if (draft) reset(draft, { keepDefaultValues: true });
+      })
       .catch(() => setNotFound(true));
-  }, [session, load, reset]);
+  }, [session, load, reset, draft]);
+
+  // After creating a layer: bring its next step, the raster, into view once it
+  // renders, then drop the anchor so later reloads of the layer don't scroll.
+  const hasLayer = layer !== null;
+  useEffect(() => {
+    if (!hasLayer || window.location.hash !== `#${RASTER_SECTION_ID}`) return;
+    document
+      .getElementById(RASTER_SECTION_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [hasLayer]);
 
   // After a raster upload: refresh the layer without discarding form edits.
   const reload = useCallback(() => {
@@ -80,7 +121,9 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         if (isNew) {
           const created = await withToken((token) => createAdminLayer(token, input));
           openSnackbar({ message: t("admin:form:created"), type: "success" });
-          router.replace(`/admin/layers/${created.id}`);
+          router.replace(
+            localizedPath(`/admin/layers/${created.id}#${RASTER_SECTION_ID}`, i18n.language)
+          );
         } else {
           const updated = await withToken((token) =>
             updateAdminLayer(token, layerId, input)
@@ -124,7 +167,10 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     : t("admin:form:editTitle", { id: layerId });
 
   const back = (
-    <Button startIcon={<ArrowBackIcon />} onClick={() => router.push("/admin/layers")}>
+    <Button
+      startIcon={<ArrowBackIcon />}
+      onClick={() => router.push(localizedPath("/admin/layers", i18n.language))}
+    >
       {t("admin:form:back")}
     </Button>
   );
@@ -165,7 +211,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         </form>
       </FormProvider>
       {layer && (
-        <Section title={t("admin:form:sections:raster")}>
+        <Section id={RASTER_SECTION_ID} title={t("admin:form:sections:raster")}>
           <RasterUploadSection layer={layer} onLayerChanged={reload} />
         </Section>
       )}

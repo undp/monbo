@@ -14,7 +14,6 @@ export interface LayerFormValues {
   compared_against: string;
   // useFieldArray needs objects, not plain strings
   references: { url: string }[];
-  available_countries_codes: string[];
   attributes: Record<AdminLanguage, Record<keyof LayerAttributes, string>>;
   considerations: Record<AdminLanguage, string>;
 }
@@ -48,7 +47,6 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
     compared_against:
       layer?.compared_against != null ? String(layer.compared_against) : "",
     references: (layer?.references ?? []).map((url) => ({ url })),
-    available_countries_codes: layer ? [...layer.available_countries_codes] : [],
     attributes,
     considerations,
   };
@@ -74,7 +72,6 @@ export const toLayerInput = (values: LayerFormValues): LayerInput => {
     baseline: Number(values.baseline),
     compared_against: Number(values.compared_against),
     references: values.references.map((r) => r.url.trim()).filter(Boolean),
-    available_countries_codes: values.available_countries_codes,
     attributes,
     considerations,
   };
@@ -97,7 +94,6 @@ export const validators = {
     }
     return true;
   },
-  countries: (codes: string[]) => codes.length > 0 || "admin:form:errors:countries",
   reference: (value: string) =>
     !value.trim() ||
     /^https?:\/\//.test(value.trim()) ||

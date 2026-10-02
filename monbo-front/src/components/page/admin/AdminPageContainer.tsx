@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { Text } from "@/components/reusable/Text";
+import { getCountryName } from "@/utils/countries";
+import { localizedPath } from "@/utils/languageChange";
 
 interface Props {
   title: string;
@@ -15,20 +17,21 @@ interface Props {
   children: React.ReactNode;
 }
 
-/** Layout for signed-in admin pages; sends visitors without a session to login. */
+/** Layout for signed-in admin pages; sends visitors without a session to login.
+ * Shows the country the session administers. */
 export const AdminPageContainer: React.FC<Props> = ({
   title,
   subtitle,
   actions,
   children,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, ready, logout } = useContext(AdminSessionContext);
 
   useEffect(() => {
-    if (ready && !session) router.replace("/admin");
-  }, [ready, session, router]);
+    if (ready && !session) router.replace(localizedPath("/admin", i18n.language));
+  }, [ready, session, router, i18n.language]);
 
   if (!ready || !session) {
     return (
@@ -46,7 +49,7 @@ export const AdminPageContainer: React.FC<Props> = ({
           justifyContent: "space-between",
           alignItems: "flex-start",
           gap: 2,
-          marginBottom: 3,
+          marginBottom: subtitle ? 1.5 : 3,
         }}
       >
         <Box>
@@ -54,13 +57,10 @@ export const AdminPageContainer: React.FC<Props> = ({
             {t("admin:title")}
           </Text>
           <Text variant="h3" component="h1" bold>
-            {title}
+            {title} ·{" "}
+            {getCountryName(session.country, i18n.language as "en" | "es") ??
+              session.country}
           </Text>
-          {subtitle && (
-            <Text color="secondary" variant="body2" sx={{ marginTop: 1 }}>
-              {subtitle}
-            </Text>
-          )}
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
           {actions}
@@ -68,13 +68,19 @@ export const AdminPageContainer: React.FC<Props> = ({
             startIcon={<LogoutIcon />}
             onClick={() => {
               logout();
-              router.replace("/admin");
+              router.replace(localizedPath("/admin", i18n.language));
             }}
           >
             {t("admin:logout")}
           </Button>
         </Box>
       </Box>
+      {subtitle && (
+        // Below the title row, so it can use the page's full width.
+        <Text color="secondary" variant="body2" sx={{ marginBottom: 3 }}>
+          {subtitle}
+        </Text>
+      )}
       {children}
     </Box>
   );

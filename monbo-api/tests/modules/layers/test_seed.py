@@ -8,7 +8,7 @@ from rasterio.transform import from_origin
 
 from app.main import create_app
 from app.modules.layers.seed import SeedError, main, seed
-from app.modules.layers.store import LayerStore, set_layer_store
+from app.modules.layers.store import LayersRoot, set_layers_root
 
 TRANSFORM = from_origin(-76.5, -0.2, 0.00027, 0.00027)
 LAYER_A = {
@@ -106,11 +106,11 @@ def test_seed_converts_every_layer_and_publishes_it(source, tmp_path):
         "notes b es"
     )
 
-    set_layer_store(LayerStore(target))
+    set_layers_root(LayersRoot(target))
     try:
         public = TestClient(create_app()).get("/maps?language=es").json()
     finally:
-        set_layer_store(None)
+        set_layers_root(None)
     assert [(layer["id"], layer["name"], layer["version"]) for layer in public] == [
         (0, "a es", 1),
         (4, "b es", 1),

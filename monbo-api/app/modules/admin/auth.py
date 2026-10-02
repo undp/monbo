@@ -1,9 +1,12 @@
-"""Admin authentication: one long shared passkey, exchanged for a short-lived token.
+"""Admin authentication: one long passkey per country, exchanged for a short-lived
+token that only administers that country.
 
-The API only knows the SHA-256 of the passkey (`ADMIN_PASSKEY_HASH`). A correct
-passkey gets a token signed with `ADMIN_SESSION_SECRET` (HMAC-SHA256), sent back as
-`Authorization: Bearer <token>`. Tokens are stateless: rotating the secret signs
-every admin out.
+The API only knows the SHA-256 of each passkey, from the country registry
+(`countries.json` under MAPS_ROOT). A passkey that matches an enabled country gets a
+token signed with `ADMIN_SESSION_SECRET` (HMAC-SHA256), sent back as
+`Authorization: Bearer <token>`. The token carries the country and a fingerprint of
+its passkey hash, checked against the registry on every call: rotating or disabling
+a country signs its admins out at once, and rotating the secret signs everyone out.
 """
 
 import base64
@@ -22,6 +25,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import env
 from app.config.logger import get_logger
+from app.modules.layers.store import LayoutError, get_layers_root
 
 logger = get_logger("modules.admin.auth")
 
@@ -31,8 +35,18 @@ MAX_TRACKED_IPS = 1000
 FAILED_LOGIN_WINDOW_SECONDS = 15 * 60
 
 
+# Characters of the passkey hash a token carries, to notice a rotated passkey.
+KEY_FINGERPRINT_LENGTH = 16
+
+
 def admin_enabled() -> bool:
-    return env.ADMIN_PASSKEY_HASH is not None and env.ADMIN_SESSION_SECRET is not None
+    """The admin needs the session secret and a per-country layers root."""
+    if env.ADMIN_SESSION_SECRET is None:
+        return False
+    try:
+        return get_layers_root().is_per_country()
+    except LayoutError:
+        return False
 
 
 # --- Passkey ---------------------------------------------------------------------
@@ -42,11 +56,20 @@ def hash_passkey(passkey: str) -> str:
     return hashlib.sha256(passkey.encode("utf-8")).hexdigest()
 
 
-def passkey_matches(passkey: str) -> bool:
-    expected = env.ADMIN_PASSKEY_HASH
-    if expected is None:
-        return False
-    return hmac.compare_digest(hash_passkey(passkey), expected)
+def country_for_passkey(passkey: str) -> dict | None:
+    """The enabled country whose passkey this is, or None.
+
+    Compares against every enabled country in constant time and never stops early,
+    so the timing reveals neither how many countries there are nor which matched.
+    """
+    submitted = hash_passkey(passkey)
+    match = None
+    for country in get_layers_root().read_registry() or []:
+        if country["enabled"] and hmac.compare_digest(
+            submitted, country["passkey_hash"]
+        ):
+            match = country
+    return match
 
 
 # --- Session tokens ----------------------------------------------------------------
@@ -56,6 +79,9 @@ def passkey_matches(passkey: str) -> bool:
 class Session:
     issued_at: int
     expires_at: int
+    # The country this session administers, and the start of its passkey hash.
+    country: str
+    key_fingerprint: str
 
 
 def _b64encode(data: bytes) -> str:
@@ -74,20 +100,29 @@ def _sign(payload: str) -> str:
     return _b64encode(digest)
 
 
-def issue_token(now: float | None = None) -> tuple[str, Session]:
+def issue_token(country: dict, now: float | None = None) -> tuple[str, Session]:
+    """A token for a registry entry (`code`, `passkey_hash`)."""
     issued_at = int(time.time() if now is None else now)
-    session = Session(issued_at, issued_at + env.ADMIN_SESSION_TTL_MINUTES * 60)
+    session = Session(
+        issued_at,
+        issued_at + env.ADMIN_SESSION_TTL_MINUTES * 60,
+        country["code"],
+        country["passkey_hash"][:KEY_FINGERPRINT_LENGTH],
+    )
     claims: dict[str, int | str] = {
         "iat": session.issued_at,
         "exp": session.expires_at,
         "jti": secrets.token_hex(8),
+        "country": session.country,
+        "kid": session.key_fingerprint,
     }
     payload = _b64encode(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
     return f"{payload}.{_sign(payload)}", session
 
 
 def verify_token(token: str, now: float | None = None) -> Session | None:
-    """The session a token stands for, or None if it is forged, altered or expired."""
+    """The session a token stands for, or None if it is forged, altered or expired.
+    It doesn't check the registry: `require_admin` does."""
     payload, _, signature = token.partition(".")
     if not payload or not signature or not token.isascii():
         return None
@@ -95,8 +130,14 @@ def verify_token(token: str, now: float | None = None) -> Session | None:
         return None
     try:
         claims = json.loads(_b64decode(payload))
-        session = Session(int(claims["iat"]), int(claims["exp"]))
+        session = Session(
+            int(claims["iat"]),
+            int(claims["exp"]),
+            str(claims["country"]),
+            str(claims["kid"]),
+        )
     except (binascii.Error, ValueError, KeyError, TypeError):
+        # Tokens from before per-country admins have no country: rejected.
         return None
     if session.expires_at <= (time.time() if now is None else now):
         return None
@@ -197,11 +238,22 @@ def check_origin(request: Request) -> None:
 _bearer = HTTPBearer(auto_error=False, description="Admin session token")
 
 
+def _session_still_valid(session: Session) -> bool:
+    """The token's country is still registered and enabled, with the same passkey."""
+    country = get_layers_root().registered_country(session.country)
+    return (
+        country is not None
+        and country["enabled"]
+        and country["passkey_hash"].startswith(session.key_fingerprint)
+        and len(session.key_fingerprint) == KEY_FINGERPRINT_LENGTH
+    )
+
+
 def require_admin(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> Session:
     session = verify_token(credentials.credentials) if credentials else None
-    if session is None:
+    if session is None or not _session_still_valid(session):
         raise HTTPException(
             status_code=401,
             detail="Admin session required",

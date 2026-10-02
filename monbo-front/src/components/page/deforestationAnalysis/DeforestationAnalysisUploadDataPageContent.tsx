@@ -8,10 +8,13 @@ import React, {
   useState,
 } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
-import { Text } from "@/components/reusable/Text";
 import { generateFarmsData } from "@/api/farms";
 import { analizeDeforestation } from "@/api/deforestationAnalysis";
-import { DataContext } from "@/context/DataContext";
+import {
+  DataContext,
+  readFlowGeneration,
+  readSelectedCountry,
+} from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -21,11 +24,10 @@ import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeader
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
-import { MultiSelector } from "@/components/reusable/selectors/MultiSelector";
-import { Box } from "@mui/material";
-import { CustomHeaderStepContainer } from "@/components/page/uploadData/CustomHeaderStepContainer";
-import { useCountryAndMapsSelection } from "@/hooks/useCountryAndMapsSelection";
+import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
+import { Box, Button } from "@mui/material";
+import { getCountryName } from "@/utils/countries";
 import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
@@ -37,11 +39,13 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const router = useRouter();
   const {
     availableMaps,
+    availableMapsError,
     farmsData,
     setFarmsData,
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
     setDeforestationAnalysisParams,
     setDeforestationAnalysisResults,
+    selectedCountry,
     analysisOutdated,
     setAnalysisOutdated,
   } = useContext(DataContext);
@@ -51,32 +55,40 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const [loading, setLoading] = useState(
     () => !!farmsData && selectedMapsForDeforestation.length > 0
   );
+  // Whether the analysis may start: when the page opens with farms and layers
+  // (from the deforestation modal, or to recalculate an outdated analysis),
+  // after a file is parsed, or from the "Analyze" button. Choosing layers on
+  // the form never starts it, so the user can tick more than one.
+  const [analysisRequested, setAnalysisRequested] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // The inputs of the latest analysis request, and whether the page is mounted:
+  // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
-  // Only the latest analysis request may store its results.
+  // Counts analysis requests, so a stale one can tell whether a newer one is
+  // still pending (and owns the loading screen).
   const latestRequestRef = useRef(0);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  const onCountrySelectionChangeEffect = useCallback(() => {
-    // When the user selects a country, we need to clear the selected maps
-    setDeforestationAnalysisParams((prev) => ({
-      ...prev,
-      selectedMaps: [],
-    }));
-  }, [setDeforestationAnalysisParams]);
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
 
-  const {
-    selectedCountries,
-    countriesOptions,
-    onCountrySelectionChange,
-    mapOptions,
-    selectedMapsOptions,
-  } = useCountryAndMapsSelection({
+  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
     selectedMaps: selectedMapsForDeforestation,
     availableMaps,
-    onCountrySelectionChangeEffect,
   });
 
   const onMapSelectionChange = useCallback(
     (id: string, checked: boolean) => {
+      setAnalysisRequested(false);
       if (checked) {
         setDeforestationAnalysisParams((prev) => ({
           ...prev,
@@ -97,9 +109,23 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
       try {
-        const results = await generateFarmsData(data, i18n.language);
-        setFarmsData(results);
+        // The upload has no country column: every farm is in the analysis country.
+        const results = await generateFarmsData(
+          data.map((row) => ({ ...row, country: selectedCountry })),
+          i18n.language
+        );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
+        // The country can change while the parser request is in flight.
+        setFarmsData(
+          results.map((farm) => ({
+            ...farm,
+            country: readSelectedCountry() ?? farm.country,
+          }))
+        );
+        setAnalysisRequested(true);
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -110,20 +136,27 @@ export function DeforestationAnalysisUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t, i18n.language]
+    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
   );
 
   const performDeforestationAnalysis = useCallback(
-    async (data: FarmData[]) => {
+    async (data: FarmData[], isCurrent: () => boolean) => {
       const request = ++latestRequestRef.current;
+      // A stale response turns the loading screen off, unless a newer request
+      // is pending.
+      const settleStale = () => {
+        if (request === latestRequestRef.current) setLoading(false);
+      };
       setLoading(true);
       try {
         const response = await analizeDeforestation(
           data,
-          selectedMapsForDeforestation
+          selectedMapsForDeforestation,
+          selectedCountry!
         );
-        // A newer request (e.g. after a layer changed again) supersedes this one.
-        if (request !== latestRequestRef.current) return;
+        // A newer request (another country, or a layer that changed again)
+        // supersedes this one.
+        if (!isCurrent()) return settleStale();
         setDeforestationAnalysisResults(response);
         setAnalysisOutdated(false);
         router.push(`/${i18n.language}/deforestation-analysis`);
@@ -134,7 +167,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
           type: "success",
         });
       } catch {
-        if (request !== latestRequestRef.current) return;
+        if (!isCurrent()) return settleStale();
         openSnackbar({
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
@@ -142,10 +175,13 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // TODO: we should navigate back to polygons validation page only if coming from there
         // router.push("/polygons-validation");
         setLoading(false);
+        // Back to the form: the "Analyze" button retries.
+        setAnalysisRequested(false);
       }
     },
     [
       selectedMapsForDeforestation,
+      selectedCountry,
       router,
       setDeforestationAnalysisResults,
       setAnalysisOutdated,
@@ -157,8 +193,18 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   useEffect(() => {
+    if (
+      !analysisRequested ||
+      !farmsData ||
+      !selectedMapsForDeforestation.length
+    ) {
+      prevDataRef.current = null;
+      return;
+    }
+
     const serializedData = JSON.stringify({
-      farms: farmsData?.map((farm) => farm.id),
+      country: selectedCountry,
+      farms: farmsData.map((farm) => [farm.id, farm.country]),
       // Only an analysis invalidated by a layer change re-runs when the selected
       // layers' calculation inputs change; ticking maps on the form doesn't.
       calculationInputs: analysisOutdated
@@ -174,11 +220,20 @@ export function DeforestationAnalysisUploadDataPageContent() {
     if (serializedData === prevDataRef.current) return;
 
     prevDataRef.current = serializedData;
-    if (!farmsData || !selectedMapsForDeforestation.length) return;
-
-    performDeforestationAnalysis(farmsData);
+    // Superseded once the inputs change (prevDataRef moves on), the country
+    // changes or the page unmounts. A re-run with the same inputs (e.g. the maps
+    // list refreshed, or Strict Mode replaying the effect) keeps it current.
+    void performDeforestationAnalysis(
+      farmsData,
+      () =>
+        mountedRef.current &&
+        prevDataRef.current === serializedData &&
+        readSelectedCountry() === selectedCountry
+    );
   }, [
+    analysisRequested,
     farmsData,
+    selectedCountry,
     selectedMapsForDeforestation,
     analysisOutdated,
     performDeforestationAnalysis,
@@ -194,7 +249,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
       const { data, errorMessages } = await loadExcelFileFarmsData(
         file,
         t,
-        i18n.language
+        i18n.language,
+        selectedCountry
       );
 
       if (errorMessages.length > 0) {
@@ -210,10 +266,17 @@ export function DeforestationAnalysisUploadDataPageContent() {
         performFarmsGeneration(data);
       }
     },
-    [openSnackbar, t, performFarmsGeneration, setAnalysisOutdated, i18n.language]
+    [
+      openSnackbar,
+      t,
+      performFarmsGeneration,
+      setAnalysisOutdated,
+      i18n.language,
+      selectedCountry,
+    ]
   );
 
-  if (loading)
+  if (loading && selectedMapsForDeforestation.length > 0)
     return (
       <LoadingScreen
         text={t(
@@ -240,55 +303,27 @@ export function DeforestationAnalysisUploadDataPageContent() {
           fileUrl={getUploadFileTemplatePath(i18n.language)} // TODO: Change to deforestation analysis template
         />
       </TextHeaderStepContainer>
-      <CustomHeaderStepContainer
-        header={
-          <Box
-            sx={{
-              display: "flex",
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
-            }}
-          >
-            <Text variant="h4" bold>
-              {t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
-              )}
-            </Text>
-            <MultiSelector
-              sx={{ width: 350 }}
-              selectedOptions={selectedCountries}
-              options={countriesOptions}
-              label={t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:countrySelectorLabel"
-              )}
-              onChange={onCountrySelectionChange}
-              compact
-            />
-          </Box>
-        }
+      <TextHeaderStepContainer
+        title={t(
+          "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
+        )}
       >
         <MultiSelectionStep
           selectedOptions={selectedMapsOptions}
           options={mapOptions}
           onChange={onMapSelectionChange}
         />
-        {!selectedCountries.length && (
+        {!mapOptions.length && (
           <MessageBox
             message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noCountriesSelected"
+              availableMapsError
+                ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              { country: countryName }
             )}
           />
         )}
-        {selectedCountries.length > 0 && !mapOptions.length && (
-          <MessageBox
-            message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable"
-            )}
-          />
-        )}
-      </CustomHeaderStepContainer>
+      </TextHeaderStepContainer>
       <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
         sx={{
@@ -319,6 +354,28 @@ export function DeforestationAnalysisUploadDataPageContent() {
           onDrop={onFileDropped}
           disabled={selectedMapsForDeforestation.length === 0}
         />
+        {farmsData && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
+              count: farmsData.length,
+            })}
+            <Button
+              variant="contained"
+              onClick={() => setAnalysisRequested(true)}
+              disabled={selectedMapsForDeforestation.length === 0}
+            >
+              {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
+            </Button>
+          </Box>
+        )}
       </TextHeaderStepContainer>
     </UploadPageContent>
   );

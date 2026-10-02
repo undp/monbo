@@ -1,5 +1,4 @@
 import os
-import re
 
 from dotenv import load_dotenv
 
@@ -10,9 +9,10 @@ GCP_MAPS_PLATFORM_API_KEY = os.getenv("GCP_MAPS_PLATFORM_API_KEY")
 
 GCP_MAPS_PLATFORM_SIGNATURE_SECRET = os.getenv("GCP_MAPS_PLATFORM_SIGNATURE_SECRET")
 
-# Root directory holding the layers index, metadata and rasters. Relative paths are
-# resolved from the working directory, as before (the default is the Git-tracked
-# copy). In Azure this points at the mounted Azure Files share (/mnt/maps).
+# Root directory holding the layers: per-country folders and their registry, or the
+# legacy flat index. Relative paths are resolved from the working directory, as
+# before (the default is the Git-tracked copy, in the flat layout). In Azure this
+# points at the per-country layout on the mounted Azure Files share (/mnt/maps).
 MAPS_ROOT = os.getenv("MAPS_ROOT") or "app/maps"
 
 # Overlap threshold %, between 0 and 100. Ensure the same value at frontend.
@@ -50,14 +50,12 @@ def _positive_int(name: str, default: int) -> int:
     return value
 
 
-# Layers admin. It is enabled only when both the passkey hash and the session secret
-# are set; generate them with `uv run python -m app.modules.admin.passkey`.
-# SHA-256 of the admin passkey, as 64 lowercase hex characters (never the passkey).
-ADMIN_PASSKEY_HASH = os.getenv("ADMIN_PASSKEY_HASH") or None
-if ADMIN_PASSKEY_HASH is not None and not re.fullmatch(
-    r"[0-9a-f]{64}", ADMIN_PASSKEY_HASH
-):
-    raise ValueError("ADMIN_PASSKEY_HASH must be a SHA-256 hash in lowercase hex")
+# Layers admin. It is enabled when the session secret is set and MAPS_ROOT uses the
+# per-country layout; each country's passkey hash lives in its country registry
+# (`uv run python -m app.modules.admin.countries`).
+# The single passkey hash of earlier releases is no longer used; only its presence is
+# read, to warn that it is ignored.
+LEGACY_ADMIN_PASSKEY_HASH_SET = bool(os.getenv("ADMIN_PASSKEY_HASH"))
 
 # Key that signs admin session tokens. Changing it signs every admin out.
 ADMIN_SESSION_SECRET = os.getenv("ADMIN_SESSION_SECRET") or None

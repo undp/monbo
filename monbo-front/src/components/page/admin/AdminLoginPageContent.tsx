@@ -7,9 +7,10 @@ import { useTranslation } from "react-i18next";
 import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { Text } from "@/components/reusable/Text";
+import { localizedPath } from "@/utils/languageChange";
 
 export const AdminLoginPageContent: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, ready, login } = useContext(AdminSessionContext);
   const [passkey, setPasskey] = useState("");
@@ -17,8 +18,8 @@ export const AdminLoginPageContent: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (ready && session) router.replace("/admin/layers");
-  }, [ready, session, router]);
+    if (ready && session) router.replace(localizedPath("/admin/layers", i18n.language));
+  }, [ready, session, router, i18n.language]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

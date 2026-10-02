@@ -41,8 +41,20 @@ def test_get_all_maps(maps_root):
     )
     response = get_all_maps()
     assert response == [
-        {"id": 1, "name": "Deforestation Map A", "enabled": True, "version": 1},
-        {"id": 2, "name": "Deforestation Map B", "enabled": False, "version": 4},
+        {
+            "id": 1,
+            "name": "Deforestation Map A",
+            "enabled": True,
+            "version": 1,
+            "country": None,
+        },
+        {
+            "id": 2,
+            "name": "Deforestation Map B",
+            "enabled": False,
+            "version": 4,
+            "country": None,
+        },
     ]
 
     (maps_root.root / "index.json").unlink()

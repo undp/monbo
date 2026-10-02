@@ -90,6 +90,7 @@ EXPECTED_MAPS_DATA = [
         ],
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
+        "country": None,  # the legacy flat layout
         "version": 2,
         "pixelSize": 30,
     }
@@ -179,7 +180,7 @@ def test_parse_farms():
 
 @patch("app.modules.deforestation_analysis.router.get_map_raster_path")
 @patch("app.modules.deforestation_analysis.router.rasterio_open")
-@patch("app.modules.deforestation_analysis.router.get_all_maps")
+@patch("app.modules.deforestation_analysis.router.get_country_maps")
 @patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
 @patch("app.modules.deforestation_analysis.router.get_pixel_area")
 @patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
@@ -187,7 +188,7 @@ def test_analize(
     mock_get_deforestation_percentage,
     mock_get_pixel_area,
     mock_get_map_pixels_inside_polygon,
-    mock_get_all_maps,
+    mock_get_country_maps,
     mock_raster_open,
     mock_get_map_raster_path,
 ):
@@ -200,7 +201,7 @@ def test_analize(
     mock_raster_open.return_value.__enter__.return_value = mock_dataset
 
     # Mock map data
-    mock_get_all_maps.return_value = [
+    mock_get_country_maps.return_value = [
         {
             "id": 1,
             "name": "Deforestation Map A",
@@ -285,7 +286,7 @@ def test_analize(
 def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path):
     mock_get_map_raster_path.return_value = "dummy/path.tif"
     mock_get_map_by_id.return_value = None
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Map not found"}
 
@@ -297,7 +298,7 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
     mock_get_tile.side_effect = lambda a, b, c, d: Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)
     )
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
 
@@ -305,7 +306,7 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
         raise Exception("Error")
 
     mock_get_tile.side_effect = raise_exception
-    response = client.get("/deforestation_analysis/tiles/1/dynamic/0/0/0.png")
+    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Tile not found"}
 
