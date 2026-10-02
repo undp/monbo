@@ -220,9 +220,9 @@ There is no caching strategy implemented because the analysis are executed on-de
 
 ### Contributing
 
-1. Create a new branch from `main`
+1. Create a new branch from `dev`
 2. Make your changes
-3. Submit a pull request
+3. Submit a pull request against `dev`
 4. Wait for review and approval
 
 ### Troubleshooting Common Issues

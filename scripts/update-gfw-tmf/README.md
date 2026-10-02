@@ -269,7 +269,8 @@ This script's dependencies are updated by Dependabot (`uv` ecosystem on
 `/scripts/update-gfw-tmf`), weekly, with minor and patch updates grouped and majors
 isolated. Nothing is automerged. See the root README for the full policy.
 
-Note the interaction with the GDAL version-matching requirement above: Dependabot can
-propose a newer `GDAL` binding, but whether that binding *builds* depends on the system
-`libgdal` on the machine running `uv sync`. Check `gdal-config --version` before
-accepting a GDAL bump.
+Dependabot ignores `gdal`, because of the version-matching requirement above: whether a
+newer binding *builds* depends on the system `libgdal` on the machine running `uv sync`,
+so a bump in the lock moves the target for whoever regenerates the rasters next. The
+rule is lifted once the GDAL strategy is decided (task 5.4 of the 2026 dependency
+upgrade). Until then, update the binding by hand, after checking `gdal-config --version`.

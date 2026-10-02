@@ -89,7 +89,7 @@ If you cannot describe concrete inputs or state that trigger the failure, it is 
 
 Do **not** review or report on:
 
-- **Anything CI already gates — once CI has run.** API CI runs `uv sync --frozen`, `pytest` (including the numeric baseline gate in `tests/test_numeric_baseline.py`), `ruff`, `black --check`, and `mypy app`. Frontend CI runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, `eslint`, and `next build`. Both are required checks on `main`. Lint, format, type errors, failing tests, broken builds, and lockfile drift are noise. If the PR is a **draft** (CI has not run), do not hunt for these either — just state in the review body that CI has not run yet.
+- **Anything CI already gates — once CI has run.** API CI runs `uv sync --frozen`, `pytest` (including the numeric baseline gate in `tests/test_numeric_baseline.py`), `ruff`, `black --check`, and `mypy app`. Frontend CI runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, `eslint`, and `next build`. Both are required checks on `main` and `dev`. Lint, format, type errors, failing tests, broken builds, and lockfile drift are noise. If the PR is a **draft** (CI has not run), do not hunt for these either — just state in the review body that CI has not run yet.
 - Formatting and personal style preferences.
 - Generated files, lockfiles (`uv.lock`, `pnpm-lock.yaml` ×3), `.tif` raster contents, and vendored code.
 - Findings a prior automated reviewer (e.g. CodeRabbit, Copilot) has already posted on this PR.
