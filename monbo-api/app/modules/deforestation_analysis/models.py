@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from app.models.farms import FarmPolygonDetailData, InputFarmData
+from app.models.maps import CountryCode
 
 
 class DeforestationUnprocessedFarmData(InputFarmData):
@@ -8,6 +9,9 @@ class DeforestationUnprocessedFarmData(InputFarmData):
 
 
 class AnalizeBody(BaseModel):
+    # The country of the layers: ids are numbered within each country. Required
+    # with the per-country layout; optional with the flat one (global ids).
+    country: CountryCode | None = None
     maps: list[int]
     farms: list[FarmPolygonDetailData]
 

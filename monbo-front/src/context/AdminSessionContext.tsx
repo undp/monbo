@@ -14,6 +14,7 @@ import {
   getAdminSession,
 } from "@/api/adminLayers";
 import { AdminSession } from "@/interfaces/AdminLayer";
+import { localizedPath } from "@/utils/languageChange";
 
 // sessionStorage only: the token dies with the tab. The passkey is never stored.
 const STORAGE_KEY = "monbo.adminSession";
@@ -48,9 +49,11 @@ const readStoredSession = (): AdminSession | null => {
   return null;
 };
 
-export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AdminSessionProvider: React.FC<{
+  children: React.ReactNode;
+  // The page's language, to send an expired session to the login in it
+  locale: string;
+}> = ({ children, locale }) => {
   const router = useRouter();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [ready, setReady] = useState(false);
@@ -62,8 +65,8 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOutToLogin = useCallback(() => {
     logout();
-    router.replace("/admin");
-  }, [logout, router]);
+    router.replace(localizedPath("/admin", locale));
+  }, [logout, router, locale]);
 
   // Restore and re-check a token from a previous page load.
   useEffect(() => {
@@ -73,18 +76,20 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
     getAdminSession(stored.token)
-      .then(() => setSession(stored))
+      .then(({ country }) => setSession({ ...stored, country }))
       .catch(() => sessionStorage.removeItem(STORAGE_KEY))
       .finally(() => setReady(true));
   }, []);
 
-  // Sign out when the token expires.
+  // Sign out when the token expires. Only sign out: the provider wraps the whole
+  // app (the header shows the session's country), and the admin pages already
+  // send a visitor without a session to the login.
   useEffect(() => {
     if (!session) return;
     const remaining = Date.parse(session.expiresAt) - Date.now();
-    const timer = setTimeout(signOutToLogin, Math.max(0, remaining));
+    const timer = setTimeout(logout, Math.max(0, remaining));
     return () => clearTimeout(timer);
-  }, [session, signOutToLogin]);
+  }, [session, logout]);
 
   const login = useCallback(async (passkey: string) => {
     const newSession = await createAdminSession(passkey);

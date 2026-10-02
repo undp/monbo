@@ -5,8 +5,10 @@ update --yaml` is broken on az CLI 2.90 and flags can't add volumes, so the whol
 app is PUT from this body. Everything comes from environment variables; secrets
 travel in the body (a temporary file deploy.sh deletes), never on a command line.
 
-Layer storage (the Azure Files share mounted at /mnt/maps) is added when
-MAPS_MOUNT=true, and the layers admin when both ADMIN_* secrets are set.
+Layer storage (the Azure Files share mounted at /mnt/maps, holding the per-country
+layout) is added when MAPS_MOUNT=true. The layers admin is added when
+ADMIN_SESSION_SECRET is set; each country's passkey hash lives in the share's
+country registry, not here.
 
 A PUT replaces the whole app. This body owns the container (image, resources, env
 vars, probes, volumes), the secrets, the registry, the scale settings and the basic
@@ -131,13 +133,11 @@ def main() -> None:
         container["volumeMounts"] = [{"volumeName": "maps", "mountPath": MAPS_MOUNT_PATH}]
         env_vars.append({"name": "MAPS_ROOT", "value": MAPS_MOUNT_PATH})
 
-    if os.environ.get("ADMIN_PASSKEY_HASH") and os.environ.get("ADMIN_SESSION_SECRET"):
+    if os.environ.get("ADMIN_SESSION_SECRET"):
         secrets += [
-            {"name": "admin-passkey-hash", "value": env("ADMIN_PASSKEY_HASH")},
             {"name": "admin-session-secret", "value": env("ADMIN_SESSION_SECRET")},
         ]
         env_vars += [
-            {"name": "ADMIN_PASSKEY_HASH", "secretRef": "admin-passkey-hash"},
             {"name": "ADMIN_SESSION_SECRET", "secretRef": "admin-session-secret"},
             {"name": "ADMIN_ALLOWED_ORIGIN", "value": env("ADMIN_ALLOWED_ORIGIN")},
         ]

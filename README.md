@@ -71,6 +71,8 @@ The documentation is organized into distinct categories: `/docs/api` for detaile
 
 Each document follows Markdown format for consistency and readability.
 
+Start with [`docs/architecture.md`](docs/architecture.md): the Azure infrastructure and how its resources interact, how the API reads the layers' rasters, and how each country administers its own layers.
+
 ### Scripts
 
 The `/scripts` directory houses standalone utility scripts and mini-projects for data processing and automation.

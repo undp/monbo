@@ -1,10 +1,10 @@
 """Admin layer contracts. Mirrored in `monbo-front/src/interfaces/AdminLayer.ts`.
 
-Field names follow the layers index (`app/maps/index.json`), which is what these
-endpoints read and write.
+Field names follow the layers index (`<country>/index.json` under MAPS_ROOT), which
+is what these endpoints read and write. A layer belongs to the country of the admin
+session that created it, so there is no countries field.
 """
 
-import pycountry
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 YEAR = Field(ge=1900, le=2100)
@@ -49,23 +49,10 @@ class LayerInput(_Strict):
     baseline: int = YEAR
     compared_against: int = YEAR
     references: list[str] = Field(default_factory=list, max_length=20)
-    available_countries_codes: list[str] = Field(min_length=1, max_length=250)
     attributes: LocalizedAttributes
     considerations: LocalizedConsiderations = Field(
         default_factory=LocalizedConsiderations
     )
-
-    @field_validator("available_countries_codes")
-    @classmethod
-    def _iso_country_codes(cls, codes: list[str]) -> list[str]:
-        normalized: list[str] = []
-        for code in codes:
-            code = code.strip().upper()
-            if len(code) != 2 or pycountry.countries.get(alpha_2=code) is None:
-                raise ValueError(f"'{code}' is not an ISO 3166-1 alpha-2 country code")
-            if code not in normalized:
-                normalized.append(code)
-        return normalized
 
     @field_validator("references")
     @classmethod
@@ -111,7 +98,6 @@ class AdminLayer(BaseModel):
     baseline: int | None
     compared_against: int | None
     references: list[str]
-    available_countries_codes: list[str]
     enabled: bool
     version: int
     raster_filename: str | None

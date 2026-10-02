@@ -26,6 +26,7 @@ export const DeforestationModal: React.FC<
   const {
     farmsData,
     availableMaps,
+    availableMapsError,
     selectedCountry,
     polygonsValidationResults,
     deforestationAnalysisParams: { polygonsSubset, selectedMaps },
@@ -137,7 +138,9 @@ export const DeforestationModal: React.FC<
           {!mapOptions.length && (
             <MessageBox
               message={t(
-                "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+                availableMapsError
+                  ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                  : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
                 { country: countryName }
               )}
             />

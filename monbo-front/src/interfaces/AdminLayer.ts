@@ -32,7 +32,6 @@ export interface LayerInput {
   baseline: number;
   compared_against: number;
   references: string[];
-  available_countries_codes: string[];
   attributes: Record<AdminLanguage, LayerAttributes>;
   considerations: Record<AdminLanguage, string | null>;
 }
@@ -43,7 +42,6 @@ export interface AdminLayer {
   baseline: number | null;
   compared_against: number | null;
   references: string[];
-  available_countries_codes: string[];
   enabled: boolean;
   version: number;
   raster_filename: string | null;
@@ -56,6 +54,8 @@ export interface AdminLayer {
 export interface AdminSession {
   token: string;
   expiresAt: string;
+  // ISO 3166-1 alpha-2 code of the country this session administers
+  country: string;
 }
 
 // Errors and warnings carry a stable code; the UI translates them by code.
@@ -76,12 +76,19 @@ export interface RasterReport {
   approxResolutionM: number | null;
 }
 
-export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+// While running: validating, then converting (conversion, verification, activation)
+export type JobPhase = "validating" | "converting";
 
 export interface IngestionJob {
   jobId: string;
+  country: string;
   layerId: number;
   status: JobStatus;
+  phase: JobPhase | null;
+  // Fraction of the raster scanned, while validating
+  progress: number | null;
   createdAt: string;
   updatedAt: string;
   requestedNodata: number | null;

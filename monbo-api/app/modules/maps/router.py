@@ -1,6 +1,9 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.models.maps import BaseMapData
+from fastapi import APIRouter, Query
+
+from app.models.maps import COUNTRY_CODE_PATTERN, BaseMapData
+from app.modules.layers.store import get_layers_root
 from app.modules.maps.helpers import get_all_maps
 from app.utils.maps import read_attributes, read_considerations
 
@@ -8,7 +11,10 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[BaseMapData])
-def get_maps(language: str = "en"):
+def get_maps(
+    language: str = "en",
+    country: Annotated[str | None, Query(pattern=COUNTRY_CODE_PATTERN)] = None,
+):
     """
     Retrieve the enabled maps with their metadata and attributes.
 
@@ -18,10 +24,15 @@ def get_maps(language: str = "en"):
 
     Args:
         language (str, optional): Language code for the metadata. Defaults to "en".
+        country (str, optional): ISO 3166-1 alpha-2 code: only that country's
+            layers (an empty list for a country that is unknown or disabled).
+            Without it, the layers of every enabled country.
 
     Returns:
         list[BaseMapData]: A list of maps with the following attributes:
-        - id: Unique identifier for the map layer
+        - id: The layer's id within its country (with the legacy flat layout,
+          unique on its own). Analysis, tiles and image generation take it with
+          the country
         - name: Complete name of the layer (e.g., "Global Forest Watch")
         - alias: Short name or reference (e.g., "GFW 2020-2023")
         - baseline: Base year for comparison
@@ -35,24 +46,36 @@ def get_maps(language: str = "en"):
         - references: Reference URLs for the data source
         - considerations: Special considerations and notes about the layer
           (in Markdown format)
-        - availableCountriesCodes: List of ISO 3166-1 alpha-2 country codes
-          available in the layer
+        - country: The layer's country (None in the legacy flat layout). Ids are
+          numbered within each country, so country and id identify a layer.
+        - availableCountriesCodes: The layer's country, as a one-element list of
+          ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
+          layer lists)
         - version: Raster version, incremented on every raster replacement (the
           frontend appends it to tile URLs to bypass cached tiles)
         - pixelSize: Nominal pixel size in meters, used by the analysis formula
     """
-    maps = [map for map in get_all_maps() if map["enabled"]]
+    enabled_countries = get_layers_root().enabled_countries()
+    maps = [
+        map
+        for map in get_all_maps()
+        if map["enabled"]
+        and (country is None or country in map["available_countries_codes"])
+        and (
+            enabled_countries is None
+            or enabled_countries & set(map["available_countries_codes"])
+        )
+    ]
 
     parsed_maps = []
     for map in maps:
-        attributes_dict = read_attributes(map["attributes_filename"], language)
-        considerations_text = read_considerations(
-            map["considerations_filename"], language
-        )
+        attributes_dict = read_attributes(map, language)
+        considerations_text = read_considerations(map, language)
 
         parsed_maps.append(
             BaseMapData(
                 id=map["id"],
+                country=map.get("country"),
                 name=attributes_dict.get("name") if attributes_dict else None,
                 alias=attributes_dict.get("alias") if attributes_dict else None,
                 baseline=int(map["baseline"]) if map["baseline"] else None,

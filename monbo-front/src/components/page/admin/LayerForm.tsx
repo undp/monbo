@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import {
-  Autocomplete,
   Box,
   Button,
   Grid,
@@ -13,10 +12,10 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import {
-  Controller,
   FieldPath,
   FieldPathByValue,
   useController,
@@ -27,7 +26,6 @@ import {
 } from "react-hook-form";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
 import { Text } from "@/components/reusable/Text";
-import { countries } from "@/utils/countries";
 import {
   ADMIN_LANGUAGES,
   AdminLanguage,
@@ -35,15 +33,32 @@ import {
   OPTIONAL_ATTRIBUTE_KEYS,
 } from "@/interfaces/AdminLayer";
 import { LayerFormValues, validators } from "./layerFormState";
+import { LayerTextsExampleModal } from "./LayerTextsExampleModal";
+import enAdmin from "@/locales/en/admin.json";
+import esAdmin from "@/locales/es/admin.json";
 
-export const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <Paper sx={{ padding: 3, marginBottom: 3 }}>
-    <Text variant="h6" component="h2" bold sx={{ marginBottom: 2 }}>
-      {title}
-    </Text>
+// Each language tab labels its fields in its own language, whatever the page's.
+const TAB_LABELS: Record<AdminLanguage, typeof enAdmin.form> = {
+  en: enAdmin.form,
+  es: esAdmin.form,
+};
+
+export const Section: React.FC<{
+  title: string;
+  // Shown right after the title (e.g. a help button)
+  titleAction?: React.ReactNode;
+  // An anchor to scroll to
+  id?: string;
+  children: React.ReactNode;
+}> = ({ title, titleAction, id, children }) => (
+  // The scroll margin keeps the title clear of the fixed header.
+  <Paper id={id} sx={{ padding: 3, marginBottom: 3, scrollMarginTop: 88 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, marginBottom: 2 }}>
+      <Text variant="h6" component="h2" bold>
+        {title}
+      </Text>
+      {titleAction}
+    </Box>
     {children}
   </Paper>
 );
@@ -86,7 +101,7 @@ const FormTextField: React.FC<FormTextFieldProps> = ({
 };
 
 const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => {
-  const { t } = useTranslation();
+  const labels = TAB_LABELS[language];
   const considerations = useWatch<LayerFormValues, `considerations.${AdminLanguage}`>({
     name: `considerations.${language}`,
   });
@@ -97,10 +112,10 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
       {keys.map((key) => {
         const required = key === "name" || key === "alias";
         return (
-          <Grid key={key} size={{ xs: 12, md: key === "name" ? 8 : key === "alias" ? 4 : 6 }}>
+          <Grid key={key} size={{ xs: 12, md: 6 }}>
             <FormTextField
               name={`attributes.${language}.${key}`}
-              label={t(`admin:form:attributes:${key}`)}
+              label={labels.attributes[key]}
               required={required}
               validate={required ? validators.required : undefined}
             />
@@ -110,15 +125,17 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
       <Grid size={{ xs: 12, md: 6 }}>
         <FormTextField
           name={`considerations.${language}`}
-          label={t("admin:form:considerations")}
+          label={labels.considerations}
           multiline
           minRows={10}
           size="medium"
+          // Always on the border: a tall box whose label moves reads oddly.
+          slotProps={{ inputLabel: { shrink: true } }}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <Text color="secondary" variant="body2" sx={{ marginBottom: 1 }}>
-          {t("admin:form:preview")}
+          {labels.preview}
         </Text>
         <Box
           sx={{
@@ -137,7 +154,7 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
             <ReactMarkdown>{considerations}</ReactMarkdown>
           ) : (
             <Text color="secondary" variant="body2">
-              {t("admin:form:emptyPreview")}
+              {labels.emptyPreview}
             </Text>
           )}
         </Box>
@@ -147,24 +164,13 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
 };
 
 export const LayerForm: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const uiLanguage = i18n.language === "en" ? "en" : "es";
+  const { t } = useTranslation();
   const {
     control,
     formState: { errors },
   } = useFormContext<LayerFormValues>();
   const references = useFieldArray({ control, name: "references" });
-
-  const countryOptions = useMemo(
-    () =>
-      countries
-        .map((c) => ({
-          code: c.code,
-          label: `${uiLanguage === "en" ? c.nameEn : c.nameEs} (${c.code})`,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label, uiLanguage)),
-    [uiLanguage]
-  );
+  const [exampleOpen, setExampleOpen] = useState(false);
 
   return (
     <>
@@ -199,34 +205,6 @@ export const LayerForm: React.FC = () => {
             />
           </Grid>
           <Grid size={12}>
-            <Controller
-              name="available_countries_codes"
-              control={control}
-              rules={{ validate: validators.countries }}
-              render={({ field, fieldState: { error } }) => (
-                <Autocomplete
-                  multiple
-                  options={countryOptions}
-                  value={countryOptions.filter((o) => field.value.includes(o.code))}
-                  onChange={(_, selected) => field.onChange(selected.map((o) => o.code))}
-                  onBlur={field.onBlur}
-                  isOptionEqualToValue={(option, value) => option.code === value.code}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      inputRef={field.ref}
-                      label={t("admin:form:countries")}
-                      required
-                      error={!!error}
-                      helperText={error?.message && t(error.message)}
-                      size="small"
-                    />
-                  )}
-                />
-              )}
-            />
-          </Grid>
-          <Grid size={12}>
             <Text color="secondary" variant="body2" sx={{ marginBottom: 1 }}>
               {t("admin:form:references")}
             </Text>
@@ -252,7 +230,17 @@ export const LayerForm: React.FC = () => {
         </Grid>
       </Section>
 
-      <Section title={t("admin:form:sections:texts")}>
+      <Section
+        title={t("admin:form:sections:texts")}
+        titleAction={
+          <IconButton
+            aria-label={t("admin:form:example:open")}
+            onClick={() => setExampleOpen(true)}
+          >
+            <InfoOutlined />
+          </IconButton>
+        }
+      >
         <ClassicTabs
           keepMounted
           tabs={ADMIN_LANGUAGES.map((language, index) => {
@@ -274,6 +262,7 @@ export const LayerForm: React.FC = () => {
           })}
         />
       </Section>
+      <LayerTextsExampleModal open={exampleOpen} onClose={() => setExampleOpen(false)} />
     </>
   );
 };

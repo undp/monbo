@@ -9,6 +9,10 @@ export const GET_MAPS_URL =
   process.env.NEXT_PUBLIC_GET_MAPS_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/maps`;
 
+export const GET_COUNTRIES_URL =
+  process.env.NEXT_PUBLIC_GET_COUNTRIES_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/countries`;
+
 export const FARMS_PARSER_URL =
   process.env.NEXT_PUBLIC_FARMS_PARSER_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/farms/parse`;

@@ -241,18 +241,17 @@ The application requires the following environment variables to be set:
 - `GCP_MAPS_PLATFORM_API_KEY`: Google Maps Platform API key for accessing Google Maps services
 - `GCP_MAPS_PLATFORM_SIGNATURE_SECRET`: Google Maps Platform signature secret for accessing Google Maps services
 - `OVERLAP_THRESHOLD_PERCENTAGE`: Defines the minimum percentage overlap required when comparing polygons (tolerance ceiling). Used to determine when two polygons should be considered being overlapping. Type: Float. Range: 0-100. Default: 0
-- `MAPS_ROOT`: Directory with the layers index, metadata and rasters. Default: `app/maps` (the Git-tracked layers). In Azure it points at the mounted Azure Files share (`/mnt/maps`).
+- `MAPS_ROOT`: Directory with the layers: the per-country layout (`countries.json` plus one folder per country) or the flat one (a single `index.json`, served read-only). Default: `app/maps` (the Git-tracked layers, flat). In Azure it points at the per-country layout on the mounted Azure Files share (`/mnt/maps`). See `docs/maps.md`.
 
-Layers admin (optional). The `/admin` routes only exist when both `ADMIN_PASSKEY_HASH` and `ADMIN_SESSION_SECRET` are set; generate them with `uv run python -m app.modules.admin.passkey`, which also prints the passkey to log in with (keep it in a password manager, not in `.env`):
+Layers admin (optional). The `/admin` routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout. Each country's admin passkey is created with `uv run python -m app.modules.admin.countries add <CC>` (it prints the passkey once; only its hash is stored, in `countries.json`):
 
-- `ADMIN_PASSKEY_HASH`: SHA-256 of the admin passkey, in lowercase hex.
 - `ADMIN_SESSION_SECRET`: Key that signs admin session tokens (at least 32 bytes). Changing it signs every admin out.
 - `ADMIN_SESSION_TTL_MINUTES`: Minutes an admin session lasts. Default: 60
 - `ADMIN_ALLOWED_ORIGIN`: Frontend origin allowed to call the admin routes (e.g. `http://localhost:3000`). Default: no Origin check
 - `ADMIN_MAX_UPLOAD_MB`: Largest raster upload, in MB. Default: 500
 - `ADMIN_STAGING_DIR`: Local directory where raster uploads are staged and processed. Default: `/tmp/monbo-staging`
 
-To try the admin locally without modifying Git-tracked files, copy `app/maps` to `.local-maps` (ignored by Git) and set `MAPS_ROOT=.local-maps`.
+To try the admin locally without modifying Git-tracked files, migrate `app/maps` into `.local-maps` (ignored by Git) with `uv run python -m app.modules.layers.migrate_countries --source app/maps --target .local-maps` and set `MAPS_ROOT=.local-maps`. `ADMIN_PASSKEY_HASH` from earlier releases is ignored.
 
 For local development, you can set the environment variables in a `.env` file. The `.env.template` file is provided as a reference.
 

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import subprocess
@@ -16,8 +17,8 @@ from app.main import app as default_app
 from app.main import create_app
 from app.modules.admin import auth
 from app.modules.admin.auth import LoginRateLimiter, hash_passkey, issue_token
-from app.modules.admin.passkey import generate
-from tests.modules.admin.support import PASSKEY, bearer, login
+from app.modules.layers.store import get_layers_root
+from tests.modules.admin.support import COUNTRY_PASSKEYS, PASSKEY, bearer, login
 
 API_DIR = Path(__file__).parents[3]
 
@@ -25,25 +26,49 @@ API_DIR = Path(__file__).parents[3]
 # --- Opt-in ----------------------------------------------------------------------
 
 
+def registered(code):
+    return get_layers_root().registered_country(code)
+
+
 def test_admin_routes_do_not_exist_without_configuration():
     client = TestClient(default_app)
 
-    assert env.ADMIN_PASSKEY_HASH is None
+    assert env.ADMIN_SESSION_SECRET is None
     assert client.post("/admin/session", json={"passkey": "x"}).status_code == 404
     assert client.get("/admin/session").status_code == 404
     paths = client.get("/openapi.json").json()["paths"]
     assert not [path for path in paths if path.startswith("/admin")]
 
 
-def test_partial_configuration_keeps_admin_off_and_warns(monkeypatch, caplog):
-    monkeypatch.setattr(env, "ADMIN_PASSKEY_HASH", hash_passkey(PASSKEY))
-    monkeypatch.setattr(env, "ADMIN_SESSION_SECRET", None)
+def test_a_flat_root_keeps_admin_off_and_warns(maps_root, monkeypatch, caplog):
+    maps_root.write_index([])
+    monkeypatch.setattr(env, "ADMIN_SESSION_SECRET", "s" * 48)
 
     with caplog.at_level(logging.WARNING, logger="app"):
         client = TestClient(create_app())
 
     assert client.post("/admin/session", json={"passkey": PASSKEY}).status_code == 404
     assert "Layers admin disabled" in caplog.text
+    assert "per-country layout" in caplog.text
+
+
+def test_a_per_country_root_without_the_secret_keeps_admin_off(country_root):
+    country_root.register("CO")
+
+    client = TestClient(create_app())
+
+    assert client.post("/admin/session", json={"passkey": PASSKEY}).status_code == 404
+
+
+def test_a_leftover_passkey_hash_is_ignored_with_a_warning(
+    admin_env, monkeypatch, caplog
+):
+    monkeypatch.setattr(env, "LEGACY_ADMIN_PASSKEY_HASH_SET", True)
+
+    with caplog.at_level(logging.WARNING, logger="app"):
+        create_app()
+
+    assert "ADMIN_PASSKEY_HASH is ignored" in caplog.text
 
 
 def test_warns_when_admin_writes_would_hit_the_bundled_layers(admin_env, caplog):
@@ -81,10 +106,18 @@ def test_correct_passkey_returns_a_token(client):
 
     assert response.status_code == 200
     body = response.json()
+    assert body["country"] == "CO"
     assert body["token"].count(".") == 1
     expires = datetime.fromisoformat(body["expiresAt"].replace("Z", "+00:00"))
     minutes = (expires - before).total_seconds() / 60
     assert 59 <= minutes <= 61
+
+
+def test_each_passkey_logs_in_as_its_country(client):
+    for code, passkey in COUNTRY_PASSKEYS.items():
+        token = login(client, passkey=passkey).json()["token"]
+        session = client.get("/admin/session", headers=bearer(token)).json()
+        assert session["country"] == code
 
 
 def test_wrong_passkey_is_rejected_generically(client):
@@ -92,6 +125,33 @@ def test_wrong_passkey_is_rejected_generically(client):
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid credentials"}
+
+
+def test_a_disabled_country_cannot_log_in(client, country_root):
+    registry = get_layers_root().read_registry()
+    for country in registry:
+        if country["code"] == "EC":
+            country["enabled"] = False
+    country_root.write_registry(registry)
+
+    response = login(client, passkey=COUNTRY_PASSKEYS["EC"])
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid credentials"}
+    assert login(client).status_code == 200
+
+
+def test_registry_changes_apply_without_a_restart(client, country_root):
+    passkey = "peru passkey " * 5
+    registry = get_layers_root().read_registry()
+    country_root.write_registry(
+        [
+            *registry,
+            {"code": "PE", "passkey_hash": hash_passkey(passkey), "enabled": True},
+        ]
+    )
+
+    assert login(client, passkey=passkey).json()["country"] == "PE"
 
 
 def test_login_body_is_validated(client):
@@ -112,6 +172,7 @@ def test_valid_token_opens_admin_routes(client):
 
     assert response.status_code == 200
     assert response.json()["expiresAt"].endswith("Z")
+    assert response.json()["country"] == "CO"
 
 
 @pytest.mark.parametrize(
@@ -137,7 +198,7 @@ def test_non_ascii_tokens_are_rejected_not_crashed(admin_env):
 
 
 def test_expired_token_is_401(client):
-    token, _ = issue_token(now=time.time() - 61 * 60)
+    token, _ = issue_token(registered("CO"), now=time.time() - 61 * 60)
 
     assert client.get("/admin/session", headers=bearer(token)).status_code == 401
 
@@ -155,6 +216,44 @@ def test_tampered_token_is_401(client):
 def test_rotating_the_secret_invalidates_tokens(client, monkeypatch):
     token = login(client).json()["token"]
     monkeypatch.setattr(env, "ADMIN_SESSION_SECRET", "r" * 48)
+
+    assert client.get("/admin/session", headers=bearer(token)).status_code == 401
+
+
+def edit_registry(country_root, code, **changes):
+    registry = get_layers_root().read_registry()
+    for country in registry:
+        if country["code"] == code:
+            country.update(changes)
+    country_root.write_registry(registry)
+
+
+def test_rotating_a_country_passkey_ends_its_sessions_only(client, country_root):
+    colombia = login(client).json()["token"]
+    ecuador = login(client, passkey=COUNTRY_PASSKEYS["EC"]).json()["token"]
+
+    edit_registry(country_root, "CO", passkey_hash=hash_passkey("new " * 20))
+
+    assert client.get("/admin/session", headers=bearer(colombia)).status_code == 401
+    assert client.get("/admin/session", headers=bearer(ecuador)).status_code == 200
+    assert login(client).status_code == 401
+    assert login(client, passkey="new " * 20).status_code == 200
+
+
+def test_disabling_a_country_ends_its_sessions(client, country_root):
+    token = login(client).json()["token"]
+
+    edit_registry(country_root, "CO", enabled=False)
+
+    assert client.get("/admin/layers", headers=bearer(token)).status_code == 401
+
+
+def test_tokens_without_a_country_are_rejected(client):
+    """Tokens from before per-country admins, validly signed."""
+    now = int(time.time())
+    claims = {"iat": now, "exp": now + 3600, "jti": "x"}
+    payload = auth._b64encode(json.dumps(claims).encode())
+    token = f"{payload}.{auth._sign(payload)}"
 
     assert client.get("/admin/session", headers=bearer(token)).status_code == 401
 
@@ -245,7 +344,7 @@ def test_login_attempts_are_logged_without_the_passkey(client, caplog):
         login(client, ip="203.0.113.7")
 
     assert "Admin login failed from 203.0.113.7" in caplog.text
-    assert "Admin login succeeded from 203.0.113.7" in caplog.text
+    assert "Admin login succeeded from 203.0.113.7 for CO" in caplog.text
     assert "wrong-guess-123" not in caplog.text
     assert PASSKEY.strip() not in caplog.text
 
@@ -296,7 +395,6 @@ def test_cors_preflight_allows_bearer_calls_without_credentials(client):
 @pytest.mark.parametrize(
     "variables, message",
     [
-        ({"ADMIN_PASSKEY_HASH": "ABC"}, "ADMIN_PASSKEY_HASH must be a SHA-256"),
         ({"ADMIN_SESSION_SECRET": "short"}, "at least 32 bytes"),
         ({"ADMIN_SESSION_TTL_MINUTES": "0"}, "must be greater than 0"),
         ({"ADMIN_MAX_UPLOAD_MB": "lots"}, "must be a whole number"),
@@ -313,28 +411,3 @@ def test_invalid_admin_configuration_fails_at_startup(variables, message):
 
     assert result.returncode != 0
     assert message in result.stderr
-
-
-def test_generated_credentials():
-    credentials = generate()
-
-    assert len(credentials["ADMIN_PASSKEY"]) >= 64
-    assert credentials["ADMIN_PASSKEY_HASH"] == hash_passkey(
-        credentials["ADMIN_PASSKEY"]
-    )
-    assert len(credentials["ADMIN_SESSION_SECRET"].encode()) >= 32
-    assert generate()["ADMIN_PASSKEY"] != credentials["ADMIN_PASSKEY"]
-
-
-def test_generated_credentials_work_end_to_end(monkeypatch):
-    credentials = generate()
-    monkeypatch.setattr(env, "ADMIN_PASSKEY_HASH", credentials["ADMIN_PASSKEY_HASH"])
-    monkeypatch.setattr(
-        env, "ADMIN_SESSION_SECRET", credentials["ADMIN_SESSION_SECRET"]
-    )
-    monkeypatch.setattr(auth, "login_rate_limiter", LoginRateLimiter())
-    client = TestClient(create_app())
-
-    token = login(client, passkey=credentials["ADMIN_PASSKEY"]).json()["token"]
-
-    assert client.get("/admin/session", headers=bearer(token)).status_code == 200

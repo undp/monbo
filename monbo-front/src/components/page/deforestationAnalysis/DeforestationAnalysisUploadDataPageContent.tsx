@@ -39,6 +39,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
   const router = useRouter();
   const {
     availableMaps,
+    availableMapsError,
     farmsData,
     setFarmsData,
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
@@ -150,7 +151,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
       try {
         const response = await analizeDeforestation(
           data,
-          selectedMapsForDeforestation
+          selectedMapsForDeforestation,
+          selectedCountry!
         );
         // A newer request (another country, or a layer that changed again)
         // supersedes this one.
@@ -179,6 +181,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
     },
     [
       selectedMapsForDeforestation,
+      selectedCountry,
       router,
       setDeforestationAnalysisResults,
       setAnalysisOutdated,
@@ -313,7 +316,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
         {!mapOptions.length && (
           <MessageBox
             message={t(
-              "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              availableMapsError
+                ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
               { country: countryName }
             )}
           />

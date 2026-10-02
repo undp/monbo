@@ -25,7 +25,6 @@
       "id": "ID",
       "name": "Name",
       "alias": "Alias",
-      "countries": "Countries",
       "raster": "Raster",
       "version": "Version",
       "published": "Published"
@@ -48,7 +47,6 @@
     "pixelSize": "Pixel size (meters)",
     "baseline": "Baseline year",
     "comparedAgainst": "Comparison year",
-    "countries": "Countries with data",
     "references": "References (URLs)",
     "addReference": "Add reference",
     "removeReference": "Remove reference",
@@ -69,6 +67,35 @@
     "considerations": "Considerations (Markdown)",
     "preview": "Preview",
     "emptyPreview": "No considerations.",
+    "example": {
+      "open": "See an example of how to fill in the texts",
+      "title": "Example: a layer's texts",
+      "intro": "This is how the texts of the IDEAM deforestation layer of Colombia are filled in. Fill in each language in its tab: the texts are shown in the language chosen by whoever uses Monbo.",
+      "field": "Field",
+      "value": "Example",
+      "hints": {
+        "name": "Full name of the layer.",
+        "alias": "Short name shown in the analysis and the reports.",
+        "coverage": "Territory the map covers.",
+        "source": "Institution or project that produces the map.",
+        "resolution": "Size of a pixel on the ground.",
+        "contentDate": "Period the data covers.",
+        "updateFrequency": "How often a new version is published.",
+        "publishDate": "When it is usually published.",
+        "considerations": "Definitions and limitations, in Markdown: ### for headings, - for lists, **text** for bold."
+      },
+      "values": {
+        "name": "Deforestation by forest cover change of Colombia",
+        "alias": "IDEAM 2020-2023",
+        "coverage": "Colombia",
+        "source": "Institute of Hydrology, Meteorology and Environmental Studies (IDEAM) of Colombia",
+        "resolution": "30 x 30 meters",
+        "contentDate": "Data between 1990 and 2023",
+        "updateFrequency": "Annual (January to December)",
+        "publishDate": "June-July of the following year, approximately",
+        "considerations": "### IDEAM forest definition\n\n- Tree cover of at least 30% and a minimum height of 5 meters.\n- Minimum area of 1 hectare.\n\n**It does not distinguish** between primary and secondary forest."
+      }
+    },
     "save": "Save",
     "saving": "Saving…",
     "created": "Layer created. Now upload its raster so it can be published.",
@@ -81,43 +108,75 @@
       "positive": "Must be greater than 0",
       "year": "A year between 1900 and 2100",
       "baselineAfterComparison": "The baseline year can't be after the comparison year",
-      "countries": "Choose at least one country",
       "reference": "Must start with http:// or https://",
       "invalid": "Check the highlighted fields."
     }
   },
   "raster": {
-    "current": "Current raster: {{filename}} (version {{version}})",
-    "none": "This layer has no raster yet.",
-    "requirements": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). Every pixel is checked and the file is converted to an optimized GeoTIFF; the layer keeps its current raster until the process succeeds.",
-    "dropActive": "Drop the file here",
-    "dropInactive": "Drag the raster here",
-    "dropButton": "Choose a file",
-    "dropText": "or drag it into this box",
-    "dropHint": ".tif or .tiff",
+    "intro": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
+    "steps": {
+      "label": "Step {{number}}",
+      "select": {
+        "title": "Select the file",
+        "hint": "Drop or choose a .tif"
+      },
+      "upload": {
+        "title": "Upload and validate",
+        "hint": "We check every pixel",
+        "running": "In progress…",
+        "done": "Validated"
+      },
+      "publish": {
+        "title": "Publish the layer",
+        "hint": "So it shows up in the analysis",
+        "pending": "Waiting to be published",
+        "done": "Published"
+      }
+    },
+    "drop": {
+      "title": "Drop your raster here",
+      "active": "Drop the file here",
+      "or": "or",
+      "button": "Select file",
+      "hint": ".tif or .tiff · one band · values 0 and 1",
+      "rejected": "That file can't be used: upload a single .tif or .tiff file."
+    },
+    "file": {
+      "ready": "{{size}} · ready to upload",
+      "change": "Change file"
+    },
     "nodata": "Nodata value (optional)",
-    "nodataHelp": "Only if the file doesn't declare one, e.g. 3.",
-    "upload": "Upload raster",
-    "uploading": "Uploading… {{percent}} %",
+    "nodataPlaceholder": "E.g. 3",
+    "nodataHelp": "Only if the file doesn't declare one.",
+    "uploadAndValidate": "Upload and validate",
+    "phases": {
+      "uploading": "Uploading the file",
+      "validating": "Validating pixels (values 0 and 1)",
+      "converting": "Converting to an optimized GeoTIFF"
+    },
+    "phaseStatus": {
+      "uploading": "Uploading…",
+      "validating": "Validating pixels…",
+      "converting": "Converting…"
+    },
+    "slow": "This can take a few minutes. Don't close this page.",
+    "cancel": "Cancel",
+    "cancelling": "Cancelling…",
+    "failed": "This raster could not be used.",
+    "validated": {
+      "title": "Raster validated and active",
+      "text": "{{filename}} · every pixel has the value 0 or 1."
+    },
+    "publishNotice": "Not published yet. Until then, the layer doesn't show up in the deforestation analysis.",
     "publish": "Publish layer",
-    "status": {
-      "queued": "Queued",
-      "running": "Validating and converting…",
-      "succeeded": "Raster activated: {{filename}} (version {{version}}).",
-      "failed": "The raster was not activated."
+    "publishing": "Publishing…",
+    "publishError": "The layer could not be published.",
+    "done": {
+      "updated": "Raster updated",
+      "published": "Layer published",
+      "text": "The layer now uses {{filename}}."
     },
-    "report": {
-      "title": "Raster details",
-      "crs": "Reference system",
-      "size": "Size",
-      "sizeValue": "{{width}} × {{height}} pixels",
-      "resolution": "Approximate resolution",
-      "resolutionValue": "{{meters}} m (use it as the pixel size)",
-      "dtype": "Data type",
-      "nodata": "Nodata",
-      "values": "Values found",
-      "none": "none"
-    },
+    "replace": "Replace raster",
     "uploadErrors": {
       "tooLarge": "The file is larger than the server accepts.",
       "busy": "Another raster is being processed. Try again in a few minutes.",

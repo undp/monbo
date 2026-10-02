@@ -16,7 +16,8 @@
     },
     "mapSelectionStep": {
       "stepTitle": "Step 3: Select the map layers for the analysis",
-      "noMapsAvailable": "No layers available for {{country}}"
+      "noMapsAvailable": "No layers available for {{country}}",
+      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again."
     },
     "uploadStep": {
       "stepTitle": "Step 3: Upload the Template",

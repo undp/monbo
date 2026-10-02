@@ -6,12 +6,12 @@
 
 #### Scenario: Upload to another country's layer
 
-- **WHEN** a CO admin uploads a raster to layer 5, which belongs to CR
+- **WHEN** a CO admin uploads a raster to layer 3, and only EC has a layer 3
 - **THEN** the response is 404 and no staging file remains
 
 #### Scenario: Raster stored in the country folder
 
-- **WHEN** an EC admin's upload for layer 4 at version 1 succeeds
+- **WHEN** an EC admin's upload for layer 3 (Ecuador2) at version 1 succeeds
 - **THEN** the layer points to `ecuador2-v2.tif` inside `EC/layers/rasters/`
 
 #### Scenario: Another country's job

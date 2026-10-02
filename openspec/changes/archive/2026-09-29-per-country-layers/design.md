@@ -21,7 +21,7 @@ Measured sizes: `gfw.tif` is 55 MB and `tmf.tif` 47 MB. Both cover only the EC+C
 - Adding, rotating or disabling a country is one operator command, with no redeploy and no restart.
 - Analysis results for existing layers are identical before and after the migration.
 - The URLs of analysis, tiles and image generation don't change.
-- A rollback to the previous release is possible without restoring data.
+- A new environment, or one started over, gets its layers with one command.
 
 **Non-Goals:**
 - A superadmin, or managing countries from the web UI. The registry is designed so it can be added later.
@@ -81,12 +81,12 @@ The CLI is `uv run python -m app.modules.admin.countries <command> [--root PATH]
 | `rotate CC` | Replace the hash, print the new passkey. Sessions from the old passkey stop working (D5) |
 | `disable CC` / `enable CC` | Flip `enabled`. Data untouched |
 
-It prints passkeys to stdout only and writes nothing else outside the root. It replaces `app/modules/admin/passkey.py`. To run from `deploy.sh` without the API's configuration, it imports only the store and the hashing helper, never `app.config.env`.
+It prints passkeys to stdout only and writes nothing else outside the root. It replaces `app/modules/admin/passkey.py`. Like the other API commands, it loads the API's configuration: `app/modules/__init__.py` imports every router. `--root` makes it independent of `MAPS_ROOT`.
 
 `azure/deploy.sh countries <command> [CC]` runs the same CLI locally against a temporary directory:
-1. download `v2/countries.json` with `az storage file download`;
+1. download `countries.json` with `az storage file download`;
 2. run the CLI with `--root <tmp>`;
-3. upload the changed `countries.json`, and for `add`, the new folder skeleton, with `az storage directory create` and `az storage file upload`.
+3. upload the changed `countries.json` with `az storage file upload`, and for `add`, the new folder with `az storage file upload-batch`.
 
 The API never writes `countries.json`, so there is no concurrent writer.
 
@@ -109,13 +109,22 @@ Token claims become `{iat, exp, jti, country, kid}`, where `kid` is the first 16
 
 The admin routes are registered when `ADMIN_SESSION_SECRET` is set and the root has the per-country layout. `ADMIN_PASSKEY_HASH` is removed. If it is still set, the API logs a warning at startup saying it is ignored.
 
-### D6. Globally unique layer ids
+### D6. Each country numbers its layers from 0; the country travels with the id
 
-A layer's id is unique across all countries. `LayerStore` keeps an id → country map built from every country's index, cached by the mtimes of the indexes. `get_map_by_id` resolves the country from it, so `/deforestation_analysis/analize`, `/tiles/{map_id}/...` and `/generate-image` keep their current contracts. A new layer gets `max(ids of all countries) + 1`, computed under the store lock, and ids are never reused.
+A layer is identified by its country and its id. Ids are numbered from 0 within each country and never reused. Creating a layer takes `max(ids of that country) + 1` under the store lock, reading only that country's index.
 
-`GET /maps?country=CC` returns the enabled layers of CC. Without `country` it returns every enabled layer, as today. The public response keeps `availableCountriesCodes`, now always `[<layer's country>]`, so existing consumers keep working.
+The public routes that take a layer name its country:
+- `POST /deforestation_analysis/analize`: `country` in the body.
+- `POST /deforestation_analysis/generate-image`: `country` in the body.
+- Tiles: `GET /deforestation_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`. A GET has no body, and the country in the path keeps tile URLs cacheable.
 
-*Alternative:* numbering from 0 within each country, with the country in every route. It changes four routes and the ids of existing layers, and it complicates the parity check. Discussed and rejected.
+With the per-country layout a missing country is a 422. With a flat root the country is optional, because its ids are global. If it is given, the layer must list it.
+
+The frontend sends the session's selected country. Everything else it does with layer ids stays within a one-country session, so it doesn't change.
+
+`GET /maps?country=CC` returns the enabled layers of CC. Without `country` it returns every enabled layer, each with `availableCountriesCodes: [<its country>]`: ids repeat across countries there, so consumers must read the country too.
+
+*Alternative (first choice, then dropped):* globally unique ids, so those routes wouldn't change. Creating a layer had to read every country's index to find the next id, and the country was implicit in the id. The user chose per-country numbering.
 
 ### D7. Admin scope comes from the token, never from the URL
 
@@ -127,41 +136,39 @@ Only one ingestion runs at a time for all countries, because there is one replic
 
 `.jobs/` stays at the root. Rasters are written to `<CC>/layers/rasters/`.
 
-### D8. Migration: copy GFW and TMF whole, keep the original ids
+### D8. Migration: copy GFW and TMF whole, number each country from 0
 
-`uv run python -m app.modules.layers.migrate_countries --source <flat root> --target <new root>`:
+`uv run python -m app.modules.layers.migrate_countries --source <flat root> --target <new root> [--mapping-out ids.json]`:
 
 1. Refuse if the target has content, or if the source is not a flat layout.
-2. For each source layer, in id order, and for each code in its `available_countries_codes`, in listed order:
-   - the first code keeps the layer's id; later codes get new ids from a running `max + 1`;
+2. For each source layer, in id order, and for each code in its `available_countries_codes`:
+   - give it that country's next id, starting from 0;
    - copy the raster (`shutil.copyfile`, never `copy`, because of the no-chmod mount) and its metadata files into that country's folder;
    - write the entry without `available_countries_codes`, keeping `enabled`, `version`, `raster_filename`, the years, the pixel size and the references.
 3. Register every country found, with a fresh passkey each, and print them.
-4. Print a summary of the id mapping.
+4. Print the id mapping, and with `--mapping-out`, write it as `{country: {old id: new id}}`.
 
 With the current index this produces:
 
-| Layer | EC | CO | CR |
+| Layer (old id) | EC | CO | CR |
 |---|---|---|---|
-| GFW | 0 | 6 | 7 |
-| TMF | 1 | 8 | 9 |
-| Ecuador | 2 | | |
-| IDEAM | | 3 | |
-| Ecuador2 | 4 | | |
-| MOCUPP | | | 5 |
+| GFW (0) | 0 | 0 | 0 |
+| TMF (1) | 1 | 1 | 1 |
+| Ecuador (2) | 2 | | |
+| IDEAM (3) | | 2 | |
+| Ecuador2 (4) | 3 | | |
+| MOCUPP (5) | | | 2 |
 
 **Rasters are not clipped.** Farm F08 of the regression set crosses a border. Clipping would change its ratio and break the parity requirement.
 
-**Parity check.** After migrating, the regression farm sample is analyzed against the new root:
-- ids 0–5 must give exactly the results of the flat root;
-- ids 6–9 must equal their origin (0 or 1).
+**Parity check.** `tests.regression.parity --mapping ids.json <flat API> <per-country API>` analyzes the regression farm sample on both. For every country, each new id must give exactly the results its old id gave on the flat root. The same check runs in CI on the regression fixture layers.
 
 ### D9. Legacy flat roots are served read-only
 
 When `MAPS_ROOT` has a top-level `index.json` and no `countries.json`, `LayerStore` runs in legacy mode:
 - `GET /maps` (with or without `country`) filters by `available_countries_codes`;
 - `GET /countries` is the union of the codes of enabled layers;
-- lookup by id works as today;
+- lookup by id works as today (the country is optional);
 - the admin routes are not registered, and a startup warning says so.
 
 This keeps three things working without restructuring the Git-tracked `app/maps` (which would duplicate about 100 MB in LFS):
@@ -169,15 +176,27 @@ This keeps three things working without restructuring the Git-tracked `app/maps`
 - open-source deployments;
 - the regression tests.
 
-It also lets the new image run against the old share layout if needed. A root with both files, or neither, fails at startup with an explicit error.
+It also lets the new image run against the old share layout if needed. A root with both files fails at startup with an explicit error. A root with neither is treated as a flat root whose index is missing (500 on `GET /maps`, as today), so a share that is briefly unreachable at startup doesn't keep the API down.
 
-### D10. Azure: new layout in `/mnt/maps/v2`, flat layout kept for rollback
+### D10. Azure: the per-country layout at the share's root, filled from Git
 
-The migration runs once, from an operator machine, with the share mounted locally or through a temporary job container. Its source is `/mnt/maps` (the seeded flat layout) and its target is `/mnt/maps/v2`. `render_api_app.py` sets `MAPS_ROOT=/mnt/maps/v2` and drops `admin-passkey-hash`.
+The share had only been filled in the development environment, and production has none yet. So nothing is migrated in place: `MAPS_ROOT` stays `/mnt/maps`, and the per-country layout goes at the share's root.
 
-`deploy.sh` refuses to deploy when `v2/countries.json` is missing, and its health check expects `mapsRoot=/mnt/maps/v2` and writable.
+`./azure/deploy.sh seed` fills a share from the Git-tracked layers:
+1. run `app.modules.layers.seed` into a temporary folder (validation and COG conversion);
+2. run `migrate_countries` on it, which prints the passkeys and writes the id mapping;
+3. only then, if the share has files, empty it (`az storage file delete-batch`);
+4. upload the result (`upload-batch`).
 
-**Rollback:** redeploy the previous image with `MAPS_ROOT=/mnt/maps` and the old `ADMIN_PASSKEY_HASH`. It serves the untouched flat layout. Admin edits made after the migration are not reflected, which is an accepted limit of the rollback window. The flat files are removed in a later change once the new layout is trusted.
+On a share that already has files, it first asks the operator to type the share's name, and nothing is touched until the new layers are ready locally. The same command covers the first production setup and starting dev over. Dev's admin edits are dropped, and a share snapshot keeps them.
+
+`render_api_app.py` drops `admin-passkey-hash`. `deploy.sh` refuses to deploy when `countries.json` is missing, and its health check expects `mapsRoot=/mnt/maps` and writable.
+
+**Rollback:**
+- Removing `STORAGE_ACCOUNT_NAME` serves the image's Git-tracked layers, read-only (flat layout, admin off).
+- Going back to a release from before this change needs the flat layout: restore the share from a snapshot taken before the seed, then deploy that release with its own `deploy.sh`.
+
+*Alternative (first plan, dropped):* migrating in place into `/mnt/maps/v2` and keeping the flat layout at the root for rollback. It only made sense to preserve production data, and there is none.
 
 ## Risks / Trade-offs
 
@@ -187,19 +206,18 @@ The migration runs once, from an operator machine, with the share mounted locall
 - **[deploy.sh read-modify-write race]** Two operators running `deploy.sh countries` at the same time could overwrite each other's `countries.json`. → Rare, since operator actions are manual. The command re-downloads the file and compares its ETag before uploading, and aborts if it changed.
 - **[Login cost grows with countries]** A constant-time scan over N hashes. → Negligible for any realistic N.
 - **[Passkey handover]** The migration prints three passkeys at once. → The runbook says to put each one straight into the password manager and share it only with that country's admin.
-- **[Legacy mode hides misconfiguration]** Pointing `MAPS_ROOT` at the old flat folder in production would silently turn off the admin. → A startup warning, and the `deploy.sh` check for `v2/countries.json`.
+- **[Legacy mode hides misconfiguration]** Pointing `MAPS_ROOT` at the old flat folder in production would silently turn off the admin. → A startup warning, and the `deploy.sh` check for `countries.json`.
 - **[Sessions of the previous release]** Tokens without `country` stop working after deploy. → Admins log in again with their new country passkey. The deploy notes say so.
 
 ## Migration Plan
 
 1. Deploy `country-first-flow` (frontend only).
-2. Build the new images. The new API still works against the flat root in legacy mode (D9), so it can be deployed before migrating, with the admin off.
-3. Run `migrate_countries` from `/mnt/maps` to `/mnt/maps/v2`. Store the three printed passkeys.
-4. Run the parity check (D8) against `/mnt/maps/v2`.
-5. Deploy with `MAPS_ROOT=/mnt/maps/v2`, without `ADMIN_PASSKEY_HASH`. `deploy.sh` verifies the registry and the health check.
-6. Hand each country's passkey to its admin. Smoke test: each admin sees only their own layers, and an analysis in each country works.
-7. Rollback: D10.
+2. **Development:** run `./azure/deploy.sh seed` (confirm the share name), store the three printed passkeys, then deploy this release with `ADMIN_SESSION_SECRET`. Optionally check parity against the Git layers (`tests.regression.parity --mapping /tmp/monbo-seed-ids.json`).
+3. Smoke test: each country admin sees only their own layers, an analysis in each country works, and `GET /countries` returns CO, CR and EC.
+4. **Production:** `./azure/deploy.sh storage`, `./azure/deploy.sh seed` (the share is empty, so there is no prompt), then deploy.
+5. Hand each passkey to its country admin.
+6. Rollback: D10.
 
 ## Open Questions
 
-- How the operator runs the one-time migration against the share: mounting it locally over SMB, or a temporary Container Apps job with the same mount. The deploy docs will pick one after trying both.
+- `deploy.sh seed` has only been run locally up to the upload (seed and split). Its first run against the development share is part of the rollout.

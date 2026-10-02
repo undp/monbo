@@ -2,20 +2,26 @@
 
 ### Added
 
-- Add a layers admin at `/admin` to create and edit deforestation layers, upload their rasters and publish or hide them, protected by a long shared passkey. The `/admin` API routes only exist when `ADMIN_PASSKEY_HASH` and `ADMIN_SESSION_SECRET` are set; generate them with `uv run python -m app.modules.admin.passkey`
+- Add a layers admin at `/admin` to create and edit deforestation layers, upload their rasters and publish or hide them, protected by a long passkey per country. The `/admin` API routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout (see below)
+- Guide the admin's raster upload in steps (select the file, upload and validate, and publish the layer when it isn't published yet), showing the progress of each phase, with a Cancel button. Ingestion jobs report their `phase` and validation `progress`, and `DELETE /admin/jobs/{jobId}` cancels a job before its raster is activated
 - Validate uploaded rasters (one integer band, a CRS, only 0/1/nodata values, with a hint when the values look like loss years), convert them to Cloud Optimized GeoTIFFs, verify the conversion pixel by pixel and store them under versioned filenames (`<stem>-v<version>.tif`) without overwriting previous ones
-- Add the `enabled` and `version` fields to the layers index. `GET /maps` lists only enabled layers and returns each layer's `version`, which the frontend adds to tile URLs
+- Add the `enabled` and `version` fields to the layers index. `GET /maps` lists only enabled layers and returns each layer's `version`, which the frontend adds to tile URLs. A layer created in the admin starts at version 0, so its first raster is `v1`
 - Add the `MAPS_ROOT` environment variable to the API to read the layers from another directory (by default the Git-tracked `app/maps`), and report it in `/health`
 - Add a seed command (`uv run python -m app.modules.layers.seed`) that prepares a layers root from the Git-tracked layers
 - Add a 10-farm regression suite and a parity script (`uv run python -m tests.regression.parity`) that compares the results of two deployed APIs
 - Add a landing page to choose the analysis country first: one card per country with layers, with its silhouette, and a "Your country could be next" card that opens `NEXT_PUBLIC_CONTACT_URL` (hidden when unset)
 - Add a country selector to the header. The country can change until a deforestation analysis exists; after that, changing it asks to start over
+- Give each country its own layers and its own admin. Layers live in one folder per country under `MAPS_ROOT`, with a country registry (`countries.json`) holding each country's passkey hash. Manage countries with `uv run python -m app.modules.admin.countries add|list|rotate|disable|enable` (in Azure, `./azure/deploy.sh countries …`); changes apply without a restart
+- Add `GET /countries` (the countries with at least one published layer) and a `country` filter to `GET /maps`. The landing page and the header selector use them
+- Add a migration command (`uv run python -m app.modules.layers.migrate_countries`) that builds the per-country layout from the flat one, copying GFW and TMF into each country, and `tests.regression.parity --mapping` to compare both layouts
 
 ### Changed
 
 - In Azure, the API reads its layers from an Azure Files share mounted at `/mnt/maps`, in its own resource group with a delete lock, share soft delete and daily backups. `azure/deploy.sh storage` creates it, and the API app is rendered by `azure/render_api_app.py` instead of `azure/monbo-api-app.yml`
 - The API image runs as uid/gid 10001
 - The module cards move from `/` to `/home` ("Home" and the logo in the header go to the landing page), and the module pages send the user to the landing page when no country is selected
+- The layers admin needs the per-country layout and uses one passkey per country (`ADMIN_PASSKEY_HASH`, from earlier builds of this release, is ignored), and each admin only sees and edits their country's layers. Each country numbers its layers from 0, so `POST /deforestation_analysis/analize` and `POST /deforestation_analysis/generate-image` take a `country` in the body, and tiles move to `/deforestation_analysis/tiles/{country}/{id}/…` (the country is optional in the body with a flat root). The admin form no longer asks for countries. A flat root (like the Git-tracked `app/maps`) is still served, read-only
+- In Azure the share holds the per-country layout at `/mnt/maps`. `./azure/deploy.sh seed` fills it from the Git-tracked layers (emptying it first after a confirmation), for a new environment or to start one over
 - The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers
 - The upload templates no longer have a country column; every farm gets the selected country. An older file's country column must be empty or name the selected country; a file with farms in another country is rejected
 

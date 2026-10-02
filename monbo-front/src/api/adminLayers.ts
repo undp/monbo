@@ -53,7 +53,7 @@ export const createAdminSession = (passkey: string) =>
   request<AdminSession>("/session", { method: "POST", body: { passkey } });
 
 export const getAdminSession = (token: string) =>
-  request<{ expiresAt: string }>("/session", { token });
+  request<{ expiresAt: string; country: string }>("/session", { token });
 
 export const listAdminLayers = (token: string) =>
   request<AdminLayer[]>("/layers", { token });
@@ -79,6 +79,26 @@ export const getIngestionJob = (token: string, jobId: string) =>
   request<IngestionJob>(`/jobs/${jobId}`, { token });
 
 /**
+ * Asks a queued or running job to stop. "tooLate" when its raster is already
+ * being activated (or the job ended): the caller should keep following it.
+ */
+export const cancelIngestionJob = async (
+  token: string,
+  jobId: string
+): Promise<"cancelled" | "tooLate"> => {
+  try {
+    await request(`/jobs/${jobId}`, { token, method: "DELETE" });
+    return "cancelled";
+  } catch (e) {
+    if (e instanceof AdminApiError && e.status === 409) return "tooLate";
+    throw e;
+  }
+};
+
+export const isAbortError = (e: unknown) =>
+  e instanceof DOMException && e.name === "AbortError";
+
+/**
  * Uploads a raster as the raw request body. XMLHttpRequest instead of fetch so
  * the upload progress can be shown.
  */
@@ -89,7 +109,13 @@ export const uploadLayerRaster = (
   {
     nodata,
     onProgress,
-  }: { nodata?: number | null; onProgress?: (fraction: number) => void } = {}
+    signal,
+  }: {
+    nodata?: number | null;
+    onProgress?: (fraction: number) => void;
+    // Aborting rejects with an AbortError (see isAbortError)
+    signal?: AbortSignal;
+  } = {}
 ): Promise<{ jobId: string }> =>
   new Promise((resolve, reject) => {
     const query = nodata !== null && nodata !== undefined ? `?nodata=${nodata}` : "";
@@ -114,5 +140,12 @@ export const uploadLayerRaster = (
       }
     };
     xhr.onerror = () => reject(new AdminApiError(0, "Network error"));
+    const aborted = () => new DOMException("Upload aborted", "AbortError");
+    xhr.onabort = () => reject(aborted());
+    if (signal?.aborted) {
+      reject(aborted());
+      return;
+    }
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
     xhr.send(file);
   });

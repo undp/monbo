@@ -21,7 +21,7 @@ from app.modules import (
 )
 from app.modules.admin.auth import admin_enabled
 from app.modules.admin.ingestion import recover_interrupted_jobs
-from app.modules.layers.store import get_layer_store
+from app.modules.layers.store import get_layers_root
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
@@ -57,12 +57,12 @@ async def root():
 def health_check():
     # Sync on purpose: checking the maps root may touch a network share (Azure
     # Files), so it runs in the threadpool instead of blocking the event loop.
-    store = get_layer_store()
+    root = get_layers_root()
     return {
         "version": "0.1.0",
         "status": "OK",
-        "mapsRoot": str(store.root.resolve()),
-        "mapsRootWritable": store.is_writable(),
+        "mapsRoot": str(root.root.resolve()),
+        "mapsRootWritable": root.is_writable(),
     }
 
 
@@ -99,11 +99,19 @@ async def download_geojson(content: str | None = None):
 
 
 def _warn_about_admin_configuration() -> None:
+    if env.LEGACY_ADMIN_PASSKEY_HASH_SET:
+        logger.warning(
+            "ADMIN_PASSKEY_HASH is ignored: each country's passkey now lives in the "
+            "country registry (uv run python -m app.modules.admin.countries)"
+        )
     if not admin_enabled():
-        if env.ADMIN_PASSKEY_HASH or env.ADMIN_SESSION_SECRET:
+        if env.ADMIN_SESSION_SECRET:
             logger.warning(
-                "Layers admin disabled: set both ADMIN_PASSKEY_HASH and "
-                "ADMIN_SESSION_SECRET to enable it"
+                "Layers admin disabled: MAPS_ROOT (%s) doesn't have the per-country "
+                "layout. Migrate a flat root (app.modules.layers.migrate_countries) "
+                "or add a first country (app.modules.admin.countries add), then "
+                "restart the API: the admin is only turned on at startup",
+                env.MAPS_ROOT,
             )
         return
     bundled_maps = (Path(__file__).parent / "maps").resolve()
@@ -120,7 +128,7 @@ def _warn_about_admin_configuration() -> None:
 async def lifespan(app: FastAPI):
     if admin_enabled():
         try:
-            await run_in_threadpool(recover_interrupted_jobs, get_layer_store())
+            await run_in_threadpool(recover_interrupted_jobs, get_layers_root())
         except Exception:
             # Don't keep the public API down because the share is unreachable.
             logger.exception("Could not recover interrupted ingestion jobs")
@@ -128,6 +136,8 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    # A root holding both layouts is ambiguous: refuse to start (LayoutError).
+    get_layers_root().is_per_country()
     app = FastAPI(lifespan=lifespan)
     # Admin calls authenticate with a Bearer header, never cookies, so credentials
     # stay off; the admin routes check the Origin header themselves.
@@ -135,7 +145,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=["*"],
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PUT", "PATCH"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["*"],
     )
     app.include_router(router)
@@ -143,8 +153,8 @@ def create_app() -> FastAPI:
     app.include_router(deforestation_analysis_router)
     app.include_router(maps_router)
     app.include_router(farms_router)
-    # Without both admin secrets the admin routes don't exist at all (404, and
-    # they are left out of the OpenAPI docs).
+    # Without the session secret and a per-country root the admin routes don't
+    # exist at all (404, and they are left out of the OpenAPI docs).
     if admin_enabled():
         app.include_router(admin_router)
     _warn_about_admin_configuration()

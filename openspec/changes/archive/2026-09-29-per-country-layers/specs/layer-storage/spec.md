@@ -11,8 +11,8 @@ The API SHALL resolve the country registry, the layer indexes, the per-language 
 
 #### Scenario: Custom root
 
-- **WHEN** the API starts with `MAPS_ROOT=/mnt/maps/v2`
-- **THEN** every layer read and write uses files under `/mnt/maps/v2`, and files under `app/maps` are ignored
+- **WHEN** the API starts with `MAPS_ROOT=/mnt/maps`
+- **THEN** every layer read and write uses files under `/mnt/maps`, and files under `app/maps` are ignored
 
 #### Scenario: Country folder layout
 
@@ -41,7 +41,7 @@ The API SHALL resolve the country registry, the layer indexes, the per-language 
 #### Scenario: Filter by country
 
 - **WHEN** a client calls `GET /maps?country=CR`
-- **THEN** the response lists only CR's enabled layers (GFW, TMF, and MOCUPP), each with `availableCountriesCodes: ["CR"]`
+- **THEN** the response lists only CR's enabled layers (GFW, TMF, and MOCUPP, ids 0, 1, and 2), each with `availableCountriesCodes: ["CR"]`
 
 #### Scenario: Unknown country
 
@@ -50,28 +50,38 @@ The API SHALL resolve the country registry, the layer indexes, the per-language 
 
 ### Requirement: Layers resolvable by id regardless of enabled state
 
-Deforestation analysis, tile serving, and image generation SHALL resolve a layer by id alone, whichever country it belongs to and whether the layer or its country is enabled or disabled.
+Deforestation analysis, tile serving, and image generation SHALL resolve a layer by its country and its id, whether the layer or its country is enabled or disabled. `POST /deforestation_analysis/analize` and `POST /deforestation_analysis/generate-image` SHALL take the country as `country` in the body. Tiles SHALL be served at `/deforestation_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`. In the per-country layout, a request without a country SHALL be rejected with 422. In the legacy flat layout the country SHALL be optional, and when it is given, the layer SHALL list it.
 
 #### Scenario: Analysis on a disabled layer
 
-- **WHEN** a client posts an analysis request that includes the id of a disabled layer
+- **WHEN** a client posts an analysis request with a country and the id of one of its disabled layers
 - **THEN** the API computes results for that layer as it would for an enabled one
 
 #### Scenario: Tiles of a copied layer
 
-- **WHEN** a client requests `/deforestation_analysis/tiles/6/dynamic/8/75/120.png` and id 6 is CO's copy of GFW
+- **WHEN** a client requests `/deforestation_analysis/tiles/CO/0/dynamic/8/75/120.png` and CO's layer 0 is its copy of GFW
 - **THEN** the tile is rendered from `CO/layers/rasters/`
+
+#### Scenario: Same id in two countries
+
+- **WHEN** a client posts an analysis for `country: "CR"` and `maps: [2]`
+- **THEN** the results are those of Costa Rica's layer 2 (MOCUPP), not of Colombia's layer 2 (IDEAM)
+
+#### Scenario: Country missing
+
+- **WHEN** the root uses the per-country layout and a client posts an analysis without `country`
+- **THEN** the response is 422
 
 ## ADDED Requirements
 
-### Requirement: Layer ids are unique across countries
+### Requirement: Layer ids are numbered within each country
 
-Each layer id SHALL be unique across all countries. A new layer SHALL receive `max(ids of every country, disabled layers included) + 1`, and ids SHALL never be reused. Two concurrent creations SHALL NOT receive the same id.
+Each country SHALL number its layers from 0. A new layer SHALL receive `max(ids of its country, disabled layers included) + 1`, computed from that country's index only. Ids SHALL never be reused within a country. Two concurrent creations in a country SHALL NOT receive the same id.
 
 #### Scenario: Id after the migration
 
-- **WHEN** the highest id in any country is 9 and CO's admin creates a layer
-- **THEN** the new layer gets id 10, even if CO's own highest id is 8
+- **WHEN** CO's highest id is 2 and Ecuador's is 3, and CO's admin creates a layer
+- **THEN** the new layer gets id 3 in CO
 
 ### Requirement: Legacy flat layout served read-only
 
@@ -79,10 +89,10 @@ When the root contains a top-level `index.json` and no `countries.json`, the API
 
 - `GET /maps` SHALL filter by each entry's `available_countries_codes` when `country` is given;
 - `GET /countries` SHALL return the union of the country codes of the enabled layers;
-- lookup by id SHALL work as before;
+- lookup by id SHALL work as before, with the country optional;
 - the admin routes SHALL NOT be registered, and a startup warning SHALL say why.
 
-A root that contains both files, or neither, SHALL make the API fail at startup with an explicit error.
+A root that contains both files SHALL make the API fail at startup with an explicit error. A root with neither SHALL be treated as a flat root whose index is missing, as before this change (`GET /maps` answers 500).
 
 #### Scenario: Local development with the Git-tracked layers
 

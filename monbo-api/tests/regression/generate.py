@@ -30,7 +30,12 @@ from shapely.geometry import mapping, shape
 
 from app.main import app
 from app.models.farms import FarmPolygonDetailData
-from app.modules.layers.store import LayerStore, get_layer_store, set_layer_store
+from app.modules.layers.store import (
+    LayersRoot,
+    LayerStore,
+    get_layers_root,
+    set_layers_root,
+)
 from app.utils.farms import get_farm_coords_and_radius
 from app.utils.polygons import generate_polygon
 from tests.regression.pipeline import (
@@ -169,17 +174,17 @@ def write_results_sheet(results, real_store: LayerStore) -> None:
 
 
 def main() -> None:
-    real_store = get_layer_store()
+    real_store = get_layers_root().flat
     rows = read_farm_rows()
 
     real = run_pipeline(rows)
     build_fixtures(real_store, rows)
 
-    set_layer_store(LayerStore(FIXTURE_MAPS_ROOT))
+    set_layers_root(LayersRoot(FIXTURE_MAPS_ROOT))
     try:
         fixture = run_pipeline(rows)
     finally:
-        set_layer_store(None)
+        set_layers_root(None)
     if fixture != real:
         raise SystemExit("Sparse fixtures don't reproduce the real layers' results")
 

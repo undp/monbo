@@ -5,8 +5,10 @@ exhaustive scan and the verification are I/O-bound and much slower over the Azur
 Files share. Only the finished, verified COG is copied to the share, renamed to a
 new versioned filename (rasters are never overwritten) and written to the index.
 
-Only one ingestion runs at a time. Job state lives on the share (`.jobs/`), so the
-admin UI can poll it and a restart can mark interrupted jobs as failed.
+Only one ingestion runs at a time, across every country. Job state lives on the
+share (`.jobs/` at the root, each job recording its country), so the admin UI can
+poll it (status, phase and validation progress) and a restart can mark interrupted
+jobs as failed. A job can be cancelled until its activation begins.
 
 During a deploy the previous revision keeps serving (and may keep ingesting) until the
 new one is ready, so two processes briefly share the share. A queued or running job is
@@ -33,7 +35,7 @@ from app.modules.layers.processing import (
     validate_raster,
     verify_same_pixels,
 )
-from app.modules.layers.store import LayerStore, get_layer_store
+from app.modules.layers.store import LayersRoot, LayerStore, get_layers_root
 
 from .auth import logger
 
@@ -41,21 +43,54 @@ from .auth import logger
 
 
 class IngestionSlot:
+    """The job being ingested, and whether it was cancelled or began activating.
+
+    The lock orders `cancel` and `begin_activation`: once a cancellation is
+    accepted, the job cannot activate, and once activation began, it cannot be
+    cancelled.
+    """
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self.job_id: str | None = None
+        self._cancelled = False
+        self._activating = False
 
     def acquire(self, job_id: str) -> bool:
         with self._lock:
             if self.job_id is not None:
                 return False
             self.job_id = job_id
+            self._cancelled = self._activating = False
             return True
 
     def release(self, job_id: str) -> None:
         with self._lock:
             if self.job_id == job_id:
                 self.job_id = None
+                self._cancelled = self._activating = False
+
+    def cancel(self, job_id: str) -> str:
+        """`cancelled`, `too_late` (activation began) or `not_running`."""
+        with self._lock:
+            if self.job_id != job_id:
+                return "not_running"
+            if self._activating:
+                return "too_late"
+            self._cancelled = True
+            return "cancelled"
+
+    def is_cancelled(self, job_id: str) -> bool:
+        with self._lock:
+            return self.job_id == job_id and self._cancelled
+
+    def begin_activation(self, job_id: str) -> bool:
+        """False when the job was cancelled: it must not activate."""
+        with self._lock:
+            if self.job_id != job_id or self._cancelled:
+                return False
+            self._activating = True
+            return True
 
 
 ingestion_slot = IngestionSlot()
@@ -75,12 +110,17 @@ def _now() -> str:
     )
 
 
-def new_job(job_id: str, layer_id: int, nodata: float | None) -> dict:
+def new_job(job_id: str, country: str, layer_id: int, nodata: float | None) -> dict:
     now = _now()
     return {
         "jobId": job_id,
+        "country": country,
         "layerId": layer_id,
         "status": "queued",
+        # While running: "validating", then "converting" (conversion, verification
+        # and activation). `progress` is the fraction scanned while validating.
+        "phase": None,
+        "progress": None,
         "createdAt": now,
         "updatedAt": now,
         "requestedNodata": nodata,
@@ -124,17 +164,20 @@ def _mark_interrupted(store: LayerStore, job: dict) -> None:
         store,
         job,
         status="failed",
+        phase=None,
+        progress=None,
         error=issue("interrupted", "Interrupted by restart"),
     )
     logger.warning("Ingestion job %s was interrupted by a restart", job["jobId"])
 
 
-def recover_interrupted_jobs(store: LayerStore) -> None:
+def recover_interrupted_jobs(root: LayersRoot) -> None:
     """At startup: fail jobs whose process is gone, and clean their staging files.
 
     A recently updated job may belong to the previous revision, which keeps running
     during a deploy: it is left alone (`refresh_job` fails it later if it goes stale).
     """
+    store = root.flat  # jobs and the share's staging area live at the root
     for job in store.list_jobs():
         if job.get("status") in IN_PROGRESS and not is_in_progress(job):
             _mark_interrupted(store, job)
@@ -181,15 +224,16 @@ def _raster_stem(entry: dict) -> str:
 
 
 def activate(
+    root: LayersRoot,
     store: LayerStore,
     layer_id: int,
     cog: Path,
     job_id: str,
     pixel_size: tuple[float, float] | None,
 ) -> dict:
-    """Copy the COG to the share, give it a new versioned name and point the layer
-    at it. Returns the updated index entry."""
-    share_staging = store.staging_dir / f"{job_id}.tif"
+    """Copy the COG to the share, give it a new versioned name in the country's
+    folder (`store`) and point the layer at it. Returns the updated index entry."""
+    share_staging = root.flat.staging_dir / f"{job_id}.tif"
     share_staging.parent.mkdir(parents=True, exist_ok=True)
     # Outside the lock: copying to the share takes seconds.
     shutil.copyfile(cog, share_staging)
@@ -219,19 +263,78 @@ def activate(
 
 # --- The job ---------------------------------------------------------------------
 
+# The job file is on the share: write the validation progress at most this often.
+PROGRESS_INTERVAL_S = 1.0
+PROGRESS_STEP = 0.05
+
+
+class IngestionCancelled(Exception):
+    pass
+
+
+def _stop_if_cancelled(job_id: str) -> None:
+    if ingestion_slot.is_cancelled(job_id):
+        raise IngestionCancelled
+
+
+class _ValidationProgress:
+    """`on_window` for the validation: stops a cancelled job, and records the
+    progress once both PROGRESS_INTERVAL_S and PROGRESS_STEP have passed."""
+
+    def __init__(self, store: LayerStore, job: dict) -> None:
+        self.store = store
+        self.job = job
+        self.written = 0.0
+        self.written_at = time.monotonic()
+
+    def __call__(self, done: int, total: int) -> None:
+        _stop_if_cancelled(self.job["jobId"])
+        progress = done / total
+        now = time.monotonic()
+        if (
+            now - self.written_at >= PROGRESS_INTERVAL_S
+            and progress - self.written >= PROGRESS_STEP
+        ):
+            try:
+                _save(self.store, self.job, progress=round(progress, 3))
+            except OSError:
+                # Only the progress bar depends on it: a share hiccup here must
+                # not fail the ingestion.
+                logger.warning(
+                    "Could not record the progress of job %s", self.job["jobId"]
+                )
+            self.written, self.written_at = progress, now
+
 
 def run_ingestion(
-    job_id: str, layer_id: int, staged: Path, requested_nodata: float | None
+    job_id: str,
+    country: str,
+    layer_id: int,
+    staged: Path,
+    requested_nodata: float | None,
 ) -> None:
-    """Background task: validate, convert, verify and activate one upload."""
-    store = get_layer_store()
-    job = store.read_job(job_id) or new_job(job_id, layer_id, requested_nodata)
+    """Background task: validate, convert, verify and activate one upload, unless
+    it is cancelled first."""
+    root = get_layers_root()
+    store = root.flat  # jobs live at the root
+    country_store = root.country_store(country)
+    job = store.read_job(job_id) or new_job(job_id, country, layer_id, requested_nodata)
     cog = staged.with_name(f"{job_id}.cog.tif")
     try:
-        _save(store, job, status="running")
-        validation = validate_raster(staged, requested_nodata)
-        _save(store, job, report=validation.report, warnings=validation.warnings)
-        index = store.read_index()
+        _stop_if_cancelled(job_id)
+        _save(store, job, status="running", phase="validating", progress=0)
+        validation = validate_raster(
+            staged, requested_nodata, on_window=_ValidationProgress(store, job)
+        )
+        _save(
+            store,
+            job,
+            report=validation.report,
+            warnings=validation.warnings,
+            phase="converting",
+            progress=None,
+        )
+        index = country_store.read_index()
         entry = next((e for e in index or [] if e["id"] == layer_id), None)
         if entry is None:
             raise IngestionError("layer_not_found", "The layer no longer exists")
@@ -240,18 +343,25 @@ def run_ingestion(
         if validation.nodata is not None and validation.needs_nodata:
             set_nodata(staged, validation.nodata)
         convert_to_cog(staged, cog)
-        verify_same_pixels(staged, cog)
-        entry = activate(store, layer_id, cog, job_id, pixel_size)
+        _stop_if_cancelled(job_id)  # the conversion itself can't be interrupted
+        verify_same_pixels(staged, cog, on_window=lambda *_: _stop_if_cancelled(job_id))
+        if not ingestion_slot.begin_activation(job_id):
+            raise IngestionCancelled
+        entry = activate(root, country_store, layer_id, cog, job_id, pixel_size)
         _save(
             store,
             job,
             status="succeeded",
+            phase=None,
             rasterFilename=entry["raster_filename"],
             version=entry["version"],
         )
         logger.info(
             "Admin ingested %s for layer %s", entry["raster_filename"], layer_id
         )
+    except IngestionCancelled:
+        logger.info("Ingestion job %s for layer %s was cancelled", job_id, layer_id)
+        _save_end(store, job, status="cancelled")
     except IngestionError as e:
         logger.warning("Ingestion job %s for layer %s failed: %s", job_id, layer_id, e)
         _save_failure(store, job, e.as_issue())
@@ -269,7 +379,11 @@ def run_ingestion(
 
 
 def _save_failure(store: LayerStore, job: dict, error: dict) -> None:
+    _save_end(store, job, status="failed", error=error)
+
+
+def _save_end(store: LayerStore, job: dict, **changes) -> None:
     try:
-        _save(store, job, status="failed", error=error)
+        _save(store, job, phase=None, progress=None, **changes)
     except Exception:
-        logger.exception("Could not record the failure of job %s", job["jobId"])
+        logger.exception("Could not record the end of job %s", job["jobId"])

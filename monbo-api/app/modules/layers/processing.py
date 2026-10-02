@@ -6,7 +6,7 @@ Cloud Optimized GeoTIFF and proves the conversion kept every pixel.
 
 import math
 import warnings
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,6 +36,11 @@ COG_OPTIONS = {
 }
 
 
+# Called after each window with (windows done, total windows): progress reports,
+# and a place to stop a cancelled job by raising.
+OnWindow = Callable[[int, int], None]
+
+
 class IngestionError(Exception):
     """A problem with the uploaded raster, reported to the admin.
 
@@ -57,6 +62,10 @@ def issue(code: str, message: str, **params) -> dict:
 
 
 # --- Validation --------------------------------------------------------------------
+
+
+def _window_count(width: int, height: int) -> int:
+    return math.ceil(width / WINDOW_SIZE) * math.ceil(height / WINDOW_SIZE)
 
 
 def _windows(width: int, height: int) -> Iterator[Window]:
@@ -172,7 +181,9 @@ class Validation:
     pixel_size_range_m: tuple[float, float] | None
 
 
-def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
+def validate_raster(
+    path: Path, requested_nodata: float | None, on_window: OnWindow | None = None
+) -> Validation:
     """Structural checks plus a scan of every pixel."""
     try:
         with warnings.catch_warnings():
@@ -227,10 +238,13 @@ def validate_raster(path: Path, requested_nodata: float | None) -> Validation:
         allowed = {0, 1} | ({int(nodata)} if nodata is not None else set())
 
         values: set[int] = set()
-        for window in _windows(src.width, src.height):
+        total = _window_count(src.width, src.height)
+        for done, window in enumerate(_windows(src.width, src.height), start=1):
             values |= _distinct_values(src.read(1, window=window))
             if len(values - allowed) >= MAX_REPORTED_VALUES:
                 break  # enough to reject it
+            if on_window:
+                on_window(done, total)
 
         pixel_size = raster_pixel_size_m(src)
         pixel_size_range = raster_pixel_size_range_m(src)
@@ -297,7 +311,9 @@ def convert_to_cog(src_path: Path, dst_path: Path) -> None:
     rasterio.shutil.copy(str(src_path), str(dst_path), driver="COG", **options)
 
 
-def verify_same_pixels(original: Path, converted: Path) -> None:
+def verify_same_pixels(
+    original: Path, converted: Path, on_window: OnWindow | None = None
+) -> None:
     with rasterio.open(original) as a, rasterio.open(converted) as b:
         same_grid = (a.width, a.height, a.crs, a.transform, a.nodata) == (
             b.width,
@@ -311,10 +327,13 @@ def verify_same_pixels(original: Path, converted: Path) -> None:
                 "conversion_mismatch",
                 "The converted raster doesn't match the upload's grid; nothing changed",
             )
-        for window in _windows(a.width, a.height):
+        total = _window_count(a.width, a.height)
+        for done, window in enumerate(_windows(a.width, a.height), start=1):
             if not np.array_equal(a.read(1, window=window), b.read(1, window=window)):
                 raise IngestionError(
                     "conversion_mismatch",
                     "The converted raster doesn't match the upload's pixels; "
                     "nothing changed",
                 )
+            if on_window:
+                on_window(done, total)

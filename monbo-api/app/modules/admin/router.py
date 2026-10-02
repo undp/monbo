@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from . import auth
-from .auth import Session, client_ip, issue_token, passkey_matches, require_admin
+from .auth import (
+    Session,
+    client_ip,
+    country_for_passkey,
+    issue_token,
+    require_admin,
+)
 
 logger = auth.logger
 
@@ -18,10 +24,12 @@ class LoginBody(BaseModel):
 class SessionData(BaseModel):
     token: str
     expiresAt: str
+    country: str
 
 
 class SessionStatus(BaseModel):
     expiresAt: str
+    country: str
 
 
 def _iso(timestamp: int) -> str:
@@ -35,7 +43,8 @@ def _iso(timestamp: int) -> str:
 @router.post("/session", response_model=SessionData)
 def create_session(body: LoginBody, request: Request):
     """
-    Exchange the admin passkey for a session token.
+    Exchange a country's admin passkey for a session token that administers that
+    country (returned as `country`).
 
     Send the token back as `Authorization: Bearer <token>` on every admin call. After
     5 failed attempts from the same IP within 15 minutes, logins from that IP get
@@ -55,17 +64,21 @@ def create_session(body: LoginBody, request: Request):
             headers={"Retry-After": str(retry_after)},
         )
 
-    if not passkey_matches(body.passkey):
+    country = country_for_passkey(body.passkey)
+    if country is None:
         logger.warning("Admin login failed from %s", ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     limiter.reset(ip)
-    logger.info("Admin login succeeded from %s", ip)
-    token, session = issue_token()
-    return SessionData(token=token, expiresAt=_iso(session.expires_at))
+    logger.info("Admin login succeeded from %s for %s", ip, country["code"])
+    token, session = issue_token(country)
+    return SessionData(
+        token=token, expiresAt=_iso(session.expires_at), country=session.country
+    )
 
 
 @router.get("/session", response_model=SessionStatus)
 def get_session(session: Session = Depends(require_admin)):
-    """Check that the current token is still valid and when it expires."""
-    return SessionStatus(expiresAt=_iso(session.expires_at))
+    """Check that the current token is still valid, when it expires and which
+    country it administers."""
+    return SessionStatus(expiresAt=_iso(session.expires_at), country=session.country)
