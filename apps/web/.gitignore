@@ -47,3 +47,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Agent instructions that `next dev` writes on every start (Next 16). Generated,
+# not maintained here.
+AGENTS.md
+CLAUDE.md
