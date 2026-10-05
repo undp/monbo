@@ -68,5 +68,6 @@
   - web-only: only "Type-check, lint, build" runs.
   Record the results in this file
 - [ ] 3.3 Pushing twice quickly to the same PR cancels the first run
+  - Pushed two commits about 10 s apart on #54 (this note is the second one).
 - [ ] 3.4 A PR into `main` runs CI. Use the next release PR, or a throwaway PR into `main` that is closed
 - [x] 3.5 Run `openspec validate unified-ci`
