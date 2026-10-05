@@ -67,7 +67,8 @@
   - API-only: only "Test and static checks" runs;
   - web-only: only "Type-check, lint, build" runs.
   Record the results in this file
-- [ ] 3.3 Pushing twice quickly to the same PR cancels the first run
-  - Pushed two commits about 10 s apart on #54 (this note is the second one).
+- [x] 3.3 Pushing twice quickly to the same PR cancels the first run
+  - Result (#54): pushed b9c4f50 and 0648032 about 10 s apart. Run 37348479787 (b9c4f50) was `cancelled`, and run 37348513848 (0648032) completed with `success`.
+  - Still open, because they need `ci.yml` on `dev`/`main`: 3.2, after #54 merges (a throwaway PR based on this branch would carry `ci.yml` and all of #54); and 3.4, on the next release PR.
 - [ ] 3.4 A PR into `main` runs CI. Use the next release PR, or a throwaway PR into `main` that is closed
 - [x] 3.5 Run `openspec validate unified-ci`
