@@ -19,7 +19,7 @@ The API reads its layers from an Azure Files share mounted at `/mnt/maps`
 (`MAPS_ROOT`), in the per-country layout the layers admin writes to
 ([maps.md](maps.md#per-country-layout)). The share outlives releases, restarts and new
 revisions. `STORAGE_ACCOUNT_NAME` is required: the API image carries no layers (the
-Git-tracked `monbo-api/app/maps` is only the source the share is seeded from), and an
+Git-tracked `apps/api/app/maps` is only the source the share is seeded from), and an
 API that finds no layers at `MAPS_ROOT` refuses to start.
 
 | Resource | Default | Why |
@@ -32,7 +32,7 @@ API that finds no layers at `MAPS_ROOT` refuses to start.
 | Environment storage | `maps` on the Container Apps environment | What the API's volume refers to |
 
 The volume is mounted with `uid=10001,gid=10001,dir_mode=0750,file_mode=0640`: the
-API image runs as uid/gid 10001 (`monbo-api/Dockerfile.prod`), and `chmod` is not
+API image runs as uid/gid 10001 (`apps/api/Dockerfile.prod`), and `chmod` is not
 possible on the share.
 
 The API is pinned to one replica (`minReplicas`/`maxReplicas: 1`): the lock that
@@ -71,7 +71,7 @@ domains, IP restrictions, CORS, the identity, tags and the workload profile are 
    Every layer copy, in every country, must give the results of the original:
 
    ```sh
-   cd monbo-api
+   cd apps/api
    MAPS_ROOT=app/maps uv run uvicorn app.main:app --port 8001 &
    uv run python -m tests.regression.parity --mapping /tmp/monbo-seed-ids.json \
      http://localhost:8001 <api-url>
@@ -145,7 +145,7 @@ proxy's hop first.
 Each country's passkey hash lives in the share's `countries.json`, not in Azure.
 `deploy.sh countries` edits it without redeploying: the API applies the change on its
 next request. The command needs the `azure` uv dependency group, which `uv run`
-installs from `monbo-api/uv.lock`.
+installs from `apps/api/uv.lock`.
 
 ```sh
 ./azure/deploy.sh countries list             # countries, their state and layers

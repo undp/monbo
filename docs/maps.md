@@ -128,7 +128,7 @@ editing one country's metadata doesn't change the others.
 
 ## Countries
 
-Countries are managed from the command line, in `monbo-api` (in Azure, through
+Countries are managed from the command line, in `apps/api` (in Azure, through
 `./azure/deploy.sh countries`, see
 [suggested_deployment.md](suggested_deployment.md#countries-and-admin-passkeys)):
 
@@ -203,7 +203,7 @@ each pixel lost its forest, not a binary mask. They have to be turned into one
 before uploading: loss years later than the baseline become `1`, everything else
 `0`.
 
-The scripts in `scripts/update-gfw-tmf` do this with the Google Earth Engine API:
+The scripts in `tools/update-gfw-tmf` do this with the Google Earth Engine API:
 
 - They read `loss_year` (GFW) or `DeforestationYear` (TMF).
 - They clip the countries of interest (currently Ecuador, Colombia and Costa Rica).
@@ -211,7 +211,7 @@ The scripts in `scripts/update-gfw-tmf` do this with the Google Earth Engine API
 
 ## Seeding a new share
 
-`uv run python -m app.modules.layers.seed --target <dir>` (in `monbo-api`) turns the
+`uv run python -m app.modules.layers.seed --target <dir>` (in `apps/api`) turns the
 Git-tracked layers into a layers root ready to upload: every raster goes through the
 same checks and conversion as an admin upload and becomes `<stem>-v1.tif`, and every
 layer is published at version 1. The result has the flat layout.

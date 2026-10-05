@@ -266,7 +266,7 @@ your-project/
 ## Dependency updates
 
 This script's dependencies are updated by Dependabot (`uv` ecosystem on
-`/scripts/update-gfw-tmf`), weekly, with minor and patch updates grouped and majors
+`/tools/update-gfw-tmf`), weekly, with minor and patch updates grouped and majors
 isolated. Nothing is automerged. See the root README for the full policy.
 
 Dependabot ignores `gdal`, because of the version-matching requirement above: whether a

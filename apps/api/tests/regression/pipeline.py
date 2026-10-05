@@ -1,6 +1,6 @@
 """Runs the regression farms Excel through the same steps the app does.
 
-1. Read the first sheet like the frontend does (`monbo-front/src/utils/excel.ts`,
+1. Read the first sheet like the frontend does (`apps/web/src/utils/excel.ts`,
    `loadExcelFileFarmsData`): headers on row 2, data from row 4, headers matched by
    keyword in Spanish or English. The upload has no country column: like the
    frontend, every row gets the analysis country.

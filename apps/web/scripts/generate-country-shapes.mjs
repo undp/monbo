@@ -3,7 +3,7 @@
 // world-atlas uses). The landing page's country cards draw them.
 //
 // The shapes only change if the source data does, so the app ships the JSON and none
-// of these libraries. To regenerate (from monbo-front/):
+// of these libraries. To regenerate (from apps/web/):
 //
 //   pnpm add --save-dev d3-geo@3 topojson-client@3 world-atlas@2
 //   node scripts/generate-country-shapes.mjs

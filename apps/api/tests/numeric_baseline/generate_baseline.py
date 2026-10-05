@@ -3,7 +3,7 @@
 This MUST be run under the approved pre-upgrade reference environment
 (Python 3.11 / rasterio 1.4.3 / numpy 1), NOT under the candidate numpy 2
 lock — regenerating expected outputs with the numpy 2 environment is not
-evidence of compatibility. From ``monbo-api`` run:
+evidence of compatibility. From ``apps/api`` run:
 
     uv run --with "numpy==1.26.4" --with "rasterio==1.4.3" \
         python -m tests.numeric_baseline.generate_baseline

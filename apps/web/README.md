@@ -5,7 +5,7 @@ This is the frontend application for Monbo, built with [Next.js 15](https://next
 ## Project Structure
 
 ```
-monbo-front/
+apps/web/
 ├── public/          # Static files
 ├── src/
 │   ├── api/        # API client and services
@@ -29,12 +29,12 @@ There are many ways to run the frontend application. In any case the frontend wi
 
 You can run the frontend in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
 
-First, you need to create a `.env` or `.env.development` file at the `monbo-front` directory containing the environment variables (please use the `.env.development.example` file as a template).
+First, you need to create a `.env` or `.env.development` file in the `apps/web` directory containing the environment variables (please use the `.env.development.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
 Then, execute the following command:
 
 ```sh
-cd monbo-front
+cd apps/web
 docker build -f Dockerfile.dev -t monbo-front-dev .
 docker run -d -p 3000:3000 --name monbo-front-dev-container -v $(pwd):/app monbo-front-dev
 ```
@@ -43,10 +43,10 @@ docker run -d -p 3000:3000 --name monbo-front-dev-container -v $(pwd):/app monbo
 
 You can build and run the productionimage in a Docker container. Note that this approach does not support hot-reloading.
 
-First, you need to create a file at the `monbo-front` directory containing the environment variables (please use the `.env.production.example` file as a template). In this case, the file name convention is not required. Then, execute the following command:
+First, you need to create a file in the `apps/web` directory containing the environment variables (please use the `.env.production.example` file as a template). In this case, the file name convention is not required. Then, execute the following command:
 
 ```sh
-cd monbo-front
+cd apps/web
 docker build -f Dockerfile.prod -t monbo-front-prod .
 docker run -d --env-file <env-file-relative-path> -p 3000:3000 --name monbo-front-prod-container monbo-front-prod
 ```
@@ -55,7 +55,7 @@ docker run -d --env-file <env-file-relative-path> -p 3000:3000 --name monbo-fron
 
 If you don't want to use Docker, you can run the NextJS development server with hot-reloading.
 
-First, you need to create a `.env` or `.env.development` file at the `monbo-front` directory containing the environment variables (you can use the `.env.development.example` file as a template).
+First, you need to create a `.env` or `.env.development` file in the `apps/web` directory containing the environment variables (you can use the `.env.development.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
 
 Install the dependencies and run the development server:
@@ -69,7 +69,7 @@ pnpm dev
 
 This will start the NextJS production server.
 
-First, you need to create a `.env` or `.env.production` file at the `monbo-front` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+First, you need to create a `.env` or `.env.production` file in the `apps/web` directory containing the environment variables (you can use the `.env.production.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
 
 Install the dependencies and run the production server:
@@ -84,7 +84,7 @@ pnpm start
 
 This will build the NextJS standalone application and run the generated Node server.
 
-First, you need to create a `.env` or `.env.production` file at the `monbo-front` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+First, you need to create a `.env` or `.env.production` file in the `apps/web` directory containing the environment variables (you can use the `.env.production.example` file as a template).
 Please follow the file name convention, because it is used by Nextjs to load them automatically.
 
 Install the dependencies and start the server:
@@ -275,7 +275,7 @@ The endpoints of each module are defined as environment variables because this p
 
 ## Dependency updates
 
-Frontend dependencies are updated by Dependabot (`npm` ecosystem on `/monbo-front`,
+Frontend dependencies are updated by Dependabot (`npm` ecosystem on `/apps/web`,
 plus a `docker` entry for the two Dockerfiles), weekly, with minor and patch updates
 grouped into one pull request and each major isolated in its own. Nothing is
 automerged. See the root README for the full policy.

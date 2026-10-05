@@ -1,4 +1,4 @@
-"""Admin layer contracts. Mirrored in `monbo-front/src/interfaces/AdminLayer.ts`.
+"""Admin layer contracts. Mirrored in `apps/web/src/interfaces/AdminLayer.ts`.
 
 Field names follow the layers index (`<country>/index.json` under MAPS_ROOT), which
 is what these endpoints read and write. A layer belongs to the country of the admin

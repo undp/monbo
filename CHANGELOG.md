@@ -24,6 +24,7 @@
 - In Azure the share holds the per-country layout at `/mnt/maps`. `./azure/deploy.sh seed` fills it from the Git-tracked layers (emptying it first after a confirmation), for a new environment or to start one over
 - The deforestation modal and the deforestation upload page no longer have a country selector: they list the selected country's layers
 - The upload templates no longer have a country column; every farm gets the selected country. An older file's country column must be empty or name the selected country; a file with farms in another country is rejected
+- The repository moves to `apps/` and `tools/`: `monbo-api/` is now `apps/api/`, `monbo-front/` is `apps/web/`, and `scripts/update-gfw-tmf/` is `tools/update-gfw-tmf/`. Package, image, Container App and CI job names don't change
 
 ### Fixed
 

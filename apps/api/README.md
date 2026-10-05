@@ -5,7 +5,7 @@ This is the backend API for Monbo, built with FastAPI, a modern web framework fo
 ## Project Structure
 
 ```
-monbo-api/
+apps/api/
 ├── app/
 │  ├── maps/
 │  │   ├── index.json  # Map index with metadata
@@ -66,7 +66,7 @@ The libraries used for this module are:
 
 This module is responsible for analyzing the deforestation of the polygons and points of interest.
 
-This module uses the raster layers under `MAPS_ROOT`: locally, by default, the Git-tracked `monbo-api/app/maps` directory (Git LFS); in Azure, the Azure Files share (see `docs/maps.md`).
+This module uses the raster layers under `MAPS_ROOT`: locally, by default, the Git-tracked `apps/api/app/maps` directory (Git LFS); in Azure, the Azure Files share (see `docs/maps.md`).
 
 The libraries used for this module are:
 
@@ -96,7 +96,7 @@ So, if the deforested pixels inside the polygon are 100, the pixel area is 900 s
 
 This module is responsible for providing the necessary data and assets to generate, at Frontend, the PDF report for the deforestation analysis.
 
-Also, view the report generation docs at Frontend documentation [here](monbo-front/README.md).
+Also, view the report generation docs at Frontend documentation [here](apps/web/README.md).
 
 The file generated is a PNG image combining a satelital background with the polygon drawn on top of it and the deforestation areas surrounding the polygon.
 
@@ -125,7 +125,7 @@ The libraries used for this module are:
 
 There are many ways to run the API application. In any case the API will be available at `http://localhost:8000`.
 
-First, you need to create a `.env` file at the `monbo-api` directory containing the environment variables (please use the `.env.template` file as a template). If you are using the Docker approach, DO NOT use string quotes for the values.
+First, you need to create a `.env` file in the `apps/api` directory containing the environment variables (please use the `.env.template` file as a template). If you are using the Docker approach, DO NOT use string quotes for the values.
 
 Then, execute the following command:
 
@@ -134,7 +134,7 @@ Then, execute the following command:
 You can run the API in a Docker container in development mode. The source code (including the `.env` file) will be mounted as a docker volume. This approach supports hot-reloading.
 
 ```sh
-cd monbo-api
+cd apps/api
 docker build -f Dockerfile.dev -t monbo-api-dev .
 docker run -d -p 8000:8000 --name monbo-api-dev-container -v $(pwd):/app monbo-api-dev
 ```
@@ -146,7 +146,7 @@ You can build and run the API image in a Docker container. Note that this approa
 The image carries no layers (`.dockerignore` leaves out `app/maps`), and the API refuses to start without them, so mount a layers folder and point `MAPS_ROOT` at it. To use the Git-tracked layers (after `git lfs pull`), read-only:
 
 ```sh
-cd monbo-api
+cd apps/api
 docker build -f Dockerfile.prod -t monbo-api-prod .
 docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-relative-path> \
   -v "$PWD/app/maps:/maps:ro" -e MAPS_ROOT=/maps monbo-api-prod
@@ -309,8 +309,8 @@ root README for the full policy. One thing it does **not** cover:
 > reads lines beginning with `FROM`, so that image is outside its reach. The version
 > appears in **three** places and they must be changed together:
 >
-> 1. `monbo-api/Dockerfile.dev`
-> 2. `monbo-api/Dockerfile.prod`
+> 1. `apps/api/Dockerfile.dev`
+> 2. `apps/api/Dockerfile.prod`
 > 3. `.github/workflows/api.yml` — the `astral-sh/setup-uv` `version:` input
 >
 > If they drift, the image and CI resolve dependencies with different uv versions,

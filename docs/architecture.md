@@ -82,7 +82,7 @@ updated with `az containerapp update`.
   - `ADMIN_ALLOWED_ORIGIN` is set to the frontend's URL.
 - **Frontend:**
   - It is built once with placeholders (`__NEXT_PUBLIC_API_URL__`…).
-  - At start, `monbo-front/entrypoint.sh` replaces them with the container's
+  - At start, `apps/web/entrypoint.sh` replaces them with the container's
     environment variables, so the same image runs in any environment.
   - Its Google Maps key is exposed to the browser by design.
 

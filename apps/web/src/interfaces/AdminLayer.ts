@@ -1,4 +1,4 @@
-// Mirrors monbo-api/app/modules/admin/models.py and the ingestion job JSON
+// Mirrors apps/api/app/modules/admin/models.py and the ingestion job JSON
 // (app/modules/admin/ingestion.py). Field names follow the layers index.
 
 export type AdminLanguage = "en" | "es";

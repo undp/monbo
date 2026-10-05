@@ -30,7 +30,7 @@ from tests.regression.pipeline import (
 )
 
 TEMPLATE_PATH = (
-    EXCEL_PATH.parents[3] / "monbo-front/public/files/m1-upload-file-template-es.xlsx"
+    EXCEL_PATH.parents[4] / "apps/web/public/files/m1-upload-file-template-es.xlsx"
 )
 REGENERATE_HINT = (
     "If this change is meant to alter results, run "

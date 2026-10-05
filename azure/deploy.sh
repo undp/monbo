@@ -356,7 +356,7 @@ share_has_layers() { share_file_exists countries.json; }
 # image doesn't contain them, so building doesn't need them.)
 check_rasters_are_real() {
   local raster
-  for raster in "$REPO_ROOT"/monbo-api/app/maps/layers/rasters/*.tif; do
+  for raster in "$REPO_ROOT"/apps/api/app/maps/layers/rasters/*.tif; do
     if head -c 100 "$raster" | grep -q "git-lfs.github.com/spec"; then
       die "$(basename "$raster") is a Git LFS pointer. Run 'git lfs pull' first"
     fi
@@ -368,13 +368,13 @@ build_and_push() {
   log "Building and pushing images (tag: $TAG)"
   az acr login -n "$ACR_NAME"
 
-  docker build --platform linux/amd64 -f "$REPO_ROOT/monbo-api/Dockerfile.prod" \
-    -t "$API_IMAGE" "$REPO_ROOT/monbo-api"
+  docker build --platform linux/amd64 -f "$REPO_ROOT/apps/api/Dockerfile.prod" \
+    -t "$API_IMAGE" "$REPO_ROOT/apps/api"
   docker push "$API_IMAGE"
   ok "Pushed $API_IMAGE"
 
-  docker build --platform linux/amd64 -f "$REPO_ROOT/monbo-front/Dockerfile.prod" \
-    -t "$FRONT_IMAGE" "$REPO_ROOT/monbo-front"
+  docker build --platform linux/amd64 -f "$REPO_ROOT/apps/web/Dockerfile.prod" \
+    -t "$FRONT_IMAGE" "$REPO_ROOT/apps/web"
   docker push "$FRONT_IMAGE"
   ok "Pushed $FRONT_IMAGE"
 }
@@ -530,7 +530,7 @@ share_is_empty() {
   [ "$count" = "0" ]
 }
 
-# Fills the share with the Git-tracked layers (monbo-api/app/maps, needs `git lfs
+# Fills the share with the Git-tracked layers (apps/api/app/maps, needs `git lfs
 # pull`) in the per-country layout, for a new environment or to start an environment
 # over. Every raster is validated and converted to a Cloud Optimized GeoTIFF (the
 # seed command), then split by country (the migration command, which prints one admin
@@ -557,9 +557,9 @@ seed_share() {
   tmp="$(mktemp -d)"
   TEMP_FILES+=("$tmp")
   log "Preparing the layers (validation and COG conversion take a few minutes)"
-  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.layers.seed \
+  uv run --quiet --directory "$REPO_ROOT/apps/api" python -m app.modules.layers.seed \
     --target "$tmp/flat" || die "Seeding failed; the share is unchanged"
-  uv run --quiet --directory "$REPO_ROOT/monbo-api" python -m app.modules.layers.migrate_countries \
+  uv run --quiet --directory "$REPO_ROOT/apps/api" python -m app.modules.layers.migrate_countries \
     --source "$tmp/flat" --target "$tmp/layers" --mapping-out "$SEED_MAPPING_OUT" \
     || die "The per-country migration failed; the share is unchanged"
   echo "  Put each passkey above in the password manager now: it is not stored anywhere."
@@ -614,7 +614,7 @@ countries() {
     echo "  Only break the lease after confirming no country command is running."
     read -r -p "Type unlock to continue: " answer
     [ "$answer" = unlock ] || die "Aborted; the lease is unchanged"
-    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/apps/api" \
       python -m app.modules.admin.azure_registry break-stale-lease \
       --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME"
     ok "Country registry lease released"
@@ -622,7 +622,7 @@ countries() {
   fi
   tmp="$(mktemp -d)"
   TEMP_FILES+=("$tmp")
-  etag="$(AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+  etag="$(AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/apps/api" \
     python -m app.modules.admin.azure_registry snapshot \
     --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
     --dest "$tmp/countries.json")" \
@@ -637,7 +637,7 @@ print(" ".join(c["code"] for c in json.load(open(sys.argv[1]))["countries"]))' "
     done
   fi
 
-  output="$(uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" python -m app.modules.admin.countries \
+  output="$(uv run --quiet --group azure --directory "$REPO_ROOT/apps/api" python -m app.modules.admin.countries \
     "$command" ${code:+"$code"} --root "$tmp")" \
     || die "'countries $command' failed; nothing was uploaded"
   if [ "$command" = list ]; then
@@ -646,14 +646,14 @@ print(" ".join(c["code"] for c in json.load(open(sys.argv[1]))["countries"]))' "
   fi
 
   if [ "$command" = add ]; then
-    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/apps/api" \
       python -m app.modules.admin.azure_registry publish \
       --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
       --expected-etag "$etag" --source "$tmp/countries.json" \
       --country "$code" --country-index "$tmp/$code/index.json" \
       || die "The country was not registered; run the command again"
   else
-    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/monbo-api" \
+    AZURE_STORAGE_KEY="$key" uv run --quiet --group azure --directory "$REPO_ROOT/apps/api" \
       python -m app.modules.admin.azure_registry publish \
       --account "$STORAGE_ACCOUNT_NAME" --share "$MAPS_SHARE_NAME" \
       --expected-etag "$etag" --source "$tmp/countries.json" \

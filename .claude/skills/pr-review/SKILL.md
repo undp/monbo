@@ -23,16 +23,16 @@ The repository lives in the UNDP GitHub organization but is **not yet run as a p
 
 It is a monorepo of **two independent apps with no workspace manager** (each keeps its own lockfile; a root `package.json` only orchestrates):
 
-- `monbo-api/` — Python 3.13, FastAPI, managed with **uv** (`pyproject.toml` + `uv.lock`). Geospatial core: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`, `pillow`. Tests with `pytest`.
-- `monbo-front/` — Next.js 16 (App Router) + React 19 + TypeScript, MUI 7 + Emotion, `@vis.gl/react-google-maps`, `i18next` (`[locale]` routes, `es` default + `en`), `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`. Managed with **pnpm**. **No frontend test suite.**
-- `scripts/update-gfw-tmf/` — offline Google Earth Engine pipeline that regenerates the `.tif` rasters. Never runs at request time.
+- `apps/api/` — Python 3.13, FastAPI, managed with **uv** (`pyproject.toml` + `uv.lock`). Geospatial core: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`, `pillow`. Tests with `pytest`.
+- `apps/web/` — Next.js 16 (App Router) + React 19 + TypeScript, MUI 7 + Emotion, `@vis.gl/react-google-maps`, `i18next` (`[locale]` routes, `es` default + `en`), `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`. Managed with **pnpm**. **No frontend test suite.**
+- `tools/update-gfw-tmf/` — offline Google Earth Engine pipeline that regenerates the `.tif` rasters. Never runs at request time.
 - `azure/` — Azure Container Apps manifests. `docs/` — project docs (`docs/onboarding.md` is the canonical architecture description). `openspec/` — spec-driven change proposals and specs.
 
 Architectural facts that shape what counts as a bug:
 
-- **Stateless: no database, no authentication, no server-side persistence.** All session state lives in the browser in `DataContext` (`monbo-front/src/context/DataContext.tsx`); a refresh drops the flow by design.
+- **Stateless: no database, no authentication, no server-side persistence.** All session state lives in the browser in `DataContext` (`apps/web/src/context/DataContext.tsx`); a refresh drops the flow by design.
 - CORS is fully open (`allow_origins=["*"]`). Every endpoint is effectively public and unauthenticated.
-- Rasters are served from local disk (`monbo-api/app/maps/layers/rasters/*.tif`, Git LFS) and catalogued in `monbo-api/app/maps/index.json`.
+- Rasters are served from local disk (`apps/api/app/maps/layers/rasters/*.tif`, Git LFS) and catalogued in `apps/api/app/maps/index.json`.
 - Deforestation ratio = `min(1.0, deforested_pixels × pixel_size² / geodesic_polygon_area)`, using `rasterio.mask.mask(..., all_touched=True)` and an Albers Equal Area area in `app/helpers/GeometryCalculator.py`.
 - Per-farm/per-map failures are swallowed by design: `value: null` / area `-1` means "could not be computed".
 - The PDF is assembled entirely on the client; the API only produces images and tiles.
@@ -48,7 +48,7 @@ Your review should be objective, evidence-based, actionable, and focused on help
 1. **Read the intent first.** Fetch the PR title, body, and any linked issue or OpenSpec change (`openspec/changes/<name>/` — proposal, design, tasks, delta specs). Note what the PR claims to do.
 2. **Check CI state.** CI runs only on PRs that are **not drafts**. Note whether `Test and static checks` (API) and `Type-check, lint, build` (Frontend) have run and passed — this determines what is out of scope (see [Out of Scope](#out-of-scope)).
 3. **Fetch the diff** with `pull_request_read`, and the existing review comments so you don't duplicate them.
-4. **Read the surrounding code, not just the diff.** For every changed hunk, open the full file and the immediate callers/callees. A diff read in isolation is the single largest source of false positives — validation and error handling frequently live one layer up (e.g. `farms/validations.py`, `utils/farms.py`). For contract changes, read **both** sides: the Pydantic model in `monbo-api` and the matching interface in `monbo-front/src/interfaces/` plus the client in `monbo-front/src/api/`.
+4. **Read the surrounding code, not just the diff.** For every changed hunk, open the full file and the immediate callers/callees. A diff read in isolation is the single largest source of false positives — validation and error handling frequently live one layer up (e.g. `farms/validations.py`, `utils/farms.py`). For contract changes, read **both** sides: the Pydantic model in `monbo-api` and the matching interface in `apps/web/src/interfaces/` plus the client in `apps/web/src/api/`.
 5. **Check the diff against the stated intent.** Does it do what the description claims? Is there scope creep — unrelated changes bundled in? Is anything the description (or the OpenSpec `tasks.md`) promises missing?
 6. **Review** across the areas below.
 7. **Run the refutation pass** (see [Evidence Discipline](#evidence-discipline)) before writing anything up.
@@ -104,16 +104,16 @@ The bullets below are **recall aids, not a coverage requirement.** Most dimensio
 
 Read `docs/onboarding.md` (architecture and quirks), the relevant module's existing files, and — for map or i18n changes — `docs/maps.md` and `docs/new_language.md`. Follow the conventions the existing code establishes; a deviation is a finding.
 
-**API (`monbo-api/app/`)**
+**API (`apps/api/app/`)**
 
 - One package per module under `modules/<name>/` with `router.py` (thin: validation → helpers → response), `helpers.py` (logic), `models.py` (module-local Pydantic models), and optionally `validations.py`. Routers are exported through `modules/__init__.py` and registered in `main.py`. Models shared across modules live in `app/models/`; cross-module utilities in `app/utils/`.
 - Endpoints declare `response_model` and a typed return; input is Pydantic-validated. Invalid user input becomes `HTTPException(status_code=400, detail=...)` (chained with `from exc`), not a 500.
-- JSON fields are **camelCase in the Pydantic models** (`farmId`, `mapId`, `producerId`). There is no codegen: the frontend mirrors these by hand in `monbo-front/src/interfaces/`. A contract change must update both sides in the same PR.
+- JSON fields are **camelCase in the Pydantic models** (`farmId`, `mapId`, `producerId`). There is no codegen: the frontend mirrors these by hand in `apps/web/src/interfaces/`. A contract change must update both sides in the same PR.
 - Environment variables are read and validated once in `app/config/env.py`; fixed values go in `app/config/constants.py`. No `os.getenv` scattered through modules.
 - The `analize` spelling in `/deforestation_analysis/analize` (and `AnalizeBody`) is the contract. "Fixing" it on one side only is a breaking change.
 - Error semantics: per-farm/per-map failures return `value: null` (area `-1`) instead of failing the whole request. New code should follow this or justify why not — and must not let a sentinel (`-1`, `None`) leak into arithmetic or a report as if it were a real value.
 
-**Frontend (`monbo-front/src/`)**
+**Frontend (`apps/web/src/`)**
 
 - Backend calls live in `api/*.ts` fetch clients; endpoint URLs come from `config/env.ts`. Each endpoint has its own `NEXT_PUBLIC_*` variable falling back to `${NEXT_PUBLIC_API_URL}/...`.
 - **Runtime env var plumbing:** production images bake `__NEXT_PUBLIC_X__` placeholders that `entrypoint.sh` replaces at container start. A new `NEXT_PUBLIC_*` variable needs, together: the placeholder fallback in `config/env.ts`, a `sed` line in `entrypoint.sh`, an entry in `azure/monbo-frontend-app.yml`, and the `.env.*.example` files. A missing piece works in `next dev` and breaks in production.
@@ -129,8 +129,8 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 **Repo-wide**
 
 - `docs/onboarding.md` states that behavior changes update the relevant section in the same change. A PR that changes documented behavior (endpoints, flow, formula, setup) without updating it is a finding (Low/Medium).
-- Releases are versioned together: root `package.json`, `monbo-front/package.json`, and `monbo-api/pyproject.toml` carry the same version, and `CHANGELOG.md` gets an entry for user-visible changes.
-- GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. The uv version is a manual bump in three places that must agree: `monbo-api/Dockerfile.dev`, `monbo-api/Dockerfile.prod`, and `astral-sh/setup-uv` in `.github/workflows/api.yml`.
+- Releases are versioned together: root `package.json`, `apps/web/package.json`, and `apps/api/pyproject.toml` carry the same version, and `CHANGELOG.md` gets an entry for user-visible changes.
+- GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. The uv version is a manual bump in three places that must agree: `apps/api/Dockerfile.dev`, `apps/api/Dockerfile.prod`, and `astral-sh/setup-uv` in `.github/workflows/api.yml`.
 - If the PR implements an OpenSpec change, the code should match its `tasks.md` and delta specs, and `openspec/specs/` should not be edited by hand outside the archive/sync flow.
 
 ## 1. Correctness
@@ -180,7 +180,7 @@ There is no auth and CORS is open, so treat every endpoint as public and the req
 
 ## 7. Testing
 
-- API: new or changed endpoints and helpers have `pytest` coverage under `monbo-api/tests/`, mirroring `modules/`. Look for negative cases (malformed coordinates, unknown map ids, wrong locale) and regression tests for the bug being fixed.
+- API: new or changed endpoints and helpers have `pytest` coverage under `apps/api/tests/`, mirroring `modules/`. Look for negative cases (malformed coordinates, unknown map ids, wrong locale) and regression tests for the bug being fixed.
 - Numeric changes: whether a deterministic test pins the expected values.
 - Frontend: there is no test harness. Do not demand frontend tests. If the PR adds non-trivial pure logic (e.g. in `utils/`), you may note as Low that it would be a good first candidate for one.
 

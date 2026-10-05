@@ -11,7 +11,7 @@
   - [Frontend](#frontend)
   - [API](#api)
   - [Docs](#docs)
-  - [Scripts](#scripts)
+  - [Tools](#tools)
 
 - [How to run](#how-to-run)
 
@@ -39,15 +39,15 @@ These modules work together to give users a complete view of their supply chain�
 
 ## Project Structure
 
-Project contains 4 subfolders, each has a separate set of instructions how to use.
+Deployable applications live under `apps/`, offline tools under `tools/`. Each has its own instructions.
 
-1. Frontend: `monbo-front`
+1. Frontend: `apps/web` (package `monbo-front`)
 
-2. API: `monbo-api`
+2. API: `apps/api` (package `monbo-api`)
 
 3. Docs: `docs`
 
-4. Scripts: `scripts`
+4. Tools: `tools` (the GFW/TMF raster update script)
 
 ### Frontend
 
@@ -55,7 +55,7 @@ The frontend is built with [React](https://react.dev/) and [Next.js 15](https://
 
 The application follows a component-based architecture and implements the App Router pattern introduced in Next.js 13+. Static assets are automatically optimized, and the development environment supports hot reloading for a seamless development experience.
 
-Check the frontend [README](monbo-front/README.md) for more detailed instructions on how to use.
+Check the frontend [README](apps/web/README.md) for more detailed instructions on how to use.
 
 ### API
 
@@ -63,7 +63,7 @@ This project implements a RESTful API using [FastAPI](https://fastapi.tiangolo.c
 
 Python dependencies are managed with [uv](https://docs.astral.sh/uv/) (`pyproject.toml` + `uv.lock`). The API is containerized using Docker for consistent deployment across environments. Also, it follows RESTful principles and uses JSON for data exchange.
 
-Check the API [README](monbo-api/README.md) for more detailed instructions on how to use.
+Check the API [README](apps/api/README.md) for more detailed instructions on how to use.
 
 ### Docs
 
@@ -75,13 +75,13 @@ Each document follows Markdown format for consistency and readability.
 
 Start with [`docs/architecture.md`](docs/architecture.md): the Azure infrastructure and how its resources interact, how the API reads the layers' rasters, and how each country administers its own layers.
 
-### Scripts
+### Tools
 
-The `/scripts` directory houses standalone utility scripts and mini-projects for data processing and automation.
+The `/tools` directory houses standalone utility scripts and mini-projects for data processing and automation. They are not deployed.
 
 A notable component is the `update-gfw-tmf` tool, which provides a robust Python implementation for downloading and processing deforestation data from Global Forest Watch (GFW) and Tropical Moist Forest (TMF) datasets using Google Earth Engine. This script features an object-oriented design with abstract base classes, multi-threaded downloading capabilities, and automatic cleanup mechanisms. It handles large-scale geospatial data processing, including tiled downloads, compression, and error handling. The tool is fully documented with a comprehensive README that covers installation, configuration, usage patterns, and troubleshooting guidelines.
 
-Other scripts in this directory follow similar patterns of being self-contained, well-documented tools that serve specific data processing or automation needs within the project.
+Other tools in this directory follow similar patterns of being self-contained, well-documented tools that serve specific data processing or automation needs within the project.
 
 ## Running the project
 
@@ -92,11 +92,11 @@ The backend is intended to be available at `http://localhost:8000` while the fro
 ### Prerequisites
 
 - [pnpm](https://pnpm.io/) for the frontend (the exact version is pinned via the `packageManager` field).
-- [uv](https://docs.astral.sh/uv/) for the Python API and scripts — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- [uv](https://docs.astral.sh/uv/) for the Python API and tools — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ### Root orchestrator
 
-A root `package.json` provides orchestrator scripts that delegate to each package (option A: no pnpm workspace; each package keeps its own lockfile, and a minimal root `pnpm-lock.yaml` pins the `concurrently` devDependency). Frontend commands delegate via `pnpm --dir monbo-front` and Python commands via `uv run --directory monbo-api`:
+A root `package.json` provides orchestrator scripts that delegate to each package (option A: no pnpm workspace; each package keeps its own lockfile, and a minimal root `pnpm-lock.yaml` pins the `concurrently` devDependency). Frontend commands delegate via `pnpm --dir apps/web` and Python commands via `uv run --directory apps/api`:
 
 ```sh
 pnpm dev     # runs the frontend and API dev servers in parallel (via `pnpm exec concurrently`)
@@ -120,11 +120,11 @@ Dependabot covers seven manifest locations, one entry per ecosystem and director
 | Ecosystem | Directory | Day |
 | --- | --- | --- |
 | `npm` | `/` (root orchestrator) | Monday |
-| `npm` | `/monbo-front` | Monday |
-| `uv` | `/monbo-api` | Tuesday |
-| `uv` | `/scripts/update-gfw-tmf` | Tuesday |
-| `docker` | `/monbo-api` | Wednesday |
-| `docker` | `/monbo-front` | Wednesday |
+| `npm` | `/apps/web` | Monday |
+| `uv` | `/apps/api` | Tuesday |
+| `uv` | `/tools/update-gfw-tmf` | Tuesday |
+| `docker` | `/apps/api` | Wednesday |
+| `docker` | `/apps/web` | Wednesday |
 | `github-actions` | `/` | Thursday |
 
 The policy in one paragraph: **minor and patch updates are grouped** per ecosystem so routine churn arrives as a single reviewable pull request, **majors are deliberately left ungrouped** so each gets its own PR and can be read against its changelog in isolation, `open-pull-requests-limit` bounds the queue, and **nothing is automerged** — every update passes CI and a human before it lands. Days are staggered so one ecosystem's PRs don't all arrive at once.
@@ -143,19 +143,19 @@ Upgrades that a design decision deferred are `ignore` rules in `dependabot.yml`,
 | `@types/node` | majors | The runtime moves past Node 24. Lift with the Docker `node` rule |
 | `typescript` | majors (TS 7) | typescript-eslint admits 7.x and `eslint-config-next` adopts it |
 | `eslint` | majors (eslint 10) | `eslint-plugin-react` and `eslint-plugin-jsx-a11y` support it and `eslint-config-next` picks them up |
-| Docker `node` (`monbo-front`) | majors (Node 26) | One release cycle of soak after Node 26 becomes LTS on 2026-10-28 |
-| Docker `python` (`monbo-api`) | `>=3.14` | A decision to move to Python 3.14; the wheels already exist |
-| `gdal` (`scripts/update-gfw-tmf`) | all updates | The system GDAL strategy is decided (task 5.4 of the 2026 dependency upgrade) |
+| Docker `node` (`apps/web`) | majors (Node 26) | One release cycle of soak after Node 26 becomes LTS on 2026-10-28 |
+| Docker `python` (`apps/api`) | `>=3.14` | A decision to move to Python 3.14; the wheels already exist |
+| `gdal` (`tools/update-gfw-tmf`) | all updates | The system GDAL strategy is decided (task 5.4 of the 2026 dependency upgrade) |
 
 The sources are `openspec/changes/archive/2026-09-24-dependency-upgrade-2026/design.md` (D5, D10, R11, R16, "Deferred / Out-of-scope") and the OpenSpec change `dev-default-branch-and-dependabot`.
 
 Two things worth knowing about the coverage:
 
 - **Non-standard Dockerfile names are covered.** These directories hold `Dockerfile.dev` and `Dockerfile.prod` rather than a plain `Dockerfile`. Dependabot's Docker file fetcher selects on `/dockerfile|containerfile/i` as a substring of the filename, so both match.
-- **The uv binary image is *not* covered.** `monbo-api/Dockerfile.dev` and `Dockerfile.prod` pull the uv binary with `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only reads lines beginning with `FROM`. That version is a manual bump, and it lives in **three** places that must stay in sync:
+- **The uv binary image is *not* covered.** `apps/api/Dockerfile.dev` and `Dockerfile.prod` pull the uv binary with `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only reads lines beginning with `FROM`. That version is a manual bump, and it lives in **three** places that must stay in sync:
 
-  1. `monbo-api/Dockerfile.dev`
-  2. `monbo-api/Dockerfile.prod`
+  1. `apps/api/Dockerfile.dev`
+  2. `apps/api/Dockerfile.prod`
   3. `.github/workflows/api.yml` (the `astral-sh/setup-uv` `version:` input)
 
 Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.
