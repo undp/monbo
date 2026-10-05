@@ -124,8 +124,28 @@ def _warn_about_admin_configuration() -> None:
         )
 
 
+class MissingLayersError(RuntimeError):
+    """The layers root holds no layers in either layout."""
+
+
+def _check_layers_root() -> None:
+    # The production image carries no layers: without the share (or another layers
+    # folder) mounted at MAPS_ROOT, refuse to start instead of failing on the first
+    # analysis or tile request. Startup only: a share that hiccups later must not take
+    # the running replica down.
+    root = get_layers_root()
+    if not root.has_layout():
+        raise MissingLayersError(
+            f"No layers at MAPS_ROOT ({root.root.resolve()}): it has neither "
+            "countries.json (per-country layout) nor index.json (flat layout). The API "
+            "image doesn't include layers: mount the share or a layers folder (e.g. the "
+            "repository's app/maps) and set MAPS_ROOT to it"
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await run_in_threadpool(_check_layers_root)
     if admin_enabled():
         try:
             await run_in_threadpool(recover_interrupted_jobs, get_layers_root())

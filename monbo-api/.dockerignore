@@ -80,3 +80,10 @@ __pycache__/
 
 # Virtual environment
 venv/
+
+# Layers. The API reads them from MAPS_ROOT (the Azure Files share in Azure), never
+# from the image. They stay in Git (LFS) so a clone has working layers for local
+# development, tests and `azure/deploy.sh seed`, but the image must not carry them
+# (~511 MB). The whole folder goes, index and metadata included: an index without
+# its rasters would start an API that fails on every analysis.
+app/maps/

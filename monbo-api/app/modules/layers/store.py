@@ -410,6 +410,11 @@ class LayersRoot:
             )
         return has_registry
 
+    def has_layout(self) -> bool:
+        """Whether the root holds layers in either layout: the country registry or
+        the flat index. False too when the root folder doesn't exist."""
+        return self.registry_path.is_file() or self.flat.index_path.is_file()
+
     # --- Country registry ----------------------------------------------------
 
     def read_registry(self) -> list[dict] | None:

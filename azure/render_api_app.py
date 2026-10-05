@@ -5,8 +5,8 @@ update --yaml` is broken on az CLI 2.90 and flags can't add volumes, so the whol
 app is PUT from this body. Everything comes from environment variables; secrets
 travel in the body (a temporary file deploy.sh deletes), never on a command line.
 
-Layer storage (the Azure Files share mounted at /mnt/maps, holding the per-country
-layout) is added when MAPS_MOUNT=true. The layers admin is added when
+The API always mounts the layer storage (the Azure Files share at /mnt/maps, holding
+the per-country layout): its image carries no layers. The layers admin is added when
 ADMIN_SESSION_SECRET is set; each country's passkey hash lives in the share's
 country registry, not here.
 
@@ -115,10 +115,7 @@ def main() -> None:
         "containers": [container],
         # One replica: the admin's locks, rate limit and ingestion slot live in memory.
         "scale": {"minReplicas": 1, "maxReplicas": 1},
-    }
-
-    if os.environ.get("MAPS_MOUNT") == "true":
-        template["volumes"] = [
+        "volumes": [
             {
                 "name": "maps",
                 "storageType": "AzureFile",
@@ -129,9 +126,10 @@ def main() -> None:
                     "MAPS_MOUNT_OPTIONS", "uid=10001,gid=10001,dir_mode=0750,file_mode=0640"
                 ),
             }
-        ]
-        container["volumeMounts"] = [{"volumeName": "maps", "mountPath": MAPS_MOUNT_PATH}]
-        env_vars.append({"name": "MAPS_ROOT", "value": MAPS_MOUNT_PATH})
+        ],
+    }
+    container["volumeMounts"] = [{"volumeName": "maps", "mountPath": MAPS_MOUNT_PATH}]
+    env_vars.append({"name": "MAPS_ROOT", "value": MAPS_MOUNT_PATH})
 
     if os.environ.get("ADMIN_SESSION_SECRET"):
         secrets += [

@@ -19,7 +19,9 @@ The API reads layers from `MAPS_ROOT`:
 | Local, trying the admin | `.local-maps` | `app/maps` migrated to the per-country layout, ignored by Git ([onboarding.md](onboarding.md#48-trying-the-layers-admin-locally)) |
 
 The layers in Git are the source the share was seeded from. Admin changes only
-reach the share: they are never committed.
+reach the share: they are never committed. The API image doesn't contain them: a
+container needs the share or another layers folder mounted at `MAPS_ROOT`, and the
+API refuses to start when that root holds neither layout.
 
 ### Per-country layout
 

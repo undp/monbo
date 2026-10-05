@@ -13,17 +13,17 @@
 #   ./azure/deploy.sh countries unlock            # only after an interrupted command
 #   ./azure/deploy.sh destroy       # delete the apps' resource group (layer storage is kept)
 #
-# With STORAGE_ACCOUNT_NAME set, the API reads its layers from an Azure Files share
-# mounted at /mnt/maps, in the per-country layout, instead of the ones baked into the
-# image. Seed the share first (`seed`, docs/suggested_deployment.md). With
+# The API reads its layers from an Azure Files share mounted at /mnt/maps, in the
+# per-country layout: STORAGE_ACCOUNT_NAME is required, because the API image carries
+# no layers. Seed the share first (`seed`, docs/suggested_deployment.md). With
 # ADMIN_SESSION_SECRET set, the layers admin is enabled too; each country's passkey
 # lives in the share's country registry.
 #
 # Configuration is read from azure/deploy.env (copy azure/deploy.env.example).
 # Any variable can also be overridden from the shell, e.g. `TAG=v2 ./azure/deploy.sh`.
 #
-# Requirements: az CLI (logged in with `az login`), python3, Docker running, git-lfs,
-# and uv for `seed` and `countries`.
+# Requirements: az CLI (logged in with `az login`), python3 and Docker running; git-lfs
+# (with the rasters pulled) and uv for `seed`, and uv for `countries`.
 # The script is idempotent: it creates missing resources and updates existing ones.
 
 set -euo pipefail
@@ -76,8 +76,7 @@ GCP_MAPS_PLATFORM_SIGNATURE_SECRET="${GCP_MAPS_PLATFORM_SIGNATURE_SECRET:-}"
 # The frontend key is exposed to the browser; defaults to the API key if unset.
 FRONT_GCP_MAPS_PLATFORM_API_KEY="${FRONT_GCP_MAPS_PLATFORM_API_KEY:-$GCP_MAPS_PLATFORM_API_KEY}"
 
-# Persistent layer storage. Empty STORAGE_ACCOUNT_NAME = the API serves the layers
-# baked into its image, as before.
+# Persistent layer storage, required to deploy the API: its image has no layers.
 DATA_RESOURCE_GROUP="${DATA_RESOURCE_GROUP:-monbo-data}"
 STORAGE_ACCOUNT_NAME="${STORAGE_ACCOUNT_NAME:-}"
 MAPS_SHARE_NAME="${MAPS_SHARE_NAME:-maps}"
@@ -168,9 +167,9 @@ check_prerequisites() {
   select_subscription
 
   [ -n "$ACR_NAME" ] || die "ACR_NAME is required (globally unique, lowercase alphanumeric)"
-  if [ "$COMMAND" = storage ]; then
-    layer_storage_enabled || die "STORAGE_ACCOUNT_NAME is required for the storage command"
-  else
+  # The API image carries no layers, so there is no deploy without the share.
+  layer_storage_enabled || die "STORAGE_ACCOUNT_NAME is required: the API reads its layers from the share (docs/suggested_deployment.md)"
+  if [ "$COMMAND" != storage ]; then
     [ -n "$GCP_MAPS_PLATFORM_API_KEY" ] || die "GCP_MAPS_PLATFORM_API_KEY is required"
     [ -n "$GCP_MAPS_PLATFORM_SIGNATURE_SECRET" ] || die "GCP_MAPS_PLATFORM_SIGNATURE_SECRET is required"
     check_admin_config
@@ -178,9 +177,6 @@ check_prerequisites() {
 
   if [ "$SKIP_BUILD" != true ] && [ "$COMMAND" != storage ]; then
     docker info >/dev/null 2>&1 || die "Docker is not running"
-
-    # The rasters are baked into the API image; LFS pointers would ship a broken API.
-    check_rasters_are_real
   fi
 
   az extension add --name containerapp --upgrade --only-show-errors >/dev/null
@@ -203,8 +199,8 @@ check_admin_config() {
 # registration is asynchronous, so wait until each one reports Registered.
 register_providers() {
   local namespace state
-  local namespaces=(Microsoft.ContainerRegistry Microsoft.App Microsoft.OperationalInsights)
-  layer_storage_enabled && namespaces+=(Microsoft.Storage Microsoft.RecoveryServices)
+  local namespaces=(Microsoft.ContainerRegistry Microsoft.App Microsoft.OperationalInsights
+    Microsoft.Storage Microsoft.RecoveryServices)
   for namespace in "${namespaces[@]}"; do
     state="$(az provider show -n "$namespace" --query registrationState -o tsv 2>/dev/null || true)"
     if [ "$state" != "Registered" ]; then
@@ -356,6 +352,8 @@ share_file_exists() {
 # The share holds the per-country layout: its country registry.
 share_has_layers() { share_file_exists countries.json; }
 
+# `seed` converts the Git-tracked rasters; LFS pointers would fail it midway. (The API
+# image doesn't contain them, so building doesn't need them.)
 check_rasters_are_real() {
   local raster
   for raster in "$REPO_ROOT"/monbo-api/app/maps/layers/rasters/*.tif; do
@@ -388,12 +386,8 @@ build_and_push() {
 # domains, IP restrictions, CORS, identity, tags and the workload profile are kept.
 deploy_api() {
   log "Deploying $API_APP_NAME"
-  local mount=false
-  if layer_storage_enabled; then
-    # Mounting an empty folder would leave the API without layers.
-    share_has_layers || die "The '$MAPS_SHARE_NAME' share has no countries.json: seed it first with ./azure/deploy.sh seed"
-    mount=true
-  fi
+  # Mounting an empty share would leave the API without layers (it refuses to start).
+  share_has_layers || die "The '$MAPS_SHARE_NAME' share has no countries.json: seed it first with ./azure/deploy.sh seed"
 
   local env_id default_domain body existing previous_revision="" admin_origin
   env_id="$(az containerapp env show -g "$AZURE_RESOURCE_GROUP" -n "$CONTAINERAPPS_ENV" --query id -o tsv)"
@@ -415,7 +409,7 @@ deploy_api() {
     GCP_MAPS_PLATFORM_API_KEY="$GCP_MAPS_PLATFORM_API_KEY" \
     GCP_MAPS_PLATFORM_SIGNATURE_SECRET="$GCP_MAPS_PLATFORM_SIGNATURE_SECRET" \
     OVERLAP_THRESHOLD_PERCENTAGE="$OVERLAP_THRESHOLD_PERCENTAGE" \
-    MAPS_MOUNT="$mount" ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
+    ENV_STORAGE_NAME="$ENV_STORAGE_NAME" \
     ADMIN_SESSION_SECRET="$ADMIN_SESSION_SECRET" \
     ADMIN_ALLOWED_ORIGIN="$admin_origin" \
     EXISTING_APP_FILE="$existing" \
@@ -439,7 +433,7 @@ deploy_api() {
 
   API_URL="https://$(app_fqdn "$API_APP_NAME")"
   wait_for_health "$API_URL/health"
-  [ "$mount" = true ] && verify_maps_root "$API_URL"
+  verify_maps_root "$API_URL"
   admin_enabled && ok "Layers admin: $admin_origin/admin"
   return 0
 }
@@ -719,11 +713,11 @@ fi
 
 check_prerequisites
 ensure_infrastructure
-layer_storage_enabled && ensure_layer_storage
+ensure_layer_storage
 if [ "$COMMAND" = storage ]; then
   log "Done"
   share_has_layers && echo "  The share has its layers (countries.json)." \
-    || echo "  The share has no layers yet: run ./azure/deploy.sh seed before deploying with the mount."
+    || echo "  The share has no layers yet: run ./azure/deploy.sh seed before deploying."
   exit 0
 fi
 [ "$SKIP_BUILD" = true ] || build_and_push

@@ -15,11 +15,12 @@ resources fit together is in [architecture.md](architecture.md).
 
 ## Layer storage
 
-Without `STORAGE_ACCOUNT_NAME`, the API serves the layers baked into its image
-(`monbo-api/app/maps`, read-only). With it, the API reads them from an Azure Files
-share mounted at `/mnt/maps` (`MAPS_ROOT`), in the per-country layout the layers
-admin writes to ([maps.md](maps.md#per-country-layout)). The share outlives releases,
-restarts and new revisions.
+The API reads its layers from an Azure Files share mounted at `/mnt/maps`
+(`MAPS_ROOT`), in the per-country layout the layers admin writes to
+([maps.md](maps.md#per-country-layout)). The share outlives releases, restarts and new
+revisions. `STORAGE_ACCOUNT_NAME` is required: the API image carries no layers (the
+Git-tracked `monbo-api/app/maps` is only the source the share is seeded from), and an
+API that finds no layers at `MAPS_ROOT` refuses to start.
 
 | Resource | Default | Why |
 |---|---|---|
@@ -104,12 +105,11 @@ as interrupted (after up to 15 minutes) and has to upload the raster again.
 
 ### Rollback
 
-- **Back to the image's layers:** remove `STORAGE_ACCOUNT_NAME` **and
-  `ADMIN_SESSION_SECRET`** from `azure/deploy.env` and redeploy. The API serves the
-  Git-tracked layers baked into the image, read-only, with the admin off (`deploy.sh`
-  refuses to enable the admin without persistent storage). The share and its admin
-  changes are left as they are. As with any deploy, don't do it while a raster upload
-  is being processed (see above).
+- **Back to an earlier image:** `TAG=<tag> ./azure/deploy.sh --skip-build` redeploys
+  an image already in the registry, with the same share. As with any deploy, don't do
+  it while a raster upload is being processed (see above).
+- **Back to the Git layers:** `./azure/deploy.sh seed` rebuilds the share from the
+  Git-tracked layers (it snapshots the current content first). Admin changes are lost.
 - **Back to a release from before per-country layers:** that release reads the old
   flat layout. Restore the share from a snapshot taken before the seed, then deploy
   that release with its own `deploy.sh` and `deploy.env`.

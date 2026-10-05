@@ -1,6 +1,8 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import MissingLayersError, app, create_app
+from app.modules.layers.store import LayersRoot, set_layers_root
 
 client = TestClient(app)
 
@@ -38,6 +40,33 @@ def test_liveness_does_not_touch_the_maps_root(monkeypatch):
     response = client.get("/health/live")
     assert response.status_code == 200
     assert response.json() == {"status": "OK"}
+
+
+@pytest.mark.parametrize("root_exists", [True, False])
+def test_startup_fails_without_layers(tmp_path, root_exists):
+    """The image carries no layers: an empty or missing MAPS_ROOT stops the startup."""
+    root = tmp_path / "maps"
+    if root_exists:
+        root.mkdir()
+    set_layers_root(LayersRoot(root))
+    try:
+        with pytest.raises(MissingLayersError, match="No layers at MAPS_ROOT"):
+            with TestClient(create_app()):  # runs the startup hook
+                pass
+    finally:
+        set_layers_root(None)
+
+
+def test_startup_with_a_flat_root(maps_root):
+    maps_root.write_index([])
+    with TestClient(create_app()) as started:
+        assert started.get("/health/live").status_code == 200
+
+
+def test_startup_with_a_per_country_root(country_root):
+    country_root.register("CO")
+    with TestClient(create_app()) as started:
+        assert started.get("/health/live").status_code == 200
 
 
 def test_download_geojson_with_valid_content():

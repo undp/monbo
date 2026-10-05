@@ -129,9 +129,10 @@ ingestions at once. Don't scale the API out while the admin is enabled.
 | Layout | Where | What works |
 |---|---|---|
 | Per country: `countries.json` plus one folder per country | Azure (`/mnt/maps`); locally `.local-maps` | Everything, including the admin |
-| Flat (legacy): one `index.json` at the root | Locally the default (`app/maps`, tracked in Git with LFS), and the image's fallback without a share | Public app only, read-only; the admin routes are not registered |
+| Flat (legacy): one `index.json` at the root | Locally the default (`app/maps`, tracked in Git with LFS). The API image carries no layers | Public app only, read-only; the admin routes are not registered |
 
-A root holding both layouts is refused at startup. `GET /health` reports the root in
+A root holding both layouts is refused at startup, and so is one holding neither (an
+empty or missing `MAPS_ROOT`). `GET /health` reports the root in
 use and whether it is writable.
 
 All file access goes through `app/modules/layers/store.py`:

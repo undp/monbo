@@ -66,7 +66,7 @@ The libraries used for this module are:
 
 This module is responsible for analyzing the deforestation of the polygons and points of interest.
 
-This module uses the raster layers located in the `monbo-api/app/maps` directory.
+This module uses the raster layers under `MAPS_ROOT`: locally, by default, the Git-tracked `monbo-api/app/maps` directory (Git LFS); in Azure, the Azure Files share (see `docs/maps.md`).
 
 The libraries used for this module are:
 
@@ -143,10 +143,13 @@ docker run -d -p 8000:8000 --name monbo-api-dev-container -v $(pwd):/app monbo-a
 
 You can build and run the API image in a Docker container. Note that this approach does not support hot-reloading.
 
+The image carries no layers (`.dockerignore` leaves out `app/maps`), and the API refuses to start without them, so mount a layers folder and point `MAPS_ROOT` at it. To use the Git-tracked layers (after `git lfs pull`), read-only:
+
 ```sh
 cd monbo-api
 docker build -f Dockerfile.prod -t monbo-api-prod .
-docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-relative-path> monbo-api-prod
+docker run -d -p 8000:8000 --name monbo-api-prod-container --env-file <env-file-relative-path> \
+  -v "$PWD/app/maps:/maps:ro" -e MAPS_ROOT=/maps monbo-api-prod
 ```
 
 ### 3. Run FastAPI in development mode
@@ -241,7 +244,7 @@ The application requires the following environment variables to be set:
 - `GCP_MAPS_PLATFORM_API_KEY`: Google Maps Platform API key for accessing Google Maps services
 - `GCP_MAPS_PLATFORM_SIGNATURE_SECRET`: Google Maps Platform signature secret for accessing Google Maps services
 - `OVERLAP_THRESHOLD_PERCENTAGE`: Defines the minimum percentage overlap required when comparing polygons (tolerance ceiling). Used to determine when two polygons should be considered being overlapping. Type: Float. Range: 0-100. Default: 0
-- `MAPS_ROOT`: Directory with the layers: the per-country layout (`countries.json` plus one folder per country) or the flat one (a single `index.json`, served read-only). Default: `app/maps` (the Git-tracked layers, flat). In Azure it points at the per-country layout on the mounted Azure Files share (`/mnt/maps`). See `docs/maps.md`.
+- `MAPS_ROOT`: Directory with the layers: the per-country layout (`countries.json` plus one folder per country) or the flat one (a single `index.json`, served read-only). Default: `app/maps` (the Git-tracked layers, flat), which exists in a checkout but not in the production image: there it must be set to a mounted folder. The API refuses to start when the root holds neither layout. In Azure it points at the per-country layout on the mounted Azure Files share (`/mnt/maps`). See `docs/maps.md`.
 
 Layers admin (optional). The `/admin` routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout. Each country's admin passkey is created with `uv run python -m app.modules.admin.countries add <CC>` (it prints the passkey once; only its hash is stored, in `countries.json`):
 
