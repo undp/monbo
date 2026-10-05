@@ -3,9 +3,9 @@
 ## Purpose
 
 Define the Azure infrastructure that keeps layers across releases: the Azure Files share and its
-protection, the mount into the API container, the admin secret, the deployment script and its
-seed and countries commands, the migration to the per-country layout, and the rollback path.
-
+protection, the mount into the API container (whose image carries no layers), the admin secret,
+the deployment script and its seed and countries commands, and the migration to the per-country
+layout.
 ## Requirements
 ### Requirement: Persistent layer storage outside the app lifecycle
 
@@ -53,7 +53,7 @@ The API Container App SHALL mount the share read-write at `/mnt/maps`, with moun
 - the share's soft-delete and backup settings;
 - the Container Apps environment storage definition.
 
-It SHALL deploy the API with the volume mount, the environment variables, and the secrets from a single rendered app definition (`azure/render_api_app.py`, applied with `az rest --method put`). It SHALL refuse to mount a share that has no `countries.json`. After deploying, it SHALL fail if `/health` does not report a writable maps root at `/mnt/maps`. The `destroy` command SHALL NOT delete the storage resource group.
+It SHALL deploy the API with the volume mount, the environment variables, and the secrets from a single rendered app definition (`azure/render_api_app.py`, applied with `az rest --method put`). It SHALL refuse to mount a share that has no `countries.json`. After deploying, it SHALL fail if `/health` does not report a writable maps root at `/mnt/maps`. The `destroy` command SHALL NOT delete the storage resource group. It SHALL check that the Git-tracked rasters are real files and not Git LFS pointers before seeding. It SHALL NOT require that check to build the API image, which does not contain them.
 
 #### Scenario: Re-running deploy
 
@@ -70,6 +70,16 @@ It SHALL deploy the API with the volume mount, the environment variables, and th
 - **WHEN** a deploy results in an API revision without the mount
 - **THEN** the script's health verification fails with an explicit error
 
+#### Scenario: Build from a checkout without LFS content
+
+- **WHEN** an operator builds and deploys from a checkout where the rasters are Git LFS pointers
+- **THEN** the build and deploy proceed, because the image does not contain the rasters
+
+#### Scenario: Seed from a checkout without LFS content
+
+- **WHEN** an operator runs `./azure/deploy.sh seed` and a raster is a Git LFS pointer
+- **THEN** the command stops before touching the share and asks to run `git lfs pull`
+
 ### Requirement: Seeding existing layers
 
 The project SHALL provide a seed command that takes the Git-tracked `app/maps` as source and a target directory. It SHALL run every existing raster through the same validation, COG conversion, and pixel-equality verification as admin ingestion, and SHALL write each raster as `<stem>-v1.tif`, copy the metadata, and write an index with every layer `enabled: true` and `version: 1`. The seeded share SHALL be verified by comparing analysis results for a fixed sample of farms against the pre-migration deployment, which SHALL be identical.
@@ -83,20 +93,6 @@ The project SHALL provide a seed command that takes the Git-tracked `app/maps` a
 
 - **WHEN** the same farm sample is analyzed on the old deployment and on the share-backed deployment
 - **THEN** every deforestation ratio is identical
-
-### Requirement: Rollback path while Git layers exist
-
-Until a later change removes the layers from Git, removing `MAPS_ROOT` (or the mount) SHALL make the API serve the layers baked into the image, read-only, without code changes. Going back to a release from before the per-country layout SHALL require restoring the share from a snapshot taken before it was seeded in the per-country layout.
-
-#### Scenario: Roll back storage
-
-- **WHEN** an operator deploys a revision without `MAPS_ROOT`
-- **THEN** the API serves the Git-tracked layers from the image, the admin is off, and the files on the share remain untouched
-
-#### Scenario: Roll back to an earlier release
-
-- **WHEN** an operator restores the share from a snapshot taken before the seed and deploys an earlier release with its own `deploy.sh`
-- **THEN** that release serves the flat layout it expects
 
 ### Requirement: Migration to the per-country layout
 
@@ -165,4 +161,33 @@ When the share already has files, the command SHALL ask the operator to type the
 
 - **WHEN** the share's `countries.json` changes between the command's download and its upload
 - **THEN** the command aborts without uploading and asks the operator to retry
+
+### Requirement: API image carries no layers
+
+The API production image SHALL NOT contain any layer data: no rasters, no `index.json`, no `countries.json`, and no metadata. `app/maps/` SHALL be excluded from the API's Docker build context. The layers SHALL remain tracked in Git (Git LFS), so that a clone of the repository has working layers for local development, tests and seeding.
+
+#### Scenario: Image without layers
+
+- **WHEN** the API production image is built from a checkout whose `app/maps/` holds the six Git LFS rasters
+- **THEN** the image contains no `app/maps/` directory
+- **AND** the build context sent to Docker does not include `app/maps/`
+
+#### Scenario: Clone keeps the layers
+
+- **WHEN** a developer clones the repository and runs `git lfs pull`
+- **THEN** `monbo-api/app/maps/` contains the flat layout with its rasters, and the API started locally without `MAPS_ROOT` serves those layers
+
+### Requirement: Deploying the API requires layer storage
+
+The deployment SHALL NOT deploy the API without layer storage. `azure/deploy.sh` SHALL stop, before building or changing anything, when `STORAGE_ACCOUNT_NAME` is empty for a command that deploys the API. Every deployed API revision SHALL mount the share at `/mnt/maps` and set `MAPS_ROOT=/mnt/maps`.
+
+#### Scenario: Configuration without storage
+
+- **WHEN** an operator runs `./azure/deploy.sh` with `STORAGE_ACCOUNT_NAME` empty
+- **THEN** the script stops before building images or touching the Container Apps, explaining that the API needs the layer storage
+
+#### Scenario: Every revision mounts the share
+
+- **WHEN** the API is deployed
+- **THEN** the rendered app definition has the `maps` volume mounted at `/mnt/maps` and `MAPS_ROOT=/mnt/maps`
 
