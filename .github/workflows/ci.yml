@@ -1,0 +1,168 @@
+name: CI
+
+# One workflow for both apps. A `changes` job reads the pull request's files and the
+# package jobs run only for the apps it touches.
+#
+# Required checks are the two job names ("Test and static checks", "Type-check,
+# lint, build"), matched by the dev and main rulesets. That is why the filtering
+# lives in each job's `if:` and not in a workflow-level `paths:` filter: a job
+# skipped by its own condition reports success, while a workflow skipped by a
+# trigger filter never reports and leaves the PR waiting forever
+# (docs/branch_protection.md).
+
+on:
+  pull_request:
+    # Draft PRs do not run CI; marking a PR "ready for review" triggers it.
+    types: [opened, synchronize, ready_for_review]
+    # Both protected branches require the checks: dev for features and back-merges,
+    # main for releases and hotfixes. PRs into other branches (stacked PRs) get CI
+    # when they land on dev.
+    branches: [dev, main]
+
+permissions: {}
+
+# A new push supersedes the run in progress for the same PR.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      api: ${{ steps.detect.outputs.api }}
+      web: ${{ steps.detect.outputs.web }}
+    steps:
+      # Every file of the PR against its base (not just the last push), renamed files
+      # counted at both paths. No checkout and no third-party action. Any failure
+      # fails this job, and the package jobs then run anyway (see their `if:`).
+      - name: Classify the pull request's files
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files="$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)')"
+          count="$(printf '%s\n' "$files" | grep -c . || true)"
+          api=false
+          web=false
+          if [ "$count" -ge 3000 ]; then
+            # The API lists at most 3000 files: assume everything changed.
+            echo "$count files: the list may be incomplete, running everything"
+            api=true
+            web=true
+          else
+            while IFS= read -r file; do
+              case "$file" in
+                apps/api/*) api=true ;;
+                apps/web/*) web=true ;;
+                .github/workflows/ci.yml) api=true; web=true ;;
+              esac
+            done <<< "$files"
+          fi
+          echo "Files: $count  api=$api  web=$web"
+          echo "api=$api" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+
+  api:
+    name: Test and static checks
+    needs: changes
+    # Runs when its app changed, and also when detection didn't succeed (fail-open:
+    # a skipped required job counts as passed). `!cancelled()` keeps a failed
+    # `changes` from skipping it. The draft check is repeated because a draft skips
+    # `changes`, which would otherwise read as a failed detection.
+    if: >-
+      github.event.pull_request.draft == false && !cancelled() &&
+      (needs.changes.result != 'success' || needs.changes.outputs.api == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.11.21"
+          enable-cache: true
+
+      # Fails if pyproject.toml and uv.lock are inconsistent. uv provisions the
+      # interpreter declared by .python-version (3.13) automatically.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Blocking checks. pytest includes the deterministic numpy 2 numeric
+      # baseline gate (tests/test_numeric_baseline.py); a failure in any step
+      # below fails the job, as the continuous-integration spec requires.
+      - name: Test (pytest)
+        run: uv run pytest
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (black)
+        run: uv run black --check .
+
+      - name: Type-check (mypy)
+        run: uv run mypy app
+
+  web:
+    name: Type-check, lint, build
+    needs: changes
+    # Same rules as the api job (fail-open, drafts skipped).
+    if: >-
+      github.event.pull_request.draft == false && !cancelled() &&
+      (needs.changes.result != 'success' || needs.changes.outputs.web == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # pnpm must be installed before actions/setup-node so its `cache: pnpm`
+      # can locate the pnpm store. The pnpm version comes from the
+      # `packageManager` field in package.json.
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Cache Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('apps/web/pnpm-lock.yaml') }}-${{ hashFiles('apps/web/src/**/*.[jt]s', 'apps/web/src/**/*.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('apps/web/pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build

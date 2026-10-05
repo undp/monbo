@@ -109,7 +109,7 @@ pnpm build   # builds the frontend production bundle
 
 ## Continuous Integration
 
-- **CI:** GitHub Actions workflows (`.github/workflows/frontend.yml`, `.github/workflows/api.yml`) validate every pull request marked "ready for review" (drafts are skipped). The frontend job runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy.
+- **CI:** one GitHub Actions workflow (`.github/workflows/ci.yml`) validates pull requests into `dev` and `main` once they are marked "ready for review" (drafts are skipped). It runs only the jobs for the apps a PR changes: the frontend job (`apps/web`) runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job (`apps/api`) runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy. A job a PR doesn't affect is skipped, which counts as passed ([`docs/branch_protection.md`](docs/branch_protection.md#which-checks-run)).
 - **Branch protection:** `main` and `dev` each require a pull request and both CI jobs to pass before merging; neither accepts direct pushes. The policy, the exact required check names, the release and hotfix flow, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
 - **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests against `dev` on a weekly schedule.
 
@@ -156,7 +156,7 @@ Two things worth knowing about the coverage:
 
   1. `apps/api/Dockerfile.dev`
   2. `apps/api/Dockerfile.prod`
-  3. `.github/workflows/api.yml` (the `astral-sh/setup-uv` `version:` input)
+  3. `.github/workflows/ci.yml` (the `astral-sh/setup-uv` `version:` input, in the `api` job)
 
 Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.
 

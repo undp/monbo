@@ -14,11 +14,41 @@ is the classic failure: the rule silently matches nothing and protects nothing.
 
 | Required check (job name) | Workflow | File |
 | --- | --- | --- |
-| `Test and static checks` | `API CI` | `.github/workflows/api.yml` |
-| `Type-check, lint, build` | `Frontend CI` | `.github/workflows/frontend.yml` |
+| `Test and static checks` | `CI` | `.github/workflows/ci.yml` (job `api`) |
+| `Type-check, lint, build` | `CI` | `.github/workflows/ci.yml` (job `web`) |
 
 Copy those two strings exactly. They are the `jobs.<id>.name` values, and they are
-what appears in the "Checks" list on a pull request.
+what appears in the "Checks" list on a pull request. Because the match is by job
+name, moving a job to another workflow file doesn't touch the rulesets, as long as
+its `name` stays the same.
+
+### Which checks run
+
+One workflow, `CI`, runs for pull requests into `dev` and `main`, and nothing else.
+Both branches need the checks: `dev` for features and back-merges, `main` for
+releases and hotfixes. Its first job, `Detect changes`, reads the pull request's files
+(the whole PR against its base) and selects the package jobs:
+
+| The PR changes | Runs |
+| --- | --- |
+| `apps/api/**` | `Test and static checks` |
+| `apps/web/**` | `Type-check, lint, build` |
+| `.github/workflows/ci.yml` | both |
+| anything else only (docs, specs, Azure scripts) | neither |
+
+A package job that isn't selected is **skipped by its own `if:`**, and a job skipped
+that way counts as a passed required check. So a docs-only PR shows both checks as
+skipped and can be merged. The filtering deliberately isn't a `paths:` filter on the
+workflow: a workflow skipped by its trigger never reports, and the PR would wait on
+"Expected — waiting for status" forever.
+
+Detection fails open. If `Detect changes` fails (an API error, a timeout), or the PR
+has more files than the API can list, both package jobs run. Without that rule, a
+job skipped because what it depends on failed would also count as passed, and a
+broken detection would let untested code merge.
+
+When a file outside `apps/` starts affecting an app (a shared package, a root
+lint config an app reads), add it to the classification in `ci.yml` in the same PR.
 
 ## The policy
 
@@ -96,23 +126,19 @@ the fix is already paid for: `@fontsource/roboto` is a declared dependency that
 nothing imports — a self-hosted copy of the same font sitting unused. Prefer fixing
 that over leaving an admin bypass open.
 
-### Draft pull requests never report
+### Draft pull requests don't run CI
 
-Both workflows are configured to skip drafts:
+Every job in `CI` carries `github.event.pull_request.draft == false` in its `if:`,
+so on a draft they are all skipped. The package jobs repeat it on purpose: on a draft
+`Detect changes` is skipped, which their fail-open rule would otherwise read as
+"detection failed, run everything". A draft can't be merged anyway. Marking it
+**ready for review** triggers a run (`ready_for_review` is one of the workflow's
+event types), and the checks then report for real. If someone reports a PR whose
+checks never ran, that is the first thing to look at. The second is its base branch:
+only PRs into `dev` and `main` run CI.
 
-```yaml
-on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
-# ...
-    if: github.event.pull_request.draft == false
-```
-
-A required check that never runs leaves the pull request blocked on
-"Expected — waiting for status", forever. This is intended: a draft is not meant to
-be merged. But it does mean a pull request must be **marked ready for review**
-before its checks appear at all. If someone reports a PR "stuck waiting for checks",
-that is the first thing to look at.
+A new push to a pull request cancels its run in progress, so the checks always
+describe the latest commit.
 
 ## Release and hotfix flow
 

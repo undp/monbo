@@ -287,9 +287,11 @@ uv run pytest
 
 ## Continuous Integration
 
-Pull requests marked "ready for review" are validated by the `API CI` GitHub Actions
-workflow (`.github/workflows/api.yml`), which runs `uv sync --frozen`, `uv run pytest`,
-and the `ruff`/`black`/`mypy` checks. Draft PRs are skipped.
+Pull requests into `dev` and `main` marked "ready for review" are validated by the
+`Test and static checks` job of the `CI` GitHub Actions workflow
+(`.github/workflows/ci.yml`), which runs `uv sync --frozen`, `uv run pytest`, and the
+`ruff`/`black`/`mypy` checks. It runs when the PR changes `apps/api/` (or the workflow
+itself); otherwise it is skipped, which counts as passed. Draft PRs are skipped.
 
 These checks are **blocking**: every step runs without `continue-on-error`, so the job
 fails (and the pull request is prevented from merging, once branch protection requires
@@ -311,7 +313,7 @@ root README for the full policy. One thing it does **not** cover:
 >
 > 1. `apps/api/Dockerfile.dev`
 > 2. `apps/api/Dockerfile.prod`
-> 3. `.github/workflows/api.yml` — the `astral-sh/setup-uv` `version:` input
+> 3. `.github/workflows/ci.yml` — the `astral-sh/setup-uv` `version:` input, in the `api` job
 >
 > If they drift, the image and CI resolve dependencies with different uv versions,
 > which is exactly the kind of difference a `--frozen` install is supposed to rule out.

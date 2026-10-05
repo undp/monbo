@@ -89,7 +89,7 @@ If you cannot describe concrete inputs or state that trigger the failure, it is 
 
 Do **not** review or report on:
 
-- **Anything CI already gates — once CI has run.** API CI runs `uv sync --frozen`, `pytest` (including the numeric baseline gate in `tests/test_numeric_baseline.py`), `ruff`, `black --check`, and `mypy app`. Frontend CI runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, `eslint`, and `next build`. Both are required checks on `main` and `dev`. Lint, format, type errors, failing tests, broken builds, and lockfile drift are noise. If the PR is a **draft** (CI has not run), do not hunt for these either — just state in the review body that CI has not run yet.
+- **Anything CI already gates — once CI has run.** The `CI` workflow's API job (`Test and static checks`) runs `uv sync --frozen`, `pytest` (including the numeric baseline gate in `tests/test_numeric_baseline.py`), `ruff`, `black --check`, and `mypy app`. Its frontend job (`Type-check, lint, build`) runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, `eslint`, and `next build`. Both are required checks on `main` and `dev`. Each runs only when the PR touches its app (`apps/api/`, `apps/web/`) or `ci.yml`; a **skipped** check means the PR doesn't affect that app, not that CI missed it — but if the PR does change files that feed an app from outside its folder, say so, because the job didn't run. Lint, format, type errors, failing tests, broken builds, and lockfile drift are noise. If the PR is a **draft** (CI has not run), do not hunt for these either — just state in the review body that CI has not run yet.
 - Formatting and personal style preferences.
 - Generated files, lockfiles (`uv.lock`, `pnpm-lock.yaml` ×3), `.tif` raster contents, and vendored code.
 - Findings a prior automated reviewer (e.g. CodeRabbit, Copilot) has already posted on this PR.
@@ -130,7 +130,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 
 - `docs/onboarding.md` states that behavior changes update the relevant section in the same change. A PR that changes documented behavior (endpoints, flow, formula, setup) without updating it is a finding (Low/Medium).
 - Releases are versioned together: root `package.json`, `apps/web/package.json`, and `apps/api/pyproject.toml` carry the same version, and `CHANGELOG.md` gets an entry for user-visible changes.
-- GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. The uv version is a manual bump in three places that must agree: `apps/api/Dockerfile.dev`, `apps/api/Dockerfile.prod`, and `astral-sh/setup-uv` in `.github/workflows/api.yml`.
+- GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. The uv version is a manual bump in three places that must agree: `apps/api/Dockerfile.dev`, `apps/api/Dockerfile.prod`, and `astral-sh/setup-uv` in `.github/workflows/ci.yml`.
 - If the PR implements an OpenSpec change, the code should match its `tasks.md` and delta specs, and `openspec/specs/` should not be edited by hand outside the archive/sync flow.
 
 ## 1. Correctness
