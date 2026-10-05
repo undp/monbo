@@ -1,7 +1,7 @@
 name: CI
 
-# One workflow for both apps. A `changes` job reads the pull request's files and the
-# package jobs run only for the apps it touches.
+# One workflow for both apps and the infrastructure. A `changes` job reads the pull
+# request's files and the other jobs run only for what it touches.
 #
 # Required checks are the two job names ("Test and static checks", "Type-check,
 # lint, build"), matched by the dev and main rulesets. That is why the filtering
@@ -36,6 +36,7 @@ jobs:
     outputs:
       api: ${{ steps.detect.outputs.api }}
       web: ${{ steps.detect.outputs.web }}
+      infra: ${{ steps.detect.outputs.infra }}
     steps:
       # Every file of the PR against its base (not just the last push), renamed files
       # counted at both paths. No checkout and no third-party action. Any failure
@@ -53,23 +54,29 @@ jobs:
           count="$(printf '%s\n' "$files" | grep -c . || true)"
           api=false
           web=false
+          infra=false
           if [ "$count" -ge 3000 ]; then
             # The API lists at most 3000 files: assume everything changed.
             echo "$count files: the list may be incomplete, running everything"
             api=true
             web=true
+            infra=true
           else
             while IFS= read -r file; do
               case "$file" in
                 apps/api/*) api=true ;;
                 apps/web/*) web=true ;;
-                .github/workflows/ci.yml) api=true; web=true ;;
+                infra/*) infra=true ;;
+                .github/workflows/ci.yml) api=true; web=true; infra=true ;;
               esac
             done <<< "$files"
           fi
-          echo "Files: $count  api=$api  web=$web"
-          echo "api=$api" >> "$GITHUB_OUTPUT"
-          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "Files: $count  api=$api  web=$web  infra=$infra"
+          {
+            echo "api=$api"
+            echo "web=$web"
+            echo "infra=$infra"
+          } >> "$GITHUB_OUTPUT"
 
   api:
     name: Test and static checks
@@ -166,3 +173,45 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  terraform:
+    name: Terraform
+    needs: changes
+    # Same rules as the package jobs (fail-open, drafts skipped). Not a required check
+    # unless the rulesets add it (docs/branch_protection.md).
+    if: >-
+      github.event.pull_request.draft == false && !cancelled() &&
+      (needs.changes.result != 'success' || needs.changes.outputs.infra == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Pinned to the version the stacks require; bump with required_version.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -recursive
+
+      # No backend and no Azure credentials: validate the code and run the tests
+      # against mocked providers (tests/*.tftest.hcl). Planning against Azure comes
+      # with the deploy identity (continuous deployment).
+      - name: Validate and test
+        run: |
+          set -euo pipefail
+          for stack in platform apps; do
+            echo "::group::$stack"
+            terraform -chdir="$stack" init -backend=false -input=false
+            terraform -chdir="$stack" validate
+            terraform -chdir="$stack" test
+            echo "::endgroup::"
+          done

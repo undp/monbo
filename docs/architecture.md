@@ -24,15 +24,20 @@ Files share; locally it is a folder.
 flowchart LR
   browser([Browser])
 
-  subgraph apps["Resource group monbo-test (apps)"]
-    acr[(Container Registry)]
-    subgraph env["Container Apps environment monbo-env"]
+  subgraph apps["monbo-dev-apps (Terraform apps stack)"]
+    subgraph env["Container Apps environment monbo-dev-env"]
       front["monbo-front<br/>Next.js · port 3000"]
       api["monbo-api<br/>FastAPI · port 8000 · 1 replica"]
     end
+    pull[Pull identity<br/>AcrPull]
   end
 
-  subgraph data["Resource group monbo-data (layers, delete lock)"]
+  subgraph platform["monbo-dev-platform (platform stack)"]
+    acr[(Container Registry<br/>no admin user)]
+    logs[Log Analytics]
+  end
+
+  subgraph data["monbo-dev-data (platform stack · delete lock)"]
     share[("Azure Files share 'maps'<br/>mounted at /mnt/maps")]
     vault[Backup vault<br/>daily snapshots, 30 days]
   end
@@ -44,8 +49,9 @@ flowchart LR
   browser -- "base map" --> gmaps
   api -- "SMB mount: reads layers,<br/>admin writes" --> share
   api -- "satellite background<br/>of report images" --> gmaps
-  acr -.->|images| front
-  acr -.->|images| api
+  acr -.->|images, via pull identity| front
+  acr -.->|images, via pull identity| api
+  env -.->|logs| logs
   vault -.->|protects| share
 ```
 
@@ -55,30 +61,43 @@ static files, it doesn't proxy API calls. That is why the API's URL is a
 
 ## Azure resources
 
-Everything is created and updated by `azure/deploy.sh` (idempotent), with the
-settings in `azure/deploy.env`. One `deploy.env` describes one environment
-(subscription, resource group names, storage account); the default names below are
-those of the development environment.
+Everything is declared in Terraform under `infra/terraform/`, in two stacks per
+environment ([infra/README.md](../infra/README.md) explains the code,
+[suggested_deployment.md](suggested_deployment.md) the procedures): `platform` (the
+layers, the registry and the logs; applied by hand) and `apps` (the Container Apps;
+applied by `infra/deploy.sh` on every deploy). Each environment is a pair of
+`envs/<env>.tfvars` and `envs/<env>.backend.hcl` files per stack; the names below are
+those of `dev` (deployed from the `dev` branch). The storage account and the
+registry can't have hyphens: Azure only allows lowercase letters and digits in those
+globally unique names. The Terraform state lives in a separate storage account
+(`monbo-tfstate`, Entra ID access only, created by `infra/bootstrap.sh`).
 
-### Apps: resource group `monbo-test`
+### Apps: resource group `monbo-dev-apps` (apps stack)
 
 | Resource | What it does |
 |---|---|
-| Container Registry (`ACR_NAME`, Basic) | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit (`TAG`, default `git rev-parse --short HEAD`). The apps pull them with the registry's admin credentials, stored as a Container App secret. |
-| Container Apps environment `monbo-env` | Shared network and logging for both apps (a Log Analytics workspace created with it). It also registers the share as environment storage `maps`, which the API's volume refers to. |
-| Container App `monbo-api` | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup, readiness and liveness probes on `/health`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
-| Container App `monbo-front` | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, health check on `/api/health`. |
+| Container Apps environment `monbo-dev-env` | Shared network for both apps; sends their logs to the platform's Log Analytics workspace. It also registers the share as environment storage `maps`, which the API's volume refers to. |
+| Managed identity `monbo-dev-pull` | Holds `AcrPull` on the registry. Both apps pull their images with it: the registry has no admin user, so no registry password exists. |
+| Container App `monbo-api` | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup and readiness probes on `/health`, liveness on `/health/live`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
+| Container App `monbo-front` | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, startup probe on `/api/health`. |
 
-The API app is written whole from `azure/render_api_app.py` (an `az rest` PUT),
-because volumes can't be added with `az containerapp` flags. The frontend app is
-updated with `az containerapp update`.
+Both apps are defined in `infra/terraform/apps/api.tf` and `web.tf`. Terraform owns
+them entirely: a setting changed in the portal shows up in the next plan and is
+reverted by the next deploy.
+
+### Platform: resource group `monbo-dev-platform` (platform stack)
+
+| Resource | What it does |
+|---|---|
+| Container Registry (`monbodevacr`, Basic, admin user off) | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. |
+| Log Analytics workspace `monbo-dev-logs` | The apps' logs, kept 30 days. |
 
 **Configuration and secrets.**
 
 - **API:**
-  - Container App secrets: the Google Maps key and signature secret, the registry
-    password, and `ADMIN_SESSION_SECRET`. They are referenced by environment
-    variables and read at container start, so `deploy.sh` restarts the revision.
+  - Container App secrets: the Google Maps key and signature secret, and
+    `ADMIN_SESSION_SECRET`. They come from `TF_VAR_*` variables (never from the
+    repository) and are referenced by environment variables.
   - `ADMIN_ALLOWED_ORIGIN` is set to the frontend's URL.
 - **Frontend:**
   - It is built once with placeholders (`__NEXT_PUBLIC_API_URL__`…).
@@ -86,16 +105,17 @@ updated with `az containerapp update`.
     environment variables, so the same image runs in any environment.
   - Its Google Maps key is exposed to the browser by design.
 
-### Layers: resource group `monbo-data`
+### Layers: resource group `monbo-dev-data` (platform stack)
 
-Kept apart from the apps so that `./azure/deploy.sh destroy` (which deletes
-`monbo-test`) can't touch the layers.
+Kept apart from the apps so that destroying the apps stack can't touch the layers.
+The storage account, the share and the backups also carry Terraform's
+`prevent_destroy`.
 
 | Resource | What it does |
 |---|---|
-| Delete lock `monbo-data-no-delete` | Nothing in the group can be deleted by mistake. |
-| Storage account (`STORAGE_ACCOUNT_NAME`) and share `maps` | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
-| Backup vault `monbo-backup`, policy `maps-daily-30d` | A snapshot of the share every day at 06:00 UTC, kept 30 days. |
+| Delete lock `monbo-dev-data-no-delete` | Nothing in the group can be deleted by mistake. |
+| Storage account (`monbodevdata`) and share `maps` | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
+| Backup vault `monbo-dev-backup`, policy `maps-daily-30d` | A snapshot of the share every day at 06:00 UTC, kept 30 days. |
 
 The share is mounted with `uid=10001,gid=10001`: the API image runs as that user,
 and `chmod` isn't possible on Azure Files. Details, first-time setup and rollback are
@@ -118,7 +138,7 @@ ingestions at once. Don't scale the API out while the admin is enabled.
 | Event | Effect |
 |---|---|
 | New revision or restart of the API | Layers, admin edits and ingestion job history are on the share and stay. An ingestion that was running is marked failed ("interrupted by restart") and its staging file is deleted. |
-| `./azure/deploy.sh destroy` | Deletes the apps. The share and its backups stay. |
+| `terraform destroy` of the apps stack | Deletes the apps. The share, its backups and the registry stay. |
 | Someone deletes a file on the share | Restore it from a snapshot (vault "Restore"). |
 | Someone deletes the share | Undelete it within 14 days (soft delete). |
 
@@ -240,7 +260,7 @@ country's admins.
 
 - It is managed only with the countries command:
   - locally, `uv run python -m app.modules.admin.countries add|list|rotate|disable|enable`;
-  - in Azure, `./azure/deploy.sh countries …`, which edits the registry on the share
+  - in Azure, `tools/layers-ops/layers-ops.sh <env> countries …`, which edits the registry on the share
     under a file lease and an ETag check, so two operators can't overwrite each
     other.
 - `add` creates the country's empty folder and prints its passkey **once**.
@@ -347,7 +367,7 @@ The rules and what each check means are in [maps.md](maps.md#raster-requirements
 
 ### Adding a country
 
-1. `./azure/deploy.sh countries add PE`, and give the printed passkey to Peru's
+1. `tools/layers-ops/layers-ops.sh dev countries add PE`, and give the printed passkey to Peru's
    admin through a password manager.
 2. Peru's admin logs in, creates its layers and uploads their rasters (the current
    GFW and TMF rasters only cover Ecuador, Colombia and Costa Rica).

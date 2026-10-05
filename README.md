@@ -39,7 +39,7 @@ These modules work together to give users a complete view of their supply chainâ
 
 ## Project Structure
 
-Deployable applications live under `apps/`, offline tools under `tools/`. Each has its own instructions.
+Deployable applications live under `apps/`, offline tools under `tools/`, and the Azure infrastructure (Terraform) under `infra/`. Each has its own instructions.
 
 1. Frontend: `apps/web` (package `monbo-front`)
 
@@ -47,7 +47,9 @@ Deployable applications live under `apps/`, offline tools under `tools/`. Each h
 
 3. Docs: `docs`
 
-4. Tools: `tools` (the GFW/TMF raster update script)
+4. Tools: `tools` (the GFW/TMF raster update script, and `layers-ops` for the Azure layer share)
+
+5. Infrastructure: `infra` (Terraform stacks and `deploy.sh`; how it works in [`infra/README.md`](infra/README.md), how to deploy in [`docs/suggested_deployment.md`](docs/suggested_deployment.md))
 
 ### Frontend
 

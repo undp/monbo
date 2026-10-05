@@ -88,7 +88,7 @@ def publish(
             raise RegistryLeased(
                 "countries.json is still leased, probably by an earlier command "
                 "that was interrupted. If no other `countries` command is running, "
-                "run ./azure/deploy.sh countries unlock and try again"
+                "run tools/layers-ops/layers-ops.sh <env> countries unlock and try again"
             ) from error
         raise
     try:

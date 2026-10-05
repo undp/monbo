@@ -116,8 +116,9 @@ monbo/
 │   ├── api/            # Backend  — FastAPI / Python (package `monbo-api`)
 │   └── web/            # Frontend — Next.js / React / TypeScript (package `monbo-front`)
 ├── tools/
-│   └── update-gfw-tmf/ # Offline script (Google Earth Engine) that generates the .tif rasters
-├── azure/              # Deployment script (Azure Container Apps)
+│   ├── update-gfw-tmf/ # Offline script (Google Earth Engine) that generates the .tif rasters
+│   └── layers-ops/     # Seed the Azure share and manage countries (operators only)
+├── infra/              # Terraform for Azure (terraform/platform, terraform/apps) and deploy.sh
 ├── docs/               # Documentation (partial — several files still empty/WIP)
 ├── pyproject.toml      # Python linter config (black, isort, ruff, mypy) for apps/api
 ├── .gitattributes      # Declares Git LFS for the *.tif rasters

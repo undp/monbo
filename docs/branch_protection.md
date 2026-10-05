@@ -33,8 +33,14 @@ releases and hotfixes. Its first job, `Detect changes`, reads the pull request's
 | --- | --- |
 | `apps/api/**` | `Test and static checks` |
 | `apps/web/**` | `Type-check, lint, build` |
-| `.github/workflows/ci.yml` | both |
-| anything else only (docs, specs, Azure scripts) | neither |
+| `infra/**` | `Terraform` (not a required check) |
+| `.github/workflows/ci.yml` | all three |
+| anything else only (docs, specs) | none |
+
+`Terraform` (fmt, validate and mocked tests of `infra/terraform`) is not in the
+rulesets. To require it, add its name to both rulesets' required checks; it doesn't
+block other PRs, because it is skipped by its own condition when `infra/` doesn't
+change ([suggested_deployment.md](suggested_deployment.md#making-the-terraform-check-required)).
 
 A package job that isn't selected is **skipped by its own `if:`**, and a job skipped
 that way counts as a passed required check. So a docs-only PR shows both checks as
@@ -43,7 +49,7 @@ workflow: a workflow skipped by its trigger never reports, and the PR would wait
 "Expected — waiting for status" forever.
 
 Detection fails open. If `Detect changes` fails (an API error, a timeout), or the PR
-has more files than the API can list, both package jobs run. Without that rule, a
+has more files than the API can list, every job runs. Without that rule, a
 job skipped because what it depends on failed would also count as passed, and a
 broken detection would let untested code merge.
 

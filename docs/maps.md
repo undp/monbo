@@ -129,7 +129,7 @@ editing one country's metadata doesn't change the others.
 ## Countries
 
 Countries are managed from the command line, in `apps/api` (in Azure, through
-`./azure/deploy.sh countries`, see
+`tools/layers-ops/layers-ops.sh <env> countries`, see
 [suggested_deployment.md](suggested_deployment.md#countries-and-admin-passkeys)):
 
 ```sh
@@ -227,6 +227,6 @@ then builds the per-country layout from it:
 - rasters are copied whole, never clipped, because a farm can cross a border;
 - every country is registered with a new passkey, printed once.
 
-The source is left untouched. In Azure, `./azure/deploy.sh seed` runs both commands
-and uploads the result to the share (see
-[suggested_deployment.md](suggested_deployment.md#first-time-setup)).
+The source is left untouched. In Azure, `tools/layers-ops/layers-ops.sh <env> seed` runs both
+commands and uploads the result to the share (see
+[suggested_deployment.md](suggested_deployment.md#creating-an-environment-from-nothing)).
