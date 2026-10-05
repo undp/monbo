@@ -210,9 +210,9 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     labels: ["dependencies", "infrastructure"]
+    # Dependabot rejects semver-*-days for terraform; one cooldown for every update.
     cooldown:
       default-days: 3
-      semver-major-days: 7
     groups:
       azurerm-minor-and-patch:
         update-types: ["minor", "patch"]
