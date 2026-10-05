@@ -173,11 +173,12 @@
     - The protected item's name is internal (`AzureFileShare;<hash>`).
     - `container unregister` failed with an internal error while the deleted item was in soft delete. It wasn't needed: the `AzureBackupProtectionLock` disappeared once protection stopped.
     - Then the storage `monbodata` was deleted, and the vault with `--force`. The vault's soft delete is `AlwaysON`, 14 days.
-    - `monbo-data` is gone. `monbo-test` was deleting at commit time: apps, registry and logs deleted, and the Container Apps environment scheduled for deletion.
+    - Both `monbo-data` and `monbo-test` are gone (`monbo-test` finished deleting after the Container Apps environment).
     - The runbook in `suggested_deployment.md` was rewritten with this order.
 - [ ] 8.8 Share the new dev URLs with the team
 
 ## 9. Wrap-up
 
 - [x] 9.1 `openspec validate terraform-infrastructure`
-- [ ] 9.2 Open the PR into `dev`. The `Terraform` job runs; check that the package jobs are skipped unless touched
+- [x] 9.2 Open the PR into `dev`. The `Terraform` job runs; check that the package jobs are skipped unless touched
+  - Added to #54. The CI run on the last push passed: `Detect changes` gave `api=true web=true infra=true`, and `Terraform` passed fmt, validate and the 4+5 tests. The first push failed Dependabot's config check, because `semver-major-days` isn't allowed for `terraform`; it was fixed. The PR is `CLEAN`. The subscription now holds only `monbo-dev-apps`, `monbo-dev-data`, `monbo-dev-platform` and `monbo-tfstate`.
