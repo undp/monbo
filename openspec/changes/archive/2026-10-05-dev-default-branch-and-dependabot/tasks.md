@@ -48,6 +48,8 @@
 - [x] 5.1 #24, #33, #34 and #40 are closed. Dependabot closed them itself once it read the `ignore` rules from `dev`. Add a pointer comment on each, naming the rule that now covers it
 - [x] 5.2 #36 was closed by Dependabot (`gdal` ignored), with a pointer comment noting that geemap comes back on its own. Dependabot moved #26, #27, #28, #29, #32 and #37 to `dev` itself. Add their labels by hand, and request `@dependabot rebase`, or `@dependabot recreate` for #37 (conflicts in `uv.lock`)
 - [ ] 5.3 Confirm geemap 0.38.8 reappears as a new PR against `dev` on the next uv run (Tuesday), or trigger "Check for updates" in Insights → Dependency graph → Dependabot. That UI has no API equivalent
+
+  Archived 2026-10-05 with this task still open, by the user's decision: the next uv run is Tuesday 2026-10-06. Follow-up: check that a geemap 0.38.8 PR opens against `dev` for `/scripts/update-gfw-tmf`
 - [x] 5.4 Retarget #9, #12 and #13 to `dev` (`gh pr edit <n> --base dev`), and leave a comment for their authors about the new flow and any conflicts
 
 ## 6. Verify the first run under the new setup
