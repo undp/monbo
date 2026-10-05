@@ -5,12 +5,10 @@
 Govern how `monbo-front` declares, locks and installs its JavaScript dependencies, the Node and
 pnpm versions it runs on, and the build/lint behaviour expected from the Next.js and MUI lines
 it targets.
-
 ## Requirements
-
 ### Requirement: pnpm-managed frontend with pinned toolchain
 
-The `monbo-front` package SHALL continue to use pnpm with a committed `pnpm-lock.yaml`. It SHALL declare an `engines` field and an exact `packageManager` field pinning the supported Node and pnpm versions. CI and both frontend Dockerfiles SHALL use that pnpm version through Corepack and SHALL install reproducibly with `pnpm install --frozen-lockfile`; Dockerfiles SHALL NOT install a mutable global pnpm.
+The `monbo-front` package, in `apps/web`, SHALL continue to use pnpm with a committed `pnpm-lock.yaml`. It SHALL declare an `engines` field and an exact `packageManager` field pinning the supported Node and pnpm versions. CI and both frontend Dockerfiles SHALL use that pnpm version through Corepack and SHALL install reproducibly with `pnpm install --frozen-lockfile`; Dockerfiles SHALL NOT install a mutable global pnpm.
 
 #### Scenario: Frozen install from committed lockfile
 
@@ -25,7 +23,7 @@ The `monbo-front` package SHALL continue to use pnpm with a committed `pnpm-lock
 
 #### Scenario: Node and pnpm versions pinned
 
-- **WHEN** `monbo-front/package.json` is inspected
+- **WHEN** `apps/web/package.json` is inspected
 - **THEN** `engines` and `packageManager` declare the supported Node 24 and pnpm versions
 
 ### Requirement: Node 24 LTS runtime baseline
@@ -94,3 +92,4 @@ Material UI SHALL be upgraded from v6 to the head of the v7 line using the offic
 
 - **WHEN** the MUI 7 upgrade is proposed for merge
 - **THEN** the visual review checklist has been completed against the affected screens
+

@@ -175,7 +175,7 @@ The API production image SHALL NOT contain any layer data: no rasters, no `index
 #### Scenario: Clone keeps the layers
 
 - **WHEN** a developer clones the repository and runs `git lfs pull`
-- **THEN** `monbo-api/app/maps/` contains the flat layout with its rasters, and the API started locally without `MAPS_ROOT` serves those layers
+- **THEN** `apps/api/app/maps/` contains the flat layout with its rasters, and the API started locally without `MAPS_ROOT` serves those layers
 
 ### Requirement: Deploying the API requires layer storage
 
