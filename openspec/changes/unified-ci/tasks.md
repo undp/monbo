@@ -60,7 +60,8 @@
 
 ## 3. Verification on GitHub (needs pushing; ask before each push or PR)
 
-- [ ] 3.1 The PR that carries this change (into `dev`) changes `ci.yml`, so both jobs run and both required checks report under their names
+- [x] 3.1 The PR that carries this change (into `dev`) changes `ci.yml`, so both jobs run and both required checks report under their names
+  - Result (#54, run 37348214446): `Detect changes` listed 760 files (renames counted at both paths) and gave `api=true web=true`. Both required checks passed under their names, and the PR is `MERGEABLE` / `CLEAN`.
 - [ ] 3.2 Throwaway PRs into `dev`, closed without merging, then their branches deleted:
   - docs-only: both checks skipped, and GitHub shows the PR as mergeable;
   - API-only: only "Test and static checks" runs;
