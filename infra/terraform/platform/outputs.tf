@@ -40,3 +40,17 @@ output "registry_login_server" {
 output "log_analytics_workspace_id" {
   value = azurerm_log_analytics_workspace.main.id
 }
+
+# For the GitHub Environment's secrets (AZURE_CLIENT_ID, AZURE_TENANT_ID) and for the
+# manual role grants (docs/suggested_deployment.md#continuous-deployment).
+output "deploy_identity_client_id" {
+  value = azurerm_user_assigned_identity.deploy.client_id
+}
+
+output "deploy_identity_principal_id" {
+  value = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+output "tenant_id" {
+  value = data.azurerm_client_config.current.tenant_id
+}

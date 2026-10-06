@@ -127,7 +127,8 @@ Once:    ARM_SUBSCRIPTION_ID=… infra/bootstrap.sh                → creates m
 Once:    terraform apply in platform (with envs/dev.tfvars)       → empty share, registry, logs
 Once:    tools/layers-ops/layers-ops.sh dev seed                  → uploads the Git layers to the share
                                                                    (prints 3 passkeys)
-Always:  infra/deploy.sh dev
+Always:  infra/deploy.sh dev    (on every merge into dev, by .github/workflows/deploy.yml;
+                                 also by hand)
            1. loads infra/envs/dev.secrets.env (subscription + TF_VAR_*)
            2. reads platform's outputs (which registry? which share?)
            3. does the share have countries.json? if not, stops
@@ -160,6 +161,15 @@ and not adopted" below.
 
 `deploy.sh` never applies `platform`: that plan is read by a person before it runs.
 
+**In CI** (`.github/workflows/deploy.yml`), the same script runs as the managed
+identity `monbo-<env>-deploy`, declared in `platform/deploy.tf`. GitHub's OIDC token is
+exchanged for it, so nothing secret is stored for Azure, and only jobs in the GitHub
+Environment `<env>` (restricted to the `<env>` branch) can obtain it. Terraform grants
+it Reader on the subscription, AcrPush on the registry and access to the state. An
+Owner grants the rest by hand (Contributor on the apps resource group, Key Operator on
+the layer storage); see
+[suggested_deployment.md](../docs/suggested_deployment.md#continuous-deployment).
+
 ## Considered and not adopted
 
 - **Terraform Stacks** (`.tfcomponent.hcl` / `.tfdeploy.hcl`). Stacks are an HCP
@@ -184,7 +194,8 @@ and not adopted" below.
 | Environment name, region, optional suffix | `terraform/platform/envs/<env>.tfvars` | Yes |
 | Sizes, thresholds, testing banner, contact URL | `terraform/apps/envs/<env>.tfvars` | Yes |
 | Where the state is | `terraform/*/envs/<env>.backend.hcl` | Yes |
-| Subscription (`ARM_SUBSCRIPTION_ID`), Maps keys, admin secret (`TF_VAR_*`) | `infra/envs/<env>.secrets.env` locally; GitHub Environment in CI | **No** |
+| Subscription (`ARM_SUBSCRIPTION_ID`), Maps keys, admin secret (`TF_VAR_*`) | `infra/envs/<env>.secrets.env` locally; the GitHub Environment `<env>` in CI | **No** |
+| CI's Azure login (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`) | The GitHub Environment (values from `platform`'s outputs) | **No** |
 | The images to deploy | Passed by `deploy.sh` on every run (`-var api_image=…`) | n/a |
 
 The secrets reach the apps only as Container App secrets. They also end up in the

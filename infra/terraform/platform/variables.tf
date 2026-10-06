@@ -39,3 +39,20 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "github_repository" {
+  description = "owner/name of the GitHub repository whose deploy workflow may use the deploy identity."
+  type        = string
+  default     = "undp/monbo"
+}
+
+# Where the Terraform state lives (infra/bootstrap.sh): the deploy identity gets access.
+variable "state_resource_group_name" {
+  type    = string
+  default = "monbo-tfstate"
+}
+
+variable "state_storage_account_name" {
+  type    = string
+  default = "monbotfstate"
+}

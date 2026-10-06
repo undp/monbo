@@ -132,6 +132,10 @@ the fix is already paid for: `@fontsource/roboto` is a declared dependency that
 nothing imports — a self-hosted copy of the same font sitting unused. Prefer fixing
 that over leaving an admin bypass open.
 
+**Deploys aren't checks.** The `Deploy` workflow runs after a merge into `dev`, never
+on pull requests, so it can't block a merge; a failed deploy rolls back and shows up
+as a failed run on `dev` ([suggested_deployment.md](suggested_deployment.md#continuous-deployment)).
+
 ### Draft pull requests don't run CI
 
 Every job in `CI` carries `github.event.pull_request.draft == false` in its `if:`,

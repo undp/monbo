@@ -15,6 +15,32 @@ mock_provider "azurerm" {
     }
   }
 
+  mock_resource "azurerm_container_registry" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-platform/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
+    }
+  }
+
+  mock_resource "azurerm_user_assigned_identity" {
+    defaults = {
+      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-platform/providers/Microsoft.ManagedIdentity/userAssignedIdentities/monbo-dev-deploy"
+      principal_id = "22222222-2222-2222-2222-222222222222"
+      client_id    = "33333333-3333-3333-3333-333333333333"
+    }
+  }
+
+  mock_data "azurerm_subscription" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+  }
+
+  mock_data "azurerm_storage_account" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-tfstate/providers/Microsoft.Storage/storageAccounts/monbotfstate"
+    }
+  }
+
   mock_resource "azurerm_backup_policy_file_share" {
     defaults = {
       id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-data/providers/Microsoft.RecoveryServices/vaults/monbo-dev-backup/backupPolicies/maps-daily-30d"
@@ -104,3 +130,39 @@ run "invalid_suffix_is_rejected" {
 
   expect_failures = [var.unique_suffix]
 }
+
+run "deploy_identity_trusts_only_the_dev_environment" {
+  command = apply
+
+  assert {
+    condition     = azurerm_user_assigned_identity.deploy.name == "monbo-dev-deploy"
+    error_message = "The deploy identity must be monbo-<env>-deploy."
+  }
+
+  assert {
+    condition = (
+      azurerm_federated_identity_credential.github.issuer == "https://token.actions.githubusercontent.com" &&
+      azurerm_federated_identity_credential.github.subject == "repo:undp/monbo:environment:dev" &&
+      contains(azurerm_federated_identity_credential.github.audience, "api://AzureADTokenExchange")
+    )
+    error_message = "The federated credential must trust only undp/monbo's dev GitHub Environment."
+  }
+
+  assert {
+    condition = (
+      azurerm_role_assignment.deploy_reader.role_definition_name == "Reader" &&
+      azurerm_role_assignment.deploy_reader.scope == "/subscriptions/00000000-0000-0000-0000-000000000000" &&
+      azurerm_role_assignment.deploy_acr_push.role_definition_name == "AcrPush" &&
+      endswith(azurerm_role_assignment.deploy_acr_push.scope, "/registries/monbodevacr") &&
+      azurerm_role_assignment.deploy_state.role_definition_name == "Storage Blob Data Contributor" &&
+      endswith(azurerm_role_assignment.deploy_state.scope, "/storageAccounts/monbotfstate")
+    )
+    error_message = "The deploy identity must get Reader (subscription), AcrPush (registry) and Storage Blob Data Contributor (state) only."
+  }
+
+  assert {
+    condition     = output.deploy_identity_client_id == "33333333-3333-3333-3333-333333333333"
+    error_message = "The client id must be an output, for the GitHub Environment."
+  }
+}
+

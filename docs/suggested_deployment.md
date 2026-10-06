@@ -97,6 +97,96 @@ unique across all of Azure. If one is ever taken (for example a fork deployed to
 another organization's subscription), set `unique_suffix` in `platform/envs/<env>.tfvars`;
 it only changes those two names.
 
+## Continuous deployment
+
+Merging into `dev` deploys the `dev` environment: `.github/workflows/deploy.yml` runs
+`infra/deploy.sh dev --yes`, with the same revision checks and rollback as a manual
+deploy.
+
+| A push to `dev` that changes | Deploys? |
+|---|---|
+| `apps/**`, `infra/deploy.sh`, `infra/lib.sh`, `infra/terraform/apps/**`, `deploy.yml` | Yes |
+| Only docs, specs, `infra/terraform/platform/**`, tools | No (`platform` is applied by hand) |
+
+- **One at a time.** Deploys queue up (`concurrency: deploy-dev`) and are never
+  cancelled midway.
+- **Failed deploys roll back.** A failed deploy rolls back both apps and fails the run.
+  The run's summary says what happened and gives the failed revision's log command.
+- **Manual runs.** *Actions → Deploy → Run workflow* (on `dev`) builds and deploys that
+  commit, or, with a **tag**, redeploys images already in the registry, e.g. to go back
+  to an earlier version.
+- **Dependabot merges deploy too.** The usual caveat applies: a deploy interrupts a
+  raster upload being processed (see
+  [Deploying while the admin is in use](#deploying-while-the-admin-is-in-use)).
+
+### How CI authenticates
+
+GitHub Actions logs in as the managed identity **`monbo-dev-deploy`** (resource group
+`monbo-dev-platform`, declared in the platform stack). There is no secret: its
+federated credential trusts GitHub's OIDC token only for jobs of `undp/monbo` that run
+in the GitHub Environment **`dev`**, and that environment only allows the `dev`
+branch. Pull requests, including forks, can't obtain it.
+
+Its roles:
+
+| Role | Scope | Granted by |
+|---|---|---|
+| Reader | the subscription | Terraform (`platform`) |
+| AcrPush | `monbodevacr` | Terraform |
+| Storage Blob Data Contributor | `monbotfstate` (Terraform state) | Terraform |
+| **Contributor** | **`monbo-dev-apps`** | **By hand, by an unconditional Owner** |
+| **Storage Account Key Operator Service Role** | **`monbodevdata`** | **By hand, by an unconditional Owner** |
+
+The operators' Owner role (group `Devs-Contributors`) carries an ABAC condition that
+only lets them assign Reader, Storage Blob Data *, AcrPull, AcrPush and AcrDelete. The
+last two roles are therefore granted once by an Owner without that condition, after
+the platform stack has created the identity:
+
+```sh
+az account set --subscription "Monbo-DEV"
+PRINCIPAL=$(az identity show -g monbo-dev-platform -n monbo-dev-deploy --query principalId -o tsv)
+az role assignment create --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal \
+  --role "Contributor" --scope "$(az group show -n monbo-dev-apps --query id -o tsv)"
+az role assignment create --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal \
+  --role "Storage Account Key Operator Service Role" \
+  --scope "$(az storage account show -g monbo-dev-data -n monbodevdata --query id -o tsv)"
+# Check: five roles
+az role assignment list --assignee "$PRINCIPAL" --all --query "[].{role:roleDefinitionName, scope:scope}" -o table
+```
+
+Without them, a deploy fails with an authorization error (on `listKeys` or on the
+apps resource group) before changing any app.
+
+### The GitHub Environment `dev`
+
+*Settings → Environments → dev*: deployment branches limited to `dev`, no required
+reviewers (merging is the approval). Its secrets:
+
+| Secret | Value |
+|---|---|
+| `AZURE_CLIENT_ID` | `terraform -chdir=infra/terraform/platform output -raw deploy_identity_client_id` |
+| `AZURE_TENANT_ID` | `terraform -chdir=infra/terraform/platform output -raw tenant_id` |
+| `ARM_SUBSCRIPTION_ID` | as in `infra/envs/dev.secrets.env` |
+| `TF_VAR_GCP_MAPS_PLATFORM_API_KEY` | as in `infra/envs/dev.secrets.env` |
+| `TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET` | as in `infra/envs/dev.secrets.env` |
+| `TF_VAR_ADMIN_SESSION_SECRET` | as in `infra/envs/dev.secrets.env` (leave unset to keep the admin off) |
+| `TF_VAR_FRONT_GCP_MAPS_PLATFORM_API_KEY` | optional: a separate browser key |
+
+Rotating a secret means updating it here (and in operators' secrets files), then
+redeploying the current tag with a manual run.
+
+### Setting it up for an environment
+
+1. Apply the platform stack: it creates the identity, its federated credential and
+   the three Terraform-managed roles.
+2. An unconditional Owner grants the two manual roles (above).
+3. Create the GitHub Environment and its secrets.
+4. Merge, or run the workflow by hand. Check the run's summary and the environment's
+   URL in GitHub.
+
+**Turning it off:** disable the workflow (*Actions → Deploy → Disable workflow*);
+`infra/deploy.sh` keeps working by hand.
+
 ## Layer storage
 
 The API reads its layers from the `maps` Azure Files share mounted at `/mnt/maps`

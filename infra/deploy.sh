@@ -93,6 +93,21 @@ else
 fi
 
 APPS_RG="monbo-$ENV_NAME-apps"
+
+# In GitHub Actions, the outcome goes to the run's summary page.
+summary() {
+  [ -n "${GITHUB_STEP_SUMMARY:-}" ] || return 0
+  {
+    echo "### Deploy to \`$ENV_NAME\`: $1"
+    echo
+    echo "| | |"
+    echo "|---|---|"
+    echo "| Tag | \`$TAG\` |"
+    [ -z "${WEB_URL:-}" ] || echo "| Frontend | $WEB_URL |"
+    [ -z "${API_URL:-}" ] || echo "| API | $API_URL |"
+    [ -z "${2:-}" ] || echo "| Details | $2 |"
+  } >> "$GITHUB_STEP_SUMMARY"
+}
 API_APP=monbo-api
 WEB_APP=monbo-front
 
@@ -211,7 +226,10 @@ rollback() {
   else
     echo "  The rollback did not verify either; check the apps in the portal" >&2
   fi
-  [ -z "$failed" ] || echo "  Logs of the failed revision: az containerapp logs show -g $APPS_RG -n ${failed%%/*} --revision ${failed#*/} --tail 100" >&2
+  local logs=""
+  [ -z "$failed" ] || logs="az containerapp logs show -g $APPS_RG -n ${failed%%/*} --revision ${failed#*/} --tail 100"
+  [ -z "$logs" ] || echo "  Logs of the failed revision: $logs" >&2
+  summary "❌ rolled back to the previous images" "$reason. Previous: \`$PREVIOUS_API_IMAGE\`, \`$PREVIOUS_WEB_IMAGE\`.${logs:+ Logs: \`$logs\`}"
   die "$reason (rolled back)"
 }
 
@@ -239,6 +257,9 @@ WEB_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw web_url)"
 log "Verifying the deployment"
 verify_deployment "$API_IMAGE" "$WEB_IMAGE" || rollback "The new revisions did not become healthy"
 
+summary "✅ deployed"
+# The GitHub Environment's link to the deployed app.
+[ -z "${GITHUB_OUTPUT:-}" ] || echo "web_url=$WEB_URL" >> "$GITHUB_OUTPUT"
 log "Done ($ENV_NAME)"
 echo "  Frontend: $WEB_URL"
 echo "  API:      $API_URL  (docs: $API_URL/docs)"

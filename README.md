@@ -113,6 +113,7 @@ pnpm build   # builds the frontend production bundle
 
 - **CI:** one GitHub Actions workflow (`.github/workflows/ci.yml`) validates pull requests into `dev` and `main` once they are marked "ready for review" (drafts are skipped). It runs only the jobs for the apps a PR changes: the frontend job (`apps/web`) runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job (`apps/api`) runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy. A job a PR doesn't affect is skipped, which counts as passed ([`docs/branch_protection.md`](docs/branch_protection.md#which-checks-run)).
 - **Branch protection:** `main` and `dev` each require a pull request and both CI jobs to pass before merging; neither accepts direct pushes. The policy, the exact required check names, the release and hotfix flow, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
+- **Continuous deployment:** merging into `dev` a change to the apps (or their deploy) deploys the `dev` environment in Azure (`.github/workflows/deploy.yml` → `infra/deploy.sh dev`), with automatic rollback if the new revisions don't become healthy. See [`docs/suggested_deployment.md`](docs/suggested_deployment.md#continuous-deployment).
 - **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests against `dev` on a weekly schedule.
 
 ### Dependency update policy
