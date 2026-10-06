@@ -36,6 +36,7 @@ jobs:
   deploy:
     name: Deploy to dev
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     # The deploy identity's federated credential trusts only jobs in this environment,
     # and the environment only allows the dev branch.
     environment:
