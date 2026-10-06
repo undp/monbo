@@ -175,7 +175,7 @@
     - Then the storage `monbodata` was deleted, and the vault with `--force`. The vault's soft delete is `AlwaysON`, 14 days.
     - Both `monbo-data` and `monbo-test` are gone (`monbo-test` finished deleting after the Container Apps environment).
     - The runbook in `suggested_deployment.md` was rewritten with this order.
-- [ ] 8.8 Share the new dev URLs with the team
+- [x] 8.8 Share the new dev URLs with the team (done by the user)
 
 ## 9. Wrap-up
 

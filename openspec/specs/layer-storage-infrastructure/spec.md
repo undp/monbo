@@ -4,16 +4,16 @@
 
 Define the Azure infrastructure that keeps layers across releases: the Azure Files share and its
 protection, the mount into the API container (whose image carries no layers), the admin secret,
-the deployment script and its seed and countries commands, and the migration to the per-country
-layout.
+the seed and countries commands in `tools/layers-ops`, and the migration to the per-country layout.
+The resources themselves are declared in Terraform (see `infrastructure-as-code`).
 ## Requirements
 ### Requirement: Persistent layer storage outside the app lifecycle
 
-Layer data in Azure SHALL live on an Azure Files share in a Storage Account inside a dedicated resource group, separate from the resource group that holds the Container Apps. That resource group SHALL carry a `CanNotDelete` lock. Share soft delete SHALL be enabled with a retention of at least 14 days, and the share SHALL have daily snapshots kept for at least 30 days. The Storage Account SHALL require TLS 1.2 or later and SHALL disable public blob access.
+Layer data in Azure SHALL live on an Azure Files share in a Storage Account inside a dedicated resource group, separate from the resource group that holds the Container Apps, and declared in the Terraform `platform` stack. That resource group SHALL carry a `CanNotDelete` lock. Share soft delete SHALL be enabled with a retention of at least 14 days, and the share SHALL have daily snapshots kept for at least 30 days. The Storage Account SHALL require TLS 1.2 or later and SHALL disable public blob access.
 
 #### Scenario: Destroying the app environment keeps layers
 
-- **WHEN** an operator runs `./azure/deploy.sh destroy`
+- **WHEN** an operator runs `terraform destroy` on the `apps` stack
 - **THEN** the storage resource group, the share, and all layers remain intact
 
 #### Scenario: Accidental deletion is recoverable
@@ -43,42 +43,6 @@ The API Container App SHALL mount the share read-write at `/mnt/maps`, with moun
 
 - **WHEN** an operator inspects the API Container App configuration
 - **THEN** the session secret appears as a secret reference, not a literal value, and there is no admin passkey hash
-
-### Requirement: Deployment script provisions and verifies storage
-
-`azure/deploy.sh` SHALL idempotently create or update:
-
-- the storage resource group and its lock;
-- the Storage Account and the share;
-- the share's soft-delete and backup settings;
-- the Container Apps environment storage definition.
-
-It SHALL deploy the API with the volume mount, the environment variables, and the secrets from a single rendered app definition (`azure/render_api_app.py`, applied with `az rest --method put`). It SHALL refuse to mount a share that has no `countries.json`. After deploying, it SHALL fail if `/health` does not report a writable maps root at `/mnt/maps`. The `destroy` command SHALL NOT delete the storage resource group. It SHALL check that the Git-tracked rasters are real files and not Git LFS pointers before seeding. It SHALL NOT require that check to build the API image, which does not contain them.
-
-#### Scenario: Re-running deploy
-
-- **WHEN** `./azure/deploy.sh` runs against an environment where storage already exists
-- **THEN** it completes without recreating the share or losing data
-
-#### Scenario: Unseeded share
-
-- **WHEN** a deploy would mount a share that has no `countries.json`
-- **THEN** the script stops before changing the API, with instructions to run `./azure/deploy.sh seed`
-
-#### Scenario: Mount missing after deploy
-
-- **WHEN** a deploy results in an API revision without the mount
-- **THEN** the script's health verification fails with an explicit error
-
-#### Scenario: Build from a checkout without LFS content
-
-- **WHEN** an operator builds and deploys from a checkout where the rasters are Git LFS pointers
-- **THEN** the build and deploy proceed, because the image does not contain the rasters
-
-#### Scenario: Seed from a checkout without LFS content
-
-- **WHEN** an operator runs `./azure/deploy.sh seed` and a raster is a Git LFS pointer
-- **THEN** the command stops before touching the share and asks to run `git lfs pull`
 
 ### Requirement: Seeding existing layers
 
@@ -124,43 +88,29 @@ It SHALL refuse a non-empty target or a source that is not a flat layout. After 
 
 ### Requirement: Seeding the share in the per-country layout
 
-`azure/deploy.sh seed` SHALL fill the share with the Git-tracked layers in the per-country layout:
+`tools/layers-ops/layers-ops.sh <env> seed` SHALL fill the environment's share, whose names it reads from the Terraform `platform` outputs, with the Git-tracked layers in the per-country layout:
 
 - every raster SHALL go through the seed command's validation and COG conversion, and the result through the migration;
 - the passkey of every country SHALL be printed once;
 - each country's id mapping SHALL be written to a local file (`SEED_MAPPING_OUT`);
 - the result SHALL be uploaded to the share's root.
 
-When the share already has files, the command SHALL ask the operator to type the share's name before doing anything, and SHALL delete the share's files only after the new layers are ready locally. If the confirmation or the preparation fails, the share SHALL be unchanged.
+When the share already has files, the command SHALL ask the operator to type the share's name before doing anything, and SHALL delete the share's files only after the new layers are ready locally. If the confirmation or the preparation fails, the share SHALL be unchanged. The command SHALL be run by an operator, never from CI, because it prints passkeys.
 
 #### Scenario: First setup
 
-- **WHEN** an operator runs `./azure/deploy.sh seed` on an empty share
+- **WHEN** an operator runs `tools/layers-ops/layers-ops.sh dev seed` on an empty share
 - **THEN** the share has `countries.json` and the `CO/`, `CR/`, and `EC/` folders with their layers, and three passkeys are printed
 
 #### Scenario: Starting an environment over
 
-- **WHEN** an operator runs `./azure/deploy.sh seed` on a share with the flat layout and types the share's name
+- **WHEN** an operator runs the seed command on a share that already has layers and types the share's name
 - **THEN** every previous file is deleted and the share holds only the per-country layout from Git
 
 #### Scenario: Confirmation refused
 
 - **WHEN** the operator types anything other than the share's name
 - **THEN** the command stops and the share is unchanged
-
-### Requirement: Country commands in the deployment script
-
-`azure/deploy.sh countries <add|list|rotate|disable|enable> [CC]` SHALL run the country registry command against the share without redeploying or restarting the API. It SHALL use a temporary local copy and upload only what changed. It SHALL abort without uploading if `countries.json` changed on the share while the command was running.
-
-#### Scenario: Add a country in Azure
-
-- **WHEN** an operator runs `./azure/deploy.sh countries add PE`
-- **THEN** `PE/` and the updated `countries.json` exist on the share, the passkey is printed once, and PE's admin can log in without an API restart
-
-#### Scenario: Concurrent registry edit
-
-- **WHEN** the share's `countries.json` changes between the command's download and its upload
-- **THEN** the command aborts without uploading and asks the operator to retry
 
 ### Requirement: API image carries no layers
 
@@ -179,15 +129,29 @@ The API production image SHALL NOT contain any layer data: no rasters, no `index
 
 ### Requirement: Deploying the API requires layer storage
 
-The deployment SHALL NOT deploy the API without layer storage. `azure/deploy.sh` SHALL stop, before building or changing anything, when `STORAGE_ACCOUNT_NAME` is empty for a command that deploys the API. Every deployed API revision SHALL mount the share at `/mnt/maps` and set `MAPS_ROOT=/mnt/maps`.
-
-#### Scenario: Configuration without storage
-
-- **WHEN** an operator runs `./azure/deploy.sh` with `STORAGE_ACCOUNT_NAME` empty
-- **THEN** the script stops before building images or touching the Container Apps, explaining that the API needs the layer storage
+The deployment SHALL NOT deploy the API without layer storage. The Terraform `apps` stack SHALL always mount the `platform` share into the API at `/mnt/maps` and set `MAPS_ROOT=/mnt/maps`; it has no configuration without the share. `infra/deploy.sh` SHALL stop before building or applying when the share has no `countries.json`.
 
 #### Scenario: Every revision mounts the share
 
 - **WHEN** the API is deployed
-- **THEN** the rendered app definition has the `maps` volume mounted at `/mnt/maps` and `MAPS_ROOT=/mnt/maps`
+- **THEN** its Container App has the `maps` volume mounted at `/mnt/maps` and `MAPS_ROOT=/mnt/maps`
+
+#### Scenario: Unseeded share refused
+
+- **WHEN** an operator deploys to an environment whose share has no `countries.json`
+- **THEN** the deploy stops before building images or applying, with instructions to seed the share
+
+### Requirement: Country commands against the share
+
+`tools/layers-ops/layers-ops.sh <env> countries <add|list|rotate|disable|enable> [CC]` SHALL run the country registry command against the environment's share, without redeploying or restarting the API. `unlock` releases a stale registry lease after confirmation. The command SHALL use a temporary local copy and upload only what changed. It SHALL abort without uploading if `countries.json` changed on the share while the command was running.
+
+#### Scenario: Add a country in Azure
+
+- **WHEN** an operator runs `tools/layers-ops/layers-ops.sh dev countries add PE`
+- **THEN** `PE/` and the updated `countries.json` exist on the share, the passkey is printed once, and PE's admin can log in without an API restart
+
+#### Scenario: Concurrent registry edit
+
+- **WHEN** the share's `countries.json` changes between the command's download and its upload
+- **THEN** the command aborts without uploading and asks the operator to retry
 
