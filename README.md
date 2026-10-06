@@ -118,7 +118,8 @@ pnpm build   # builds the frontend production bundle
 
 ### Dependency update policy
 
-Dependabot covers seven manifest locations, one entry per ecosystem and directory:
+Dependabot covers nine manifest locations in eight entries (the Terraform entry
+covers both stacks):
 
 | Ecosystem | Directory | Day |
 | --- | --- | --- |
@@ -129,6 +130,7 @@ Dependabot covers seven manifest locations, one entry per ecosystem and director
 | `docker` | `/apps/api` | Wednesday |
 | `docker` | `/apps/web` | Wednesday |
 | `github-actions` | `/` | Thursday |
+| `terraform` | `/infra/terraform/platform`, `/infra/terraform/apps` | Thursday |
 
 The policy in one paragraph: **minor and patch updates are grouped** per ecosystem so routine churn arrives as a single reviewable pull request, **majors are deliberately left ungrouped** so each gets its own PR and can be read against its changelog in isolation, `open-pull-requests-limit` bounds the queue, and **nothing is automerged** — every update passes CI and a human before it lands. Days are staggered so one ecosystem's PRs don't all arrive at once.
 
