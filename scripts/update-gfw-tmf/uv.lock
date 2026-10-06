@@ -465,7 +465,7 @@ wheels = [
 
 [[package]]
 name = "earthengine-api"
-version = "1.7.45"
+version = "1.7.46"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-python-client" },
@@ -475,9 +475,9 @@ dependencies = [
     { name = "httplib2" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/22/488411fb2d1258cbd4373df2bbddb141b8f7ce8aeca22619128c874e03aa/earthengine_api-1.7.45.tar.gz", hash = "sha256:e6142934f9047899fd01ecaf9b8861fee5112a445a39f385b7ced0e79401e0db", size = 434862, upload-time = "2026-09-21T23:37:46.448Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/45/c3cf13f1e0823cd29ddec5d29499308e1d6ca2777910b37e6be84677f9f7/earthengine_api-1.7.46.tar.gz", hash = "sha256:3c1bd347c9966d491f37ad92feccfd3a7151a5236bea6ee9edd5f1b0af21e3b9", size = 434918, upload-time = "2026-09-29T00:47:40.554Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/d0/8ecbab0393cb046fc587d3ccc2211cd0f00bd38ed9026cb13b02c26cde8a/earthengine_api-1.7.45-py3-none-any.whl", hash = "sha256:94ad7d76209d5a49868421a4933d47629017beaaf632565de66b680c3ec4cd2e", size = 482002, upload-time = "2026-09-21T23:37:40.987Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/dc/7db42041f91162186de50d4f05e7a38663c67470856f392c21577e5a70db/earthengine_api-1.7.46-py3-none-any.whl", hash = "sha256:2fd68df82d1932a246da021619375ca44a89108b10c56e4db08e0347f0554db3", size = 482073, upload-time = "2026-09-29T00:47:38.532Z" },
 ]
 
 [[package]]
@@ -576,7 +576,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/92/55/0ae08a59293443bbb
 
 [[package]]
 name = "geemap"
-version = "0.38.5"
+version = "0.38.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anywidget" },
@@ -600,9 +600,9 @@ dependencies = [
     { name = "xarray" },
     { name = "xee" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/dd/1650a9e03195ce0504d89c06b4cc688de74f08d10ac8562ddb916210c7dd/geemap-0.38.5.tar.gz", hash = "sha256:3640c3c63baafc500ef41fd2dbcbb2c5a7cb9f156fde5c4a54acaef869091828", size = 2471470, upload-time = "2026-09-03T21:51:12.602Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/6d/a5d7342c919c4e6e416757071deb19678ffed922b8a0994d056dc6fc0c35/geemap-0.38.9.tar.gz", hash = "sha256:92b2d302436789186dbde60ff7cb58b0bda3d4f4009cf3135de437d1ae09c91c", size = 2471830, upload-time = "2026-10-01T16:04:41.258Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/ba/0db912a87d4174fbe43c022db0ff03278233bc1af6a8f6d2a4e41865c93b/geemap-0.38.5-py3-none-any.whl", hash = "sha256:df70a567281ab57fa975cc2586b95687dc536eef721d499a4b502aae20efd16a", size = 2530420, upload-time = "2026-09-03T21:51:10.346Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/8f/c33591003b60c2d571971cdd4ac470579376bbcb903234b348a8269e0a40/geemap-0.38.9-py3-none-any.whl", hash = "sha256:aebeea795b0c72df312de321cdda4d4bd349cbc7e19ba70bf68984fd8af3a18f", size = 2530835, upload-time = "2026-10-01T16:04:39.63Z" },
 ]
 
 [[package]]
@@ -1921,9 +1921,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "earthengine-api", specifier = "==1.7.45" },
+    { name = "earthengine-api", specifier = "==1.7.46" },
     { name = "gdal", specifier = ">=3.6.0" },
-    { name = "geemap", specifier = "==0.38.5" },
+    { name = "geemap", specifier = "==0.38.9" },
     { name = "tenacity", specifier = "==9.1.4" },
 ]
 
