@@ -11,13 +11,13 @@
 
 With `--yes` it never prompts. Secrets and the subscription come from `TF_VAR_*` and `ARM_SUBSCRIPTION_ID`. Locally they are read from a git-ignored `infra/envs/<env>.secrets.env`.
 
-The subscription `Monbo-DEV` constrains who can assign roles. Operators are Owners through the `Devs-Contributors` group, with an ABAC condition that lets them assign only:
+The test subscription constrains who can assign roles. Operators are Owners through an Entra group, with an ABAC condition that lets them assign only:
 
 - Reader;
 - Storage Blob Data Contributor, Owner and Reader;
 - AcrPull, AcrPush and AcrDelete.
 
-Kevin is the only unconditional Owner. The repository is public, its default branch is `dev`, it has no GitHub Environments yet, and the operator is a repository admin.
+A single administrator is an Owner without that condition. The repository is public, its default branch is `dev`, it has no GitHub Environments yet, and the operator is a repository admin.
 
 This is change 5 of 5 in the infra roadmap.
 
@@ -136,7 +136,7 @@ The ids aren't secret strictly speaking, but the subscription was kept out of th
 The order matters, because the merge that brings `deploy.yml` triggers the first deploy:
 
 1. Implement; apply `platform` by hand. This creates the identity, its federated credential and the three roles.
-2. Kevin assigns Contributor on `monbo-dev-apps` and Storage Account Key Operator on `monbodevdata`, using the documented commands.
+2. The unconditional Owner assigns Contributor on `monbo-dev-apps` and Storage Account Key Operator on `monbodevdata`, using the documented commands.
 3. Create the GitHub Environment `dev` (branch policy `dev`) and its secrets. Check them with a `workflow_dispatch` run from `dev` once `deploy.yml` is there, or let the merge do it.
 4. Merge. The merge itself deploys `dev` (`deploy.yml` changed).
 5. Verify:

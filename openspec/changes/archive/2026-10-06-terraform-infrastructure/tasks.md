@@ -141,13 +141,13 @@
 ## 8. Rebuild the development environment as `dev` (changes Azure — confirm with the user before each step)
 
 - [x] 8.1 Create `infra/envs/dev.secrets.env` (subscription and secrets from the old `azure/deploy.env`), then `infra/bootstrap.sh`
-  - Done by the user. The first run failed: the `Devs-Contributors` Owner assignment carries an ABAC condition that only allowed assigning Reader. Kevin widened it to also allow Storage Blob Data Contributor/Owner/Reader, AcrPull, AcrPush and AcrDelete. Then the role on `monbotfstate` was granted. The design assumption "we have the permissions" held only after that change; change 5's CI identity will need the same kind of request.
+  - Done by the user. The first run failed: the operators' Owner assignment (through an Entra group) carries an ABAC condition that only allowed assigning Reader. The subscription's unconditional Owner widened it to also allow Storage Blob Data Contributor/Owner/Reader, AcrPull, AcrPush and AcrDelete. Then the role on `monbotfstate` was granted. The design assumption "we have the permissions" held only after that change; change 5's CI identity will need the same kind of request.
 - [x] 8.2 Plan and apply `platform` for `dev`. Check the lock, the soft delete, the backup protection and the registry admin user
   - Done by the user. The first apply created 9 of 11 resources. The backup `Register` job failed with a generic Azure Backup internal error (1073871825), most likely a timing issue right after the vault was created. A second plan/apply created the container registration, the protected share and the lock. Verified: protection `IRPending` (the first snapshot is taken at 06:00 UTC), lock `monbo-dev-data-no-delete`, registry admin user off. Azure Backup also adds its own `AzureBackupProtectionLock` on the storage account, which Terraform doesn't manage and which causes no drift.
 - [x] 8.3 `tools/layers-ops/layers-ops.sh dev seed`: the three passkeys go to the password manager
   - Done by the user. The mapping is in `/tmp/monbo-seed-ids.json` (EC 0,1,2,4→0,1,2,3; CO 0,1,3→0,1,2; CR 0,1,5→0,1,2).
 - [x] 8.4 `infra/deploy.sh dev`. Check that `/health` reports `/mnt/maps` as writable
-  - Done by the user. Images `monbodevacr.azurecr.io/monbo-{api,front}:83fa85d`. API: https://monbo-api.jollymoss-3d07235c.eastus2.azurecontainerapps.io. Web: https://monbo-front.jollymoss-3d07235c.eastus2.azurecontainerapps.io
+  - Done by the user. Images `monbodevacr.azurecr.io/monbo-{api,front}:83fa85d`. API and web URLs on the environment's Container Apps domain.
 - [x] 8.5 Parity:
   - diff the new API app against the reference from 1.1 (probes, mount, scale, env names, sizes);
   - smoke test the landing page (CO, CR, EC), one analysis per country, an admin login and an admin layer edit;

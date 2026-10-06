@@ -53,9 +53,10 @@
 
 - [x] 5.1 Apply `platform` for `dev`. Expect only additions: the identity, the credential and three role assignments
   - Done on 2026-10-06 from a saved plan: `5 to add, 0 to change, 0 to destroy`. Created `monbo-dev-deploy`, the federated credential `github-dev` (subject `repo:undp/monbo:environment:dev`), Reader on the subscription, AcrPush on `monbodevacr` and Storage Blob Data Contributor on `monbotfstate`.
-- [ ] 5.2 Kevin assigns Contributor on `monbo-dev-apps` and Storage Account Key Operator Service Role on `monbodevdata` to `monbo-dev-deploy`. Verify with `az role assignment list --assignee <principalId> --all -o table`
+- [x] 5.2 The unconditional Owner assigns Contributor on `monbo-dev-apps` and Storage Account Key Operator Service Role on `monbodevdata` to `monbo-dev-deploy`. Verify with `az role assignment list --assignee <principalId> --all -o table`
 - [x] 5.3 Create the GitHub Environment `dev` (deployment branch policy: `dev` only) and its secrets (`gh api` and `gh secret set --env dev`)
   - Done on 2026-10-06 with `gh`: environment `dev` with a custom branch policy (`branch:dev`). Six secrets were piped through stdin, so no values hit the command line or the logs: `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` (from the platform outputs), and `ARM_SUBSCRIPTION_ID`, `TF_VAR_GCP_MAPS_PLATFORM_API_KEY`, `TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET`, `TF_VAR_ADMIN_SESSION_SECRET` (from `dev.secrets.env`). `TF_VAR_FRONT_…` was skipped, being empty; the web app reuses the API key.
+  - Done on 2026-10-06. Verified: the deploy identity holds Storage Blob Data Contributor (`monbotfstate`), AcrPush (`monbodevacr`), Reader (subscription), Contributor (`monbo-dev-apps`) and Storage Account Key Operator Service Role (`monbodevdata`).
 - [ ] 5.4 Commit into #54 (option A, chosen by the user); merge #54 **only after 5.2**. The merge deploys `dev`; check the run and the summary
 - [ ] 5.5 A docs-only merge doesn't start a deploy run
 - [ ] 5.6 `workflow_dispatch` with the current tag redeploys without building, and verifies

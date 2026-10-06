@@ -89,7 +89,7 @@ The team decided on Terraform. It covers the whole environment, is parametrized 
   - `docs/architecture.md` (resources, identity, logs);
   - `docs/onboarding.md`, the READMEs and `CHANGELOG.md`.
 - **Agent skills:** `.claude/skills/pr-review` and `pr-comment-triage`. The `NEXT_PUBLIC_*` checklist points at the web app's env in `infra/terraform/apps` instead of `azure/monbo-frontend-app.yml`.
-- **Azure (subscription `Monbo-DEV`):**
+- **Azure (the test subscription):**
   - new resource groups for `dev`, plus `monbo-tfstate` for the state;
   - the old `monbo-test` and `monbo-data` groups are removed after cut-over;
   - the development URLs change, because the Container Apps environment is new.

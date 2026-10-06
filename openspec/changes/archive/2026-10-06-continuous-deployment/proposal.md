@@ -64,7 +64,7 @@ The technical review calls this the main operational risk left in the project. C
   - its secrets.
 - **Azure:**
   - one managed identity and its role assignments;
-  - two role assignments requested from Kevin, the subscription's unconditional Owner.
+  - two role assignments requested from the subscription's unconditional Owner.
 - **Docs:**
   - `infra/README.md`: the CD flow;
   - `docs/suggested_deployment.md`: setting up CD and the manual role step;

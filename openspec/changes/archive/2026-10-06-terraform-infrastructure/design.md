@@ -1,6 +1,6 @@
 ## Context
 
-Today `azure/deploy.sh` (bash, about 700 lines) and `azure/render_api_app.py` build the test environment in subscription `Monbo-DEV` (`eastus2`):
+Today `azure/deploy.sh` (bash, about 700 lines) and `azure/render_api_app.py` build the test environment in the test subscription (`eastus2`):
 
 | Resource group | Resources | Created by |
 |---|---|---|

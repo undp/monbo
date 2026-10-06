@@ -141,13 +141,14 @@ Its roles:
 | **Contributor** | **`monbo-dev-apps`** | **By hand, by an unconditional Owner** |
 | **Storage Account Key Operator Service Role** | **`monbodevdata`** | **By hand, by an unconditional Owner** |
 
-The operators' Owner role (group `Devs-Contributors`) carries an ABAC condition that
-only lets them assign Reader, Storage Blob Data *, AcrPull, AcrPush and AcrDelete. The
-last two roles are therefore granted once by an Owner without that condition, after
-the platform stack has created the identity:
+Operators may not be allowed to grant the last two: in the subscription this was set
+up in, their Owner role carries an ABAC condition that only lets them assign Reader,
+Storage Blob Data *, AcrPull, AcrPush and AcrDelete. In that case a subscription Owner
+without that condition grants them once, after the platform stack has created the
+identity:
 
 ```sh
-az account set --subscription "Monbo-DEV"
+az account set --subscription "$ARM_SUBSCRIPTION_ID"
 PRINCIPAL=$(az identity show -g monbo-dev-platform -n monbo-dev-deploy --query principalId -o tsv)
 az role assignment create --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal \
   --role "Contributor" --scope "$(az group show -n monbo-dev-apps --query id -o tsv)"
