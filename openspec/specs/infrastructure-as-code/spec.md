@@ -6,7 +6,6 @@ Define how Monbo's Azure environments are declared and deployed: Terraform stack
 `apps`) per environment, remote state with Entra ID access, secrets and the subscription kept out of
 the repository, image pulls by managed identity, the single deploy script with its rollback, Terraform
 checks in CI, and rebuilding an environment from the Git layers.
-
 ## Requirements
 ### Requirement: Environment declared in Terraform
 
@@ -160,4 +159,18 @@ The only data it needs SHALL be the Git-tracked layers. The procedure, and the r
 
 - **WHEN** an operator follows the documented procedure in a subscription without Monbo resources
 - **THEN** the dev environment serves CO, CR, and EC with their Git layers, and three country passkeys have been printed once
+
+### Requirement: Deploy identity declared in the platform stack
+
+The `platform` stack SHALL declare each environment's deploy identity (`monbo-<env>-deploy`), its GitHub federated credential, and the role assignments that the operators are allowed to grant. It SHALL output the identity's client id and the tenant id, for the GitHub Environment's secrets. `infra/deploy.sh` and `infra/lib.sh` SHALL work when their variables come from the process environment instead of a secrets file, and when Azure CLI and Terraform authenticate as that identity through OIDC.
+
+#### Scenario: Platform outputs for CI
+
+- **WHEN** the `platform` stack of `dev` is applied
+- **THEN** its outputs include the deploy identity's client id and the tenant id, and the identity has its federated credential and its Terraform-managed roles
+
+#### Scenario: Deploy without a secrets file
+
+- **WHEN** `infra/deploy.sh dev --yes` runs with `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_USE_OIDC` and the `TF_VAR_*` secrets exported, and no `infra/envs/dev.secrets.env`
+- **THEN** it deploys exactly as it does for an operator
 
