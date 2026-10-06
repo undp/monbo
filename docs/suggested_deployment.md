@@ -157,6 +157,12 @@ as interrupted (after up to 15 minutes) and has to upload the raster again.
 
 ### Rollback
 
+- **A failed deploy rolls itself back.** Before applying, `infra/deploy.sh` notes the
+  image of each app's last healthy revision. If the apply fails, a new revision doesn't
+  become ready with the new image, or the API doesn't read a writable `/mnt/maps`, it
+  applies those images again for both apps and exits with an error and the command to
+  read the failed revision's logs. Users keep reaching the previous revision
+  throughout. A first deploy has nothing to roll back to.
 - **Back to an earlier image:** `TAG=<tag> ./infra/deploy.sh <env> --skip-build`
   redeploys images already in the registry, with the same share. As with any deploy,
   don't do it while a raster upload is being processed (see above).

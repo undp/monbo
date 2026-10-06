@@ -96,6 +96,18 @@ The container registry SHALL have its admin user disabled. The Container Apps SH
 
 It SHALL NOT apply the `platform` stack.
 
+The script SHALL record the image of each app's latest ready revision before applying. A deploy SHALL count as successful only when each app's latest revision is ready and runs the new image, and the health checks pass. If the apply fails or that verification fails, the script SHALL apply the recorded images to both apps, verify them, and exit with an error that names the failed revision. A first deploy, with no ready revision, SHALL fail without rolling back.
+
+#### Scenario: New revision never becomes ready
+
+- **WHEN** a deploy's API image fails its startup probe
+- **THEN** users keep reaching the previous revision, the script applies the previously serving images to both apps, and it exits with an error naming the failed revision
+
+#### Scenario: Old revision answering health checks
+
+- **WHEN** the new API revision is not ready but the previous one still answers `/health`
+- **THEN** the deploy is not reported as successful
+
 #### Scenario: Unseeded share
 
 - **WHEN** an operator runs `infra/deploy.sh dev` and the share has no `countries.json`

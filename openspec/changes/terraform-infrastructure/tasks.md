@@ -182,3 +182,25 @@
 - [x] 9.1 `openspec validate terraform-infrastructure`
 - [x] 9.2 Open the PR into `dev`. The `Terraform` job runs; check that the package jobs are skipped unless touched
   - Added to #54. The CI run on the last push passed: `Detect changes` gave `api=true web=true infra=true`, and `Terraform` passed fmt, validate and the 4+5 tests. The first push failed Dependabot's config check, because `semver-major-days` isn't allowed for `terraform`; it was fixed. The PR is `CLEAN`. The subscription now holds only `monbo-dev-apps`, `monbo-dev-data`, `monbo-dev-platform` and `monbo-tfstate`.
+
+## 10. Rollback on failed deploys (D12, added after cut-over)
+
+- [x] 10.1 `infra/deploy.sh`:
+  - record each app's serving image (latest ready revision) before applying;
+  - after the apply, wait for each app's latest revision to be ready with the new image (fail fast on Failed/Degraded, about 10 minutes at most), then run the health checks;
+  - on failure, re-apply the recorded images to both apps, verify them, and exit non-zero with the failed revision's `az containerapp logs show` command;
+  - a cancelled interactive apply doesn't roll back, and a first deploy can't.
+  shellcheck is clean
+- [x] 10.2 Docs:
+  - `infra/README.md`: the deploy steps, why a deploy never stays half-done, and "Considered and not adopted" (Terraform Stacks, Azure Deployment Stacks);
+  - `docs/suggested_deployment.md`: Rollback;
+  - design D12 and the spec scenarios
+- [x] 10.3 Live test on `dev`: `TAG=rollbacktest ./infra/deploy.sh dev --skip-build --yes`, with `monbo-api:rollbacktest` an image that exits at once (azurelinux base) and `monbo-front:rollbacktest` the healthy web image. Expect: the API revision fails, both apps are rolled back to `83fa85d`, exit 1, and users keep the old revision throughout. Then delete the `rollbacktest` tags
+  - Result (2026-10-06):
+    - The `rollbacktest` API revision stayed `Activating` (never `Failed`), so it was caught by the 10-minute wait, not the fail-fast branch.
+    - Throughout, `/health` answered 200 from the old revision: users saw nothing.
+    - The script then applied `83fa85d` to both apps. Revisions `--0000002` came up ready, `/health` and the web app passed, and the script exited 1 with the failed revision's log command.
+    - A follow-up plan with `83fa85d` shows no changes.
+  - **Cleanup mistake, fixed:** `az acr repository delete --image monbo-front:rollbacktest` deletes the *manifest*, which `monbo-front:83fa85d` shared (the test tag was a copy of it). The serving web image was gone from the registry for a few minutes. It was re-pushed from the local Docker cache with the same digest (`sha256:f958975a…`). To drop a tag only, use `az acr repository untag`.
+  - The run printed 67 `containerapp` extension warnings; `deploy.sh`'s `az containerapp` calls now pass `--only-show-errors`.
+

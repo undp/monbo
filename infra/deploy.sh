@@ -13,6 +13,13 @@
 # It never applies the platform stack (layers, backups, registry): that is a separate,
 # deliberate `terraform apply` (docs/suggested_deployment.md).
 #
+# Rollback: before applying, it notes the image of each app's last healthy revision.
+# If the apply fails, or either app's new revision doesn't become ready with the new
+# image, or the API doesn't read a writable /mnt/maps, it applies those images again
+# (both apps, so they never run mismatched versions) and exits with an error. Container
+# Apps keeps the previous revision serving until a new one is ready, so users don't see
+# a failed revision; the rollback brings Terraform's state back in line with it.
+#
 # Secrets and the subscription (TF_VAR_*, ARM_SUBSCRIPTION_ID) are exported in the
 # shell (CI) or read from infra/envs/<env>.secrets.env (git-ignored; copy the
 # .example next to it).
@@ -85,42 +92,57 @@ else
   ok "Pushed $API_IMAGE and $WEB_IMAGE"
 fi
 
-log "Applying the apps stack"
-tf_init apps "$ENV_NAME"
-tf_args=(-var-file="envs/$ENV_NAME.tfvars" -var "api_image=$API_IMAGE" -var "web_image=$WEB_IMAGE")
-if [ "$PLAN_ONLY" = true ]; then
-  "$TERRAFORM" -chdir="$TF_ROOT/apps" plan -input=false "${tf_args[@]}"
-  exit 0
-fi
-# Without --yes, terraform shows the plan and asks before applying.
-if [ "$AUTO_APPROVE" = true ]; then
-  tf_args+=(-input=false -auto-approve)
-fi
+APPS_RG="monbo-$ENV_NAME-apps"
+API_APP=monbo-api
+WEB_APP=monbo-front
 
-apply_log="$(mktemp)"
-TEMP_FILES+=("$apply_log")
-if ! "$TERRAFORM" -chdir="$TF_ROOT/apps" apply "${tf_args[@]}" 2>&1 | tee "$apply_log"; then
-  # A new pull identity's AcrPull takes a minute or two to propagate; the first apply
-  # of a fresh environment can fail pulling. Retry that case once.
-  if grep -qiE "unauthorized|denied|AcrPull|failed to pull" "$apply_log"; then
-    echo "  The registry refused the pull (AcrPull may still be propagating); retrying in 90 s"
-    sleep 90
-    "$TERRAFORM" -chdir="$TF_ROOT/apps" apply "${tf_args[@]}"
-  else
-    die "terraform apply failed"
-  fi
-fi
+# The image of an app's latest ready revision: what is serving now. Empty when the
+# app doesn't exist yet (first deploy) or has never had a ready revision.
+serving_image() {
+  local ready
+  ready="$(az containerapp show --only-show-errors -g "$APPS_RG" -n "$1" \
+    --query properties.latestReadyRevisionName -o tsv 2>/dev/null || true)"
+  [ -n "$ready" ] || return 0
+  az containerapp revision show --only-show-errors -g "$APPS_RG" -n "$1" --revision "$ready" \
+    --query 'properties.template.containers[0].image' -o tsv 2>/dev/null || true
+}
 
-API_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw api_url)"
-WEB_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw web_url)"
+# Waits until the app's latest revision is the ready one and runs IMAGE. Fails fast
+# when that revision fails; gives up after ~10 minutes (the startup probe allows ~2).
+wait_for_revision() {
+  local app="$1" image="$2" latest="" ready state running running_image
+  for _ in $(seq 1 60); do
+    read -r latest ready < <(az containerapp show --only-show-errors -g "$APPS_RG" -n "$app" \
+      --query "[properties.latestRevisionName, properties.latestReadyRevisionName]" -o tsv | paste -s -)
+    if [ -n "$latest" ]; then
+      read -r state running running_image < <(az containerapp revision show --only-show-errors -g "$APPS_RG" -n "$app" \
+        --revision "$latest" \
+        --query "[properties.provisioningState, properties.runningState, properties.template.containers[0].image]" \
+        -o tsv | paste -s -)
+      if [ "$latest" = "$ready" ] && [ "$running_image" = "$image" ]; then
+        ok "$app: revision $latest is ready with $image"
+        return 0
+      fi
+      case "$state/$running" in
+        Failed/*|*/Failed|*/Degraded)
+          echo "  $app: revision $latest is $state/$running" >&2
+          FAILED_REVISION="$app/$latest"
+          return 1 ;;
+      esac
+    fi
+    sleep 10
+  done
+  echo "  $app: revision $latest did not become ready" >&2
+  FAILED_REVISION="$app/$latest"
+  return 1
+}
 
-# The API must read (and, for the admin, write) the share. Retries for a while: the
-# previous revision can still answer while it drains.
-log "Verifying the deployment"
-report=""
-for _ in $(seq 1 30); do
-  health="$(curl -fsS "$API_URL/health" 2>/dev/null || true)"
-  if report="$(python3 -c '
+# The API must read (and, for the admin, write) the share; the web app must answer.
+check_endpoints() {
+  local health report=""
+  for _ in $(seq 1 12); do
+    health="$(curl -fsS "$API_URL/health" 2>/dev/null || true)"
+    if report="$(python3 -c '
 import json, sys
 try:
     health = json.loads(sys.argv[1])
@@ -130,19 +152,92 @@ root, writable = health.get("mapsRoot"), health.get("mapsRootWritable")
 if root != "/mnt/maps" or not writable:
     sys.exit("API reports mapsRoot=%s writable=%s" % (root, writable))
 ' "$health" 2>&1)"; then
-    ok "API reads its layers from /mnt/maps (writable)"
-    break
-  fi
-  sleep 10
-done
-[ -z "$report" ] || { echo "  $report" >&2; die "The API does not read a writable /mnt/maps (check its logs and the mount)"; }
+      ok "API reads its layers from /mnt/maps (writable)"
+      break
+    fi
+    sleep 10
+  done
+  [ -z "$report" ] || { echo "  $report" >&2; return 1; }
+  for _ in $(seq 1 12); do
+    curl -fsS "$WEB_URL/api/health" >/dev/null 2>&1 && { ok "Frontend is healthy"; return 0; }
+    sleep 10
+  done
+  echo "  $WEB_URL/api/health did not answer" >&2
+  return 1
+}
 
-for _ in $(seq 1 30); do
-  curl -fsS "$WEB_URL/api/health" >/dev/null 2>&1 && break
-  sleep 10
-done
-curl -fsS "$WEB_URL/api/health" >/dev/null 2>&1 || die "$WEB_URL/api/health did not answer"
-ok "Frontend is healthy"
+verify_deployment() {
+  wait_for_revision "$API_APP" "$1" && wait_for_revision "$WEB_APP" "$2" && check_endpoints
+}
+
+log "Applying the apps stack"
+tf_init apps "$ENV_NAME"
+tf_args=(-var-file="envs/$ENV_NAME.tfvars")
+if [ "$PLAN_ONLY" = true ]; then
+  "$TERRAFORM" -chdir="$TF_ROOT/apps" plan -input=false "${tf_args[@]}" \
+    -var "api_image=$API_IMAGE" -var "web_image=$WEB_IMAGE"
+  exit 0
+fi
+
+# What to roll back to: the images serving now.
+PREVIOUS_API_IMAGE="$(serving_image "$API_APP")"
+PREVIOUS_WEB_IMAGE="$(serving_image "$WEB_APP")"
+if [ -n "$PREVIOUS_API_IMAGE" ] && [ -n "$PREVIOUS_WEB_IMAGE" ]; then
+  ok "Rollback target: $PREVIOUS_API_IMAGE and $PREVIOUS_WEB_IMAGE"
+else
+  echo "  No healthy revision yet (first deploy): a failure can't be rolled back"
+fi
+
+# Without --yes, terraform shows the plan and asks before applying.
+approve_args=()
+[ "$AUTO_APPROVE" = true ] && approve_args=(-input=false -auto-approve)
+
+apply_images() {
+  "$TERRAFORM" -chdir="$TF_ROOT/apps" apply "${tf_args[@]}" ${approve_args[@]+"${approve_args[@]}"} \
+    -var "api_image=$1" -var "web_image=$2"
+}
+
+rollback() {
+  local reason="$1" failed="${FAILED_REVISION:-}"
+  if [ -z "$PREVIOUS_API_IMAGE" ] || [ -z "$PREVIOUS_WEB_IMAGE" ]; then
+    die "$reason. Nothing to roll back to (first deploy): fix and deploy again"
+  fi
+  log "Rolling back to $PREVIOUS_API_IMAGE and $PREVIOUS_WEB_IMAGE"
+  # The operator already approved this deploy; the rollback doesn't ask again.
+  approve_args=(-input=false -auto-approve)
+  if apply_images "$PREVIOUS_API_IMAGE" "$PREVIOUS_WEB_IMAGE" \
+    && verify_deployment "$PREVIOUS_API_IMAGE" "$PREVIOUS_WEB_IMAGE"; then
+    ok "Rolled back: the previous images are serving again"
+  else
+    echo "  The rollback did not verify either; check the apps in the portal" >&2
+  fi
+  [ -z "$failed" ] || echo "  Logs of the failed revision: az containerapp logs show -g $APPS_RG -n ${failed%%/*} --revision ${failed#*/} --tail 100" >&2
+  die "$reason (rolled back)"
+}
+
+apply_log="$(mktemp)"
+TEMP_FILES+=("$apply_log")
+if ! apply_images "$API_IMAGE" "$WEB_IMAGE" 2>&1 | tee "$apply_log"; then
+  if grep -q "Apply cancelled" "$apply_log"; then
+    die "Apply cancelled; nothing changed"
+  fi
+  # A new pull identity's AcrPull takes a minute or two to propagate; the first apply
+  # of a fresh environment can fail pulling. Retry that case once.
+  if grep -qiE "unauthorized|denied|AcrPull|failed to pull" "$apply_log"; then
+    echo "  The registry refused the pull (AcrPull may still be propagating); retrying in 90 s"
+    sleep 90
+    approve_args=(-input=false -auto-approve)
+    apply_images "$API_IMAGE" "$WEB_IMAGE" || rollback "terraform apply failed"
+  else
+    rollback "terraform apply failed"
+  fi
+fi
+
+API_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw api_url)"
+WEB_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw web_url)"
+
+log "Verifying the deployment"
+verify_deployment "$API_IMAGE" "$WEB_IMAGE" || rollback "The new revisions did not become healthy"
 
 log "Done ($ENV_NAME)"
 echo "  Frontend: $WEB_URL"

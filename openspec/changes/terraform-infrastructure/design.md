@@ -234,6 +234,21 @@ The development URLs change. Whoever uses them is told, and `ADMIN_ALLOWED_ORIGI
 - **Versions:** Terraform is pinned in `required_version` and in the job (`hashicorp/setup-terraform`, SHA-pinned). The `.terraform.lock.hcl` files are committed for `linux_amd64` and `darwin_arm64`.
 - **Dependabot** gets a `terraform` entry per stack directory.
 
+### D12. A failed deploy rolls itself back (added after cut-over)
+
+The first port of `deploy.sh` checked only `/health` after the apply. That was a regression: the old script waited for `latestRevisionName == latestReadyRevisionName`. In single revision mode the previous revision keeps serving until the new one is ready, so a revision that never starts is invisible to users, and also to a `/health` check. Terraform still records the new image, and the deploy reports success. A failure halfway (API updated, frontend not) leaves mismatched versions.
+
+`deploy.sh` now:
+
+1. records the image of each app's latest ready revision before applying;
+2. after the apply, waits for each app's latest revision to be ready and running the new image, failing fast on a `Failed` or `Degraded` revision, then checks `/health` and the web app;
+3. on any failure, applies the recorded images to both apps (auto-approved, since the operator already approved the deploy), verifies them, and exits non-zero with the failed revision's log command.
+
+Only the apps stack rolls back. `platform` is applied by hand after reading its plan, and a partial `platform` apply converges on retry, as the backup registration did.
+
+- **Alternative: Terraform Stacks.** An HCP Terraform feature: runs and state live in HCP Terraform, connected to GitHub, with OIDC. It orchestrates components and several deployments of one configuration, and it has no rollback of a failed apply. Rejected: it would move the state out of Azure into a SaaS account, for orchestration that two stacks plus remote state already cover with one environment. Revisit with several environments or regions.
+- **Alternative: Azure Deployment Stacks.** Bicep/ARM-only, so it means rewriting the Terraform, and it has no rollback either: a failed stack stays failed. ARM's `--rollback-on-error` applies only to plain ARM deployments. Its deny settings are covered by the lock, `prevent_destroy` and drift detection.
+
 ## Risks / Trade-offs
 
 - **[Risk] Destroying data by mistake.** → Mitigation: the three-step protection in D4. Plans of `platform` are read before applying, and `deploy.sh` never applies `platform`.

@@ -132,9 +132,23 @@ Always:  infra/deploy.sh dev
            2. reads platform's outputs (which registry? which share?)
            3. does the share have countries.json? if not, stops
            4. docker build + push to monbodevacr, tagged with the commit
-           5. terraform apply in apps with api_image / web_image
-           6. checks /health → mapsRoot=/mnt/maps, writable
+           5. notes the images serving now (each app's latest ready revision)
+           6. terraform apply in apps with api_image / web_image
+           7. waits until each app's new revision is ready with the new image,
+              then checks /health → mapsRoot=/mnt/maps, writable, and the web app
+           8. if 6 or 7 fails: applies the images from step 5 again (both apps)
+              and exits with an error and the failed revision's log command
 ```
+
+**Why a deploy never stays half-done.** Container Apps (single revision mode) keeps the
+previous revision serving until the new one passes its startup probe, so users never
+reach a failed revision. What could be left half-done is Terraform's view: the apply
+succeeds and records the new image even if its revision never becomes ready, or the
+API updates and the frontend doesn't. Step 7 detects that (a plain `/health` check
+would be answered by the old revision) and step 8 applies the last healthy images
+again, so both apps and the state agree. Terraform itself has no transactional
+rollback, and neither do Terraform Stacks or Azure Deployment Stacks; see "Considered
+and not adopted" below.
 
 `lib.sh` holds what `deploy.sh` and `layers-ops.sh` share:
 
@@ -145,6 +159,23 @@ Always:  infra/deploy.sh dev
 - checking the share for `countries.json`.
 
 `deploy.sh` never applies `platform`: that plan is read by a person before it runs.
+
+## Considered and not adopted
+
+- **Terraform Stacks** (`.tfcomponent.hcl` / `.tfdeploy.hcl`). Stacks are an HCP
+  Terraform feature: plans and applies run in HCP Terraform, which also holds the
+  state, connected to GitHub, with OIDC credentials. They orchestrate components and
+  several deployments (environments) of the same configuration. They don't roll back a
+  failed apply. Adopting them would move the state out of Azure into a SaaS account,
+  for an orchestration that two stacks and a remote-state link already cover with one
+  environment. Reconsider if Monbo grows to several environments or regions and the
+  team adopts HCP Terraform.
+- **Azure Deployment Stacks** (`az stack`). They are Bicep/ARM-only (adopting them
+  means rewriting the Terraform) and have no rollback either: a failed stack
+  deployment stays failed with what it created. What they add, deny assignments
+  against portal changes and cleanup of resources removed from the template, is
+  covered here by the lock, `prevent_destroy` and Terraform's own drift detection.
+  ARM's `--rollback-on-error` exists only for plain ARM deployments.
 
 ## Where each value goes
 
