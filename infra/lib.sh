@@ -86,7 +86,13 @@ select_subscription() {
   az account show >/dev/null 2>&1 || die "Not logged in to Azure. Run 'az login' first"
   az account set --subscription "$AZURE_SUBSCRIPTION_ID" \
     || die "Cannot access subscription $AZURE_SUBSCRIPTION_ID with the current login"
-  ok "Subscription: $(az account show --query name -o tsv)"
+  # The name helps an operator confirm where they are; CI logs of a public repository
+  # shouldn't show it (the id itself is a masked secret there).
+  if [ -n "${CI:-}" ]; then
+    ok "Subscription selected (ARM_SUBSCRIPTION_ID)"
+  else
+    ok "Subscription: $(az account show --query name -o tsv)"
+  fi
 }
 
 storage_key() {
