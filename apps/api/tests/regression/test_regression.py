@@ -10,6 +10,7 @@ If a change is *meant* to alter these results, regenerate the expected values wi
 """
 
 import json
+from pathlib import Path
 
 import openpyxl
 import pytest
@@ -29,8 +30,13 @@ from tests.regression.pipeline import (
     run_pipeline,
 )
 
-TEMPLATE_PATH = (
-    EXCEL_PATH.parents[4] / "apps/web/public/files/m1-upload-file-template-es.xlsx"
+# The frontend's upload template, found from the repository root. It is missing when
+# only apps/api is available, e.g. in the API dev container (source bind-mounted at
+# /app): that test is then skipped instead of breaking collection.
+_TEMPLATE = Path("apps/web/public/files/m1-upload-file-template-es.xlsx")
+TEMPLATE_PATH = next(
+    (root / _TEMPLATE for root in EXCEL_PATH.parents if (root / _TEMPLATE).is_file()),
+    None,
 )
 REGENERATE_HINT = (
     "If this change is meant to alter results, run "
@@ -49,6 +55,7 @@ def assert_same_results(actual):
     )
 
 
+@pytest.mark.skipif(TEMPLATE_PATH is None, reason="apps/web is not available")
 def test_excel_is_still_a_valid_upload_file():
     """The regression Excel keeps the template's headers, so it can be uploaded."""
     template = openpyxl.load_workbook(TEMPLATE_PATH).worksheets[0]

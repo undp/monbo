@@ -6,19 +6,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /uvx /bin/
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gdal-bin \
-    libgdal-dev \
-    libexpat1 \
-    gcc \
-    g++ \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set GDAL environment variables
-ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
-ENV C_INCLUDE_PATH=/usr/include/gdal
+# No build toolchain: every dependency installs from a prebuilt wheel, and rasterio
+# and pyogrio bundle their own GDAL. The API doesn't use a system GDAL.
 
 # uv configuration: build a self-contained environment at /opt/venv using the
 # interpreter provided by the base image (no downloads).
@@ -28,10 +17,11 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     UV_PYTHON_DOWNLOADS=never
 
 # Copy only the dependency manifests first for better caching.
-# Production install excludes the `dev` dependency-group (`--no-dev`) and fails
-# if pyproject.toml and uv.lock are inconsistent (`--frozen`).
+# Production install excludes the `dev` dependency-group (`--no-dev`), fails if
+# pyproject.toml and uv.lock are inconsistent (`--frozen`), and fails if any package
+# would have to be compiled (`--no-build`) instead of needing a toolchain here.
 COPY ./pyproject.toml ./uv.lock ./.python-version ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-build
 
 # Copy source code
 COPY ./app ./app
@@ -45,24 +35,19 @@ WORKDIR /app
 # (mountOptions uid=10001,gid=10001), so it must not depend on the image build.
 RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser -s /bin/false appuser
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gdal-bin \
-    libgdal-dev \
-    libexpat1 \
-    && apt-get clean \
+# The only system library the wheels need: the GDAL bundled in rasterio's and pyogrio's
+# wheels links against the system libexpat (Python's own pyexpat doesn't cover it).
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the pre-built virtual environment and application code
+# Copy the pre-built virtual environment (root-owned, read-only for the app user) and
+# the application code, owned by the app user from the start (no `chown -R` layer
+# duplicating it).
 COPY --from=api-builder /opt/venv /opt/venv
-COPY --from=api-builder /app/app ./app
+COPY --from=api-builder --chown=appuser:appuser /app/app ./app
 
 # Put the virtualenv on PATH so `uvicorn` resolves to the installed one
 ENV PATH="/opt/venv/bin:$PATH"
-
-# Set correct permissions
-RUN chown -R appuser:appuser ./app && \
-    chmod -R 755 ./app
 
 # Switch to non-root user
 USER appuser
