@@ -49,6 +49,7 @@ next-env.d.ts
 .vercel
 
 # Agent instructions that `next dev` writes on every start (Next 16). Generated,
-# not maintained here.
+# not maintained here. To commit custom files, remove these ignores and set
+# `agentRules: false` in next.config.ts to disable Next.js auto-generation.
 AGENTS.md
 CLAUDE.md
