@@ -1,6 +1,6 @@
-# Applies the apps stack against mocked providers (nothing is created) and a fake platform state: checks
-# that the Container Apps match what azure/render_api_app.py and deploy_front used to
-# deploy, without Azure credentials. Run: terraform init -backend=false && terraform test
+# Applies the apps stack against mocked providers (nothing is created) and a fake
+# platform state: checks the Container Apps' runtime settings without Azure credentials.
+# Run: terraform init -backend=false && terraform test
 
 mock_provider "azurerm" {
   mock_data "azurerm_storage_account" {

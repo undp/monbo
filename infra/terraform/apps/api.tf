@@ -1,4 +1,4 @@
-# The API, field by field what azure/render_api_app.py used to PUT.
+# The API, retaining the runtime settings of the pre-Terraform Azure deployment.
 
 resource "azurerm_container_app" "api" {
   name                         = local.api_name
