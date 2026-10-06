@@ -65,6 +65,8 @@ jobs:
             while IFS= read -r file; do
               case "$file" in
                 apps/api/*) api=true ;;
+                # The API regression suite validates the web upload templates.
+                apps/web/public/files/*) api=true; web=true ;;
                 apps/web/*) web=true ;;
                 infra/*) infra=true ;;
                 .github/workflows/ci.yml) api=true; web=true; infra=true ;;
