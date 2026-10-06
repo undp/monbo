@@ -1,0 +1,106 @@
+name: Deploy
+
+# Deploys the dev environment when a merge into dev changes what runs there, with
+# infra/deploy.sh: the same script operators run, with its revision checks and its
+# rollback (docs/suggested_deployment.md#continuous-deployment). Not a pull request
+# check: nothing waits on it, so a path filter on the trigger is fine. The platform
+# stack is not deployed from here: it is applied by hand after reading its plan.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "apps/**"
+      - "infra/deploy.sh"
+      - "infra/lib.sh"
+      - "infra/terraform/apps/**"
+      - ".github/workflows/deploy.yml"
+  # Manual run from the Actions tab (on dev): build and deploy that commit, or redeploy
+  # images already in the registry.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to redeploy without building (empty: build this commit)"
+        required: false
+        default: ""
+
+permissions: {}
+
+# One deploy at a time, and never cancelled midway (that would leave the apps
+# half-applied); a newer merge waits and deploys afterwards.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # The deploy identity's federated credential trusts only jobs in this environment,
+    # and the environment only allows the dev branch.
+    environment:
+      name: dev
+      url: ${{ steps.deploy.outputs.web_url }}
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ENV_NAME: dev
+      # Terraform (provider and azurerm backend) authenticate with GitHub's OIDC token.
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      # `az containerapp` lives in an extension; install it without prompting.
+      AZURE_EXTENSION_USE_DYNAMIC_INSTALL: yes_without_prompt
+    steps:
+      # No LFS: the images don't contain the layers.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      # Pinned to the version the stacks require; bump with required_version and ci.yml.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+
+      - name: Deploy
+        id: deploy
+        env:
+          TF_VAR_gcp_maps_platform_api_key: ${{ secrets.TF_VAR_GCP_MAPS_PLATFORM_API_KEY }}
+          TF_VAR_gcp_maps_platform_signature_secret: ${{ secrets.TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET }}
+          TF_VAR_front_gcp_maps_platform_api_key: ${{ secrets.TF_VAR_FRONT_GCP_MAPS_PLATFORM_API_KEY }}
+          TF_VAR_admin_session_secret: ${{ secrets.TF_VAR_ADMIN_SESSION_SECRET }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          # A secret that isn't set arrives as an empty string; Terraform must see it as
+          # unset (null), e.g. no admin secret means the admin is off.
+          for var in TF_VAR_front_gcp_maps_platform_api_key TF_VAR_admin_session_secret; do
+            [ -n "${!var}" ] || unset "$var"
+          done
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG" ./infra/deploy.sh "$ENV_NAME" --yes --skip-build
+          else
+            ./infra/deploy.sh "$ENV_NAME" --yes   # tags the images with this commit
+          fi
+
+      # deploy.sh writes the summary when it gets as far as deploying; this covers
+      # failures before that (login, secrets, an unseeded share).
+      - name: Summary on failure
+        if: failure()
+        run: |
+          {
+            echo "### Deploy to \`$ENV_NAME\` failed"
+            echo
+            echo "See the **Deploy** step's log. If deploy.sh rolled back, the previous images are serving."
+          } >> "$GITHUB_STEP_SUMMARY"

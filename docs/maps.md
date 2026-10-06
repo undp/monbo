@@ -19,7 +19,9 @@ The API reads layers from `MAPS_ROOT`:
 | Local, trying the admin | `.local-maps` | `app/maps` migrated to the per-country layout, ignored by Git ([onboarding.md](onboarding.md#48-trying-the-layers-admin-locally)) |
 
 The layers in Git are the source the share was seeded from. Admin changes only
-reach the share: they are never committed.
+reach the share: they are never committed. The API image doesn't contain them: a
+container needs the share or another layers folder mounted at `MAPS_ROOT`, and the
+API refuses to start when that root holds neither layout.
 
 ### Per-country layout
 
@@ -126,8 +128,8 @@ editing one country's metadata doesn't change the others.
 
 ## Countries
 
-Countries are managed from the command line, in `monbo-api` (in Azure, through
-`./azure/deploy.sh countries`, see
+Countries are managed from the command line, in `apps/api` (in Azure, through
+`tools/layers-ops/layers-ops.sh <env> countries`, see
 [suggested_deployment.md](suggested_deployment.md#countries-and-admin-passkeys)):
 
 ```sh
@@ -201,7 +203,7 @@ each pixel lost its forest, not a binary mask. They have to be turned into one
 before uploading: loss years later than the baseline become `1`, everything else
 `0`.
 
-The scripts in `scripts/update-gfw-tmf` do this with the Google Earth Engine API:
+The scripts in `tools/update-gfw-tmf` do this with the Google Earth Engine API:
 
 - They read `loss_year` (GFW) or `DeforestationYear` (TMF).
 - They clip the countries of interest (currently Ecuador, Colombia and Costa Rica).
@@ -209,7 +211,7 @@ The scripts in `scripts/update-gfw-tmf` do this with the Google Earth Engine API
 
 ## Seeding a new share
 
-`uv run python -m app.modules.layers.seed --target <dir>` (in `monbo-api`) turns the
+`uv run python -m app.modules.layers.seed --target <dir>` (in `apps/api`) turns the
 Git-tracked layers into a layers root ready to upload: every raster goes through the
 same checks and conversion as an admin upload and becomes `<stem>-v1.tif`, and every
 layer is published at version 1. The result has the flat layout.
@@ -225,6 +227,6 @@ then builds the per-country layout from it:
 - rasters are copied whole, never clipped, because a farm can cross a border;
 - every country is registered with a new passkey, printed once.
 
-The source is left untouched. In Azure, `./azure/deploy.sh seed` runs both commands
-and uploads the result to the share (see
-[suggested_deployment.md](suggested_deployment.md#first-time-setup)).
+The source is left untouched. In Azure, `tools/layers-ops/layers-ops.sh <env> seed` runs both
+commands and uploads the result to the share (see
+[suggested_deployment.md](suggested_deployment.md#creating-an-environment-from-nothing)).

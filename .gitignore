@@ -83,4 +83,15 @@ vendor/
 # Custom scripts
 publish-dockerhub.sh
 # Azure deploy config (secrets)
+# The pre-Terraform deploy config (azure/ is gone; an old local copy may remain).
 azure/deploy.env
+
+# Terraform: working dirs, local state and plans (state lives in Azure, see
+# infra/bootstrap.sh); the provider lock files are committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/terraform/.plugin-cache/
+# Operator secrets for infra/deploy.sh (TF_VAR_*); only the .example is tracked.
+infra/envs/*.secrets.env

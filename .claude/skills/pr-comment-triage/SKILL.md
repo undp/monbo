@@ -18,7 +18,7 @@ You are acting as the author of a pull request, triaging and resolving its open 
 
 ## Project Context
 
-**Monbo** is a deforestation-analysis and due-diligence-report tool for EU Deforestation Regulation (EUDR) compliance. It is a monorepo of two independent apps with no workspace manager: `monbo-api/` (Python 3.13, FastAPI, uv, pytest) and `monbo-front/` (Next.js 16, React 19, TypeScript, MUI 7, i18next with `es`/`en`, pnpm, **no test suite**). The system is stateless: no database, no auth, all session state in the browser. Results end up in compliance reports, so a silently wrong deforestation or area value is the worst outcome.
+**Monbo** is a deforestation-analysis and due-diligence-report tool for EU Deforestation Regulation (EUDR) compliance. It is a monorepo of two independent apps with no workspace manager: `apps/api/` (Python 3.13, FastAPI, uv, pytest) and `apps/web/` (Next.js 16, React 19, TypeScript, MUI 7, i18next with `es`/`en`, pnpm, **no test suite**). The system is stateless: no database, no auth, all session state in the browser. Results end up in compliance reports, so a silently wrong deforestation or area value is the worst outcome.
 
 The repository lives in the UNDP GitHub organization but is not yet run as a public open-source project.
 
@@ -35,7 +35,7 @@ Review comments may come from human maintainers or from automated reviewers (Cod
 1. **Protected-branch gate.** Resolve the PR's head branch via `pull_request_read` (`method: "get"`). If it is `main`, `dev`, `master`, `release`, `prod`, or `staging`, **abort immediately** with a clear error — do not check out, commit, or push. Also abort if the PR comes from a fork you cannot push to.
 2. **Clean-tree gate.** If the working tree has uncommitted changes, stop and ask the user. Do not stash: the stash stack is shared across worktrees and sessions.
 3. Check out the head branch and pull the latest from `origin`. Other agents or the author may have pushed since the comments were written. If git refuses because the branch is already checked out in another worktree, stop and tell the user which worktree to run in.
-4. Install dependencies for the areas the PR touches: `uv sync --frozen` in `monbo-api/`, `pnpm install --frozen-lockfile` in `monbo-front/`, and `pnpm install --frozen-lockfile` at the root if the orchestrator is involved.
+4. Install dependencies for the areas the PR touches: `uv sync --frozen` in `apps/api/`, `pnpm install --frozen-lockfile` in `apps/web/`, and `pnpm install --frozen-lockfile` at the root if the orchestrator is involved.
 5. Read the PR body, including any linked issue or OpenSpec change (`openspec/changes/<name>/`). Fixes must stay inside the PR's stated scope.
 
 ## Phase 2 — Collect open comments
@@ -77,13 +77,13 @@ Work through the **Fix** comments one at a time, in severity order (security and
 For each:
 
 10. **Group or isolate.** One commit per comment. Group several comments into one commit only when they touch the same code and constitute one logical change — in that case every grouped thread gets a reply citing the same SHA.
-11. Make the change. Stay strictly within the scope of the comment. Do not opportunistically refactor adjacent code. If the fix touches a cross-cutting convention, make the whole change: an API field rename updates the Pydantic model, `monbo-front/src/interfaces/`, and `src/api/`; a new UI string goes in both `locales/es/` and `locales/en/`; a new `NEXT_PUBLIC_*` variable goes in `config/env.ts`, `entrypoint.sh`, `azure/monbo-frontend-app.yml`, and the `.env.*.example` files.
+11. Make the change. Stay strictly within the scope of the comment. Do not opportunistically refactor adjacent code. If the fix touches a cross-cutting convention, make the whole change: an API field rename updates the Pydantic model, `apps/web/src/interfaces/`, and `src/api/`; a new UI string goes in both `locales/es/` and `locales/en/`; a new `NEXT_PUBLIC_*` variable goes in `config/env.ts`, `entrypoint.sh`, the web app's `env` blocks in `infra/terraform/apps/web.tf`, and the `.env.*.example` files.
 12. Run the gate for each app you touched — the same commands CI runs:
-    - API (in `monbo-api/`): `uv run black . && uv run ruff check . && uv run mypy app`
-    - Frontend (in `monbo-front/`): `pnpm exec tsc --noEmit && pnpm run lint`, plus `pnpm run build` if the fix touches config, routing, env handling, or server/client boundaries. ESLint warnings don't fail CI, but the fix must not add new ones.
+    - API (in `apps/api/`): `uv run black . && uv run ruff check . && uv run mypy app`
+    - Frontend (in `apps/web/`): `pnpm exec tsc --noEmit && pnpm run lint`, plus `pnpm run build` if the fix touches config, routing, env handling, or server/client boundaries. ESLint warnings don't fail CI, but the fix must not add new ones.
 13. Run the tests covering the touched area:
     - API: `uv run pytest tests/modules/<module>` for the module, and `uv run pytest tests/test_numeric_baseline.py` whenever the fix touches deforestation math, area calculation, reprojection, raster masking, or image generation.
-    - If the fix changes API behavior that had no test, add or extend one under `monbo-api/tests/`. A behavioral API fix without a regression test is incomplete.
+    - If the fix changes API behavior that had no test, add or extend one under `apps/api/tests/`. A behavioral API fix without a regression test is incomplete.
     - Frontend: there is no test harness — do not set one up as part of a fix. Rely on the type-check, lint and build, and say plainly in the reply that the change was not exercised in a running app unless you actually did so (`pnpm dev` at the root).
 14. Commit using Conventional Commits, scoped to the app (e.g. `fix(api): reject polygons with fewer than three vertices`, `fix(front): add missing es translation for overlap modal`).
 15. **Push before replying.** A SHA that is not on `origin` is useless to the reviewer.

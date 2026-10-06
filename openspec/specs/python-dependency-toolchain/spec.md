@@ -5,18 +5,16 @@
 Govern how `monbo-api` and the offline GFW/TMF script declare, lock and install their Python
 dependencies, which interpreter they run on, and how numeric correctness is protected across
 geospatial and numpy upgrades.
-
 ## Requirements
-
 ### Requirement: uv-managed Python dependencies
 
-The `monbo-api` package SHALL declare its dependencies in a `pyproject.toml` managed by uv, with a committed `uv.lock` as the single source of truth. Production dependencies SHALL live in the default dependency list and development-only tools (pytest, pytest-cov, ruff, black, mypy, memory-profiler) SHALL live in a `dev` dependency-group. Every declared dependency SHALL carry an exact version constraint, in the `dev` group as well as the production list, so that a lockfile refresh performed for one upgrade cannot silently re-roll the linting and typing toolchain. The legacy `requirements.txt` SHALL be removed, and the duplicated `fastapi` / `fastapi[standard]` declaration SHALL be collapsed into a single entry.
+The `monbo-api` package, in `apps/api`, SHALL declare its dependencies in a `pyproject.toml` managed by uv, with a committed `uv.lock` as the single source of truth. Production dependencies SHALL live in the default dependency list and development-only tools (pytest, pytest-cov, ruff, black, mypy, memory-profiler) SHALL live in a `dev` dependency-group. Every declared dependency SHALL carry an exact version constraint, in the `dev` group as well as the production list, so that a lockfile refresh performed for one upgrade cannot silently re-roll the linting and typing toolchain. The legacy `requirements.txt` SHALL be removed, and the duplicated `fastapi` / `fastapi[standard]` declaration SHALL be collapsed into a single entry.
 
 #### Scenario: Dependencies resolved from pyproject and lockfile
 
-- **WHEN** a developer sets up `monbo-api` from a clean checkout
+- **WHEN** a developer sets up `apps/api` from a clean checkout
 - **THEN** `uv sync` installs the full environment from `pyproject.toml` resolved against `uv.lock`
-- **AND** no `requirements.txt` file exists in `monbo-api`
+- **AND** no `requirements.txt` file exists in `apps/api`
 
 #### Scenario: Dev tools isolated from production dependencies
 
@@ -36,18 +34,28 @@ The `monbo-api` package SHALL declare its dependencies in a `pyproject.toml` man
 
 ### Requirement: Reproducible frozen installs in Docker
 
-The API Dockerfiles SHALL install dependencies with `uv sync --frozen` so builds fail if `uv.lock` is out of date, and the production Dockerfile SHALL additionally pass `--no-dev` to exclude development dependencies.
+The API Dockerfiles SHALL install dependencies with `uv sync --frozen` so builds fail if `uv.lock` is out of date, and the production Dockerfile SHALL additionally pass `--no-dev` to exclude development dependencies. Both SHALL install prebuilt wheels only (`--no-build`), so a dependency that would need compiling fails the build instead of requiring a toolchain. Neither image SHALL install system GDAL packages or compilers: the geospatial wheels bundle their own GDAL.
 
 #### Scenario: Production image excludes dev dependencies
 
 - **WHEN** the production API image is built
-- **THEN** dependencies are installed via `uv sync --frozen --no-dev`
+- **THEN** dependencies are installed via `uv sync --frozen --no-dev --no-build`
 - **AND** the build fails if `pyproject.toml` and `uv.lock` are inconsistent
 
 #### Scenario: Dev image includes test tooling
 
 - **WHEN** the development API image is built
-- **THEN** dependencies are installed via `uv sync --frozen` including the `dev` group
+- **THEN** dependencies are installed via `uv sync --frozen --no-build` including the `dev` group
+
+#### Scenario: No system GDAL or compilers in the images
+
+- **WHEN** the production or development API image is inspected
+- **THEN** neither `gdal-bin`, `libgdal-dev`, nor a C/C++/Fortran compiler is installed, and rasterio loads the GDAL bundled in its wheel
+
+#### Scenario: A dependency without a wheel
+
+- **WHEN** a dependency in `uv.lock` has no prebuilt wheel for the image's platform
+- **THEN** the image build fails at `uv sync` with an explicit error, rather than compiling it
 
 ### Requirement: Python 3.13 runtime baseline
 
@@ -97,10 +105,11 @@ Changing the fixture, baseline values, or tolerances SHALL require an explicit r
 
 ### Requirement: uv-managed GFW/TMF update script
 
-The `scripts/update-gfw-tmf` tool SHALL also be managed with uv (`pyproject.toml` + `uv.lock`). The `tenacity` upper bound (`<9`) SHALL be removed and `earthengine-api` / `geemap` SHALL be upgraded to their current releases.
+The `tools/update-gfw-tmf` tool SHALL also be managed with uv (`pyproject.toml` + `uv.lock`). The `tenacity` upper bound (`<9`) SHALL be removed and `earthengine-api` / `geemap` SHALL be upgraded to their current releases.
 
 #### Scenario: Script dependencies upgraded and validated
 
 - **WHEN** the GFW/TMF update script is run with the upgraded dependencies
 - **THEN** a bounded run completes successfully and `gdalinfo` confirms valid output
 - **AND** `tenacity` is no longer capped below version 9
+

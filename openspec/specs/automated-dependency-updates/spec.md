@@ -4,9 +4,7 @@
 
 Define how Dependabot keeps every managed ecosystem current, the review that each update must
 pass, and the policy for mutable image and action references.
-
 ## Requirements
-
 ### Requirement: Dependabot keeps dependencies current under review
 
 A Dependabot configuration (`.github/dependabot.yml`) SHALL check for available dependency updates on a weekly schedule. Minor and patch updates SHALL be grouped to keep pull-request volume low, while major updates SHALL be surfaced as separate pull requests so they can be reviewed and validated in isolation. Dependabot SHALL NOT automerge any pull request — every update is merged manually after CI passes and a human review. The number of concurrently open pull requests SHALL be bounded via `open-pull-requests-limit` so the queue stays manageable.
@@ -32,18 +30,23 @@ A Dependabot configuration (`.github/dependabot.yml`) SHALL check for available 
 
 ### Requirement: Dependabot covers all managed ecosystems
 
-The Dependabot configuration SHALL declare an `updates` entry for every dependency surface in the monorepo so none drifts unwatched. Because Dependabot requires one entry per ecosystem and directory, the configuration SHALL cover: both pnpm projects (`npm` ecosystem at the repository root for the pinned orchestrator dependency and in `monbo-front`), both Python `uv` projects (`uv` ecosystem in `monbo-api` and `scripts/update-gfw-tmf`), the Docker base images (`docker` ecosystem for each Dockerfile directory), and the GitHub Actions workflows (`github-actions` ecosystem). Docker coverage SHALL be verified against the non-standard `Dockerfile.dev` and `Dockerfile.prod` names rather than inferred from directory entries alone.
+The Dependabot configuration SHALL declare an `updates` entry for every dependency surface in the monorepo so none drifts unwatched. Because Dependabot requires one entry per ecosystem and directory, the configuration SHALL cover: both pnpm projects (`npm` ecosystem at the repository root for the pinned orchestrator dependency and in `apps/web`), both Python `uv` projects (`uv` ecosystem in `apps/api` and `tools/update-gfw-tmf`), the Docker base images (`docker` ecosystem for each Dockerfile directory, `apps/api` and `apps/web`), the Terraform providers (`terraform` ecosystem in `infra/terraform/platform` and `infra/terraform/apps`), and the GitHub Actions workflows (`github-actions` ecosystem). Docker coverage SHALL be verified against the non-standard `Dockerfile.dev` and `Dockerfile.prod` names rather than inferred from directory entries alone. When a package folder moves, its entries SHALL move with it in the same change.
 
 #### Scenario: All ecosystems are watched
 
 - **WHEN** Dependabot scans the repository
-- **THEN** it manages updates for both pnpm lockfiles (root orchestrator and `monbo-front`), the `uv.lock` files (`monbo-api` and `scripts/update-gfw-tmf`), the verified Dockerfile base images, and GitHub Actions references
+- **THEN** it manages updates for both pnpm lockfiles (root orchestrator and `apps/web`), the `uv.lock` files (`apps/api` and `tools/update-gfw-tmf`), the verified Dockerfile base images, the Terraform provider lock files of both stacks, and GitHub Actions references
 
 #### Scenario: Non-standard Dockerfiles are proven covered
 
 - **WHEN** Docker ecosystem coverage is validated
 - **THEN** an actual Dependabot scan or test pull request demonstrates whether all four `Dockerfile.dev`/`Dockerfile.prod` files are detected
 - **AND** any unsupported filename is assigned an explicit supported update strategy before Docker coverage is declared complete
+
+#### Scenario: No entry points at a missing folder
+
+- **WHEN** the `directory` values of `.github/dependabot.yml` are checked against the repository
+- **THEN** every one exists
 
 ### Requirement: Mutable image and action references have an explicit policy
 
@@ -137,3 +140,4 @@ Every label referenced in `.github/dependabot.yml` SHALL exist in the repository
 - **WHEN** Dependabot opens a pull request for any configured entry
 - **THEN** the pull request carries the entry's labels
 - **AND** Dependabot posts no "labels could not be found" comment
+

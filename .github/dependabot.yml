@@ -27,7 +27,7 @@ version: 2
 updates:
   # --- JavaScript -----------------------------------------------------------
   # The repo root is a minimal pnpm project holding only the orchestrator's
-  # `concurrently` devDependency; the application lives in monbo-front. They
+  # `concurrently` devDependency; the application lives in apps/web. They
   # are separate entries because they are separate lockfiles.
   - package-ecosystem: "npm"
     directory: "/"
@@ -47,7 +47,7 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "npm"
-    directory: "/monbo-front"
+    directory: "/apps/web"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -91,7 +91,7 @@ updates:
   # pyproject.toml and uv.lock must move together -- worth spot-checking on the
   # first few PRs regardless.
   - package-ecosystem: "uv"
-    directory: "/monbo-api"
+    directory: "/apps/api"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -108,7 +108,7 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "uv"
-    directory: "/scripts/update-gfw-tmf"
+    directory: "/tools/update-gfw-tmf"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -140,7 +140,7 @@ updates:
   # that image is outside Dependabot's reach and stays a manual bump -- see the
   # API README for the three places its version has to stay in sync.
   - package-ecosystem: "docker"
-    directory: "/monbo-api"
+    directory: "/apps/api"
     schedule:
       interval: "weekly"
       day: "wednesday"
@@ -160,7 +160,7 @@ updates:
         versions: [">=3.14"]
 
   - package-ecosystem: "docker"
-    directory: "/monbo-front"
+    directory: "/apps/web"
     schedule:
       interval: "weekly"
       day: "wednesday"
@@ -193,4 +193,26 @@ updates:
     labels: ["dependencies", "github-actions"]
     groups:
       minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # --- Terraform --------------------------------------------------------------
+  # Both stacks pin the same azurerm version and must move together (apps reads
+  # platform's state), so one entry covers both directories and groups the bump.
+  # Majors are not grouped: a new azurerm major is a migration, read its upgrade guide.
+  - package-ecosystem: "terraform"
+    directories:
+      - "/infra/terraform/platform"
+      - "/infra/terraform/apps"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    labels: ["dependencies", "infrastructure"]
+    # Dependabot rejects semver-*-days for terraform; one cooldown for every update.
+    cooldown:
+      default-days: 3
+    groups:
+      azurerm-minor-and-patch:
         update-types: ["minor", "patch"]
