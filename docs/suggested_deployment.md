@@ -118,6 +118,10 @@ deploy.
 - **Dependabot merges deploy too.** The usual caveat applies: a deploy interrupts a
   raster upload being processed (see
   [Deploying while the admin is in use](#deploying-while-the-admin-is-in-use)).
+- **Rebuilding the apps stack is manual.** CI can update the existing stack, but its
+  identity cannot create the `AcrPull` role assignment on the registry. If the
+  stack or pull identity is replaced, an operator with role-assignment permission
+  runs `infra/deploy.sh dev` locally to recreate it.
 
 ### How CI authenticates
 

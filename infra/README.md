@@ -15,7 +15,9 @@ There are three parts, each with a different lifecycle:
    `bootstrap.sh`.
 2. **Two Terraform stacks per environment**:
    - `platform`: what must last (the layers, their backups, the registry, the logs);
-   - `apps`: what can be thrown away and rebuilt (the Container Apps).
+   - `apps`: what can be thrown away and rebuilt (the Container Apps). A rebuild
+     needs a manual `infra/deploy.sh dev`: CI cannot recreate the `AcrPull` role
+     assignment for the new pull identity.
 3. **Scripts that use them**:
    - `deploy.sh` deploys;
    - `tools/layers-ops/layers-ops.sh` seeds the share and manages countries.
