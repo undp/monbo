@@ -57,7 +57,9 @@
 - [x] 5.3 Create the GitHub Environment `dev` (deployment branch policy: `dev` only) and its secrets (`gh api` and `gh secret set --env dev`)
   - Done on 2026-10-06 with `gh`: environment `dev` with a custom branch policy (`branch:dev`). Six secrets were piped through stdin, so no values hit the command line or the logs: `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` (from the platform outputs), and `ARM_SUBSCRIPTION_ID`, `TF_VAR_GCP_MAPS_PLATFORM_API_KEY`, `TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET`, `TF_VAR_ADMIN_SESSION_SECRET` (from `dev.secrets.env`). `TF_VAR_FRONT_…` was skipped, being empty; the web app reuses the API key.
   - Done on 2026-10-06. Verified: the deploy identity holds Storage Blob Data Contributor (`monbotfstate`), AcrPush (`monbodevacr`), Reader (subscription), Contributor (`monbo-dev-apps`) and Storage Account Key Operator Service Role (`monbodevdata`).
-- [ ] 5.4 Commit into #54 (option A, chosen by the user); merge #54 **only after 5.2**. The merge deploys `dev`; check the run and the summary
+- [x] 5.4 Commit into #54 (option A, chosen by the user); merge #54 **only after 5.2**. The merge deploys `dev`; check the run and the summary
+  - Done on 2026-10-06. #54 was squash-merged as `316206b`, and the merge started the Deploy run on its own. In 4 minutes it checked the share, built and pushed both images tagged `316206b`, recorded `83fa85d` as the rollback target, and applied `0 to add, 2 to change`. Each new revision was ready with the new image, `/health` reported a writable `/mnt/maps`, and the web app was healthy. The GitHub deployment record for `dev` points at `316206b`.
+  - Follow-up: the run log showed the subscription's *name* (`select_subscription`); the ids are masked secrets. `infra/lib.sh` no longer prints the name when `CI` is set.
 - [ ] 5.5 A docs-only merge doesn't start a deploy run
 - [ ] 5.6 `workflow_dispatch` with the current tag redeploys without building, and verifies
 - [ ] 5.7 Optional: a deploy that fails rolls back and fails the run. This was already proven locally in terraform-infrastructure 10.3
