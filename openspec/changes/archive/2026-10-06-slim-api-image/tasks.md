@@ -29,4 +29,5 @@
 
 - [x] 3.1 `CHANGELOG.md` Unreleased: the API image shrinks (before → after) and no longer installs system GDAL or compilers
 - [x] 3.2 Run `openspec validate slim-api-image`
-- [ ] 3.3 Commit into #54 (the user chose to add it there). After the merge, check that the CD deploy of `dev` verifies and that the image in the registry is smaller
+- [ ] 3.3 Commit into #54 (the user chose to add it there; done in fbec667, CI green). After the merge, check that the CD deploy of `dev` verifies and that the image in the registry is smaller
+  - Still open: after #54 merges, check that the CD deploy of `dev` verifies, and that the image in the registry is smaller.
