@@ -162,7 +162,9 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     (`python -m app.openapi`) without configuring an admin."""
     # A root holding both layouts is ambiguous: refuse to start (LayoutError).
     get_layers_root().is_per_country()
-    app = FastAPI(lifespan=lifespan)
+    # The API is not installed as a package (`tool.uv.package = false`), so
+    # importlib.metadata.version("monbo-api") is unavailable in production.
+    app = FastAPI(title="Monbo API", version="1.5.1", lifespan=lifespan)
     # Admin calls authenticate with a Bearer header, never cookies, so credentials
     # stay off; the admin routes check the Origin header themselves.
     app.add_middleware(

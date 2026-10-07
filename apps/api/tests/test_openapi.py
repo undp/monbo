@@ -1,4 +1,6 @@
 import json
+import tomllib
+from pathlib import Path
 
 from app import openapi
 from app.modules.admin.models import IngestionJob
@@ -6,6 +8,15 @@ from app.modules.admin.models import IngestionJob
 
 def test_export_is_deterministic():
     assert openapi.render() == openapi.render()
+
+
+def test_document_metadata_matches_project_version():
+    project_file = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    project = tomllib.loads(project_file.read_text(encoding="utf-8"))
+    assert json.loads(openapi.render())["info"] == {
+        "title": "Monbo API",
+        "version": project["project"]["version"],
+    }
 
 
 def test_export_includes_the_admin_and_config():

@@ -1749,8 +1749,8 @@
     }
   },
   "info": {
-    "title": "FastAPI",
-    "version": "0.1.0"
+    "title": "Monbo API",
+    "version": "1.5.1"
   },
   "openapi": "3.1.0",
   "paths": {
