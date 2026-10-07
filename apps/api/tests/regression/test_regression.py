@@ -14,7 +14,9 @@ from pathlib import Path
 
 import openpyxl
 import pytest
+from fastapi.testclient import TestClient
 
+from app.main import app
 from app.modules.layers.store import (
     LayersRoot,
     get_layers_root,
@@ -65,6 +67,36 @@ def test_excel_is_still_a_valid_upload_file():
 
     rows = read_farm_rows()
     assert [row["id"] for row in rows] == [f"F{i:02d}" for i in range(1, 11)]
+
+
+def test_parse_response_keeps_the_full_farm_shape():
+    """The summary fixture below only retains type and area from /farms/parse."""
+    row = next(row for row in read_farm_rows() if row["id"] == "F04")
+    response = TestClient(app).post("/farms/parse?locale=es", json=[row])
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "F04",
+            "producer": "Caso 04 · Punto con superficie",
+            "producerId": "",
+            "cropType": "Café",
+            "productionDate": "2025-01-15",
+            "production": 100.0,
+            "productionQuantityUnit": "kg",
+            "country": "EC",
+            "region": "Caquetá",
+            "association": None,
+            "documents": [],
+            "polygon": {
+                "type": "point",
+                "details": {
+                    "center": {"lat": 1.04092, "lng": -74.40326},
+                    "radius": 112.84,
+                },
+                "area": 40000.0,
+            },
+        }
+    ]
 
 
 def test_regression_results_on_fixture_layers():
