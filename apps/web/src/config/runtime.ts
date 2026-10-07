@@ -12,6 +12,8 @@ export const setRuntimeConfig = (config: RuntimeConfig) => {
   runtimeConfig = config;
 };
 
+export const isRuntimeConfigLoaded = () => runtimeConfig !== null;
+
 const loaded = (): RuntimeConfig => {
   if (runtimeConfig === null) {
     // Reading a threshold before the gate has loaded the config is a bug: a silent 0
