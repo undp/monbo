@@ -117,7 +117,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 
 - Backend calls live in `api/*.ts` fetch clients; endpoint URLs come from `config/env.ts`. Each endpoint has its own `NEXT_PUBLIC_*` variable falling back to `${NEXT_PUBLIC_API_URL}/...`.
 - **Runtime env var plumbing:** production images bake `__NEXT_PUBLIC_X__` placeholders that `entrypoint.sh` replaces at container start. A new `NEXT_PUBLIC_*` variable needs, together: the placeholder fallback in `config/env.ts`, a `sed` line in `entrypoint.sh`, an `env` block in `infra/terraform/apps/web.tf`, and the `.env.*.example` files. A missing piece works in `next dev` and breaks in production.
-- Values that must match on both sides (e.g. `OVERLAP_THRESHOLD_PERCENTAGE` in `app/config/env.py` and `config/env.ts`) change together.
+- Product settings the frontend needs (the overlap and deforestation thresholds) are owned by the API and published at `GET /config`; the frontend reads them through `src/config/runtime.ts`. A new such setting goes into the API's `/config`, never into a duplicated `NEXT_PUBLIC_*` variable.
 - **All user-facing text goes through i18next.** Every new key exists in both `locales/es/` and `locales/en/` (`es` is the default locale). Hardcoded UI strings, or a key in only one locale, are findings. The Excel templates in `public/files/` exist per locale too.
 - Flow state belongs in `DataContext`; screen-specific components under `components/page/<module>/`, generic ones under `components/reusable/`; hooks one-per-file under `hooks/`; shared types under `interfaces/`.
 

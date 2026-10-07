@@ -69,13 +69,13 @@ variable "web_size" {
 # --- App settings ----------------------------------------------------------------
 
 variable "overlap_threshold_percentage" {
-  description = "Polygon overlap tolerance, 0-100. The API and the frontend get the same value."
+  description = "Polygon overlap tolerance, 0-100. Set on the API, which publishes it to the frontend (GET /config)."
   type        = number
   default     = 1
 }
 
 variable "deforestation_threshold_percentage" {
-  description = "Deforestation percentage the frontend flags."
+  description = "Deforestation percentage the frontend flags, 0-100. Set on the API, which publishes it (GET /config)."
   type        = number
   default     = 1
 }

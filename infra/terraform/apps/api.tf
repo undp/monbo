@@ -77,9 +77,15 @@ resource "azurerm_container_app" "api" {
         secret_name = "gmaps-signature-secret"
       }
 
+      # Product thresholds: the API owns them and publishes them at GET /config.
       env {
         name  = "OVERLAP_THRESHOLD_PERCENTAGE"
         value = tostring(var.overlap_threshold_percentage)
+      }
+
+      env {
+        name  = "DEFORESTATION_THRESHOLD_PERCENTAGE"
+        value = tostring(var.deforestation_threshold_percentage)
       }
 
       # The image carries no layers: they live on the share.

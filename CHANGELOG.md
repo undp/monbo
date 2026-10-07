@@ -17,6 +17,7 @@
 
 ### Changed
 
+- The overlap and deforestation thresholds are configured only on the API (`OVERLAP_THRESHOLD_PERCENTAGE`, new `DEFORESTATION_THRESHOLD_PERCENTAGE`) and published at the new `GET /config`; the frontend loads them at startup instead of reading its own `NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE` / `NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE`, which are removed
 - In Azure, the API reads its layers from an Azure Files share mounted at `/mnt/maps`, in its own resource group with a delete lock, share soft delete and daily backups. `azure/deploy.sh storage` creates it, and the API app is rendered by `azure/render_api_app.py` instead of `azure/monbo-api-app.yml`
 - The API image runs as uid/gid 10001
 - The module cards move from `/` to `/home` ("Home" and the logo in the header go to the landing page), and the module pages send the user to the landing page when no country is selected

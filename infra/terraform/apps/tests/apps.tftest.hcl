@@ -155,15 +155,32 @@ run "web_matches_the_previous_definition" {
     condition = alltrue([
       for pair in [
         "NEXT_PUBLIC_API_URL=https://monbo-api.happy.eastus2.azurecontainerapps.io",
-        "NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE=2",
-        "NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE=1",
       ] : contains([for e in azurerm_container_app.web.template[0].container[0].env : "${e.name}=${e.value == null ? "" : e.value}"], pair)
     ])
-    error_message = "The web app must get the API URL and the thresholds."
+    error_message = "The web app must get the API URL."
   }
 
   assert {
-    condition     = length(azurerm_container_app.web.template[0].container[0].env) == 7
-    error_message = "The web app must get exactly the seven NEXT_PUBLIC_* variables."
+    condition     = length(azurerm_container_app.web.template[0].container[0].env) == 5
+    error_message = "The web app must get exactly its five NEXT_PUBLIC_* variables (the thresholds come from the API)."
+  }
+
+  assert {
+    condition = !anytrue([
+      for e in azurerm_container_app.web.template[0].container[0].env : strcontains(e.name, "THRESHOLD")
+    ])
+    error_message = "The thresholds must not be frontend variables."
+  }
+}
+
+run "api_owns_the_thresholds" {
+  command = apply
+
+  assert {
+    condition = alltrue([
+      for pair in ["OVERLAP_THRESHOLD_PERCENTAGE=1", "DEFORESTATION_THRESHOLD_PERCENTAGE=2"] :
+      contains([for e in azurerm_container_app.api.template[0].container[0].env : "${e.name}=${e.value == null ? "" : e.value}"], pair)
+    ])
+    error_message = "The API must get both thresholds, which it publishes at GET /config."
   }
 }

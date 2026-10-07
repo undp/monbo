@@ -1,12 +1,12 @@
 import {
-  DEFORESTATION_THRESHOLD_PERCENTAGE,
-  OVERLAP_THRESHOLD_PERCENTAGE,
-} from "@/config/env";
+  getDeforestationThreshold,
+  getOverlapThreshold,
+} from "@/config/runtime";
 
 export const isOverlapAboveThreshold = (overlapValue: number) => {
-  return 100 * overlapValue > OVERLAP_THRESHOLD_PERCENTAGE;
+  return 100 * overlapValue > getOverlapThreshold();
 };
 
 export const isDeforestationAboveThreshold = (deforestationValue: number) => {
-  return 100 * deforestationValue > DEFORESTATION_THRESHOLD_PERCENTAGE;
+  return 100 * deforestationValue > getDeforestationThreshold();
 };

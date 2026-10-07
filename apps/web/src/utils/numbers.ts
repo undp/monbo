@@ -1,7 +1,7 @@
 import {
-  OVERLAP_THRESHOLD_PERCENTAGE,
-  DEFORESTATION_THRESHOLD_PERCENTAGE,
-} from "@/config/env";
+  getDeforestationThreshold,
+  getOverlapThreshold,
+} from "@/config/runtime";
 import {
   isDeforestationAboveThreshold,
   isOverlapAboveThreshold,
@@ -31,13 +31,12 @@ const getDecimalPlacesForThreshold = (threshold: number): number => {
   return thresholdPlaces;
 };
 
-const deforestationDecimalPlaces = getDecimalPlacesForThreshold(
-  DEFORESTATION_THRESHOLD_PERCENTAGE
-);
+// Computed per call: the thresholds come from GET /config at startup.
+const deforestationDecimalPlaces = () =>
+  getDecimalPlacesForThreshold(getDeforestationThreshold());
 
-const overlapDecimalPlaces = getDecimalPlacesForThreshold(
-  OVERLAP_THRESHOLD_PERCENTAGE
-);
+const overlapDecimalPlaces = () =>
+  getDecimalPlacesForThreshold(getOverlapThreshold());
 
 /**
  * Formats a number to a string with a specified number of decimal places.
@@ -104,7 +103,7 @@ const formattedDefaultDisplayThreshold = (language: string): string => {
 /**
  * Formats an overlap value as a percentage string.
  *
- * If an overlap threshold is defined (OVERLAP_THRESHOLD_PERCENTAGE > 0),
+ * If an overlap threshold is defined (getOverlapThreshold() > 0),
  * values below the threshold are displayed as "< X%" where X is the threshold.
  * Otherwise, values below DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
  *
@@ -121,7 +120,7 @@ export const formatOverlapPercentage = (
   if (value === 0) return "0%";
 
   // No threshold defined by user, so we use the default threshold for displaying deforestation
-  if (OVERLAP_THRESHOLD_PERCENTAGE === 0) {
+  if (getOverlapThreshold() === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
     return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
@@ -129,15 +128,15 @@ export const formatOverlapPercentage = (
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isOverlapAboveThreshold(value))
-    return `< ${OVERLAP_THRESHOLD_PERCENTAGE}%`;
+    return `< ${getOverlapThreshold()}%`;
 
-  return formatPercentage(value, overlapDecimalPlaces, language);
+  return formatPercentage(value, overlapDecimalPlaces(), language);
 };
 
 /**
  * Formats a deforestation value as a percentage string.
  *
- * If a deforestation threshold is defined (DEFORESTATION_THRESHOLD_PERCENTAGE > 0),
+ * If a deforestation threshold is defined (getDeforestationThreshold() > 0),
  * values below the threshold are displayed as "< X%" where X is the threshold.
  * Otherwise, values below DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
  *
@@ -154,7 +153,7 @@ export const formatDeforestationPercentage = (
   if (value === 0) return "0%";
 
   // No threshold defined by user, so we use the default threshold for displaying deforestation
-  if (DEFORESTATION_THRESHOLD_PERCENTAGE === 0) {
+  if (getDeforestationThreshold() === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
     return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
@@ -162,7 +161,7 @@ export const formatDeforestationPercentage = (
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isDeforestationAboveThreshold(value))
-    return `< ${DEFORESTATION_THRESHOLD_PERCENTAGE}%`;
+    return `< ${getDeforestationThreshold()}%`;
 
-  return formatPercentage(value, deforestationDecimalPlaces, language);
+  return formatPercentage(value, deforestationDecimalPlaces(), language);
 };

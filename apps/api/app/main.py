@@ -14,6 +14,7 @@ from app.config import env
 from app.config.logger import configure_logging, get_logger
 from app.modules import (
     admin_router,
+    config_router,
     deforestation_analysis_router,
     farms_router,
     maps_router,
@@ -172,6 +173,7 @@ def create_app() -> FastAPI:
     app.include_router(polygons_validation_router)
     app.include_router(deforestation_analysis_router)
     app.include_router(maps_router)
+    app.include_router(config_router)
     app.include_router(farms_router)
     # Without the session secret and a per-country root the admin routes don't
     # exist at all (404, and they are left out of the OpenAPI docs).

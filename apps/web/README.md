@@ -256,6 +256,7 @@ pnpm docker:build   # Build the docker image
 
 ```sh
 NEXT_PUBLIC_GET_MAPS_URL=                       # URL to get available maps for deforestation analysis
+NEXT_PUBLIC_GET_CONFIG_URL=                     # URL of the API's product settings (GET /config); defaults to NEXT_PUBLIC_API_URL/config
 
 NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL=      # URL to parse excel file data into valid Farm objects for polygon validation module
 NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons validation and find inconsistencies
@@ -264,6 +265,8 @@ NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation a
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
 NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
 ```
+
+The overlap and deforestation thresholds are not frontend variables: the API owns them (`OVERLAP_THRESHOLD_PERCENTAGE`, `DEFORESTATION_THRESHOLD_PERCENTAGE`) and publishes them at `GET /config`. The app loads them once at startup (`src/config/runtime.ts`) and renders the pages only after they arrive; if they can't be loaded it shows an error with a retry button.
 
 The endpoints of each module are defined as environment variables because this project is modularized and each module has its own backend service. You could use your own backend services by changing the environment variables and following the same structure for the requests and responses.
 

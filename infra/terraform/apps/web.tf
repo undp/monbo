@@ -1,7 +1,8 @@
 # The frontend. Its image carries __NEXT_PUBLIC_*__ placeholders that entrypoint.sh
 # replaces at container start with these env vars, so the same image runs in any
 # environment. A new NEXT_PUBLIC_* variable goes here, in config/env.ts, entrypoint.sh
-# and the .env.*.example files.
+# and the .env.*.example files. Product settings the API can own (the thresholds) don't:
+# the frontend reads them from the API's GET /config.
 
 resource "azurerm_container_app" "web" {
   name                         = local.web_name
@@ -56,16 +57,6 @@ resource "azurerm_container_app" "web" {
       env {
         name        = "NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY"
         secret_name = "gmaps-browser-key"
-      }
-
-      env {
-        name  = "NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE"
-        value = tostring(var.overlap_threshold_percentage)
-      }
-
-      env {
-        name  = "NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE"
-        value = tostring(var.deforestation_threshold_percentage)
       }
 
       env {
