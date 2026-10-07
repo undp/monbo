@@ -37,4 +37,5 @@
 ## 4. Wrap-up
 
 - [x] 4.1 Run `openspec validate api-config-endpoint`
-- [ ] 4.2 Commit on `BlancaMunizaga/api-config-and-contracts`; one PR into `dev` together with `api-contract-codegen` (the user's choice). After the merge, check that CD deployed both apps and that `/config` returns the `dev.tfvars` values
+- [x] 4.2 Commit on `BlancaMunizaga/api-config-and-contracts`; one PR into `dev` together with `api-contract-codegen` (the user's choice). After the merge, check that CD deployed both apps and that `/config` returns the `dev.tfvars` values
+  - Done: merged as #62 (06fa045). The deploy run succeeded, and the `dev` API's `GET /config` returns `{"overlapThresholdPercentage": 1.0, "deforestationThresholdPercentage": 2.0}`, the `dev.tfvars` values. Its OpenAPI reports version 1.5.1 with 17 paths

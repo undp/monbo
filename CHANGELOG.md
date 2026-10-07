@@ -37,6 +37,11 @@
 - Keep retained farms and report selections aligned with the analysis country, and ignore analysis responses from an earlier country or layer selection
 - Accept only `https:` and `mailto:` links for the landing page contact button
 
+### Security
+
+- Read uploaded Excel files with SheetJS 0.20.3, installed from SheetJS's CDN, instead of `xlsx` 0.18.5 from npm, which is vulnerable to prototype pollution and ReDoS and has no fixed version on npm. Date cells no longer carry a spurious 45-second offset
+- Update vulnerable transitive dependencies (`brace-expansion`, `tmp`, `yaml`, `@babel/runtime`, `mdast-util-to-hast`, `source-map-js`, `@humanfs/node`), and override `uuid` (under `exceljs`) and `shell-quote` (under the root's `concurrently`), whose parents pin vulnerable versions
+
 ### Other
 
 - Remove Next.js build output that was committed by mistake under `monbo-front/monbo-front/.next/`
