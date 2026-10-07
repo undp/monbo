@@ -408,7 +408,15 @@ class GoogleMapsAPIHelper:
             f"&key={GCP_MAPS_PLATFORM_API_KEY}"
         )
         url = GoogleMapsAPIHelper.add_signature(url)
-        logger.debug(f"Fetching Google Maps image from URL: {url}")
+        # Not the URL: it carries the API key and the request signature.
+        logger.debug(
+            "Fetching Google Maps image: center=%s,%s zoom=%s size=%sx%s",
+            center_lat,
+            center_lon,
+            zoom_level,
+            output_size[0],
+            output_size[1],
+        )
 
         # Make a request to fetch the image
         async with httpx.AsyncClient() as client:
@@ -417,6 +425,15 @@ class GoogleMapsAPIHelper:
                 response.raise_for_status()
                 img = Image.open(BytesIO(response.content))
                 return img
+            except httpx.HTTPStatusError as e:
+                # Its message holds the request URL, with the API key and signature:
+                # keep only the status, and don't chain it into the traceback.
+                error_msg = (
+                    f"Google Maps returned HTTP {e.response.status_code} "
+                    "for a satellite image"
+                )
+                logger.error(error_msg)
+                raise GoogleMapsAPIError(error_msg) from None
             except httpx.RequestError as e:
                 # Handle network and API errors
                 error_msg = f"Failed to fetch Google Maps image: {str(e)}"

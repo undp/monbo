@@ -58,6 +58,22 @@ broken detection would let untested code merge.
 When a file outside `apps/` starts affecting an app (a shared package, a root
 lint config an app reads), add it to the classification in `ci.yml` in the same PR.
 
+### Security scanning
+
+Besides `CI`, GitHub scans the repository on its own:
+
+- **CodeQL** (code scanning, default setup) analyses the Python, JavaScript/TypeScript
+  and workflow code. It runs on pushes and pull requests into the protected
+  branches, and weekly. Its `CodeQL` check is **not** in the rulesets: a pull request
+  can merge while it runs, and its findings show up in the Security tab and on the
+  pull request. To require it, add its name to both rulesets' required checks.
+- **Secret scanning with push protection** rejects a push that contains a recognised
+  credential (an Azure key, a GCP API key…). Don't bypass it unless the value is a
+  false positive or a test value, and say so in the bypass reason. A real secret
+  that reaches the repository is rotated where it is used before its alert is closed.
+- **Dependabot alerts** follow the policy in the root README: each one is fixed, or
+  dismissed with a reason and the evidence.
+
 ## The policy
 
 | Setting | Value | Why |

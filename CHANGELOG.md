@@ -41,6 +41,8 @@
 
 - Read uploaded Excel files with SheetJS 0.20.3, installed from SheetJS's CDN, instead of `xlsx` 0.18.5 from npm, which is vulnerable to prototype pollution and ReDoS and has no fixed version on npm. Date cells no longer carry a spurious 45-second offset
 - Update vulnerable transitive dependencies (`brace-expansion`, `tmp`, `yaml`, `@babel/runtime`, `mdast-util-to-hast`, `source-map-js`, `@humanfs/node`), and override `uuid` (under `exceljs`) and `shell-quote` (under the root's `concurrently`), whose parents pin vulnerable versions
+- Stop logging the Google Maps API key and request signature: the satellite image's debug line logged the full request URL, and an HTTP error from Google logged its message, which contains that URL. Both now log only the request's parameters or the status code
+- Turn on secret scanning with push protection and CodeQL code scanning for the repository (`docs/branch_protection.md`)
 
 ### Other
 
