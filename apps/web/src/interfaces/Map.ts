@@ -1,13 +1,6 @@
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
-export interface PointDetails {
-  center: Coordinates;
-  radius: number;
-}
+import type { components } from "@/api/schema";
 
-export interface PolygonDetails {
-  center: Coordinates;
-  path: { lat: number; lng: number }[];
-}
+// Generated from the API's OpenAPI (`pnpm contracts`); don't edit the shapes here.
+export type Coordinates = components["schemas"]["Coordinates"];
+export type PointDetails = components["schemas"]["PointDetails"];
+export type PolygonDetails = components["schemas"]["PolygonDetails"];

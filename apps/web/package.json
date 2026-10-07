@@ -13,7 +13,8 @@
     "postbuild": "cp -r public .next/standalone/ && mkdir -p .next/standalone/.next/static && cp -r .next/static .next/standalone/.next/",
     "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint .",
-    "docker:build": "docker build -t monbo-front ."
+    "docker:build": "docker build -t monbo-front .",
+    "generate:api-types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -54,6 +55,7 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.26.0",
     "eslint-config-next": "^16.3.7",
+    "openapi-typescript": "7.13.0",
     "typescript": "^6.0.3"
   }
 }

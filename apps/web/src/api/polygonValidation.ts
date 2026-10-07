@@ -1,11 +1,12 @@
 import { POLYGON_VALIDATION_URL } from "@/config/env";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
+import type { components } from "./schema";
 
 export const validatePolygons = async (
   data: FarmData[]
 ): Promise<ValidateFarmsResponse> => {
-  const body = data.map(({ id, polygon }) => ({
+  const body: components["schemas"]["FarmPolygonDetailData"][] = data.map(({ id, polygon }) => ({
     id,
     type: polygon.type,
     details: polygon.details,

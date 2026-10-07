@@ -1,28 +1,6 @@
-import { PointDetails, PolygonDetails } from "./Map";
+import type { components } from "@/api/schema";
 
-export interface PointTypePolygon {
-  type: "point";
-  details: PointDetails;
-  area: number;
-}
-
-export interface PolygonTypePolygon {
-  type: "polygon";
-  details: PolygonDetails | null;
-  area: number | null;
-}
-
-export interface FarmData {
-  id: string;
-  producer: string;
-  producerId: string;
-  cropType: string;
-  production: number;
-  productionDate: string;
-  productionQuantityUnit: string;
-  country: string;
-  region?: string;
-  association?: string;
-  documents: { name: string; url: string }[];
-  polygon: PointTypePolygon | PolygonTypePolygon;
-}
+// Generated from the API's OpenAPI (`pnpm contracts`); don't edit the shapes here.
+export type PointTypePolygon = components["schemas"]["PointSummary"];
+export type PolygonTypePolygon = components["schemas"]["PolygonShapeSummary"];
+export type FarmData = components["schemas"]["FarmData"];

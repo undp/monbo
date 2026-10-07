@@ -59,6 +59,13 @@ The browser calls the API directly: the frontend container only serves pages and
 static files, it doesn't proxy API calls. That is why the API's URL is a
 `NEXT_PUBLIC_` variable.
 
+The API owns the contract between the two: its OpenAPI document, committed as
+`apps/api/openapi.json`. The frontend's types for every request and response are
+generated from it into `apps/web/src/api/schema.d.ts` (`pnpm contracts` regenerates
+both), and CI fails when either file is out of date. Product settings both sides need,
+such as the overlap and deforestation thresholds, are set on the API too, and the
+frontend reads them at startup from `GET /config`.
+
 ## Azure resources
 
 Everything is declared in Terraform under `infra/terraform/`, in two stacks per

@@ -1,31 +1,7 @@
-export interface MapData {
-  id: number;
-  name: string;
-  alias: string;
-  baseline: number;
-  comparedAgainst: number;
-  coverage: string;
-  source: string;
-  resolution: string;
-  contentDate: string;
-  updateFrequency: string;
-  publishDate: string;
-  references: string[];
-  considerations: string;
-  availableCountriesCodes: string[];
-  // The layer's country (ids are numbered within each country); null in the
-  // legacy flat layout, whose ids are global
-  country: string | null;
-  version: number;
-  pixelSize: number;
-}
+import type { components } from "@/api/schema";
 
-export interface DeforestationAnalysisMapResults {
-  mapId: number;
-  // The layer version the results were computed against.
-  version: number;
-  farmResults: {
-    farmId: string;
-    value: number;
-  }[];
-}
+// Generated from the API's OpenAPI (`pnpm contracts`); don't edit the shapes here.
+// The web's names differ from the API's: a layer is `BaseMapData` there, and a
+// layer's results are `MapData`.
+export type MapData = components["schemas"]["BaseMapData"];
+export type DeforestationAnalysisMapResults = components["schemas"]["MapData"];

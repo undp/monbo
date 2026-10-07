@@ -9,6 +9,7 @@ from app.modules.polygons_validation.helpers import (
     detect_overlaps,
     get_geometry_paths,
 )
+from app.modules.polygons_validation.models import PolygonInconsistenciesResponse
 from app.utils.farms import parse_farm_coordinates_string
 from app.utils.image_generation.GeoHelper import GeoHelper
 from app.utils.polygons import (
@@ -246,3 +247,31 @@ def test_get_polygon_coordinates():
     ]
 
     assert get_geometry_paths(polygon) == expected_coordinates
+
+
+def test_each_inconsistency_kind_serializes_unchanged():
+    """The response's inconsistencies are discriminated by `type`; the JSON stays
+    what the helpers build."""
+    inconsistencies = [
+        {
+            "type": "overlap",
+            "farmIds": ["a", "b"],
+            "data": {
+                "area": 1.5,
+                "center": {"lat": 1.0, "lng": 2.0},
+                "paths": [[{"lat": 1.0, "lng": 2.0}]],
+                "percentage": 0.9,
+                "criticality": "HIGH",
+            },
+        },
+        {
+            "type": "invalid_geometry",
+            "farmIds": ["c"],
+            "data": {"reason": "Self-intersection"},
+        },
+        {"type": "empty_polygon", "farmIds": ["d"], "data": None},
+    ]
+    response = PolygonInconsistenciesResponse.model_validate(
+        {"farmResults": [], "inconsistencies": inconsistencies}
+    )
+    assert response.model_dump()["inconsistencies"] == inconsistencies

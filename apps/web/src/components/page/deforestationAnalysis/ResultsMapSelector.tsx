@@ -20,7 +20,7 @@ export const ResultsMapSelector: React.FC = () => {
     <SearchParamSelector
       searchParamKey="selectedMap"
       options={selectedMaps.map((map) => ({
-        label: map.alias,
+        label: map.alias ?? "",
         value: map.id.toString(),
       }))}
       defaultValue={selectedMaps[0]?.id.toString()}

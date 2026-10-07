@@ -3,14 +3,15 @@ import { saveAs } from "file-saver";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useTranslation } from "react-i18next";
 
-export interface GeoJsonFeature {
+// A type, not an interface: the image endpoint's body takes it as a plain object.
+export type GeoJsonFeature = {
   type: "Feature";
   properties: Record<string, unknown>;
   geometry: {
     type: "Point" | "Polygon";
     coordinates: number[] | number[][][] | number[][];
   };
-}
+};
 
 export interface GeoJsonData {
   type: "FeatureCollection";

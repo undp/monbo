@@ -1,9 +1,12 @@
-"""Admin layer contracts. Mirrored in `apps/web/src/interfaces/AdminLayer.ts`.
+"""Admin contracts: layers and ingestion jobs. The frontend's types are generated from
+the API's OpenAPI (`pnpm contracts`), so these models are the single source.
 
 Field names follow the layers index (`<country>/index.json` under MAPS_ROOT), which
 is what these endpoints read and write. A layer belongs to the country of the admin
 session that created it, so there is no countries field.
 """
+
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -82,6 +85,9 @@ class EnabledInput(_Strict):
 class StoredAttributes(BaseModel):
     """Attributes as found on disk; lenient, since older files may lack fields."""
 
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
     name: str | None = None
     alias: str | None = None
     coverage: str | None = None
@@ -104,3 +110,62 @@ class AdminLayer(BaseModel):
     has_raster: bool
     attributes: dict[str, StoredAttributes | None]
     considerations: dict[str, str | None]
+
+
+# --- Ingestion jobs (the JSON stored under the layers root's .jobs/) ---------------
+
+
+class JobIssue(BaseModel):
+    """An error or warning with a stable code; the UI translates it by code."""
+
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+    code: str
+    message: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class RasterReport(BaseModel):
+    crs: str
+    width: int
+    height: int
+    bounds: list[float]
+    dtype: str
+    nodata: float | None
+    values: list[float]
+    approxResolutionM: float | None
+
+
+class IngestionJob(BaseModel):
+    """An ingestion job as `GET /admin/jobs/{jobId}` returns it. Fields that jobs
+    saved by earlier releases may lack default to null."""
+
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+    jobId: str
+    country: str
+    layerId: int
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    # While running: "validating", then "converting" (conversion, verification and
+    # activation). `progress` is the fraction scanned while validating.
+    phase: Literal["validating", "converting"] | None = None
+    progress: float | None = None
+    createdAt: str
+    updatedAt: str
+    requestedNodata: float | None = None
+    error: JobIssue | None = None
+    warnings: list[JobIssue] = Field(default_factory=list)
+    report: RasterReport | None = None
+    rasterFilename: str | None = None
+    version: int | None = None
+
+
+class JobAccepted(BaseModel):
+    jobId: str
+
+
+class JobCancelled(BaseModel):
+    jobId: str
+    cancelled: Literal[True]

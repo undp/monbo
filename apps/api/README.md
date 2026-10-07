@@ -286,13 +286,31 @@ or directly with:
 uv run pytest
 ```
 
+### Changing a contract
+
+The API's OpenAPI document is the contract with the frontend, which generates its types
+from it. It is committed as `openapi.json`. To change a request or response:
+
+1. Edit the Pydantic model (every JSON route declares a `response_model`).
+2. Run `pnpm contracts` at the repository root. It rewrites `openapi.json`
+   (`uv run python -m app.openapi`) and the frontend's `src/api/schema.d.ts`.
+3. Fix what the frontend's `tsc --noEmit` reports, and commit both generated files with
+   the change.
+
+Response models describe what the API actually returns: a field the response always
+includes is required, even when it has a default (set
+`json_schema_serialization_defaults_required` on the model; `tests/test_openapi.py`
+fails otherwise), and a field whose shape depends on a `type` is a discriminated union.
+
 ## Continuous Integration
 
 Pull requests into `dev` and `main` marked "ready for review" are validated by the
 `Test and static checks` job of the `CI` GitHub Actions workflow
 (`.github/workflows/ci.yml`), which runs `uv sync --frozen`, `uv run pytest`, and the
-`ruff`/`black`/`mypy` checks. It runs when the PR changes `apps/api/` (or the workflow
-itself); otherwise it is skipped, which counts as passed. Draft PRs are skipped.
+`ruff`/`black`/`mypy` checks, then `uv run python -m app.openapi --check`, which fails
+when `openapi.json` doesn't match the models. It runs when the PR changes `apps/api/`
+(or the workflow itself); otherwise it is skipped, which counts as passed. Draft PRs are
+skipped.
 
 These checks are **blocking**: every step runs without `continue-on-error`, so the job
 fails (and the pull request is prevented from merging, once branch protection requires

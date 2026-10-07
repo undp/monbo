@@ -8,13 +8,13 @@ This is the frontend application for Monbo, built with [Next.js 15](https://next
 apps/web/
 ├── public/          # Static files
 ├── src/
-│   ├── api/        # API client and services
+│   ├── api/        # API client and services; schema.d.ts is generated from the API
 │   ├── app/        # Next.js app router pages
 │   ├── components/ # Reusable React components
 │   ├── config/     # Configuration files
 │   ├── context/    # React context providers
 │   ├── hooks/      # Custom React hooks
-│   ├── interfaces/ # TypeScript interfaces
+│   ├── interfaces/ # Aliases of the generated API types, plus frontend-only types
 │   ├── locales/    # i18n translation files
 │   └── utils/      # Utility functions
 ```
@@ -179,6 +179,19 @@ If you want to add a new language, please follow the instructions in the [New La
 - Hooks use camelCase with 'use' prefix (e.g., `useMapData.ts`)
 - CSS-in-JS follows BEM-like naming conventions
 
+### API types
+
+The types of every API request and response are generated from the API's OpenAPI
+(`apps/api/openapi.json`) into `src/api/schema.d.ts` with `openapi-typescript`. Don't
+edit that file, and don't write API shapes by hand: `src/interfaces/` re-exports the
+generated types under the names the code uses (`FarmData`, `MapData`, …) and only
+declares types that exist just in the frontend.
+
+When the API changes a model, run `pnpm contracts` at the repository root (it
+regenerates both files), fix what `tsc --noEmit` reports, and commit both generated
+files. `pnpm generate:api-types` regenerates only the types, from the committed
+`openapi.json`.
+
 ### Testing
 
 There are no tests for this project yet.
@@ -188,9 +201,11 @@ There are no tests for this project yet.
 Pull requests into `dev` and `main` marked "ready for review" are validated by the
 `Type-check, lint, build` job of the `CI` GitHub Actions workflow
 (`.github/workflows/ci.yml`), which runs `pnpm install --frozen-lockfile`,
-`tsc --noEmit`, `pnpm run lint`, and `pnpm run build` on Node 24, caching the pnpm store
-and `.next/cache`. It runs when the PR changes `apps/web/` (or the workflow itself);
-otherwise it is skipped, which counts as passed. Draft PRs are skipped.
+a check that `src/api/schema.d.ts` matches `apps/api/openapi.json`, `tsc --noEmit`,
+`pnpm run lint`, and `pnpm run build` on Node 24, caching the pnpm store and
+`.next/cache`. It runs when the PR changes `apps/web/` or the API contract
+(`apps/api/openapi.json`), or the workflow itself; otherwise it is skipped, which counts
+as passed. Draft PRs are skipped.
 
 ### Performance Optimization
 
@@ -250,6 +265,7 @@ pnpm build          # Build the production application
 pnpm start          # Start the production server
 pnpm lint           # Run ESLint
 pnpm docker:build   # Build the docker image
+pnpm generate:api-types  # Regenerate src/api/schema.d.ts from apps/api/openapi.json
 ```
 
 ### Environment Variables

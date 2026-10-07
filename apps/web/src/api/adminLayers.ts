@@ -5,6 +5,9 @@ import {
   IngestionJob,
   LayerInput,
 } from "@/interfaces/AdminLayer";
+import type { components } from "./schema";
+
+type Schemas = components["schemas"];
 
 export class AdminApiError extends Error {
   constructor(
@@ -50,10 +53,13 @@ const request = async <T>(
 };
 
 export const createAdminSession = (passkey: string) =>
-  request<AdminSession>("/session", { method: "POST", body: { passkey } });
+  request<AdminSession>("/session", {
+    method: "POST",
+    body: { passkey } satisfies Schemas["LoginBody"],
+  });
 
 export const getAdminSession = (token: string) =>
-  request<{ expiresAt: string; country: string }>("/session", { token });
+  request<Schemas["SessionStatus"]>("/session", { token });
 
 export const listAdminLayers = (token: string) =>
   request<AdminLayer[]>("/layers", { token });
@@ -72,7 +78,7 @@ export const setAdminLayerEnabled = (
   request<AdminLayer>(`/layers/${id}`, {
     token,
     method: "PATCH",
-    body: { enabled },
+    body: { enabled } satisfies Schemas["EnabledInput"],
   });
 
 export const getIngestionJob = (token: string, jobId: string) =>
@@ -87,7 +93,10 @@ export const cancelIngestionJob = async (
   jobId: string
 ): Promise<"cancelled" | "tooLate"> => {
   try {
-    await request(`/jobs/${jobId}`, { token, method: "DELETE" });
+    await request<Schemas["JobCancelled"]>(`/jobs/${jobId}`, {
+      token,
+      method: "DELETE",
+    });
     return "cancelled";
   } catch (e) {
     if (e instanceof AdminApiError && e.status === 409) return "tooLate";
@@ -116,7 +125,7 @@ export const uploadLayerRaster = (
     // Aborting rejects with an AbortError (see isAbortError)
     signal?: AbortSignal;
   } = {}
-): Promise<{ jobId: string }> =>
+): Promise<Schemas["JobAccepted"]> =>
   new Promise((resolve, reject) => {
     const query = nodata !== null && nodata !== undefined ? `?nodata=${nodata}` : "";
     const xhr = new XMLHttpRequest();
@@ -127,7 +136,7 @@ export const uploadLayerRaster = (
       if (event.lengthComputable) onProgress?.(event.loaded / event.total);
     };
     xhr.onload = () => {
-      let body: { jobId?: string; detail?: unknown } = {};
+      let body: Partial<Schemas["JobAccepted"]> & { detail?: unknown } = {};
       try {
         body = JSON.parse(xhr.responseText);
       } catch {

@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.polygons import Coordinates
 
@@ -17,10 +17,29 @@ class InvalidGeometryInconsistencyData(BaseModel):
     reason: str
 
 
-class PolygonInconsistency(BaseModel):
-    type: str
+class OverlapInconsistency(BaseModel):
+    type: Literal["overlap"]
     farmIds: list[str]
-    data: OverlapData | InvalidGeometryInconsistencyData | None
+    data: OverlapData
+
+
+class InvalidGeometryInconsistency(BaseModel):
+    type: Literal["invalid_geometry"]
+    farmIds: list[str]
+    data: InvalidGeometryInconsistencyData
+
+
+class EmptyPolygonInconsistency(BaseModel):
+    type: Literal["empty_polygon"]
+    farmIds: list[str]
+    data: None
+
+
+# Discriminated on `type`, so the generated frontend type narrows `data` by kind.
+PolygonInconsistency = Annotated[
+    OverlapInconsistency | InvalidGeometryInconsistency | EmptyPolygonInconsistency,
+    Field(discriminator="type"),
+]
 
 
 class PolygonError(BaseModel):

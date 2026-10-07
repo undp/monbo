@@ -64,6 +64,9 @@ jobs:
           else
             while IFS= read -r file; do
               case "$file" in
+                # The web's generated types come from it: type-check them against
+                # a changed contract. Before apps/api/*, which would match first.
+                apps/api/openapi.json) api=true; web=true ;;
                 apps/api/*) api=true ;;
                 # The API regression suite validates the web upload templates.
                 apps/web/public/files/*) api=true; web=true ;;
@@ -126,6 +129,9 @@ jobs:
       - name: Type-check (mypy)
         run: uv run mypy app
 
+      - name: Contract up to date (openapi.json)
+        run: uv run python -m app.openapi --check
+
   web:
     name: Type-check, lint, build
     needs: changes
@@ -166,6 +172,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # schema.d.ts must match apps/api/openapi.json (`pnpm contracts` regenerates both)
+      - name: Generated API types up to date
+        run: |
+          pnpm run generate:api-types
+          git diff --exit-code src/api/schema.d.ts \
+            || { echo "::error::src/api/schema.d.ts is out of date: run \`pnpm contracts\` at the repository root and commit the result"; exit 1; }
 
       - name: Type-check
         run: pnpm exec tsc --noEmit

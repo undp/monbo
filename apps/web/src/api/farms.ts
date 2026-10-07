@@ -1,6 +1,8 @@
 import { FARMS_PARSER_URL } from "@/config/env";
 import { FarmData } from "@/interfaces/Farm";
 
+// The spreadsheet's rows as read: the API validates them against InputFarmData and
+// reports each problem, so they aren't typed as InputFarmData here.
 export const generateFarmsData = async (
   data: Record<string, unknown>[],
   locale?: string

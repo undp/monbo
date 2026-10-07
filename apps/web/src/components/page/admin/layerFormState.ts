@@ -5,6 +5,7 @@ import {
   LayerAttributes,
   LayerInput,
   OPTIONAL_ATTRIBUTE_KEYS,
+  StoredAttributes,
 } from "@/interfaces/AdminLayer";
 
 // The form's values: what the user types, converted to LayerInput on save.
@@ -33,7 +34,7 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
   const attributes = {} as LayerFormValues["attributes"];
   const considerations = {} as LayerFormValues["considerations"];
   for (const language of ADMIN_LANGUAGES) {
-    const stored = layer?.attributes[language] ?? {};
+    const stored: Partial<StoredAttributes> = layer?.attributes[language] ?? {};
     attributes[language] = emptyAttributes();
     for (const key of Object.keys(attributes[language]) as (keyof LayerAttributes)[]) {
       attributes[language][key] = stored[key] ?? "";
@@ -54,7 +55,7 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
 
 export const toLayerInput = (values: LayerFormValues): LayerInput => {
   const attributes = {} as LayerInput["attributes"];
-  const considerations = {} as LayerInput["considerations"];
+  const considerations = {} as NonNullable<LayerInput["considerations"]>;
   for (const language of ADMIN_LANGUAGES) {
     const fields = values.attributes[language];
     attributes[language] = {

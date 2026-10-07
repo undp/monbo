@@ -1,5 +1,5 @@
 import json
-from typing import Literal, cast
+from typing import Literal
 
 from fastapi import HTTPException
 from shapely import wkt
@@ -10,7 +10,8 @@ from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.farms import (
     FarmData,
     FarmPolygonDetailData,
-    PolygonSummary,
+    PointSummary,
+    PolygonShapeSummary,
     PreProcessedFarmData,
 )
 from app.models.polygons import Coordinates, PointDetails, PolygonDetails
@@ -210,20 +211,7 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
         HTTPException: If there is an error parsing the farm coordinates or generating
                       the polygon. Returns a 400 status code with error details.
     """
-    base_information = FarmData(
-        id=farm.id,
-        producer=farm.producerName,
-        producerId="",
-        cropType=farm.cropType,
-        productionDate=farm.productionDate,
-        production=farm.productionQuantity,
-        productionQuantityUnit=farm.productionQuantityUnit,
-        country=farm.country,
-        region=farm.region,
-        association=farm.association,
-        documents=farm.documents,
-        polygon=None,
-    )
+    summary: PointSummary | PolygonShapeSummary
     try:
         poly_type = farm.geometryType.lower()  # Use the geometryType attribute
         details: PolygonDetails | PointDetails | None = None
@@ -251,12 +239,12 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
                 radius=radius,
             )
 
-        base_information.polygon = PolygonSummary(
-            type=cast(Literal["polygon", "point"], poly_type),
-            details=details,
-            area=area,
-        )
-        return base_information
+        if poly_type == "point":
+            assert isinstance(details, PointDetails) and area is not None
+            summary = PointSummary(type="point", details=details, area=area)
+        else:
+            assert details is None or isinstance(details, PolygonDetails)
+            summary = PolygonShapeSummary(type="polygon", details=details, area=area)
 
     except Exception as e:
         print(e)
@@ -268,3 +256,18 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
                 "message": str(e),
             },
         )
+
+    return FarmData(
+        id=farm.id,
+        producer=farm.producerName,
+        producerId="",
+        cropType=farm.cropType,
+        productionDate=farm.productionDate,
+        production=farm.productionQuantity,
+        productionQuantityUnit=farm.productionQuantityUnit,
+        country=farm.country,
+        region=farm.region,
+        association=farm.association,
+        documents=farm.documents,
+        polygon=summary,
+    )
