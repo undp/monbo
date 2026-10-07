@@ -244,6 +244,7 @@ The application requires the following environment variables to be set:
 - `GCP_MAPS_PLATFORM_API_KEY`: Google Maps Platform API key for accessing Google Maps services
 - `GCP_MAPS_PLATFORM_SIGNATURE_SECRET`: Google Maps Platform signature secret for accessing Google Maps services
 - `OVERLAP_THRESHOLD_PERCENTAGE`: Defines the minimum percentage overlap required when comparing polygons (tolerance ceiling). Used to determine when two polygons should be considered being overlapping. Type: Float. Range: 0-100. Default: 0
+- `DEFORESTATION_THRESHOLD_PERCENTAGE`: Deforestation percentage above which the frontend flags a farm (labels, colours, exports, the report). The API doesn't use it itself: it publishes it. Type: Float. Range: 0-100. Default: 0. Both thresholds are published at `GET /config`, which the frontend reads at startup; they are set only here, not in the frontend's environment.
 - `MAPS_ROOT`: Directory with the layers: the per-country layout (`countries.json` plus one folder per country) or the flat one (a single `index.json`, served read-only). Default: `app/maps` (the Git-tracked layers, flat), which exists in a checkout but not in the production image: there it must be set to a mounted folder. The API refuses to start when the root holds neither layout. In Azure it points at the per-country layout on the mounted Azure Files share (`/mnt/maps`). See `docs/maps.md`.
 
 Layers admin (optional). The `/admin` routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout. Each country's admin passkey is created with `uv run python -m app.modules.admin.countries add <CC>` (it prints the passkey once; only its hash is stored, in `countries.json`):
@@ -285,13 +286,31 @@ or directly with:
 uv run pytest
 ```
 
+### Changing a contract
+
+The API's OpenAPI document is the contract with the frontend, which generates its types
+from it. It is committed as `openapi.json`. To change a request or response:
+
+1. Edit the Pydantic model (every JSON route declares a `response_model`).
+2. Run `pnpm contracts` at the repository root. It rewrites `openapi.json`
+   (`uv run python -m app.openapi`) and the frontend's `src/api/schema.d.ts`.
+3. Fix what the frontend's `tsc --noEmit` reports, and commit both generated files with
+   the change.
+
+Response models describe what the API actually returns: a field the response always
+includes is required, even when it has a default (set
+`json_schema_serialization_defaults_required` on the model; `tests/test_openapi.py`
+fails otherwise), and a field whose shape depends on a `type` is a discriminated union.
+
 ## Continuous Integration
 
 Pull requests into `dev` and `main` marked "ready for review" are validated by the
 `Test and static checks` job of the `CI` GitHub Actions workflow
 (`.github/workflows/ci.yml`), which runs `uv sync --frozen`, `uv run pytest`, and the
-`ruff`/`black`/`mypy` checks. It runs when the PR changes `apps/api/` (or the workflow
-itself); otherwise it is skipped, which counts as passed. Draft PRs are skipped.
+`ruff`/`black`/`mypy` checks, then `uv run python -m app.openapi --check`, which fails
+when `openapi.json` doesn't match the models. It runs when the PR changes `apps/api/`
+(or the workflow itself); otherwise it is skipped, which counts as passed. Draft PRs are
+skipped.
 
 These checks are **blocking**: every step runs without `continue-on-error`, so the job
 fails (and the pull request is prevented from merging, once branch protection requires

@@ -14,6 +14,7 @@ from app.config import env
 from app.config.logger import configure_logging, get_logger
 from app.modules import (
     admin_router,
+    config_router,
     deforestation_analysis_router,
     farms_router,
     maps_router,
@@ -155,10 +156,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-def create_app() -> FastAPI:
+def create_app(include_admin: bool | None = None) -> FastAPI:
+    """The API. `include_admin=None` registers the admin routes only when the admin
+    is enabled; `True` registers them regardless, to export the full contract
+    (`python -m app.openapi`) without configuring an admin."""
     # A root holding both layouts is ambiguous: refuse to start (LayoutError).
     get_layers_root().is_per_country()
-    app = FastAPI(lifespan=lifespan)
+    # The API is not installed as a package (`tool.uv.package = false`), so
+    # importlib.metadata.version("monbo-api") is unavailable in production.
+    app = FastAPI(title="Monbo API", version="1.5.1", lifespan=lifespan)
     # Admin calls authenticate with a Bearer header, never cookies, so credentials
     # stay off; the admin routes check the Origin header themselves.
     app.add_middleware(
@@ -172,12 +178,14 @@ def create_app() -> FastAPI:
     app.include_router(polygons_validation_router)
     app.include_router(deforestation_analysis_router)
     app.include_router(maps_router)
+    app.include_router(config_router)
     app.include_router(farms_router)
     # Without the session secret and a per-country root the admin routes don't
     # exist at all (404, and they are left out of the OpenAPI docs).
-    if admin_enabled():
+    if include_admin or (include_admin is None and admin_enabled()):
         app.include_router(admin_router)
-    _warn_about_admin_configuration()
+    if include_admin is None:
+        _warn_about_admin_configuration()
     return app
 
 

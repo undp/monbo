@@ -7,6 +7,7 @@ import { useContext } from "react";
 import { Text } from "@/components/reusable/Text";
 import { useDeforestationFreeResultsCountByMap } from "@/hooks/useDeforestationFreeResultsCountByMap";
 import { DeforestationFreeCounterChip } from "@/components/page/deforestationAnalysis/DeforestationFreeCounterChip";
+import { layerLabel } from "@/utils/layerLabel";
 
 export const ResultsMapSelector: React.FC = () => {
   const {
@@ -20,7 +21,7 @@ export const ResultsMapSelector: React.FC = () => {
     <SearchParamSelector
       searchParamKey="selectedMap"
       options={selectedMaps.map((map) => ({
-        label: map.alias,
+        label: layerLabel(map, "short"),
         value: map.id.toString(),
       }))}
       defaultValue={selectedMaps[0]?.id.toString()}

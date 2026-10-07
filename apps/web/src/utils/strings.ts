@@ -26,6 +26,8 @@ export const removeDiacritics = (str: string): string => {
  * @param texts - The array of strings (and possibly undefined values) to process
  * @returns A comma-separated string of unique, sorted values
  */
-export const getCommaSeparatedUniqueTexts = (texts: (string | undefined)[]) => {
+export const getCommaSeparatedUniqueTexts = (
+  texts: (string | null | undefined)[]
+) => {
   return uniq(texts).filter(Boolean).sort().join(", ");
 };

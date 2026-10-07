@@ -235,6 +235,8 @@ cp .env.template .env
 #      GCP_MAPS_PLATFORM_API_KEY=<your Google Maps key>       # needed for the satellite background
 #      GCP_MAPS_PLATFORM_SIGNATURE_SECRET=<your secret>       # optional for local dev
 #      OVERLAP_THRESHOLD_PERCENTAGE=1
+#      DEFORESTATION_THRESHOLD_PERCENTAGE=1
+#    The frontend reads both thresholds from the API (GET /config); they are set only here.
 
 # 2. Install dependencies and run the dev server (hot reload).
 #    Dependencies are managed with uv (https://docs.astral.sh/uv/). uv creates and

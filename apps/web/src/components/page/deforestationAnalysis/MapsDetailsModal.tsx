@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { MapData } from "@/interfaces/DeforestationAnalysis";
 import { DataContext } from "@/context/DataContext";
 import { Text } from "@/components/reusable/Text";
+import { layerLabel } from "@/utils/layerLabel";
 import ReactMarkdown from "react-markdown";
 
 interface Props {
@@ -93,7 +94,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
           {selectedMaps.map((map) => (
             <Chip
               key={map.id}
-              label={`${map.name} (${map.alias})`}
+              label={layerLabel(map)}
               onClick={() => setSelectedMap(map)}
               color={selectedMap?.id === map.id ? "primary" : "default"}
               variant="filled"

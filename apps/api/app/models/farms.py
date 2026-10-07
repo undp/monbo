@@ -1,15 +1,33 @@
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from shapely.geometry import Polygon
 
 from .polygons import Coordinates, PointDetails, PolygonDetails
 
 
-class PolygonSummary(BaseModel):
-    type: Literal["polygon", "point"]
-    details: PolygonDetails | PointDetails | None
+class PointSummary(BaseModel):
+    """A farm given as a point: always a center, a radius and the area they cover."""
+
+    type: Literal["point"]
+    details: PointDetails
+    area: float
+
+
+class PolygonShapeSummary(BaseModel):
+    """A farm given as a polygon; details and area are null when the geometry is
+    empty."""
+
+    type: Literal["polygon"]
+    details: PolygonDetails | None
     area: float | None
+
+
+# A farm's geometry, discriminated by `type` so clients get the exact shape of each
+# kind (the generated frontend types rely on it).
+PolygonSummary = Annotated[
+    PointSummary | PolygonShapeSummary, Field(discriminator="type")
+]
 
 
 class Document(BaseModel):
@@ -18,6 +36,9 @@ class Document(BaseModel):
 
 
 class FarmData(BaseModel):
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
     id: str
     producer: str
     producerId: str
@@ -29,7 +50,7 @@ class FarmData(BaseModel):
     region: Optional[str] = None
     association: Optional[str] = None
     documents: list[Document]
-    polygon: PolygonSummary | None
+    polygon: PolygonSummary
 
 
 class InputFarmData(BaseModel):

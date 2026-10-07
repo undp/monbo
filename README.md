@@ -105,13 +105,14 @@ pnpm dev     # runs the frontend and API dev servers in parallel (via `pnpm exec
 pnpm test    # runs the API test suite (uv run pytest)
 pnpm lint    # lints the frontend and the API (ruff + black + mypy), matching CI
 pnpm build   # builds the frontend production bundle
+pnpm contracts  # regenerates the API contract (apps/api/openapi.json) and the frontend's types from it
 ```
 
 > **Node 24 required.** `monbo-front` declares `engines.node >=24`, both frontend Docker images are `node:24-alpine`, and CI pins `actions/setup-node` to 24 — so 24 is the version the app is built and shipped on. The root orchestrator needs at least 22 (its pinned `concurrently` declares `engines.node >=22`), which 24 satisfies. Because pnpm's `engine-strict` is off, running on an older Node prints an engine warning instead of failing; use 24 so the warning stays meaningful.
 
 ## Continuous Integration
 
-- **CI:** one GitHub Actions workflow (`.github/workflows/ci.yml`) validates pull requests into `dev` and `main` once they are marked "ready for review" (drafts are skipped). It runs only the jobs for the apps a PR changes: the frontend job (`apps/web`) runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job (`apps/api`) runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy. A job a PR doesn't affect is skipped, which counts as passed ([`docs/branch_protection.md`](docs/branch_protection.md#which-checks-run)).
+- **CI:** one GitHub Actions workflow (`.github/workflows/ci.yml`) validates pull requests into `dev` and `main` once they are marked "ready for review" (drafts are skipped). It runs only the jobs for the apps a PR changes: the frontend job (`apps/web`) runs `pnpm install --frozen-lockfile` + `tsc --noEmit` + lint + build (caching the pnpm store and `.next/cache`); the API job (`apps/api`) runs `uv sync --frozen` + `uv run pytest` + ruff/black/mypy. Both check that the generated API contract and types are up to date. A job a PR doesn't affect is skipped, which counts as passed ([`docs/branch_protection.md`](docs/branch_protection.md#which-checks-run)).
 - **Branch protection:** `main` and `dev` each require a pull request and both CI jobs to pass before merging; neither accepts direct pushes. The policy, the exact required check names, the release and hotfix flow, and how to apply and verify it are documented in [`docs/branch_protection.md`](docs/branch_protection.md).
 - **Continuous deployment:** merging into `dev` a change to the apps (or their deploy) deploys the `dev` environment in Azure (`.github/workflows/deploy.yml` → `infra/deploy.sh dev`), with automatic rollback if the new revisions don't become healthy. See [`docs/suggested_deployment.md`](docs/suggested_deployment.md#continuous-deployment).
 - **Dependency updates:** Dependabot (`.github/dependabot.yml`) opens update pull requests against `dev` on a weekly schedule.

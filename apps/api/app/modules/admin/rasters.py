@@ -17,6 +17,7 @@ from .ingestion import (
     refresh_job,
     run_ingestion,
 )
+from .models import IngestionJob, JobAccepted, JobCancelled
 
 router = APIRouter()
 
@@ -35,7 +36,7 @@ def _too_large() -> HTTPException:
     )
 
 
-@router.put("/layers/{layer_id}/raster", status_code=202)
+@router.put("/layers/{layer_id}/raster", status_code=202, response_model=JobAccepted)
 async def upload_raster(
     layer_id: int,
     request: Request,
@@ -114,14 +115,14 @@ def _country_job(job_id: str, session: Session) -> dict:
     return refresh_job(store, job)
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=IngestionJob)
 def get_job(job_id: str, session: Session = Depends(require_admin)):
     """Status of an ingestion job of the session's country: queued, running,
     succeeded, failed or cancelled, with the phase and progress while running."""
     return _country_job(job_id, session)
 
 
-@router.delete("/jobs/{job_id}", status_code=202)
+@router.delete("/jobs/{job_id}", status_code=202, response_model=JobCancelled)
 def cancel_job(job_id: str, session: Session = Depends(require_admin)):
     """
     Cancel a queued or running job of the session's country. A 202 guarantees the

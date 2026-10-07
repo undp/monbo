@@ -12,6 +12,7 @@ import { Header } from "@/components/reusable/Header";
 import DataProvider from "@/context/DataContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
 import { AdminSessionProvider } from "@/context/AdminSessionContext";
+import { RuntimeConfigBoundary } from "@/components/reusable/RuntimeConfigBoundary";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -59,7 +60,10 @@ export default async function MainLayout({ children, params }: LayoutProps) {
                   <Header locale={locale} />
                   <main>
                     <Toolbar />
-                    {children}
+                    {/* The pages render once the API's settings (thresholds) load. */}
+                    <RuntimeConfigBoundary locale={locale}>
+                      {children}
+                    </RuntimeConfigBoundary>
                   </main>
                 </AdminSessionProvider>
               </DataProvider>

@@ -7,6 +7,7 @@ import {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import { formatDeforestationPercentage } from "./numbers";
+import { layerLabel } from "./layerLabel";
 
 export const generateGeoJsonFeature = (farm: FarmData): GeoJsonFeature => {
   return {
@@ -76,7 +77,7 @@ export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
               if (!map || !farmMapResult) return acc;
               return {
                 ...acc,
-                [`Deforestation according to ${map.alias}`]:
+                [`Deforestation according to ${layerLabel(map, "short")}`]:
                   !farmMapResult || farmMapResult.value === null
                     ? "N/A"
                     : formatDeforestationPercentage(

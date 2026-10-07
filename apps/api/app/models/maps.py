@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 # An ISO 3166-1 alpha-2 code, uppercase, as the country registry stores them.
 COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
@@ -8,6 +8,9 @@ CountryCode = Annotated[str, StringConstraints(pattern=COUNTRY_CODE_PATTERN)]
 
 
 class BaseMapData(BaseModel):
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
     id: int
     name: str | None
     alias: str | None

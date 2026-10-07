@@ -64,5 +64,10 @@
       "cancel": "Cancelar",
       "confirm": "Empezar de nuevo"
     }
+  },
+  "runtimeConfig": {
+    "loading": "Cargando la configuración…",
+    "error": "No se pudo cargar la configuración desde el servidor. Revisa tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
   }
 }

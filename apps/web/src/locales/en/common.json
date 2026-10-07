@@ -64,5 +64,10 @@
       "cancel": "Cancel",
       "confirm": "Start over"
     }
+  },
+  "runtimeConfig": {
+    "loading": "Loading the settings…",
+    "error": "The settings couldn't be loaded from the server. Check your connection and try again.",
+    "retry": "Retry"
   }
 }

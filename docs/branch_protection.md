@@ -31,7 +31,9 @@ releases and hotfixes. Its first job, `Detect changes`, reads the pull request's
 
 | The PR changes | Runs |
 | --- | --- |
+| `apps/api/openapi.json` (the API contract) | `Test and static checks` and `Type-check, lint, build` |
 | `apps/api/**` | `Test and static checks` |
+| `apps/web/public/files/**` (upload templates, which the API's regression suite reads) | `Test and static checks` and `Type-check, lint, build` |
 | `apps/web/**` | `Type-check, lint, build` |
 | `infra/**` | `Terraform` (not a required check) |
 | `.github/workflows/ci.yml` | all three |

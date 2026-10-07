@@ -16,8 +16,6 @@ echo "✓ All required runtime environment variables are set"
 echo "Replacing environment variables in frontend's built files..."
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_API_URL__|$NEXT_PUBLIC_API_URL|g" {} +
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY__|$NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY|g" {} +
-find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE|g" {} +
-find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE__|$NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE|g" {} +
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING__|$NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING|g" {} +
 find /app/.next/static -type f -name '*.js' -exec sed -i "s|__NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION__|$NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION|g" {} +
 # A URL can hold characters sed treats specially in the replacement (& | \).

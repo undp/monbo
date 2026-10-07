@@ -48,7 +48,7 @@ Your review should be objective, evidence-based, actionable, and focused on help
 1. **Read the intent first.** Fetch the PR title, body, and any linked issue or OpenSpec change (`openspec/changes/<name>/` — proposal, design, tasks, delta specs). Note what the PR claims to do.
 2. **Check CI state.** CI runs only on PRs that are **not drafts**. Note whether `Test and static checks` (API) and `Type-check, lint, build` (Frontend) have run and passed — this determines what is out of scope (see [Out of Scope](#out-of-scope)).
 3. **Fetch the diff** with `pull_request_read`, and the existing review comments so you don't duplicate them.
-4. **Read the surrounding code, not just the diff.** For every changed hunk, open the full file and the immediate callers/callees. A diff read in isolation is the single largest source of false positives — validation and error handling frequently live one layer up (e.g. `farms/validations.py`, `utils/farms.py`). For contract changes, read **both** sides: the Pydantic model in `monbo-api` and the matching interface in `apps/web/src/interfaces/` plus the client in `apps/web/src/api/`.
+4. **Read the surrounding code, not just the diff.** For every changed hunk, open the full file and the immediate callers/callees. A diff read in isolation is the single largest source of false positives — validation and error handling frequently live one layer up (e.g. `farms/validations.py`, `utils/farms.py`). For contract changes, read **both** sides: the Pydantic model in `apps/api` and the regenerated `apps/api/openapi.json`, then the web code that uses the generated types (`apps/web/src/interfaces/` aliases, the client in `apps/web/src/api/`).
 5. **Check the diff against the stated intent.** Does it do what the description claims? Is there scope creep — unrelated changes bundled in? Is anything the description (or the OpenSpec `tasks.md`) promises missing?
 6. **Review** across the areas below.
 7. **Run the refutation pass** (see [Evidence Discipline](#evidence-discipline)) before writing anything up.
@@ -108,7 +108,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 
 - One package per module under `modules/<name>/` with `router.py` (thin: validation → helpers → response), `helpers.py` (logic), `models.py` (module-local Pydantic models), and optionally `validations.py`. Routers are exported through `modules/__init__.py` and registered in `main.py`. Models shared across modules live in `app/models/`; cross-module utilities in `app/utils/`.
 - Endpoints declare `response_model` and a typed return; input is Pydantic-validated. Invalid user input becomes `HTTPException(status_code=400, detail=...)` (chained with `from exc`), not a 500.
-- JSON fields are **camelCase in the Pydantic models** (`farmId`, `mapId`, `producerId`). There is no codegen: the frontend mirrors these by hand in `apps/web/src/interfaces/`. A contract change must update both sides in the same PR.
+- JSON fields are **camelCase in the Pydantic models** (`farmId`, `mapId`, `producerId`). The Pydantic models are the contract: `pnpm contracts` exports them to `apps/api/openapi.json` and generates the frontend's `apps/web/src/api/schema.d.ts`, and CI fails when either is stale. A contract change commits the model and both generated files in the same PR. Findings: an API shape written by hand in the web instead of aliasing the generated type; a response field that is always sent but optional in the schema (a default without `json_schema_serialization_defaults_required`); a `type`-dependent shape that isn't a discriminated union.
 - Environment variables are read and validated once in `app/config/env.py`; fixed values go in `app/config/constants.py`. No `os.getenv` scattered through modules.
 - The `analize` spelling in `/deforestation_analysis/analize` (and `AnalizeBody`) is the contract. "Fixing" it on one side only is a breaking change.
 - Error semantics: per-farm/per-map failures return `value: null` (area `-1`) instead of failing the whole request. New code should follow this or justify why not — and must not let a sentinel (`-1`, `None`) leak into arithmetic or a report as if it were a real value.
@@ -117,7 +117,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 
 - Backend calls live in `api/*.ts` fetch clients; endpoint URLs come from `config/env.ts`. Each endpoint has its own `NEXT_PUBLIC_*` variable falling back to `${NEXT_PUBLIC_API_URL}/...`.
 - **Runtime env var plumbing:** production images bake `__NEXT_PUBLIC_X__` placeholders that `entrypoint.sh` replaces at container start. A new `NEXT_PUBLIC_*` variable needs, together: the placeholder fallback in `config/env.ts`, a `sed` line in `entrypoint.sh`, an `env` block in `infra/terraform/apps/web.tf`, and the `.env.*.example` files. A missing piece works in `next dev` and breaks in production.
-- Values that must match on both sides (e.g. `OVERLAP_THRESHOLD_PERCENTAGE` in `app/config/env.py` and `config/env.ts`) change together.
+- Product settings the frontend needs (the overlap and deforestation thresholds) are owned by the API and published at `GET /config`; the frontend reads them through `src/config/runtime.ts`. A new such setting goes into the API's `/config`, never into a duplicated `NEXT_PUBLIC_*` variable.
 - **All user-facing text goes through i18next.** Every new key exists in both `locales/es/` and `locales/en/` (`es` is the default locale). Hardcoded UI strings, or a key in only one locale, are findings. The Excel templates in `public/files/` exist per locale too.
 - Flow state belongs in `DataContext`; screen-specific components under `components/page/<module>/`, generic ones under `components/reusable/`; hooks one-per-file under `hooks/`; shared types under `interfaces/`.
 
@@ -139,7 +139,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 - Units and coordinate systems: hectares vs m², lat/lng order, CRS reprojection before measuring, `pixel_size` in meters.
 - Locale-aware number parsing (`es` decimal comma vs `en` decimal point).
 - Null/undefined handling and sentinel values (`null` ratio, `-1` area).
-- API contract consistency between Pydantic models and the frontend interfaces.
+- API contract consistency: the model, `openapi.json` and `schema.d.ts` changed together, and the web handles every nullable field.
 
 ## 2. Security
 

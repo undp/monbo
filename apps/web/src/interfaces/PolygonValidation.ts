@@ -1,40 +1,15 @@
-import { FarmData } from "./Farm";
-import { Coordinates } from "./Map";
+import type { components } from "@/api/schema";
 
-export interface OverlapData {
-  area: number;
-  percentage: number;
-  criticality: "HIGH" | "MEDIUM";
-  paths: Coordinates[][];
-  center: Coordinates;
-}
+// Generated from the API's OpenAPI (`pnpm contracts`); don't edit the shapes here.
+export type OverlapData = components["schemas"]["OverlapData"];
+export type ValidateFarmsResponse = components["schemas"]["PolygonInconsistenciesResponse"];
+// Discriminated on `type`: overlap, invalid_geometry or empty_polygon
+export type InconsistentPolygonData = ValidateFarmsResponse["inconsistencies"][number];
 
-interface InvalidGeometryInconsistencyData {
-  reason: string;
-}
+export type FarmValidationStatus = components["schemas"]["FarmResult"]["status"];
 
-export type InconsistentPolygonData =
-  | {
-      type: "overlap";
-      farmIds: FarmData["id"][];
-      data: OverlapData;
-    }
-  | {
-      type: "invalid_geometry";
-      farmIds: FarmData["id"][];
-      data: InvalidGeometryInconsistencyData;
-    };
-
-export enum FarmValidationStatus {
-  VALID = "VALID",
-  VALID_MANUALLY = "VALID_MANUALLY",
-  NOT_VALID = "NOT_VALID",
-}
-
-export interface ValidateFarmsResponse {
-  farmResults: {
-    farmId: string;
-    status: FarmValidationStatus;
-  }[];
-  inconsistencies: InconsistentPolygonData[];
-}
+export const FarmValidationStatus = {
+  VALID: "VALID",
+  VALID_MANUALLY: "VALID_MANUALLY",
+  NOT_VALID: "NOT_VALID",
+} as const satisfies Record<FarmValidationStatus, FarmValidationStatus>;

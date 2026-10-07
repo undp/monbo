@@ -41,7 +41,7 @@ infra/
     │   └── .terraform.lock.hcl     exact provider version and hashes
     └── apps/                    ③ recreated on every deploy
         ├── versions.tf
-        ├── variables.tf            images, sizes, thresholds, secrets
+        ├── variables.tf            images, sizes, thresholds (set on the API), secrets
         ├── data.tf                 READS platform's outputs
         ├── main.tf                 Container Apps environment, identity, share registration
         ├── api.tf                  the API Container App
@@ -194,7 +194,7 @@ the layer storage); see
 | Value | File | In Git? |
 |---|---|---|
 | Environment name, region, optional suffix | `terraform/platform/envs/<env>.tfvars` | Yes |
-| Sizes, thresholds, testing banner, contact URL | `terraform/apps/envs/<env>.tfvars` | Yes |
+| Sizes, thresholds (go to the API, which publishes them at `GET /config`), testing banner, contact URL | `terraform/apps/envs/<env>.tfvars` | Yes |
 | Where the state is | `terraform/*/envs/<env>.backend.hcl` | Yes |
 | Subscription (`ARM_SUBSCRIPTION_ID`), Maps keys, admin secret (`TF_VAR_*`) | `infra/envs/<env>.secrets.env` locally; the GitHub Environment `<env>` in CI | **No** |
 | CI's Azure login (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`) | The GitHub Environment (values from `platform`'s outputs) | **No** |

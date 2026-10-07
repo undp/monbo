@@ -1,0 +1,2667 @@
+{
+  "components": {
+    "schemas": {
+      "AdminLayer": {
+        "properties": {
+          "attributes": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StoredAttributes"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Attributes",
+            "type": "object"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "compared_against": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compared Against"
+          },
+          "considerations": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Considerations",
+            "type": "object"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "has_raster": {
+            "title": "Has Raster",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "pixel_size": {
+            "title": "Pixel Size",
+            "type": "number"
+          },
+          "raster_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raster Filename"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "References",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "pixel_size",
+          "baseline",
+          "compared_against",
+          "references",
+          "enabled",
+          "version",
+          "raster_filename",
+          "has_raster",
+          "attributes",
+          "considerations"
+        ],
+        "title": "AdminLayer",
+        "type": "object"
+      },
+      "AnalizeBody": {
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "farms": {
+            "items": {
+              "$ref": "#/components/schemas/FarmPolygonDetailData"
+            },
+            "title": "Farms",
+            "type": "array"
+          },
+          "maps": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Maps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "maps",
+          "farms"
+        ],
+        "title": "AnalizeBody",
+        "type": "object"
+      },
+      "BaseMapData": {
+        "properties": {
+          "alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alias"
+          },
+          "availableCountriesCodes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Availablecountriescodes",
+            "type": "array"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "comparedAgainst": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparedagainst"
+          },
+          "considerations": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Considerations"
+          },
+          "contentDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contentdate"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "pixelSize": {
+            "title": "Pixelsize",
+            "type": "number"
+          },
+          "publishDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishdate"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "References",
+            "type": "array"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "updateFrequency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatefrequency"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "alias",
+          "baseline",
+          "comparedAgainst",
+          "coverage",
+          "source",
+          "resolution",
+          "contentDate",
+          "updateFrequency",
+          "publishDate",
+          "references",
+          "considerations",
+          "availableCountriesCodes",
+          "country",
+          "version",
+          "pixelSize"
+        ],
+        "title": "BaseMapData",
+        "type": "object"
+      },
+      "ConfigData": {
+        "properties": {
+          "deforestationThresholdPercentage": {
+            "title": "Deforestationthresholdpercentage",
+            "type": "number"
+          },
+          "overlapThresholdPercentage": {
+            "title": "Overlapthresholdpercentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "overlapThresholdPercentage",
+          "deforestationThresholdPercentage"
+        ],
+        "title": "ConfigData",
+        "type": "object"
+      },
+      "Coordinates": {
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "title": "Coordinates",
+        "type": "object"
+      },
+      "CountryData": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CountryData",
+        "type": "object"
+      },
+      "Document": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ],
+        "title": "Document",
+        "type": "object"
+      },
+      "EmptyPolygonInconsistency": {
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "null"
+          },
+          "farmIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Farmids",
+            "type": "array"
+          },
+          "type": {
+            "const": "empty_polygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "farmIds",
+          "data"
+        ],
+        "title": "EmptyPolygonInconsistency",
+        "type": "object"
+      },
+      "EnabledInput": {
+        "additionalProperties": false,
+        "description": "Body of `PATCH /admin/layers/{id}`.",
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "EnabledInput",
+        "type": "object"
+      },
+      "FarmData": {
+        "properties": {
+          "association": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Association"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "cropType": {
+            "title": "Croptype",
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "polygon": {
+            "discriminator": {
+              "mapping": {
+                "point": "#/components/schemas/PointSummary",
+                "polygon": "#/components/schemas/PolygonShapeSummary"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointSummary"
+              },
+              {
+                "$ref": "#/components/schemas/PolygonShapeSummary"
+              }
+            ],
+            "title": "Polygon"
+          },
+          "producer": {
+            "title": "Producer",
+            "type": "string"
+          },
+          "producerId": {
+            "title": "Producerid",
+            "type": "string"
+          },
+          "production": {
+            "title": "Production",
+            "type": "number"
+          },
+          "productionDate": {
+            "title": "Productiondate",
+            "type": "string"
+          },
+          "productionQuantityUnit": {
+            "title": "Productionquantityunit",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          }
+        },
+        "required": [
+          "id",
+          "producer",
+          "producerId",
+          "cropType",
+          "productionDate",
+          "production",
+          "productionQuantityUnit",
+          "country",
+          "region",
+          "association",
+          "documents",
+          "polygon"
+        ],
+        "title": "FarmData",
+        "type": "object"
+      },
+      "FarmDeforestation": {
+        "properties": {
+          "farmId": {
+            "title": "Farmid",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "farmId",
+          "value"
+        ],
+        "title": "FarmDeforestation",
+        "type": "object"
+      },
+      "FarmPolygonDetailData": {
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PolygonDetails"
+              },
+              {
+                "$ref": "#/components/schemas/PointDetails"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "polygon",
+              "point"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "details"
+        ],
+        "title": "FarmPolygonDetailData",
+        "type": "object"
+      },
+      "FarmResult": {
+        "properties": {
+          "farmId": {
+            "title": "Farmid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "VALID",
+              "VALID_MANUALLY",
+              "NOT_VALID"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "farmId",
+          "status"
+        ],
+        "title": "FarmResult",
+        "type": "object"
+      },
+      "GenerateImageBody": {
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "feature": {
+            "additionalProperties": true,
+            "title": "Feature",
+            "type": "object"
+          },
+          "mapId": {
+            "title": "Mapid",
+            "type": "integer"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "feature",
+          "mapId"
+        ],
+        "title": "GenerateImageBody",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IngestionJob": {
+        "description": "An ingestion job as `GET /admin/jobs/{jobId}` returns it. Fields that jobs\nsaved by earlier releases may lack default to null.",
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobIssue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "jobId": {
+            "title": "Jobid",
+            "type": "string"
+          },
+          "layerId": {
+            "title": "Layerid",
+            "type": "integer"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "enum": [
+                  "validating",
+                  "converting"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
+          },
+          "rasterFilename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rasterfilename"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RasterReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requestedNodata": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestednodata"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/JobIssue"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "jobId",
+          "country",
+          "layerId",
+          "status",
+          "phase",
+          "progress",
+          "createdAt",
+          "updatedAt",
+          "requestedNodata",
+          "error",
+          "warnings",
+          "report",
+          "rasterFilename",
+          "version"
+        ],
+        "title": "IngestionJob",
+        "type": "object"
+      },
+      "InputFarmData": {
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "association": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Association"
+          },
+          "coordinatesFormat": {
+            "enum": [
+              "WKT",
+              "GeoJSON"
+            ],
+            "title": "Coordinatesformat",
+            "type": "string"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "cropType": {
+            "title": "Croptype",
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "farmCoordinates": {
+            "title": "Farmcoordinates",
+            "type": "string"
+          },
+          "geometryType": {
+            "enum": [
+              "Point",
+              "Polygon"
+            ],
+            "title": "Geometrytype",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "producerName": {
+            "title": "Producername",
+            "type": "string"
+          },
+          "productionDate": {
+            "title": "Productiondate",
+            "type": "string"
+          },
+          "productionQuantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Productionquantity"
+          },
+          "productionQuantityUnit": {
+            "title": "Productionquantityunit",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          }
+        },
+        "required": [
+          "producerName",
+          "productionDate",
+          "productionQuantity",
+          "productionQuantityUnit",
+          "country",
+          "coordinatesFormat",
+          "geometryType",
+          "farmCoordinates",
+          "cropType",
+          "documents"
+        ],
+        "title": "InputFarmData",
+        "type": "object"
+      },
+      "InvalidGeometryInconsistency": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InvalidGeometryInconsistencyData"
+          },
+          "farmIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Farmids",
+            "type": "array"
+          },
+          "type": {
+            "const": "invalid_geometry",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "farmIds",
+          "data"
+        ],
+        "title": "InvalidGeometryInconsistency",
+        "type": "object"
+      },
+      "InvalidGeometryInconsistencyData": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "InvalidGeometryInconsistencyData",
+        "type": "object"
+      },
+      "JobAccepted": {
+        "properties": {
+          "jobId": {
+            "title": "Jobid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId"
+        ],
+        "title": "JobAccepted",
+        "type": "object"
+      },
+      "JobCancelled": {
+        "properties": {
+          "cancelled": {
+            "const": true,
+            "title": "Cancelled",
+            "type": "boolean"
+          },
+          "jobId": {
+            "title": "Jobid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "jobId",
+          "cancelled"
+        ],
+        "title": "JobCancelled",
+        "type": "object"
+      },
+      "JobIssue": {
+        "description": "An error or warning with a stable code; the UI translates it by code.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "params"
+        ],
+        "title": "JobIssue",
+        "type": "object"
+      },
+      "LayerAttributes": {
+        "additionalProperties": false,
+        "description": "What `metadata/attributes/<lang>/*.json` holds for one language.",
+        "properties": {
+          "alias": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Alias",
+            "type": "string"
+          },
+          "contentDate": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contentdate"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "publishDate": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishdate"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "updateFrequency": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatefrequency"
+          }
+        },
+        "required": [
+          "name",
+          "alias"
+        ],
+        "title": "LayerAttributes",
+        "type": "object"
+      },
+      "LayerInput": {
+        "additionalProperties": false,
+        "description": "Body of `POST /admin/layers` and `PUT /admin/layers/{id}`.",
+        "properties": {
+          "attributes": {
+            "$ref": "#/components/schemas/LocalizedAttributes"
+          },
+          "baseline": {
+            "maximum": 2100.0,
+            "minimum": 1900.0,
+            "title": "Baseline",
+            "type": "integer"
+          },
+          "compared_against": {
+            "maximum": 2100.0,
+            "minimum": 1900.0,
+            "title": "Compared Against",
+            "type": "integer"
+          },
+          "considerations": {
+            "$ref": "#/components/schemas/LocalizedConsiderations"
+          },
+          "pixel_size": {
+            "description": "Pixel size in meters",
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000.0,
+            "title": "Pixel Size",
+            "type": "number"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pixel_size",
+          "baseline",
+          "compared_against",
+          "attributes"
+        ],
+        "title": "LayerInput",
+        "type": "object"
+      },
+      "LocalizedAttributes": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "$ref": "#/components/schemas/LayerAttributes"
+          },
+          "es": {
+            "$ref": "#/components/schemas/LayerAttributes"
+          }
+        },
+        "required": [
+          "en",
+          "es"
+        ],
+        "title": "LocalizedAttributes",
+        "type": "object"
+      },
+      "LocalizedConsiderations": {
+        "additionalProperties": false,
+        "description": "Markdown per language; empty or missing means no considerations.",
+        "properties": {
+          "en": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "En"
+          },
+          "es": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Es"
+          }
+        },
+        "title": "LocalizedConsiderations",
+        "type": "object"
+      },
+      "LoginBody": {
+        "properties": {
+          "passkey": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Passkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "passkey"
+        ],
+        "title": "LoginBody",
+        "type": "object"
+      },
+      "MapData": {
+        "properties": {
+          "farmResults": {
+            "items": {
+              "$ref": "#/components/schemas/FarmDeforestation"
+            },
+            "title": "Farmresults",
+            "type": "array"
+          },
+          "mapId": {
+            "title": "Mapid",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mapId",
+          "version",
+          "farmResults"
+        ],
+        "title": "MapData",
+        "type": "object"
+      },
+      "OverlapData": {
+        "properties": {
+          "area": {
+            "title": "Area",
+            "type": "number"
+          },
+          "center": {
+            "$ref": "#/components/schemas/Coordinates"
+          },
+          "criticality": {
+            "enum": [
+              "HIGH",
+              "MEDIUM"
+            ],
+            "title": "Criticality",
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              "type": "array"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "percentage": {
+            "title": "Percentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "area",
+          "center",
+          "paths",
+          "percentage",
+          "criticality"
+        ],
+        "title": "OverlapData",
+        "type": "object"
+      },
+      "OverlapInconsistency": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OverlapData"
+          },
+          "farmIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Farmids",
+            "type": "array"
+          },
+          "type": {
+            "const": "overlap",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "farmIds",
+          "data"
+        ],
+        "title": "OverlapInconsistency",
+        "type": "object"
+      },
+      "PointDetails": {
+        "properties": {
+          "center": {
+            "$ref": "#/components/schemas/Coordinates"
+          },
+          "radius": {
+            "title": "Radius",
+            "type": "number"
+          }
+        },
+        "required": [
+          "center",
+          "radius"
+        ],
+        "title": "PointDetails",
+        "type": "object"
+      },
+      "PointSummary": {
+        "description": "A farm given as a point: always a center, a radius and the area they cover.",
+        "properties": {
+          "area": {
+            "title": "Area",
+            "type": "number"
+          },
+          "details": {
+            "$ref": "#/components/schemas/PointDetails"
+          },
+          "type": {
+            "const": "point",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "details",
+          "area"
+        ],
+        "title": "PointSummary",
+        "type": "object"
+      },
+      "PolygonDetails": {
+        "properties": {
+          "center": {
+            "$ref": "#/components/schemas/Coordinates"
+          },
+          "path": {
+            "items": {
+              "$ref": "#/components/schemas/Coordinates"
+            },
+            "title": "Path",
+            "type": "array"
+          }
+        },
+        "required": [
+          "center",
+          "path"
+        ],
+        "title": "PolygonDetails",
+        "type": "object"
+      },
+      "PolygonInconsistenciesResponse": {
+        "properties": {
+          "farmResults": {
+            "items": {
+              "$ref": "#/components/schemas/FarmResult"
+            },
+            "title": "Farmresults",
+            "type": "array"
+          },
+          "inconsistencies": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "empty_polygon": "#/components/schemas/EmptyPolygonInconsistency",
+                  "invalid_geometry": "#/components/schemas/InvalidGeometryInconsistency",
+                  "overlap": "#/components/schemas/OverlapInconsistency"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/OverlapInconsistency"
+                },
+                {
+                  "$ref": "#/components/schemas/InvalidGeometryInconsistency"
+                },
+                {
+                  "$ref": "#/components/schemas/EmptyPolygonInconsistency"
+                }
+              ]
+            },
+            "title": "Inconsistencies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "farmResults",
+          "inconsistencies"
+        ],
+        "title": "PolygonInconsistenciesResponse",
+        "type": "object"
+      },
+      "PolygonShapeSummary": {
+        "description": "A farm given as a polygon; details and area are null when the geometry is\nempty.",
+        "properties": {
+          "area": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PolygonDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "const": "polygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "details",
+          "area"
+        ],
+        "title": "PolygonShapeSummary",
+        "type": "object"
+      },
+      "RasterReport": {
+        "properties": {
+          "approxResolutionM": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approxresolutionm"
+          },
+          "bounds": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Bounds",
+            "type": "array"
+          },
+          "crs": {
+            "title": "Crs",
+            "type": "string"
+          },
+          "dtype": {
+            "title": "Dtype",
+            "type": "string"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "nodata": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodata"
+          },
+          "values": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "crs",
+          "width",
+          "height",
+          "bounds",
+          "dtype",
+          "nodata",
+          "values",
+          "approxResolutionM"
+        ],
+        "title": "RasterReport",
+        "type": "object"
+      },
+      "SessionData": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "expiresAt": {
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "country"
+        ],
+        "title": "SessionData",
+        "type": "object"
+      },
+      "SessionStatus": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "expiresAt": {
+            "title": "Expiresat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "country"
+        ],
+        "title": "SessionStatus",
+        "type": "object"
+      },
+      "StoredAttributes": {
+        "description": "Attributes as found on disk; lenient, since older files may lack fields.",
+        "properties": {
+          "alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alias"
+          },
+          "contentDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contentdate"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "publishDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishdate"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "updateFrequency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatefrequency"
+          }
+        },
+        "required": [
+          "name",
+          "alias",
+          "coverage",
+          "source",
+          "resolution",
+          "contentDate",
+          "updateFrequency",
+          "publishDate"
+        ],
+        "title": "StoredAttributes",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "Admin session token",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Monbo API",
+    "version": "1.5.1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Root endpoint that serves the API status page.\nReturns an HTML page with a spinning gear animation indicating the API is running.\nIf the template file is not found, returns a simple fallback HTML response.\n\nReturns:\n    Response: HTML content with status page",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/admin/jobs/{job_id}": {
+      "delete": {
+        "description": "Cancel a queued or running job of the session's country. A 202 guarantees the\nlayer keeps its raster; the job reports `cancelled` once it stops (at the\nlatest when a running conversion returns). 409 when the job has ended or its\nactivation has begun.",
+        "operationId": "cancel_job_admin_jobs__job_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCancelled"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Job",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "get": {
+        "description": "Status of an ingestion job of the session's country: queued, running,\nsucceeded, failed or cancelled, with the phase and progress while running.",
+        "operationId": "get_job_admin_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestionJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Job",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/layers": {
+      "get": {
+        "description": "Every layer of the session's country, enabled or not, with its metadata in\nevery language.",
+        "operationId": "list_layers_admin_layers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminLayer"
+                  },
+                  "title": "Response List Layers Admin Layers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Layers",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "post": {
+        "description": "Create a layer in the session's country. It starts disabled and without a\nraster; upload one and then enable the layer to publish it. Its id is one more\nthan the highest id in the country (disabled layers included), so ids are never\nreused.",
+        "operationId": "create_layer_admin_layers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLayer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Layer",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/layers/{layer_id}": {
+      "patch": {
+        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster.",
+        "operationId": "set_layer_enabled_admin_layers__layer_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "layer_id",
+            "required": true,
+            "schema": {
+              "title": "Layer Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLayer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Layer Enabled",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "put": {
+        "description": "Replace a layer's editable fields and its metadata in every language. The id,\nraster, version, enabled state and country are not changed here.",
+        "operationId": "update_layer_admin_layers__layer_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "layer_id",
+            "required": true,
+            "schema": {
+              "title": "Layer Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLayer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Layer",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/layers/{layer_id}/raster": {
+      "put": {
+        "description": "Upload a GeoTIFF for a layer as the raw request body (not multipart). It is\nvalidated, converted to a Cloud Optimized GeoTIFF and activated in the\nbackground; poll `GET /admin/jobs/{jobId}` for the result, or cancel it with\n`DELETE /admin/jobs/{jobId}`. The layer keeps its current raster until the job\nsucceeds. Only one upload is processed at a time, across every country.",
+        "operationId": "upload_raster_admin_layers__layer_id__raster_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "layer_id",
+            "required": true,
+            "schema": {
+              "title": "Layer Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Nodata value, for rasters whose file doesn't declare one",
+            "in": "query",
+            "name": "nodata",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Nodata value, for rasters whose file doesn't declare one",
+              "title": "Nodata"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Raster",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/session": {
+      "get": {
+        "description": "Check that the current token is still valid, when it expires and which\ncountry it administers.",
+        "operationId": "get_session_admin_session_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Session",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "post": {
+        "description": "Exchange a country's admin passkey for a session token that administers that\ncountry (returned as `country`).\n\nSend the token back as `Authorization: Bearer <token>` on every admin call. After\n5 failed attempts from the same IP within 15 minutes, logins from that IP get\n429 (even with the right passkey) until the window passes.",
+        "operationId": "create_session_admin_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionData"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/config": {
+      "get": {
+        "description": "Product settings the frontend needs, owned by the API's environment so there is a\nsingle place to set them. The frontend loads them once at startup.",
+        "operationId": "get_config_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigData"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Config",
+        "tags": [
+          "Config Module"
+        ]
+      }
+    },
+    "/countries": {
+      "get": {
+        "description": "The countries a visitor can analyze: enabled in the country registry and with\nat least one enabled layer, sorted by ISO 3166-1 alpha-2 code. With the legacy\nflat layout, the countries listed by the enabled layers.",
+        "operationId": "get_countries_countries_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CountryData"
+                  },
+                  "title": "Response Get Countries Countries Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Countries",
+        "tags": [
+          "Maps Module"
+        ]
+      }
+    },
+    "/deforestation_analysis/analize": {
+      "post": {
+        "operationId": "analize_deforestation_analysis_analize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalizeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapData"
+                  },
+                  "title": "Response Analize Deforestation Analysis Analize Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analize",
+        "tags": [
+          "Deforestation Analysis Module"
+        ]
+      }
+    },
+    "/deforestation_analysis/generate-image": {
+      "post": {
+        "operationId": "generate_image_deforestation_analysis_generate_image_post",
+        "parameters": [
+          {
+            "description": "Whether to include satellite imagery as background",
+            "in": "query",
+            "name": "include_satelital_background",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Whether to include satellite imagery as background",
+              "title": "Include Satelital Background",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateImageBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Image",
+        "tags": [
+          "Deforestation Analysis Module"
+        ]
+      }
+    },
+    "/deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
+      "get": {
+        "description": "Serve a tile of a country's layer for the specified z/x/y.",
+        "operationId": "serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "map_id",
+            "required": true,
+            "schema": {
+              "title": "Map Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "title": "Z",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "title": "X",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "y",
+            "required": true,
+            "schema": {
+              "title": "Y",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Serve Tile",
+        "tags": [
+          "Deforestation Analysis Module"
+        ]
+      }
+    },
+    "/download-geojson": {
+      "get": {
+        "operationId": "download_geojson_download_geojson_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "content",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Geojson"
+      }
+    },
+    "/farms/parse": {
+      "post": {
+        "description": "Endpoint to parse farm data and generate polygon information.\n\nArgs:\n    body (list[InputFarmData]): List of unprocessed farm data\n    locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'\n\nReturns:\n    list[FarmData]: List of processed farm data with polygon information\n\nRaises:\n    HTTPException: If there is an error in:\n        - Parsing farm coordinates\n        - Generating polygons\n        - Invalid locale format\n        - Invalid number formats for the given locale\n        - Invalid country codes\n        - Invalid document URLs\n        - Duplicate farm IDs (if IDs are provided)\n\nThe endpoint performs the following steps:\n1. Validates the locale and farm data inputs\n2. Parses and validates all numeric values according to the locale\n3. Validates country codes, coordinates format, and document URLs\n4. Generates polygon information based on the parsed coordinates\n5. Auto-generates IDs if needed:\n   - If all farms are missing IDs, sequential numbers are assigned\n   - If some farms have IDs, IDs matching the existing pattern are generated for\n   those missing IDs\n   - If all farms have IDs, no changes are made\n\nEach farm data includes:\n- Basic information such as id, producer, crop type, production details, etc.\n- Polygon type (either \"polygon\" or \"point\")\n- Polygon details including coordinates, area and other geometric properties",
+        "operationId": "parse_farms_farms_parse_post",
+        "parameters": [
+          {
+            "description": "Locale for number parsing, e.g., 'en' or 'es'",
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Locale for number parsing, e.g., 'en' or 'es'",
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/InputFarmData"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FarmData"
+                  },
+                  "title": "Response Parse Farms Farms Parse Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Parse Farms",
+        "tags": [
+          "Farms Module"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check"
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "liveness_check_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness Check"
+      }
+    },
+    "/maps": {
+      "get": {
+        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers are left out here but remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison\n    - comparedAgainst: Final year for comparison\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
+        "operationId": "get_maps_maps_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BaseMapData"
+                  },
+                  "title": "Response Get Maps Maps Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Maps",
+        "tags": [
+          "Maps Module"
+        ]
+      }
+    },
+    "/polygons_validation/validate": {
+      "post": {
+        "description": "Validates a list of farm polygons by checking for overlaps and geometry\ninconsistencies.\n\nArgs:\n    body (list[FarmPolygon]): List of farm polygons to validate.\n\nReturns:\n    PolygonInconsistenciesResponse: A response object containing:\n        - farmResults (list[FarmResult]): A list of validation results\n          for each farm, with status either \"VALID\" or \"NOT_VALID\"\n        - inconsistencies (list[PolygonInconsistency]): A list of detected\n          inconsistencies, which can be overlaps or geometry issues\n\nThe function performs the following validations:\n1. Converts the input FarmPolygons into Shapely geometry objects\n2. Checks for overlapping polygons between farms\n3. Validates the geometry of each polygon (e.g. self-intersections)\n4. Marks farms as \"NOT_VALID\" if they are involved in any inconsistency",
+        "operationId": "Validate_Polygons_polygons_validation_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/FarmPolygonDetailData"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolygonInconsistenciesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Polygons",
+        "tags": [
+          "Polygons Validation Module"
+        ]
+      }
+    }
+  }
+}

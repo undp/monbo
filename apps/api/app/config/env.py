@@ -15,26 +15,28 @@ GCP_MAPS_PLATFORM_SIGNATURE_SECRET = os.getenv("GCP_MAPS_PLATFORM_SIGNATURE_SECR
 # points at the per-country layout on the mounted Azure Files share (/mnt/maps).
 MAPS_ROOT = os.getenv("MAPS_ROOT") or "app/maps"
 
-# Overlap threshold %, between 0 and 100. Ensure the same value at frontend.
-raw_overlap_threshold_percentage = os.getenv("OVERLAP_THRESHOLD_PERCENTAGE")
-if raw_overlap_threshold_percentage is not None:
+
+def _percentage(name: str) -> float:
+    """A percentage setting between 0 and 100; unset or empty means 0."""
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return 0
     try:
-        threshold = float(raw_overlap_threshold_percentage)
-        if not 0 <= threshold <= 100:
-            raise ValueError(
-                f"OVERLAP_THRESHOLD_PERCENTAGE must be between 0 and 100, "
-                f"got {threshold}"
-            )
-        OVERLAP_THRESHOLD_PERCENTAGE = threshold
-    except ValueError as e:
-        if "must be between" not in str(e):
-            raise ValueError(
-                f"OVERLAP_THRESHOLD_PERCENTAGE must be a valid number, "
-                f"got '{raw_overlap_threshold_percentage}'"
-            )
-        raise
-else:
-    OVERLAP_THRESHOLD_PERCENTAGE = 0
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be a valid number, got '{raw}'")
+    if not 0 <= value <= 100:
+        raise ValueError(f"{name} must be between 0 and 100, got {value}")
+    return value
+
+
+# Product thresholds. The API owns them and publishes both at GET /config, which the
+# frontend reads at startup; the frontend has no copy of its own.
+# Overlaps above this percentage are reported by polygon validation.
+OVERLAP_THRESHOLD_PERCENTAGE = _percentage("OVERLAP_THRESHOLD_PERCENTAGE")
+# Deforestation above this percentage is flagged by the frontend (labels, colours,
+# exports, the report).
+DEFORESTATION_THRESHOLD_PERCENTAGE = _percentage("DEFORESTATION_THRESHOLD_PERCENTAGE")
 
 
 def _positive_int(name: str, default: int) -> int:

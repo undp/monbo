@@ -43,8 +43,9 @@ export const MapView: React.FC = () => {
       const deforestationResult = deforestationAnalysisResults
         ?.find((result) => result.mapId === selectedMapId)
         ?.farmResults.find((farmResult) => farmResult.farmId === farm.id);
-      if (!deforestationResult) {
-        // Farms without deforestation analysis results for this map are assumed to be deforestation-free
+      if (!deforestationResult || deforestationResult.value === null) {
+        // Farms without deforestation analysis results for this map (or without data,
+        // a null value) are assumed to be deforestation-free
         deforestationFree.push(farm);
       } else if (isDeforestationAboveThreshold(deforestationResult.value)) {
         deforested.push(farm);
