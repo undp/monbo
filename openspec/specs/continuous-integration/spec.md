@@ -98,6 +98,8 @@ A single workflow (`.github/workflows/ci.yml`) SHALL hold the API job, the front
 
 - a path under `apps/api/` SHALL select the API job;
 - a path under `apps/web/` SHALL select the frontend job;
+- `apps/api/openapi.json` SHALL select both jobs, because the frontend's generated types derive from it;
+- a path under `apps/web/public/files/` SHALL select both jobs, because the API's regression suite validates the web's upload templates;
 - a change to the CI workflow file SHALL select both.
 
 The package jobs SHALL be skipped through their job-level condition when they are not selected. The workflow SHALL NOT use a workflow-level `paths` filter. Detection SHALL fail open:
@@ -136,6 +138,16 @@ Detection SHALL NOT depend on third-party actions and SHALL run with read-only p
 #### Scenario: Detection failure never skips tests
 
 - **WHEN** the change-detection job fails, or the pull request has more files than the API can list
+- **THEN** both package jobs run
+
+#### Scenario: Contract change runs the frontend too
+
+- **WHEN** a pull request changes `apps/api/openapi.json`
+- **THEN** both "Test and static checks" and "Type-check, lint, build" run
+
+#### Scenario: Upload template change runs the API too
+
+- **WHEN** a pull request changes only a file under `apps/web/public/files/`
 - **THEN** both package jobs run
 
 ### Requirement: Terraform job in the CI workflow

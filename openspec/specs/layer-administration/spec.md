@@ -91,15 +91,6 @@ within the country of the admin's session.
 - **WHEN** a CR admin calls `PATCH /admin/layers/3` and only EC has a layer 3
 - **THEN** the response is 404 and EC's layer 3 is unchanged
 
-### Requirement: Contracts mirrored between API and frontend
-
-The admin request and response models SHALL be defined as Pydantic models in the API and mirrored as TypeScript interfaces in the frontend, with the same field names and optionality. The public `MapData` interface SHALL expose `version` and `pixelSize`, so the frontend can invalidate analysis results when a raster or its calculation metadata changes.
-
-#### Scenario: Contract parity
-
-- **WHEN** a field is added to or removed from an admin Pydantic model
-- **THEN** the corresponding TypeScript interface is updated in the same change
-
 ### Requirement: Admin UI
 
 The frontend SHALL provide admin pages under `/[locale]/admin`:
@@ -179,4 +170,18 @@ When the section opens on a layer that has a raster but is not published, it SHA
 
 - **WHEN** an admin opens a layer that has a raster but is not published
 - **THEN** the section starts in "Ready to publish", with steps 1 and 2 done and a "Replace raster" action
+
+### Requirement: Admin contracts generated from the API
+
+The admin request and response models SHALL be defined as Pydantic models in the API, including the ingestion job and the upload and cancel responses, and SHALL be declared as the routes' response models. The frontend's admin types SHALL be generated from the API's OpenAPI (`api-contracts`), never written by hand. The public `MapData` type SHALL expose `version` and `pixelSize`, so the frontend can invalidate analysis results when a raster or its calculation metadata changes.
+
+#### Scenario: Contract parity
+
+- **WHEN** a field is added to or removed from an admin Pydantic model and the contracts are regenerated
+- **THEN** the frontend's admin type changes accordingly with no hand edit, and the compiler flags any code that relied on the old shape
+
+#### Scenario: Ingestion job typed from the API
+
+- **WHEN** the frontend polls `GET /admin/jobs/{jobId}`
+- **THEN** the response's type comes from the API's `IngestionJob` model
 
