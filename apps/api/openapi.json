@@ -1530,7 +1530,7 @@
           },
           "values": {
             "items": {
-              "type": "number"
+              "type": "integer"
             },
             "title": "Values",
             "type": "array"

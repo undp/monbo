@@ -133,7 +133,7 @@ class RasterReport(BaseModel):
     bounds: list[float]
     dtype: str
     nodata: float | None
-    values: list[float]
+    values: list[int]
     approxResolutionM: float | None
 
 

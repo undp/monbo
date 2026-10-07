@@ -130,6 +130,7 @@ def test_valid_upload_is_converted_and_activated(
     assert (report["width"], report["height"]) == (2048, 2048)
     assert report["dtype"] == "uint8"
     assert report["values"] == [0, 1]
+    assert all(type(value) is int for value in report["values"])
     assert 25 < report["approxResolutionM"] < 35
 
     assert entry(layers, 6)["raster_filename"] == "layer-6-v1.tif"
