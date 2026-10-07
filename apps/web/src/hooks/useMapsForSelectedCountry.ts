@@ -2,6 +2,7 @@ import { useContext, useMemo } from "react";
 import { SelectionOption } from "@/interfaces/SelectionOption";
 import { MapData } from "@/interfaces/DeforestationAnalysis";
 import { DataContext } from "@/context/DataContext";
+import { layerLabel } from "@/utils/layerLabel";
 
 interface Props {
   selectedMaps: MapData[];
@@ -13,13 +14,9 @@ interface ReturnType {
   selectedMapsOptions: SelectionOption[];
 }
 
-const getMapLabel = (map: MapData): string => {
-  return `${map.name} (${map.alias})`;
-};
-
 const toOption = (map: MapData): SelectionOption => ({
   id: map.id.toString(),
-  label: getMapLabel(map),
+  label: layerLabel(map),
 });
 
 // The layers of `availableMaps` that cover the analysis country, as options.
