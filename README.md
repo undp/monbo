@@ -155,7 +155,7 @@ Upgrades that a design decision deferred are `ignore` rules in `dependabot.yml`,
 
 The sources are `openspec/changes/archive/2026-09-24-dependency-upgrade-2026/design.md` (D5, D10, R11, R16, "Deferred / Out-of-scope") and the OpenSpec change `dev-default-branch-and-dependabot`.
 
-Two things worth knowing about the coverage:
+Things worth knowing about the coverage:
 
 - **Non-standard Dockerfile names are covered.** These directories hold `Dockerfile.dev` and `Dockerfile.prod` rather than a plain `Dockerfile`. Dependabot's Docker file fetcher selects on `/dockerfile|containerfile/i` as a substring of the filename, so both match.
 - **The uv binary image is *not* covered.** `apps/api/Dockerfile.dev` and `Dockerfile.prod` pull the uv binary with `COPY --from=ghcr.io/astral-sh/uv:<version>`, and Dependabot's Docker parser only reads lines beginning with `FROM`. That version is a manual bump, and it lives in **three** places that must stay in sync:
@@ -163,6 +163,8 @@ Two things worth knowing about the coverage:
   1. `apps/api/Dockerfile.dev`
   2. `apps/api/Dockerfile.prod`
   3. `.github/workflows/ci.yml` (the `astral-sh/setup-uv` `version:` input, in the `api` job)
+- **The root's `pnpm.overrides` is a manual check.** `"concurrently>shell-quote": "^1.11.0"`: `concurrently` 10.0.5 pins `shell-quote` to exactly 1.9.0, which has a critical advisory (GHSA-pqg4-j6r4-53mv). **Remove it** when a `concurrently` release allows `shell-quote >= 1.11.0`.
+- **The frontend's `xlsx` and its own override are outside Dependabot's reach.** `xlsx` comes from SheetJS's CDN, because npm has no fixed version. See [`apps/web/README.md`](apps/web/README.md#outside-dependabots-reach).
 
 Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.
 

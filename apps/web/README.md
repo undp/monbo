@@ -301,6 +301,34 @@ plus a `docker` entry for the two Dockerfiles), weekly, with minor and patch upd
 grouped into one pull request and each major isolated in its own. Nothing is
 automerged. See the root README for the full policy.
 
+### Outside Dependabot's reach
+
+Two dependencies need a manual check, because Dependabot can't update them:
+
+- **`xlsx` (SheetJS) comes from SheetJS's CDN**, not npm: SheetJS stopped publishing to
+  npm at 0.18.5, which has known vulnerabilities (prototype pollution, ReDoS), and
+  publishes its fixes only at `cdn.sheetjs.com`. `package.json` pins the versioned
+  tarball (`https://cdn.sheetjs.com/xlsx-<version>/xlsx-<version>.tgz`).
+  - **To bump it:** check the release notes at <https://docs.sheetjs.com> (or
+    <https://cdn.sheetjs.com/> for the versions), run
+    `pnpm add "xlsx@https://cdn.sheetjs.com/xlsx-<version>/xlsx-<version>.tgz"`, then
+    upload `apps/api/tests/regression/regression_farms.xlsx` in both modules and
+    download both Excel results.
+  - **Its content isn't verified.** pnpm records no integrity hash for a remote
+    tarball, so the lockfile pins the URL, not the bytes: we trust SheetJS's HTTPS
+    host. If that ever stops being acceptable, vendor the tarball
+    (`apps/web/vendor/xlsx-<version>.tgz`, declared as `file:vendor/...`, and copied
+    into both Dockerfiles before `pnpm install`): pnpm then records its `sha512` and
+    `--frozen-lockfile` fails if it changes.
+- **`pnpm.overrides` in `package.json`:** `"exceljs>uuid": "^11.1.1"`. `exceljs` 4.4.0
+  (its latest release) asks for `uuid ^8.3.0`, and the fix for GHSA-w5hq-g745-h8pq is
+  in 11.1.1. `exceljs` only calls `v4()`, which `uuid` 11 keeps, and the browser loads
+  `exceljs`'s prebundled build anyway. **Remove it** when `exceljs` allows
+  `uuid >= 11.1.1`.
+
+Other transitive alerts are fixed by refreshing the lockfile within the parents'
+ranges (`pnpm update <package> --depth Infinity`), not by overrides.
+
 ## Deploy
 
 ### Deploy on AWS
