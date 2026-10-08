@@ -3,8 +3,9 @@ import hashlib
 import hmac
 import math
 import urllib.parse as urlparse
+from contextlib import asynccontextmanager
 from io import BytesIO
-from typing import Tuple
+from typing import AsyncIterator, Tuple
 
 import httpx
 from PIL import Image
@@ -13,6 +14,7 @@ from shapely.geometry.base import BaseGeometry
 from app.config.env import GCP_MAPS_PLATFORM_API_KEY, GCP_MAPS_PLATFORM_SIGNATURE_SECRET
 from app.config.logger import get_logger
 from app.helpers.GeometryCalculator import GeometryCalculator
+from app.utils.image_generation.AsyncTTLCache import AsyncTTLCache
 from app.utils.image_generation.constants import MapDefaults
 from app.utils.image_generation.errors import GoogleMapsAPIError
 
@@ -20,6 +22,43 @@ from .GeoHelper import GeoHelper
 
 # Get logger for this module
 logger = get_logger("utils.image_generation.GoogleMapsAPIHelper")
+
+# One client for the app's lifetime (opened and closed in main's lifespan), so the
+# requests to Google reuse their connections.
+_http_client: httpx.AsyncClient | None = None
+
+# The satellite image depends only on the center, zoom and size, not on the map: a
+# report's (farm, map) images share one Google call per farm. Short-lived and in
+# memory, only to deduplicate a report's requests. Holds the response bytes (each
+# caller decodes its own image): up to ~75 MB.
+satellite_image_cache: AsyncTTLCache[bytes] = AsyncTTLCache(
+    max_entries=256, ttl_seconds=10 * 60
+)
+
+
+async def open_http_client() -> None:
+    global _http_client
+    _http_client = httpx.AsyncClient(
+        timeout=10, limits=httpx.Limits(max_connections=20)
+    )
+
+
+async def close_http_client() -> None:
+    global _http_client
+    if _http_client is not None:
+        await _http_client.aclose()
+        _http_client = None
+
+
+@asynccontextmanager
+async def _get_http_client() -> AsyncIterator[httpx.AsyncClient]:
+    """The shared client, or a temporary one where the lifespan didn't run
+    (scripts, tests)."""
+    if _http_client is not None:
+        yield _http_client
+    else:
+        async with httpx.AsyncClient(timeout=10) as client:
+            yield client
 
 
 class GoogleMapsAPIHelper:
@@ -383,6 +422,9 @@ class GoogleMapsAPIHelper:
         """
         Get a Google Maps satellite image for a given geometry.
 
+        Requests for the same center, zoom and size share one Google call
+        (`satellite_image_cache`).
+
         Args:
             geom: A shapely geometry object (Polygon or Point)
             output_size: Tuple of (width, height) in pixels for the output image.
@@ -400,6 +442,31 @@ class GoogleMapsAPIHelper:
         # Google Maps API expects (lat, lon) format for center
         center_lat, center_lon = GeometryCalculator.calculate_geometry_center(geom)
 
+        key = (
+            round(center_lat, 7),
+            round(center_lon, 7),
+            zoom_level,
+            output_size[0],
+            output_size[1],
+            MapDefaults.MAP_TYPE,
+        )
+        content = await satellite_image_cache.get_or_fetch(
+            key,
+            lambda: GoogleMapsAPIHelper._fetch_satellite_image(
+                center_lat, center_lon, zoom_level, output_size
+            ),
+        )
+        # Its own Image for each caller: the cached bytes were checked on fetch.
+        return Image.open(BytesIO(content))
+
+    @staticmethod
+    async def _fetch_satellite_image(
+        center_lat: float,
+        center_lon: float,
+        zoom_level: int,
+        output_size: Tuple[int, int],
+    ) -> bytes:
+        """The Google Static Maps image for a center and zoom, as returned."""
         # Construct the URL for Google Maps Static API
         url = (
             f"https://maps.googleapis.com/maps/api/staticmap"
@@ -419,12 +486,13 @@ class GoogleMapsAPIHelper:
         )
 
         # Make a request to fetch the image
-        async with httpx.AsyncClient() as client:
+        async with _get_http_client() as client:
             try:
-                response = await client.get(url, timeout=10)
+                response = await client.get(url)
                 response.raise_for_status()
-                img = Image.open(BytesIO(response.content))
-                return img
+                # Check it decodes here, so a bad response isn't cached.
+                Image.open(BytesIO(response.content)).verify()
+                return response.content
             except httpx.HTTPStatusError as e:
                 # Its message holds the request URL, with the API key and signature:
                 # keep only the status, and don't chain it into the traceback.

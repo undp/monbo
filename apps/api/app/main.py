@@ -23,6 +23,11 @@ from app.modules import (
 from app.modules.admin.auth import admin_enabled
 from app.modules.admin.ingestion import recover_interrupted_jobs
 from app.modules.layers.store import get_layers_root
+from app.utils.image_generation.GoogleMapsAPIHelper import (
+    close_http_client,
+    open_http_client,
+)
+from app.utils.image_generation.RasterDatasetCache import raster_dataset_cache
 
 # Configure the logger
 configure_logging(level=logging.INFO)  # Adjust level as needed
@@ -153,7 +158,12 @@ async def lifespan(app: FastAPI):
         except Exception:
             # Don't keep the public API down because the share is unreachable.
             logger.exception("Could not recover interrupted ingestion jobs")
-    yield
+    await open_http_client()
+    try:
+        yield
+    finally:
+        await close_http_client()
+        await run_in_threadpool(raster_dataset_cache.clear)
 
 
 def create_app(include_admin: bool | None = None) -> FastAPI:

@@ -22,6 +22,7 @@ import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "../geojson";
 import { parseAreaToHectares } from "../polygons";
 import { longFormatDateByLanguage, shortFormatDateByLanguage } from "../dates";
 import { styles } from "./styles";
+import { assetUrl } from "./assets";
 import { getCommaSeparatedUniqueTexts } from "@/utils/strings";
 import { DOWNLOAD_GEOJSON_URL } from "@/config/env";
 
@@ -29,7 +30,10 @@ const Footer = ({ t }: { t: TFunction }) => (
   <View style={styles.footer}>
     <Text style={styles.footerLightText}>
       {t("reportGeneration:phrases:analysisPerformedBy")}{" "}
-      <ImagePDF src={"/images/Logo.png"} style={styles.footerLogoImage} />
+      <ImagePDF
+        src={assetUrl("/images/Logo.png")}
+        style={styles.footerLogoImage}
+      />
     </Text>
   </View>
 );
@@ -58,21 +62,21 @@ export const CoverPage = ({
     <Page size="A4" style={styles.coverPage}>
       <View style={styles.coverPageBackgroundImageContainer}>
         <ImagePDF
-          src={"/images/deforestationReportCoverBackground.png"}
+          src={assetUrl("/images/deforestationReportCoverBackground.png")}
           style={styles.coverPageBackgroundImage}
         />
       </View>
 
       <View style={styles.coverPageBackgroundWhiteImageContainer}>
         <ImagePDF
-          src={"/images/deforestationReportCoverBackgroundWhite.png"}
+          src={assetUrl("/images/deforestationReportCoverBackgroundWhite.png")}
           style={styles.coverPageBackgroundWhiteImage}
         />
       </View>
 
       <View style={styles.coverPageBackgroundLeafImageContainer}>
         <ImagePDF
-          src={"/images/deforestationReportCoverBackgroundLeaf.png"}
+          src={assetUrl("/images/deforestationReportCoverBackgroundLeaf.png")}
           style={styles.coverPageBackgroundLeafImage}
         />
       </View>

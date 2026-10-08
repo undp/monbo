@@ -1,4 +1,4 @@
-import { alpha } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { isDeforestationAboveThreshold } from "./deforestation";
 
 export const getDeforestationPercentageChipColor = (

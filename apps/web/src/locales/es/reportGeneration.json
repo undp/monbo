@@ -31,6 +31,9 @@
     "generateReport": "Generar reporte",
     "download": "Descargar"
   },
+  "preview": {
+    "title": "Vista previa del reporte"
+  },
   "downloadTypeSelectionModal": {
     "title": "¿Cómo quieres descargar el reporte?",
     "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",

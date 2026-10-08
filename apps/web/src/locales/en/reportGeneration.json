@@ -31,6 +31,9 @@
     "generateReport": "Generate report",
     "download": "Download"
   },
+  "preview": {
+    "title": "Report preview"
+  },
   "downloadTypeSelectionModal": {
     "title": "How do you want to download the report?",
     "combinedOptionText": "1 single PDF with the {{amount}} selected polygons",

@@ -1,111 +1,24 @@
 import { DataContext } from "@/context/DataContext";
-import { useCallback, useContext, useMemo } from "react";
-import { pdf } from "@react-pdf/renderer";
-import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import JSZip from "jszip";
+import { useCallback, useContext } from "react";
 import { saveAs } from "file-saver";
-import { DeforestationReportDocument } from "@/utils/deforestationReport";
 import { useTranslation } from "react-i18next";
-import { useParams } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { fetchDeforestationImages } from "@/utils/deforestationImages";
+import { ReportContext } from "@/context/ReportContext";
 import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 
 export const useDeforestationReportDownload = () => {
   const { t } = useTranslation(["deforestationAnalysis", "common"]);
   const { openSnackbar } = useContext(SnackbarContext);
-  const params = useParams();
-  const locale = params.locale as string;
-  const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
-  const {
-    reportGenerationParams: {
-      selectedMaps: selectedMapsForReport,
-      selectedFarms: selectedFarmsForReport,
-    },
-    selectedCountry,
-    invalidateAnalysis,
-  } = useContext(DataContext);
+  const { invalidateAnalysis } = useContext(DataContext);
+  // The images and the renders come from the report page (ReportProvider): the
+  // preview's images are reused, and the complete report is usually pre-rendered.
+  const { getCompleteReport, getSeparatedReports } = useContext(ReportContext);
 
-  const filteredDeforestationAnalysisResults = useMemo(() => {
-    return deforestationAnalysisResults?.filter((m) =>
-      selectedMapsForReport.some((map) => map.id === m.mapId)
-    );
-  }, [deforestationAnalysisResults, selectedMapsForReport]);
-
-  const downloadCompleteReportToFile = useCallback(async () => {
-    // TODO: improve the performance of fetching the images
-    const images = await fetchDeforestationImages(
-      selectedCountry!,
-      selectedMapsForReport,
-      selectedFarmsForReport,
-      filteredDeforestationAnalysisResults
-    );
-
-    const pdfBlob = await pdf(
-      <DeforestationReportDocument
-        farmsData={selectedFarmsForReport}
-        deforestationAnalysisResults={filteredDeforestationAnalysisResults}
-        mapsData={selectedMapsForReport}
-        images={images}
-        t={t}
-        language={locale}
-      />
-    ).toBlob();
-    // TODO: internationalize filename
-    saveAs(pdfBlob, "deforestation-complete-report.pdf");
-  }, [
-    selectedCountry,
-    selectedFarmsForReport,
-    filteredDeforestationAnalysisResults,
-    selectedMapsForReport,
-    t,
-    locale,
-  ]);
-
-  const downloadSeparatedReportsToFile = useCallback(async () => {
-    const zip = new JSZip();
-
-    // TODO: improve the performance of fetching the images
-    const images = await fetchDeforestationImages(
-      selectedCountry!,
-      selectedMapsForReport,
-      selectedFarmsForReport,
-      filteredDeforestationAnalysisResults
-    );
-
-    // Generate PDFs and add them to zip
-    for (let i = 0; i < selectedFarmsForReport.length; i++) {
-      const farm = selectedFarmsForReport[i];
-      const pdfBlob = await pdf(
-        <DeforestationReportDocument
-          farmsData={[farm]}
-          deforestationAnalysisResults={filteredDeforestationAnalysisResults}
-          mapsData={selectedMapsForReport}
-          images={images}
-          t={t}
-          language={locale}
-        />
-      ).toBlob();
-
-      zip.file(`report_farm_${farm.id}.pdf`, pdfBlob);
-    }
-
-    // Generate ZIP and trigger download
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-    // TODO: internationalize filename
-    saveAs(zipBlob, "deforestation-reports.zip");
-  }, [
-    selectedCountry,
-    selectedFarmsForReport,
-    filteredDeforestationAnalysisResults,
-    selectedMapsForReport,
-    t,
-    locale,
-  ]);
-
-  const downloadSeparatedReportsWrapper = useCallback(async () => {
+  const downloadSeparatedReports = useCallback(async () => {
     try {
-      await downloadSeparatedReportsToFile();
+      const zipBlob = await getSeparatedReports();
+      // TODO: internationalize filename
+      saveAs(zipBlob, "deforestation-reports.zip");
     } catch (error) {
       // A layer got a new raster after the analysis: re-run it instead of
       // producing reports that mix both rasters.
@@ -116,11 +29,13 @@ export const useDeforestationReportDownload = () => {
         type: "error",
       });
     }
-  }, [downloadSeparatedReportsToFile, invalidateAnalysis, openSnackbar, t]);
+  }, [getSeparatedReports, invalidateAnalysis, openSnackbar, t]);
 
-  const downloadCompleteReportWrapper = useCallback(async () => {
+  const downloadCompleteReport = useCallback(async () => {
     try {
-      await downloadCompleteReportToFile();
+      const pdfBlob = await getCompleteReport();
+      // TODO: internationalize filename
+      saveAs(pdfBlob, "deforestation-complete-report.pdf");
     } catch (error) {
       if (error instanceof MapLayerChangedError) return invalidateAnalysis();
       console.error("Error downloading complete report:", error);
@@ -129,10 +44,7 @@ export const useDeforestationReportDownload = () => {
         type: "error",
       });
     }
-  }, [downloadCompleteReportToFile, invalidateAnalysis, openSnackbar, t]);
+  }, [getCompleteReport, invalidateAnalysis, openSnackbar, t]);
 
-  return {
-    downloadCompleteReport: downloadCompleteReportWrapper,
-    downloadSeparatedReports: downloadSeparatedReportsWrapper,
-  };
+  return { downloadCompleteReport, downloadSeparatedReports };
 };

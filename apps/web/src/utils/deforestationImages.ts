@@ -1,4 +1,4 @@
-import { flatten } from "lodash";
+import { flatten, uniq } from "lodash";
 import { generateGeoJsonFeature } from "@/utils/geojson";
 import pLimit from "p-limit";
 import {
@@ -9,12 +9,21 @@ import { FarmData } from "@/interfaces/Farm";
 import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import { generatePolygonDeforestationImage } from "@/api/deforestationAnalysis";
 
+export interface DeforestationImageBlob {
+  mapId: number;
+  farmId: string;
+  blob: Blob;
+}
+
 export const fetchDeforestationImages = async (
   country: string,
   selectedMapsForReport: MapData[],
   selectedFarmsForReport: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[]
-): Promise<{ mapId: number; farmId: string; url: string }[]> => {
+): Promise<DeforestationImageBlob[]> => {
+  // Map-major on purpose: the first map's requests fetch each farm's satellite
+  // image, and the API serves the next maps' from its cache. Grouping a farm's
+  // requests instead measured twice as slow (fewer Google calls in parallel).
   const payloads = flatten(
     selectedMapsForReport.map(({ id: mapId }) =>
       selectedFarmsForReport
@@ -39,9 +48,11 @@ export const fetchDeforestationImages = async (
     )
   );
 
+  // The API fetches one satellite image per farm, whatever the number of maps.
+  const satelliteRequests = uniq(payloads.map((p) => p.farmId)).length;
   const includeSatelitalBackground =
     !MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION ||
-    payloads.length <=
+    satelliteRequests <=
       MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION;
 
   const limit = pLimit(20);
@@ -57,11 +68,10 @@ export const fetchDeforestationImages = async (
       ).then((blob) => ({
         mapId: payload.mapId,
         farmId: payload.farmId,
-        url: URL.createObjectURL(blob),
+        blob,
       }))
     )
   );
 
-  const results = await Promise.all(promises);
-  return results;
+  return Promise.all(promises);
 };

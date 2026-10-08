@@ -1,10 +1,15 @@
+import asyncio
+import time
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+import httpx
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config.constants import FarmDefaults
 from app.main import app
+from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.polygons import get_point_area_and_radius
 
 client = TestClient(app)
@@ -333,7 +338,7 @@ def test_generate_image_checks_the_analysed_version(
         "version": 3,
     }
     mock_get_map_raster_path.return_value = "dummy/path.tif"
-    mock_generate.return_value = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
+    mock_generate.return_value = Image.new("RGBA", (500, 500), (0, 64, 0, 255))
     url = "/deforestation_analysis/generate-image?include_satelital_background=false"
 
     # The analysis used an older raster: the image would not match its results.
@@ -347,8 +352,64 @@ def test_generate_image_checks_the_analysed_version(
         url, json={"mapId": 1, "version": 3, "feature": GENERATE_IMAGE_FEATURE}
     )
     assert response.status_code == 200
-    assert response.headers["Content-Type"] == "image/png"
+    # JPEG: the report embeds it as is (see _encode_jpeg).
+    assert response.headers["Content-Type"] == "image/jpeg"
+    image = Image.open(BytesIO(response.content))
+    assert (image.format, image.mode, image.size) == ("JPEG", "RGB", (500, 500))
 
     # Clients that don't send a version keep working.
     response = client.post(url, json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE})
     assert response.status_code == 200
+
+
+@patch(
+    "app.utils.image_generation.MapImageGenerator.RasterManipulationHelper"
+    ".generate_deforestation_image_from_bounds",
+    side_effect=NoRasterDataOverlapError("no overlap"),
+)
+@patch("app.utils.image_generation.MapImageGenerator.GeometryHelper")
+@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
+@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+def test_generate_image_does_not_block_other_requests(
+    mock_get_map_by_id, mock_get_map_raster_path, mock_geometry_helper, _
+):
+    """The image's CPU-bound work runs in threads: the API keeps answering."""
+    mock_get_map_by_id.return_value = {
+        "id": 1,
+        "raster_filename": "a.tif",
+        "version": 1,
+    }
+    mock_get_map_raster_path.return_value = "dummy/path.tif"
+    mock_geometry_helper.calculate_geometry_bounds.return_value = (0, 0.01, 0, 0.01)
+
+    def slow_overlay(*args, **kwargs):
+        time.sleep(0.5)  # blocking, like drawing a large polygon
+        return Image.new("RGBA", (500, 500), (0, 0, 0, 0))
+
+    mock_geometry_helper.create_feature_overlay.side_effect = slow_overlay
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
+            image = asyncio.ensure_future(
+                http.post(
+                    "/deforestation_analysis/generate-image"
+                    "?include_satelital_background=false",
+                    json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE},
+                )
+            )
+            # Ping while the image is generated: a blocked event loop would hold a
+            # ping for the whole overlay (0.5 s).
+            latencies = []
+            while not image.done():
+                started = time.perf_counter()
+                live = await http.get("/health/live")
+                assert live.status_code == 200
+                latencies.append(time.perf_counter() - started)
+                await asyncio.sleep(0.02)
+            return await image, latencies
+
+    image, latencies = asyncio.run(run())
+    assert image.status_code == 200
+    assert len(latencies) > 5
+    assert max(latencies) < 0.2

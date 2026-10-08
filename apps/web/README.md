@@ -280,9 +280,19 @@ NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL=  # URL to parse excel file data i
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation analysis
 NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
 NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
+NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION= # Most farms whose report images get a satellite background (one Google Static Maps call per farm); above it they get a solid one. Empty = no limit
 ```
 
 The overlap and deforestation thresholds are not frontend variables: the API owns them (`OVERLAP_THRESHOLD_PERCENTAGE`, `DEFORESTATION_THRESHOLD_PERCENTAGE`) and publishes them at `GET /config`. The app loads them once at startup (`src/config/runtime.ts`) and renders the pages only after they arrive; if they can't be loaded it shows an error with a retry button.
+
+### PDF report
+
+The report is rendered in the browser with `@react-pdf/renderer`, off the main thread:
+
+- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /deforestation_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
+- Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
+- Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
+- The fonts (`public/fonts/roboto`, OFL) and images are served by the app itself: rendering makes no third-party requests.
 
 The endpoints of each module are defined as environment variables because this project is modularized and each module has its own backend service. You could use your own backend services by changing the environment variables and following the same structure for the requests and responses.
 

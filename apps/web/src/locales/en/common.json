@@ -47,7 +47,8 @@
     "errorParsingDataForGeoJson": "There was an error parsing the data to generate the GeoJSON file",
     "errorGeneratingGeoJsonFile": "There was an error generating the GeoJSON file",
     "errorDownloadingSeparatedReports": "There was an error downloading the separated reports",
-    "errorDownloadingCompleteReport": "There was an error downloading the complete report"
+    "errorDownloadingCompleteReport": "There was an error downloading the complete report",
+    "errorGeneratingReportPreview": "There was an error generating the report preview"
   },
   "parseFileError": {
     "mandatoryDataMissing": "Missing mandatory data ({{header}}) in row {{row}}",

@@ -1,3 +1,4 @@
+import asyncio
 from typing import Tuple
 
 from PIL import Image
@@ -107,9 +108,13 @@ class MapImageGenerator:
             satellite_img = MapImageGenerator.generate_solid_background(output_size)
             layers.append(satellite_img)
 
-        # Create geometry overlay
-        geometry_overlay = GeometryHelper.create_feature_overlay(
-            geometry, output_size, zoom_level, point_radius_meters
+        # Create geometry overlay (CPU-bound drawing: off the event loop)
+        geometry_overlay = await asyncio.to_thread(
+            GeometryHelper.create_feature_overlay,
+            geometry,
+            output_size,
+            zoom_level,
+            point_radius_meters,
         )
         layers.append(geometry_overlay)
 
@@ -135,5 +140,7 @@ class MapImageGenerator:
                 f"Error processing deforestation data: {str(e)}"
             ) from e
 
-        # Combine all layers
-        return ImageManipulationHelper.combine_image_layers(*layers)
+        # Combine all layers (decodes the satellite image: off the event loop)
+        return await asyncio.to_thread(
+            ImageManipulationHelper.combine_image_layers, *layers
+        )
