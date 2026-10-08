@@ -14,6 +14,7 @@
 - Give each country its own layers and its own admin. Layers live in one folder per country under `MAPS_ROOT`, with a country registry (`countries.json`) holding each country's passkey hash. Manage countries with `uv run python -m app.modules.admin.countries add|list|rotate|disable|enable` (in Azure, `./azure/deploy.sh countries …`); changes apply without a restart
 - Add `GET /countries` (the countries with at least one published layer) and a `country` filter to `GET /maps`. The landing page and the header selector use them
 - Add a migration command (`uv run python -m app.modules.layers.migrate_countries`) that builds the per-country layout from the flat one, copying GFW and TMF into each country, and `tests.regression.parity --mapping` to compare both layouts
+- Add unit tests to the web (Vitest, `pnpm test` in `apps/web`, also run by the root `pnpm test`): the formatting and domain helpers, upload validation against the real upload templates, en/es translation parity and the hooks that read the analysis data. CI runs them in the frontend job, renamed `Tests, type-check, lint, build` (it was `Type-check, lint, build`; the `dev` and `main` rulesets require the new name, see `docs/branch_protection.md`)
 
 ### Changed
 
@@ -43,6 +44,8 @@
 - The separated reports download no longer fetches every image again (it made up to 300 image requests and took minutes), and the report preview no longer regenerates itself when the page's state changes
 - The report's satellite background no longer turns off from 34 farms with 3 layers
 - Show an error with a "Retry" button when the report preview can't be generated, instead of a blank page
+- With a 1% overlap or deforestation threshold, percentages above it lost their decimal (1.4% showed as "1%", 10.5% as "10%"). Values above a threshold now show as many decimals as the threshold has, and at least one, in the tables, the map and the Excel and GeoJSON downloads
+- The "below the threshold" label follows the page's language ("< 0,5%" in Spanish, not "< 0.5%")
 
 ### Security
 

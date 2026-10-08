@@ -12,6 +12,11 @@ export const setRuntimeConfig = (config: RuntimeConfig) => {
   runtimeConfig = config;
 };
 
+/** Back to "not loaded". For tests, so a config doesn't leak from one to the next. */
+export const resetRuntimeConfig = () => {
+  runtimeConfig = null;
+};
+
 export const isRuntimeConfigLoaded = () => runtimeConfig !== null;
 
 const loaded = (): RuntimeConfig => {

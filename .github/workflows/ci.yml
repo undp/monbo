@@ -3,12 +3,13 @@ name: CI
 # One workflow for both apps and the infrastructure. A `changes` job reads the pull
 # request's files and the other jobs run only for what it touches.
 #
-# Required checks are the two job names ("Test and static checks", "Type-check,
-# lint, build"), matched by the dev and main rulesets. That is why the filtering
-# lives in each job's `if:` and not in a workflow-level `paths:` filter: a job
-# skipped by its own condition reports success, while a workflow skipped by a
+# Required checks are the two job names ("Test and static checks", "Tests,
+# type-check, lint, build"), matched by the dev and main rulesets. That is why the
+# filtering lives in each job's `if:` and not in a workflow-level `paths:` filter: a
+# job skipped by its own condition reports success, while a workflow skipped by a
 # trigger filter never reports and leaves the PR waiting forever
-# (docs/branch_protection.md).
+# (docs/branch_protection.md). Renaming either job means changing both rulesets in
+# the same step (docs/branch_protection.md, "Renaming a required check").
 
 on:
   pull_request:
@@ -133,7 +134,7 @@ jobs:
         run: uv run python -m app.openapi --check
 
   web:
-    name: Type-check, lint, build
+    name: Tests, type-check, lint, build
     needs: changes
     # Same rules as the api job (fail-open, drafts skipped).
     if: >-
@@ -185,6 +186,11 @@ jobs:
 
       - name: Lint
         run: pnpm run lint
+
+      # Vitest unit tests (apps/web/README.md, Testing). Before the build, the
+      # slowest step, so a failing test stops the job early.
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm run build

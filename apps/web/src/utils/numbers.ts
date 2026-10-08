@@ -15,21 +15,39 @@ const languageLocale = {
 const DEFAULT_DECIMAL_PLACES = 1;
 const DEFAULT_DISPLAY_THRESHOLD = Math.pow(10, -DEFAULT_DECIMAL_PLACES);
 
+const MAX_THRESHOLD_DECIMAL_PLACES = 6;
+
 /**
- * Determines appropriate decimal places based on threshold value
- * @param {number} threshold - A threshold value, between 0 and 1
+ * The decimal places a threshold is written with (0.25 → 2, 1 → 0). Uses toFixed
+ * instead of String() so float noise (0.1 + 0.2) and exponent notation don't count.
+ * @param {number} threshold - A threshold, in percent (0-100)
+ */
+const getThresholdDecimalPlaces = (threshold: number): number => {
+  for (let places = 0; places < MAX_THRESHOLD_DECIMAL_PLACES; places++) {
+    if (Number(threshold.toFixed(places)) === threshold) return places;
+  }
+  return MAX_THRESHOLD_DECIMAL_PLACES;
+};
+
+/**
+ * Decimal places for a value above the threshold: as many as the threshold has,
+ * and at least DEFAULT_DECIMAL_PLACES (a 1% threshold still shows "1,4%").
+ * @param {number} threshold - A threshold, in percent (0-100)
  * @returns {number} Number of decimal places to display
  */
-const getDecimalPlacesForThreshold = (threshold: number): number => {
-  // If threshold is 0, use a reasonable default
-  if (threshold === 0) return DEFAULT_DECIMAL_PLACES;
+const getDecimalPlacesForThreshold = (threshold: number): number =>
+  Math.max(DEFAULT_DECIMAL_PLACES, getThresholdDecimalPlaces(threshold));
 
-  // Calculate decimal places needed to show the threshold value meaningfully
-  // Add 1 more place than needed to show the threshold itself
-  const thresholdPlaces = Math.ceil(Math.abs(Math.log10(threshold)));
-
-  return thresholdPlaces;
-};
+/**
+ * The label of a value at or below a threshold, e.g. "< 0,5%" in Spanish.
+ * @param {number} threshold - A threshold, in percent (0-100)
+ */
+const formattedBelowThreshold = (threshold: number, language: string): string =>
+  `< ${formatPercentage(
+    threshold / 100,
+    getThresholdDecimalPlaces(threshold),
+    language
+  )}`;
 
 // Computed per call: the thresholds come from GET /config at startup.
 const deforestationDecimalPlaces = () =>
@@ -128,7 +146,7 @@ export const formatOverlapPercentage = (
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isOverlapAboveThreshold(value))
-    return `< ${getOverlapThreshold()}%`;
+    return formattedBelowThreshold(getOverlapThreshold(), language);
 
   return formatPercentage(value, overlapDecimalPlaces(), language);
 };
@@ -161,7 +179,7 @@ export const formatDeforestationPercentage = (
 
   // Threshold defined by user, so we use it for displaying deforestation
   if (!isDeforestationAboveThreshold(value))
-    return `< ${getDeforestationThreshold()}%`;
+    return formattedBelowThreshold(getDeforestationThreshold(), language);
 
   return formatPercentage(value, deforestationDecimalPlaces(), language);
 };
