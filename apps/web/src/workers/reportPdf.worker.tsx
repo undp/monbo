@@ -2,6 +2,7 @@ import { pdf } from "@react-pdf/renderer";
 import JSZip from "jszip";
 import type { TFunction } from "i18next";
 import initTranslations from "@/utils/i18n";
+import i18nConfig from "@/i18nConfig";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
   DeforestationReportDocument,
@@ -22,6 +23,14 @@ const scope = self as unknown as Worker;
 // The namespaces the report reads (it always prefixes its keys).
 const NAMESPACES = ["reportGeneration", "common", "deforestationAnalysis"];
 
+// Only this page messages the worker, but the locale picks the translations: use
+// the configured value that matches it, never the message's own string.
+const supportedLocale = (locale: string) => {
+  const supported = i18nConfig.locales.find((l) => l === locale);
+  if (!supported) throw new Error(`Unsupported locale: ${locale}`);
+  return supported;
+};
+
 const translations = new Map<string, Promise<TFunction>>();
 const getT = (locale: string) => {
   if (!translations.has(locale))
@@ -35,7 +44,8 @@ const getT = (locale: string) => {
 const render = async (request: ReportPdfRequest): Promise<Blob> => {
   registerReportFonts();
   setRuntimeConfig(request.config);
-  const t = await getT(request.locale);
+  const locale = supportedLocale(request.locale);
+  const t = await getT(locale);
   const images = request.images.map(({ mapId, farmId, blob }) => ({
     mapId,
     farmId,
@@ -50,7 +60,7 @@ const render = async (request: ReportPdfRequest): Promise<Blob> => {
         mapsData={request.maps}
         images={images}
         t={t}
-        language={request.locale}
+        language={locale}
         showLinks={request.showLinks}
       />
     ).toBlob();
