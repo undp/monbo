@@ -98,7 +98,7 @@ This module is responsible for providing the necessary data and assets to genera
 
 Also, view the report generation docs at Frontend documentation [here](apps/web/README.md).
 
-The file generated is a PNG image combining a satelital background with the polygon drawn on top of it and the deforestation areas surrounding the polygon.
+The file generated is a JPEG image combining a satellite background with the polygon drawn on top of it and the deforestation areas surrounding the polygon. Each farm's satellite image is fetched from Google once and reused for every layer (see [the architecture](/docs/architecture.md#4-report-images)).
 
 ![](/docs/deforestation_image_example.png)
 

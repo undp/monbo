@@ -1,11 +1,15 @@
 "use client";
 
-import { useDeforestationCompleteReportDocument } from "@/hooks/useDeforestationCompleteReportDocument";
-import { Box, CircularProgress } from "@mui/material";
-import { PDFViewer } from "@react-pdf/renderer";
+import { useContext } from "react";
+import { useTranslation } from "react-i18next";
+import { Alert, Box, Button, CircularProgress } from "@mui/material";
+import { ReportContext } from "@/context/ReportContext";
 
 export const ReportGenerationPreviewPageContent = () => {
-  const { document, isLoading } = useDeforestationCompleteReportDocument();
+  const { t } = useTranslation();
+  // Rendered in a worker (ReportProvider): the page stays responsive meanwhile.
+  const { previewUrl, isPreviewLoading, previewFailed, retryPreview } =
+    useContext(ReportContext);
 
   return (
     <Box
@@ -17,23 +21,27 @@ export const ReportGenerationPreviewPageContent = () => {
         alignItems: "center",
       }}
     >
-      {!!document && (
-        <Box
-          sx={{
-            width: isLoading ? "0%" : "100%",
-            height: isLoading ? "0%" : "100%",
-            visibility: isLoading ? "hidden" : "visible",
-          }}
-        >
-          <PDFViewer
-            style={{ width: "100%", height: "100%" }}
-            showToolbar={false}
-          >
-            {document}
-          </PDFViewer>
-        </Box>
+      {previewUrl && (
+        <iframe
+          // No toolbar, like the previous <PDFViewer showToolbar={false}>.
+          src={`${previewUrl}#toolbar=0`}
+          title={t("reportGeneration:preview:title")}
+          style={{ width: "100%", height: "100%", border: "none" }}
+        />
       )}
-      {isLoading && <CircularProgress size={100} />}
+      {isPreviewLoading && <CircularProgress size={100} />}
+      {previewFailed && (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={retryPreview}>
+              {t("reportGeneration:preview:retry")}
+            </Button>
+          }
+        >
+          {t("reportGeneration:preview:error")}
+        </Alert>
+      )}
     </Box>
   );
 };

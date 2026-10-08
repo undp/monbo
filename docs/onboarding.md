@@ -70,8 +70,8 @@ The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module
    them before showing the updated map or report.
 
 **Module 3 — Report**
-7. The user selects farms and maps; in the preview, an image is generated for each farm via **`POST /deforestation_analysis/generate-image`** (a PNG of the polygon with a red forest-loss overlay, with or without satellite background). The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
-8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
+7. The user selects farms and maps; in the preview, an image is generated for each farm and map via **`POST /deforestation_analysis/generate-image`** (a 500×500 JPEG of the polygon with a red forest-loss overlay, with or without satellite background; the API fetches each farm's satellite image from Google once and caches it for the other maps). The images are fetched once per selection (`ReportProvider`) and shared by the preview and both downloads. The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
+8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`, in a Web Worker (`src/workers/reportPdf.worker.tsx`) so the page stays responsive: the preview is the worker's blob shown in an `iframe`, and the complete report is pre-rendered so "Download" saves it at once; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
 
 ### 2.3 The heart of the product: the deforestation calculation
 

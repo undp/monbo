@@ -30,12 +30,19 @@
 - Merging into `dev` deploys the `dev` environment in Azure (`.github/workflows/deploy.yml`), as a managed identity trusted only for GitHub's `dev` environment (no stored Azure credentials), with automatic rollback of failed deploys
 - The Azure environment is declared in Terraform (`infra/terraform/`, stacks `platform` and `apps`, one `envs/<env>.tfvars` per environment) and deployed with `infra/deploy.sh <env>`. `azure/deploy.sh`, `render_api_app.py` and `deploy.env` are removed: seeding the share and managing countries move to `tools/layers-ops/layers-ops.sh <env> seed|countries`. The container registry's admin user is off (the apps pull with a managed identity), logs go to a declared Log Analytics workspace, and the development environment is rebuilt as `dev` under new names (`monbo-dev-*`), so its URLs change. The Azure subscription is no longer in any repository file (`ARM_SUBSCRIPTION_ID`)
 - The repository moves to `apps/` and `tools/`: `monbo-api/` is now `apps/api/`, `monbo-front/` is `apps/web/`, and `scripts/update-gfw-tmf/` is `tools/update-gfw-tmf/`. Package, image, Container App and CI job names don't change
+- The PDF report renders in a Web Worker, so the page no longer freezes while it is generated. The report page fetches its images once and shares them between the preview and both downloads, and pre-renders the complete report once the preview is shown, so "Download" saves it at once. On the reference report (50 farms × 3 layers, production build): preview 34.3 s → 8.7 s, complete download 43.7 s → 0.04 s, separated download (ZIP) 395 s → 7.5 s
+- `POST /deforestation_analysis/generate-image` returns a JPEG (about 5× smaller than the previous PNG), so the complete PDF goes from 42 MB to 17 MB. The API fetches each farm's satellite image from Google Static Maps once for all layers (an in-memory cache of 10 minutes), keeps rasters open between requests and draws the images in threads: a report makes one Google call per farm instead of one per farm and layer
+- The report's fonts (Roboto, Apache 2.0) are served by the frontend instead of `fonts.gstatic.com`, and the cover image is lighter
+- `NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION` counts distinct farms, which is what costs Google calls, instead of farm × layer pairs
 
 ### Fixed
 
 - Show layer names, aliases and considerations in the page's language (they were always in English)
 - Keep retained farms and report selections aligned with the analysis country, and ignore analysis responses from an earlier country or layer selection
 - Accept only `https:` and `mailto:` links for the landing page contact button
+- The separated reports download no longer fetches every image again (it made up to 300 image requests and took minutes), and the report preview no longer regenerates itself when the page's state changes
+- The report's satellite background no longer turns off from 34 farms with 3 layers
+- Show an error with a "Retry" button when the report preview can't be generated, instead of a blank page
 
 ### Security
 

@@ -239,7 +239,23 @@ to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
 
 `POST /deforestation_analysis/generate-image` (feature, layer id, country) draws the
 raster around a farm on top of a Google Maps satellite image (Static Maps API, with
-the API's key and signature secret), for the PDF report.
+the API's key and signature secret), for the PDF report. It returns a 500×500 JPEG
+(quality 85, no chroma subsampling), which the report embeds as is.
+
+- **One satellite call per farm.** The satellite image depends only on the farm's
+  center and zoom, not on the layer, so the API caches it in memory: bounded (256
+  images), for 10 minutes, and shared by concurrent requests. A report's images for
+  several layers make one Google call per farm. Failed calls aren't cached.
+- **Rasters stay open.** The rasters are kept open between requests (an LRU of 16,
+  keyed by the versioned filename and checked against the file's mtime and size, so
+  a raster rewritten in place, as by a seed, is reopened), with one reader at a time
+  per raster: GDAL handles aren't thread-safe.
+- **The event loop isn't blocked.** Drawing the overlay, compositing and encoding run
+  in threads, so tiles and other requests keep being served while a report's images
+  are generated.
+
+The PDF itself is rendered by the frontend in a Web Worker (see
+[the frontend's README](../apps/web/README.md#pdf-report)).
 
 ### Raster versions and concurrency
 

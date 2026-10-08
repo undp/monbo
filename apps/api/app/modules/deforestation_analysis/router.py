@@ -190,8 +190,14 @@ async def generate_image(
     except NoRasterDataOverlapError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    img_io = BytesIO()
-    img.save(img_io, format="PNG")
-    img_io.seek(0)
+    content = await run_in_threadpool(_encode_jpeg, img)
+    return Response(content, media_type="image/jpeg")
 
-    return Response(img_io.read(), media_type="image/png")
+
+def _encode_jpeg(img) -> bytes:
+    """JPEG, not PNG: the report embeds it as is, and it is several times smaller.
+    The image is opaque (satellite or solid background), and 4:4:4 (no chroma
+    subsampling) keeps the outline and the deforestation pixels sharp."""
+    img_io = BytesIO()
+    img.convert("RGB").save(img_io, format="JPEG", quality=85, subsampling=0)
+    return img_io.getvalue()

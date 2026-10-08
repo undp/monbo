@@ -31,6 +31,11 @@
     "generateReport": "Generar reporte",
     "download": "Descargar"
   },
+  "preview": {
+    "title": "Vista previa del reporte",
+    "error": "Ocurrió un error al generar la vista previa del reporte",
+    "retry": "Reintentar"
+  },
   "downloadTypeSelectionModal": {
     "title": "¿Cómo quieres descargar el reporte?",
     "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",

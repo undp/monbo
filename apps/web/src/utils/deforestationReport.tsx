@@ -13,6 +13,7 @@ import {
 } from "./deforestationReport/sections";
 import { flatten } from "lodash";
 import { styles } from "./deforestationReport/styles";
+import { assetUrl } from "./deforestationReport/assets";
 
 export interface DeforestationReportImage {
   mapId: number;
@@ -20,42 +21,32 @@ export interface DeforestationReportImage {
   url: string | null;
 }
 
-// Register Roboto font
-Font.register({
-  family: "Roboto",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOjCnqEu92Fr1Mu51TjASc6CsQ.ttf",
-      fontWeight: 300, // Light ✅
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf",
-      fontWeight: 400, // Regular ✅
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOkCnqEu92Fr1Mu51xIIzc.ttf",
-      fontWeight: 400,
-      fontStyle: "italic", // Regular Italic
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc9.ttf",
-      fontWeight: 500, // Medium ✅
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf",
-      fontWeight: 700, // Bold (Roboto has no 600 weight) ✅
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc-.ttf",
-      fontWeight: 700,
-      fontStyle: "italic", // Bold Italic
-    },
-    {
-      src: "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu7GxK.ttf",
-      fontWeight: 900, // Black (Optional, if you need heavier text) ✅
-    },
-  ],
-});
+// Served by the web itself (public/fonts/roboto, Apache 2.0): every weight and style
+// the report uses. The layers' considerations are markdown, and their _italic_ and
+// **_bold italic_** need the italic faces: a missing face fails the whole render.
+let fontsRegistered = false;
+export const registerReportFonts = () => {
+  if (fontsRegistered) return;
+  fontsRegistered = true;
+  Font.register({
+    family: "Roboto",
+    fonts: [
+      { src: assetUrl("/fonts/roboto/Roboto-Regular.ttf"), fontWeight: 400 },
+      { src: assetUrl("/fonts/roboto/Roboto-Medium.ttf"), fontWeight: 500 },
+      { src: assetUrl("/fonts/roboto/Roboto-Bold.ttf"), fontWeight: 700 },
+      {
+        src: assetUrl("/fonts/roboto/Roboto-Italic.ttf"),
+        fontWeight: 400,
+        fontStyle: "italic",
+      },
+      {
+        src: assetUrl("/fonts/roboto/Roboto-BoldItalic.ttf"),
+        fontWeight: 700,
+        fontStyle: "italic",
+      },
+    ],
+  });
+};
 
 // Create Document Component
 export const DeforestationReportDocument = ({

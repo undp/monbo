@@ -23,6 +23,9 @@ const loaded = (): RuntimeConfig => {
   return runtimeConfig;
 };
 
+/** The whole config, to hand it to the PDF worker (which has its own module copy). */
+export const getRuntimeConfig = (): RuntimeConfig => loaded();
+
 /** Overlap threshold, in percent (0-100). */
 export const getOverlapThreshold = () => loaded().overlapThresholdPercentage;
 

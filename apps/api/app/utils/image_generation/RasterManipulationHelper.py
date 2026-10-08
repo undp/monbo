@@ -11,7 +11,7 @@ from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.constants import MapColors, MapDefaults
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
-from app.utils.image_generation.RasterDataContext import RasterDataContext
+from app.utils.image_generation.RasterDatasetCache import raster_dataset_cache
 
 
 class RasterManipulationHelper:
@@ -51,23 +51,34 @@ class RasterManipulationHelper:
             center_lat, center_lon, zoom_level, output_size
         )
 
-        async with RasterDataContext(tif_path) as vrt:
-            # Convert lat/lon bounds to the VRT's CRS (Web Mercator)
-            transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+        # Convert lat/lon bounds to the VRT's CRS (Web Mercator)
+        transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
-            # Transform bounds from WGS84 to Web Mercator
-            # For Web Mercator, the coordinates should be (x=longitude, y=latitude)
-            min_x, min_y = transformer.transform(min_lon, min_lat)
-            max_x, max_y = transformer.transform(max_lon, max_lat)
+        # Transform bounds from WGS84 to Web Mercator
+        # For Web Mercator, the coordinates should be (x=longitude, y=latitude)
+        min_x, min_y = transformer.transform(min_lon, min_lat)
+        max_x, max_y = transformer.transform(max_lon, max_lat)
 
-            # Define the web mercator bounds for clipping - ensure correct ordering
-            web_mercator_bounds = (
-                min(min_x, max_x),  # minx
-                min(min_y, max_y),  # miny
-                max(min_x, max_x),  # maxx
-                max(min_y, max_y),  # maxy
-            )
+        # Define the web mercator bounds for clipping - ensure correct ordering
+        web_mercator_bounds = (
+            min(min_x, max_x),  # minx
+            min(min_y, max_y),  # miny
+            max(min_x, max_x),  # maxx
+            max(min_y, max_y),  # maxy
+        )
 
+        # Get transform that maps between webmerc and image pixels
+        # This ensures exact pixel alignment with Google Maps tiles
+        dst_transform = from_bounds(
+            web_mercator_bounds[0],
+            web_mercator_bounds[1],
+            web_mercator_bounds[2],
+            web_mercator_bounds[3],
+            output_size[0],
+            output_size[1],
+        )
+
+        def read_window(vrt) -> np.ndarray:
             # Check if the bounds intersect with the VRT's bounds
             vrt_bounds = vrt.bounds
             if (
@@ -80,20 +91,8 @@ class RasterManipulationHelper:
                     "The requested viewport does not overlap with the map's raster data"
                 )
 
-            # Get transform that maps between webmerc and image pixels
-            # This ensures exact pixel alignment with Google Maps tiles
-            dst_transform = from_bounds(
-                web_mercator_bounds[0],
-                web_mercator_bounds[1],
-                web_mercator_bounds[2],
-                web_mercator_bounds[3],
-                output_size[0],
-                output_size[1],
-            )
-
             # Read the raster window
-            data = await asyncio.to_thread(
-                vrt.read,
+            return vrt.read(
                 1,
                 window=vrt.window(*web_mercator_bounds),
                 out_shape=output_size[::-1],  # (height, width)
@@ -103,13 +102,16 @@ class RasterManipulationHelper:
                 dst_transform=dst_transform,
             )
 
-            # Create deforestation mask using the defined colors
-            mask_data = (data == 1).astype(np.uint8)
-            rgba_data = np.zeros((output_size[1], output_size[0], 4), dtype=np.uint8)
-            rgba_data[..., 0] = mask_data * MapColors.DEFORESTATION[0]
-            rgba_data[..., 1] = mask_data * MapColors.DEFORESTATION[1]
-            rgba_data[..., 2] = mask_data * MapColors.DEFORESTATION[2]
-            rgba_data[..., 3] = mask_data * MapColors.DEFORESTATION[3]
+        # Off the event loop, on a raster kept open between requests.
+        data = await asyncio.to_thread(raster_dataset_cache.read, tif_path, read_window)
 
-            mask_img = Image.fromarray(rgba_data, mode="RGBA")
-            return mask_img
+        # Create deforestation mask using the defined colors
+        mask_data = (data == 1).astype(np.uint8)
+        rgba_data = np.zeros((output_size[1], output_size[0], 4), dtype=np.uint8)
+        rgba_data[..., 0] = mask_data * MapColors.DEFORESTATION[0]
+        rgba_data[..., 1] = mask_data * MapColors.DEFORESTATION[1]
+        rgba_data[..., 2] = mask_data * MapColors.DEFORESTATION[2]
+        rgba_data[..., 3] = mask_data * MapColors.DEFORESTATION[3]
+
+        mask_img = Image.fromarray(rgba_data, mode="RGBA")
+        return mask_img

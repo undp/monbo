@@ -5,6 +5,7 @@ import initTranslations from "@/utils/i18n";
 import { PageWithSearchParams } from "@/interfaces";
 import { PageFooter } from "@/components/page/reportGeneration/preview/PageFooter";
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
+import { ReportProvider } from "@/context/ReportContext";
 
 const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
 
@@ -22,8 +23,10 @@ export default async function ReportGenerationPreviewPage({
     >
       <AnalysisOutdatedGuard locale={locale}>
         <NavigateHomepageWhenEmptyData />
-        <ReportGenerationPreviewPageContent />
-        <PageFooter />
+        <ReportProvider>
+          <ReportGenerationPreviewPageContent />
+          <PageFooter />
+        </ReportProvider>
       </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );
