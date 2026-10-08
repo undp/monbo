@@ -4,7 +4,7 @@ import type {
   ReportPdfResponse,
 } from "./reportPdfProtocol";
 
-/** The worker was terminated (the page unmounted) before answering. */
+/** The page unmounted before the render was answered, or before it started. */
 export class ReportPdfWorkerTerminatedError extends Error {
   constructor() {
     super("The report worker was terminated");

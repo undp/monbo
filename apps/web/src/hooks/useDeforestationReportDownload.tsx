@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { ReportContext } from "@/context/ReportContext";
 import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
 
 export const useDeforestationReportDownload = () => {
   const { t } = useTranslation(["deforestationAnalysis", "common"]);
@@ -20,6 +21,8 @@ export const useDeforestationReportDownload = () => {
       // TODO: internationalize filename
       saveAs(zipBlob, "deforestation-reports.zip");
     } catch (error) {
+      // The user left the report page: there is nothing to save or to report.
+      if (error instanceof ReportPdfWorkerTerminatedError) return;
       // A layer got a new raster after the analysis: re-run it instead of
       // producing reports that mix both rasters.
       if (error instanceof MapLayerChangedError) return invalidateAnalysis();
@@ -37,6 +40,7 @@ export const useDeforestationReportDownload = () => {
       // TODO: internationalize filename
       saveAs(pdfBlob, "deforestation-complete-report.pdf");
     } catch (error) {
+      if (error instanceof ReportPdfWorkerTerminatedError) return;
       if (error instanceof MapLayerChangedError) return invalidateAnalysis();
       console.error("Error downloading complete report:", error);
       openSnackbar({

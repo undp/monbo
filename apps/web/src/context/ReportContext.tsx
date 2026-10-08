@@ -132,6 +132,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   ]);
 
   const clientRef = useRef<ReportPdfClient | null>(null);
+  const mountedRef = useRef(true);
   const imagesRef = useRef<Keyed<DeforestationImageBlob[]>>(null);
   const previewRef = useRef<Keyed<Blob>>(null);
   const completeRef = useRef<Keyed<Blob>>(null);
@@ -145,6 +146,9 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       const images = await keyed(imagesRef, s.key, () =>
         fetchDeforestationImages(s.country, s.maps, s.farms, s.results)
       );
+      // The page may have gone away while the images were fetched. Its cleanup
+      // found no worker to terminate then, so don't start one now.
+      if (!mountedRef.current) throw new ReportPdfWorkerTerminatedError();
       clientRef.current ??= new ReportPdfClient();
       return clientRef.current.render({
         kind,
@@ -162,15 +166,16 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   // The worker lives as long as the page. Renders it had in progress are dropped
   // with it, so a remount (React's dev double mount) starts them again.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       clientRef.current?.terminate();
       clientRef.current = null;
       previewRef.current = null;
       completeRef.current = null;
-    },
-    []
-  );
+    };
+  }, []);
 
   const [preview, setPreview] = useState<{ key: string; url: string } | null>(
     null
