@@ -139,7 +139,7 @@
 - [x] 5.2 Worker lifecycle on the preview page: created lazily, reused, terminated on unmount. Errors from the worker reach the existing snackbars
 
   - The worker is terminated on unmount, and the renders in progress are dropped (React's dev double mount restarts them).
-  - Preview errors get a new snackbar (`errorGeneratingReportPreview`, en and es); before, they were unhandled.
+  - Preview errors replace the spinner with an error and a "Retry" button (`reportGeneration:preview:error` / `retry`, en and es); before, they were unhandled and left a blank page.
 - [x] 5.3 Preview: replace `<PDFViewer>` with an iframe over the blob the worker returns (`showLinks=false`, no toolbar). Revoke its URL when the blob is replaced and on unmount
 - [x] 5.4 Pre-render the complete report with links in the worker once the preview is ready (D6):
   - "Download" saves that blob;

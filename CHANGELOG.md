@@ -42,7 +42,7 @@
 - Accept only `https:` and `mailto:` links for the landing page contact button
 - The separated reports download no longer fetches every image again (it made up to 300 image requests and took minutes), and the report preview no longer regenerates itself when the page's state changes
 - The report's satellite background no longer turns off from 34 farms with 3 layers
-- Show an error when the report preview can't be generated, instead of a blank page
+- Show an error with a "Retry" button when the report preview can't be generated, instead of a blank page
 
 ### Security
 

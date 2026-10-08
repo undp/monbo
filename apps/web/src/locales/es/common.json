@@ -47,8 +47,7 @@
     "errorParsingDataForGeoJson": "Ocurrió un error al procesar los datos para generar el archivo GeoJSON",
     "errorGeneratingGeoJsonFile": "Ocurrió un error al generar el archivo GeoJSON",
     "errorDownloadingSeparatedReports": "Ocurrió un error al descargar los reportes por separado",
-    "errorDownloadingCompleteReport": "Ocurrió un error al descargar el reporte completo",
-    "errorGeneratingReportPreview": "Ocurrió un error al generar la vista previa del reporte"
+    "errorDownloadingCompleteReport": "Ocurrió un error al descargar el reporte completo"
   },
   "parseFileError": {
     "mandatoryDataMissing": "Falta dato obligatorio ({{header}}) en la fila {{row}}",

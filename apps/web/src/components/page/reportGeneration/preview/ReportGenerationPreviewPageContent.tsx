@@ -2,13 +2,14 @@
 
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, CircularProgress } from "@mui/material";
+import { Alert, Box, Button, CircularProgress } from "@mui/material";
 import { ReportContext } from "@/context/ReportContext";
 
 export const ReportGenerationPreviewPageContent = () => {
   const { t } = useTranslation();
   // Rendered in a worker (ReportProvider): the page stays responsive meanwhile.
-  const { previewUrl, isPreviewLoading } = useContext(ReportContext);
+  const { previewUrl, isPreviewLoading, previewFailed, retryPreview } =
+    useContext(ReportContext);
 
   return (
     <Box
@@ -29,6 +30,18 @@ export const ReportGenerationPreviewPageContent = () => {
         />
       )}
       {isPreviewLoading && <CircularProgress size={100} />}
+      {previewFailed && (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={retryPreview}>
+              {t("reportGeneration:preview:retry")}
+            </Button>
+          }
+        >
+          {t("reportGeneration:preview:error")}
+        </Alert>
+      )}
     </Box>
   );
 };

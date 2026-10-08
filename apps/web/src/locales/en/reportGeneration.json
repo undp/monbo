@@ -32,7 +32,9 @@
     "download": "Download"
   },
   "preview": {
-    "title": "Report preview"
+    "title": "Report preview",
+    "error": "There was an error generating the report preview",
+    "retry": "Retry"
   },
   "downloadTypeSelectionModal": {
     "title": "How do you want to download the report?",

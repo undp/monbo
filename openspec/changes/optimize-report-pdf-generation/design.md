@@ -61,7 +61,7 @@ Facts that shape the design:
 - **Blobs, not URLs.** The images stay `Blob`s on the main thread; the worker creates and revokes their object URLs (D6). The only object URL on the page is the preview's, which is revoked when it's replaced and on unmount.
 - **Errors.**
   - `MapLayerChangedError` keeps triggering `invalidateAnalysis()`, as today.
-  - Any other preview error shows a snackbar (`errorGeneratingReportPreview`, new in en and es). Before, it was unhandled.
+  - Any other preview error replaces the spinner with an error and a "Retry" button (`reportGeneration:preview:error` / `retry`, new in en and es). The failed promise is forgotten, so the retry fetches or renders again. Before, the error was unhandled.
 - **Alternative: TanStack Query or SWR.** Neither is a dependency today. Adding one for a single cached call isn't worth it.
 - **Alternative: keep the images in `DataContext`.** That context already holds a lot. A provider scoped to the report page releases the blobs when the user leaves the page.
 

@@ -12,9 +12,7 @@ import {
   useState,
 } from "react";
 import { useParams } from "next/navigation";
-import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
-import { SnackbarContext } from "@/context/SnackbarContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
@@ -53,6 +51,9 @@ interface ReportContextValue {
   /** The rendered preview of the current selection, null while it renders. */
   previewUrl: string | null;
   isPreviewLoading: boolean;
+  /** The preview of the current selection failed; `retryPreview` tries again. */
+  previewFailed: boolean;
+  retryPreview: () => void;
   /** The complete report, with links: pre-rendered, or rendered now. */
   getCompleteReport: () => Promise<Blob>;
   /** A ZIP with one report per farm. */
@@ -65,6 +66,8 @@ const noSelection = () =>
 export const ReportContext = createContext<ReportContextValue>({
   previewUrl: null,
   isPreviewLoading: false,
+  previewFailed: false,
+  retryPreview: () => {},
   getCompleteReport: noSelection,
   getSeparatedReports: noSelection,
 });
@@ -87,8 +90,6 @@ const keyed = <T,>(
 };
 
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
-  const { t } = useTranslation();
-  const { openSnackbar } = useContext(SnackbarContext);
   const params = useParams();
   const locale = params.locale as string;
   const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
@@ -180,6 +181,9 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   const [preview, setPreview] = useState<{ key: string; url: string } | null>(
     null
   );
+  // The selection whose preview failed, until the user retries or changes it.
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!selection) return;
@@ -207,15 +211,18 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         // previewing a report that mixes both rasters.
         if (error instanceof MapLayerChangedError) return invalidateAnalysis();
         console.error("Error generating the report preview:", error);
-        openSnackbar({
-          message: t("common:snackbarAlerts:errorGeneratingReportPreview"),
-          type: "error",
-        });
+        // The failed promise was forgotten (`keyed`), so a retry renders again.
+        setFailedKey(selection.key);
       });
     return () => {
       active = false;
     };
-  }, [selection, render, invalidateAnalysis, openSnackbar, t]);
+  }, [selection, attempt, render, invalidateAnalysis]);
+
+  const retryPreview = useCallback(() => {
+    setFailedKey(null);
+    setAttempt((n) => n + 1);
+  }, []);
 
   // Release the preview's blob when the page goes away.
   const previewUrlRef = useRef<string | null>(null);
@@ -243,14 +250,25 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   }, [selection, render]);
 
   const isCurrent = !!selection && preview?.key === selection.key;
+  const previewFailed = !!selection && failedKey === selection.key;
   const value = useMemo(
     () => ({
       previewUrl: isCurrent ? preview!.url : null,
-      isPreviewLoading: !!selection && !isCurrent,
+      isPreviewLoading: !!selection && !isCurrent && !previewFailed,
+      previewFailed,
+      retryPreview,
       getCompleteReport,
       getSeparatedReports,
     }),
-    [isCurrent, preview, selection, getCompleteReport, getSeparatedReports]
+    [
+      isCurrent,
+      preview,
+      previewFailed,
+      retryPreview,
+      selection,
+      getCompleteReport,
+      getSeparatedReports,
+    ]
   );
 
   return (
