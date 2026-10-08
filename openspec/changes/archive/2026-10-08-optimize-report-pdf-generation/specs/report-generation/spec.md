@@ -2,7 +2,7 @@
 
 ### Requirement: Report images are fetched once per selection
 
-For a given selection of farms, maps and country, the web SHALL request each (farm, map) image from `POST /deforestation_analysis/generate-image` at most once. The preview, the complete-report download and the separated-reports download SHALL all use those images. Changing the selection SHALL fetch the images for the new selection. The web SHALL revoke the blob URLs of images it no longer uses, both when the selection changes and when the report page unmounts.
+For a given selection of farms, maps and country, the web SHALL request each (farm, map) image from `POST /deforestation_analysis/generate-image` at most once. The preview, the complete-report download and the separated-reports download SHALL all use those images. Changing the selection SHALL fetch the images for the new selection. The web SHALL release the images it no longer uses, and every object URL created for them, both when the selection changes and when the report page unmounts.
 
 #### Scenario: Download after preview
 
@@ -12,7 +12,7 @@ For a given selection of farms, maps and country, the web SHALL request each (fa
 #### Scenario: Selection changes
 
 - **WHEN** the user goes back, adds a map to the selection and returns to the preview
-- **THEN** the images for the new selection are fetched, and the blob URLs of the previous selection are revoked
+- **THEN** the images for the new selection are fetched, and the previous selection's images and object URLs are released
 
 #### Scenario: Layer changed during download
 
@@ -32,6 +32,11 @@ When `/generate-image` is called with `include_satelital_background=true` for th
 
 - **WHEN** 3 requests for the same farm and different maps arrive at the same time, before any satellite image is cached
 - **THEN** the API makes exactly 1 request to Google Static Maps, and all 3 responses include the background
+
+#### Scenario: A report larger than the cache
+
+- **WHEN** the web requests images for 300 farms × 3 maps with the satellite background, more farms than the cache holds
+- **THEN** the API still makes one request to Google Static Maps per farm
 
 #### Scenario: Failed fetch is not cached
 
@@ -65,6 +70,15 @@ The web SHALL decide whether to include the satellite background by comparing th
 
 - **WHEN** the request's `version` is older than the layer's
 - **THEN** the response is still 409, and no image is generated
+
+### Requirement: Report images use the raster currently on disk
+
+The API MAY keep rasters open between requests, but an image SHALL always be drawn from the file currently at the layer's raster path. When that file is replaced while the API runs (for example, when the layers share is seeded again), the next image SHALL be drawn from the new file, as `/analize` does.
+
+#### Scenario: Raster replaced at the same path
+
+- **WHEN** an image was generated for a layer, and then the file at its raster path is replaced with a different raster
+- **THEN** the next image for that layer is drawn from the new raster
 
 ### Requirement: Image generation does not block the API
 
@@ -108,6 +122,20 @@ Once the preview has rendered, the web SHALL render the complete report (with li
 - **WHEN** the user changes the selection and returns to the preview
 - **THEN** the downloaded report matches the new selection, never the previously pre-rendered one
 
+### Requirement: A failed preview can be retried
+
+When the preview can't be generated (the images can't be fetched, or the render fails), the web SHALL stop the loading indicator and show an error in the user's language with a way to retry. Retrying SHALL fetch or render again for the same selection. A layer that changed after the analysis SHALL still invalidate the analysis instead (`MapLayerChangedError`).
+
+#### Scenario: Preview fails
+
+- **WHEN** fetching the report's images fails
+- **THEN** the preview shows an error with a "Retry" button instead of a spinner that never ends
+
+#### Scenario: Retry
+
+- **WHEN** the user clicks "Retry" and the API answers this time
+- **THEN** the preview is generated for the same selection
+
 ### Requirement: No third-party requests to render the PDF
 
 Rendering the PDF SHALL NOT request resources from third-party hosts. The fonts and images embedded in the report SHALL be served by the web itself.
@@ -116,3 +144,17 @@ Rendering the PDF SHALL NOT request resources from third-party hosts. The fonts 
 
 - **WHEN** a report is generated
 - **THEN** no request is made to `fonts.gstatic.com` or any other third-party host, and the PDF uses Roboto
+
+### Requirement: The report renders every text style it uses
+
+The report SHALL have a font face for every weight and style its texts use, including the italic and bold italic of the layers' considerations (markdown `_italic_` and `**_bold italic_**`).
+
+#### Scenario: Considerations with italics
+
+- **WHEN** the report includes a layer whose considerations contain `_italic_` text (like Colombia's IDEAM)
+- **THEN** the PDF is generated, and that text is set in Roboto Italic
+
+#### Scenario: Bold italic
+
+- **WHEN** a layer's considerations contain `**_bold italic_**` text
+- **THEN** the PDF is generated, and that text is set in Roboto Bold Italic
