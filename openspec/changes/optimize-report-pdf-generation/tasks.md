@@ -87,12 +87,12 @@
   | map-major (the web today) | 2.48 s | 50 | 106 KB JPEG | 15.6 MB | 6 ms |
   | farm-major | 5.24–5.43 s | 50 | 106 KB JPEG | 15.6 MB | 4–5 ms |
 
-  **The farm-major order (D2) is slower, so it is not adopted.** Only ~7 Google calls run in parallel instead of 20. Map-major gets every cache hit while the report has ≤ 256 farms, and the satellite limit (100 in production) keeps it below that. See D2 in `design.md`.
+  **The farm-major order (D2) is slower, so it is not adopted.** Only ~7 Google calls run in parallel instead of 20. Map-major gets every cache hit while the report has ≤ 256 farms; to keep that above 256 farms (the limit can be unset), the web sends the requests by groups of 64 farms, map-major within each group, through one queue (review of PR #65). See D2 in `design.md`.
 
 ## 3. Web: images fetched once
 
 - [x] 3.1 `fetchDeforestationImages`:
-  - keep the map-major order (D2, measured in 2.7);
+  - keep the map-major order (D2, measured in 2.7), by groups of 64 farms so the API's cache is hit however many farms the report has;
   - count distinct farms for the satellite limit (D5);
   - return the `Blob` along with its URL
 
