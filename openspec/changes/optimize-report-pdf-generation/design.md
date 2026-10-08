@@ -102,6 +102,7 @@ The tile endpoint (`router.py:136`) keeps PNG: map tiles need transparency.
   - Tests and scripts that don't run the lifespan fall back to a lazily created client.
 - **Raster cache.**
   - An LRU (16 entries) of `(src, WarpedVRT)` keyed by raster path. Paths are versioned (see Context), so a new raster is a new key and stale entries age out. Eviction closes both handles.
+  - Each entry remembers the file's `(st_mtime_ns, st_size)` and `read` checks it with one `os.stat` (as `LayerStore.read_index` does): the admin never rewrites a path, but `layers-ops.sh seed` rewrites the same `<stem>-v1.tif` paths on a running API, and a cached handle would keep drawing the old raster while `/analize` reads the new one. A changed file is closed and reopened (review of PR #65).
   - GDAL dataset handles are not thread-safe, so each entry carries a `threading.Lock` held during `vrt.read`. A 500×500 window read is short. If it turns out to contend, the fallback is one entry per thread.
 - **No blocking.** `MapImageGenerator.generate` runs the overlay, the compositing and the JPEG encoding through `run_in_threadpool`. The raster read already does, through `asyncio.to_thread`. The router stops encoding in the event loop.
 

@@ -58,6 +58,7 @@
   - `RasterManipulationHelper` uses it instead of opening `RasterDataContext` on every request
 
   - `RasterDatasetCache.py`. A raster evicted while waiting for its lock is reopened.
+  - **After review:** a failed `WarpedVRT` closes the dataset it had opened (it leaked a GDAL handle per retry), and an entry is reopened when the file's mtime or size changed (a seed rewrites the same paths). Both with tests.
   - The lifespan closes the cache on shutdown.
   - The analysis (`deforestation_analysis/helpers.py`) still uses `RasterDataContext`: out of scope.
 - [x] 2.4 Move the overlay, the compositing and the encoding to the threadpool in `MapImageGenerator.generate` and in the `/generate-image` router (D4)

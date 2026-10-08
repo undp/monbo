@@ -1,3 +1,4 @@
+import os
 import threading
 from collections import OrderedDict
 from typing import Any, Callable, TypeVar
@@ -9,7 +10,8 @@ T = TypeVar("T")
 
 
 class _CachedRaster:
-    def __init__(self, path: str, target_crs: str):
+    def __init__(self, path: str, target_crs: str, signature: tuple[int, int]):
+        self.signature = signature
         self.src: Any = rasterio_open(path)
         try:
             self.vrt: Any = WarpedVRT(self.src, crs=target_crs)
@@ -33,9 +35,13 @@ class RasterDatasetCache:
     Keeps rasters open, warped to the target CRS, between requests. Synchronous:
     call it from a worker thread.
 
-    Keyed by path: a raster's filename names its version and is never replaced in
-    place (see `app.modules.layers.store`), so an entry can't go stale. The least
-    recently used rasters are closed beyond `max_entries`.
+    Keyed by path, and checked against the file's mtime and size on every read (as
+    `LayerStore.read_index` does): a raster's filename names its version and the
+    admin never replaces it in place (see `app.modules.layers.store`), but a seed
+    of the share rewrites the same `<stem>-v1.tif` paths, and a cached handle would
+    keep reading the old file while `/analize` reads the new one. A file that
+    changed is closed and reopened. The least recently used rasters are closed
+    beyond `max_entries`.
     """
 
     def __init__(self, max_entries: int = 16, target_crs: str = "EPSG:3857"):
@@ -65,13 +71,17 @@ class RasterDatasetCache:
 
     def _get(self, path: str) -> _CachedRaster:
         evicted: list[_CachedRaster] = []
+        stat = os.stat(path)
+        signature = (stat.st_mtime_ns, stat.st_size)
         with self._lock:
             entry = self._entries.get(path)
-            if entry is not None:
+            if entry is not None and entry.signature == signature:
                 self._entries.move_to_end(path)
                 return entry
+            if entry is not None:  # the file at this path changed: reopen it
+                evicted.append(self._entries.pop(path))
             # Opened under the lock, so two threads don't open the same raster.
-            entry = _CachedRaster(path, self.target_crs)
+            entry = _CachedRaster(path, self.target_crs, signature)
             self._entries[path] = entry
             while len(self._entries) > self.max_entries:
                 evicted.append(self._entries.popitem(last=False)[1])

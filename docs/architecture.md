@@ -247,8 +247,9 @@ the API's key and signature secret), for the PDF report. It returns a 500×500 J
   images), for 10 minutes, and shared by concurrent requests. A report's images for
   several layers make one Google call per farm. Failed calls aren't cached.
 - **Rasters stay open.** The rasters are kept open between requests (an LRU of 16,
-  keyed by the versioned filename), with one reader at a time per raster: GDAL
-  handles aren't thread-safe.
+  keyed by the versioned filename and checked against the file's mtime and size, so
+  a raster rewritten in place, as by a seed, is reopened), with one reader at a time
+  per raster: GDAL handles aren't thread-safe.
 - **The event loop isn't blocked.** Drawing the overlay, compositing and encoding run
   in threads, so tiles and other requests keep being served while a report's images
   are generated.

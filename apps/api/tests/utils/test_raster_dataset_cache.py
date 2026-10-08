@@ -1,3 +1,4 @@
+import os
 import shutil
 import threading
 from pathlib import Path
@@ -42,6 +43,22 @@ def test_evicted_rasters_are_closed_and_reopened(tmp_path):
     assert vrt_a.closed
     reopened = cache.read(a, lambda vrt: vrt)
     assert reopened is not vrt_a and not reopened.closed
+    cache.clear()
+
+
+def test_a_raster_rewritten_at_the_same_path_is_reopened(tmp_path):
+    """A seed rewrites `<stem>-v1.tif` in place: the old handle must not survive."""
+    (path,) = copies(tmp_path, 1)
+    cache = RasterDatasetCache(max_entries=2)
+    before = cache.read(path, lambda vrt: vrt)
+    # Same bytes, so the size is equal: only the mtime tells the files apart.
+    stat = os.stat(path)
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000))
+    after = cache.read(path, lambda vrt: vrt)
+    assert after is not before
+    assert before.closed and not after.closed
+    assert len(cache) == 1
+    assert cache.read(path, lambda vrt: vrt) is after
     cache.clear()
 
 
