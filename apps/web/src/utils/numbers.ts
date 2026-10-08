@@ -15,11 +15,14 @@ const languageLocale = {
 const DEFAULT_DECIMAL_PLACES = 1;
 const DEFAULT_DISPLAY_THRESHOLD = Math.pow(10, -DEFAULT_DECIMAL_PLACES);
 
-const MAX_THRESHOLD_DECIMAL_PLACES = 6;
+// Intl.NumberFormat accepts up to 20 fraction digits in every engine (older ones
+// throw above that), and the API accepts any percentage, so this is the display
+// limit, not a validation: a threshold below 1e-20% would still read "< 0%".
+const MAX_THRESHOLD_DECIMAL_PLACES = 20;
 
 /**
- * The decimal places a threshold is written with (0.25 → 2, 1 → 0). Uses toFixed
- * instead of String() so float noise (0.1 + 0.2) and exponent notation don't count.
+ * The decimal places a threshold is written with (0.25 → 2, 1 → 0, 0.0000001 → 7).
+ * Uses toFixed instead of String() so exponent notation (1e-7) counts its decimals.
  * @param {number} threshold - A threshold, in percent (0-100)
  */
 const getThresholdDecimalPlaces = (threshold: number): number => {

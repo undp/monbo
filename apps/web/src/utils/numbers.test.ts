@@ -88,10 +88,20 @@ describe("formatDeforestationPercentage", () => {
       expect(formatDeforestationPercentage(0.002, "en")).toBe("< 0.25%");
     });
 
-    it("hides float noise in the threshold", () => {
+    it("counts the decimals of a threshold the float stores inexactly", () => {
       withThresholds(0.07);
       expect(formatDeforestationPercentage(0.0005, "es")).toBe("< 0,07%");
       expect(formatDeforestationPercentage(0.00123, "es")).toBe("0,12%");
+    });
+
+    it("keeps a tiny threshold and its results from reading as 0%", () => {
+      // The API accepts any percentage in 0-100, so a label must never say 0 for a
+      // nonzero value: these reach the Excel/GeoJSON exports.
+      withThresholds(0.0000001);
+      expect(formatDeforestationPercentage(1e-10, "es")).toBe("< 0,0000001%");
+      expect(formatDeforestationPercentage(1e-10, "en")).toBe("< 0.0000001%");
+      expect(formatDeforestationPercentage(1.5e-9, "en")).toBe("0.0000002%");
+      expect(formatDeforestationPercentage(1.5e-9, "es")).toBe("0,0000002%");
     });
   });
 
