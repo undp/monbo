@@ -11,7 +11,12 @@ T = TypeVar("T")
 class _CachedRaster:
     def __init__(self, path: str, target_crs: str):
         self.src: Any = rasterio_open(path)
-        self.vrt: Any = WarpedVRT(self.src, crs=target_crs)
+        try:
+            self.vrt: Any = WarpedVRT(self.src, crs=target_crs)
+        except BaseException:
+            # Not stored, so nobody would close the dataset: do it here.
+            self.src.close()
+            raise
         # GDAL handles are not thread-safe: one reader at a time per raster.
         self.lock = threading.Lock()
         self.closed = False

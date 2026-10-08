@@ -2,6 +2,9 @@ import shutil
 import threading
 from pathlib import Path
 
+import pytest
+
+from app.utils.image_generation import RasterDatasetCache as cache_module
 from app.utils.image_generation.RasterDatasetCache import RasterDatasetCache
 
 FIXTURE = Path(__file__).parents[1] / "numeric_baseline" / "fixture.tif"
@@ -39,6 +42,34 @@ def test_evicted_rasters_are_closed_and_reopened(tmp_path):
     assert vrt_a.closed
     reopened = cache.read(a, lambda vrt: vrt)
     assert reopened is not vrt_a and not reopened.closed
+    cache.clear()
+
+
+def test_the_dataset_is_closed_if_the_vrt_fails(tmp_path, monkeypatch):
+    """A failed WarpedVRT isn't stored, so the open dataset must not leak."""
+    (path,) = copies(tmp_path, 1)
+    opened = []
+    real_open = cache_module.rasterio_open
+
+    def spy_open(p):
+        src = real_open(p)
+        opened.append(src)
+        return src
+
+    def failing_vrt(*args, **kwargs):
+        raise RuntimeError("corrupt raster")
+
+    monkeypatch.setattr(cache_module, "rasterio_open", spy_open)
+    monkeypatch.setattr(cache_module, "WarpedVRT", failing_vrt)
+    cache = RasterDatasetCache(max_entries=2)
+    with pytest.raises(RuntimeError, match="corrupt raster"):
+        cache.read(path, lambda vrt: vrt)
+    assert len(cache) == 0
+    assert len(opened) == 1 and opened[0].closed
+
+    # The next read, once the raster is readable, opens it normally.
+    monkeypatch.undo()
+    assert not cache.read(path, lambda vrt: vrt).closed
     cache.clear()
 
 
