@@ -119,7 +119,9 @@
 
 - [x] 4.1 Add Roboto 400, 500 and 700 to `public/fonts/roboto/`, with the license file. Check the dynamic `fontWeight` in `sections.tsx` before dropping the other weights. Register them from local URLs in `deforestationReport.tsx` (D7)
 
-  - `public/fonts/roboto/` holds Roboto-Regular, Roboto-Medium and Roboto-Bold (the same v2.137 files that were downloaded from gstatic) plus `OFL.txt`.
+  - `public/fonts/roboto/` holds Roboto-Regular, Roboto-Medium and Roboto-Bold (the same v2.137 files that were downloaded from gstatic) plus the license.
+  - **Fix after review:** the italics were missing (the considerations' `_italic_` failed the render). `Roboto-Italic` (v2.137, gstatic) and `Roboto-BoldItalic` (v2.138, official release, subset to the same characters; its gstatic URL is 404) were added.
+  - **License:** the v2 files are Apache 2.0, not OFL, so `LICENSE` replaces `OFL.txt`.
   - The dynamic weight in `sections.tsx` is `"bold"`/`"normal"` (700/400).
 - [x] 4.2 Quantize `deforestationReportCoverBackgroundLeaf.png` (goal: ≤ 60 KB, alpha kept). Compare the cover before and after
 

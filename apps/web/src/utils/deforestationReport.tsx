@@ -21,7 +21,9 @@ export interface DeforestationReportImage {
   url: string | null;
 }
 
-// Served by the web itself (public/fonts/roboto, OFL): the weights the report uses.
+// Served by the web itself (public/fonts/roboto, Apache 2.0): every weight and style
+// the report uses. The layers' considerations are markdown, and their _italic_ and
+// **_bold italic_** need the italic faces: a missing face fails the whole render.
 let fontsRegistered = false;
 export const registerReportFonts = () => {
   if (fontsRegistered) return;
@@ -32,6 +34,16 @@ export const registerReportFonts = () => {
       { src: assetUrl("/fonts/roboto/Roboto-Regular.ttf"), fontWeight: 400 },
       { src: assetUrl("/fonts/roboto/Roboto-Medium.ttf"), fontWeight: 500 },
       { src: assetUrl("/fonts/roboto/Roboto-Bold.ttf"), fontWeight: 700 },
+      {
+        src: assetUrl("/fonts/roboto/Roboto-Italic.ttf"),
+        fontWeight: 400,
+        fontStyle: "italic",
+      },
+      {
+        src: assetUrl("/fonts/roboto/Roboto-BoldItalic.ttf"),
+        fontWeight: 700,
+        fontStyle: "italic",
+      },
     ],
   });
 };

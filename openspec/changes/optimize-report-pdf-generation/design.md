@@ -31,7 +31,7 @@ Facts that shape the design:
   - It also reads `DOWNLOAD_GEOJSON_URL`, a `__NEXT_PUBLIC_*__` placeholder that `entrypoint.sh` substitutes in every `.next/static/**/*.js`, worker chunks included.
   - Its static images use root-relative paths (`/images/...`).
 - **Why the preview has no links.** Commit 4234b94 hid them because clicking one navigated the previewer away. The downloads keep them.
-- **What the report actually uses.** Roboto at weights 400, 500 and 700, no italics. `deforestationReportCoverBackgroundLeaf.png` is a 400×460 RGBA PNG of 211 KB.
+- **What the report actually uses.** Roboto at weights 400, 500 and 700, plus 400 and 700 italic: the layers' considerations are markdown, and `_italic_` / `**_bold italic_**` render with `fontStyle: "italic"` (a ternary, easy to miss). `deforestationReportCoverBackgroundLeaf.png` is a 400×460 RGBA PNG of 211 KB.
 
 ## Goals / Non-Goals
 
@@ -142,7 +142,9 @@ A module worker, `src/workers/reportPdf.worker.tsx`, is loaded with `new Worker(
 
 ### D7. Local assets
 
-- **Fonts.** Roboto 400, 500 and 700 go in `public/fonts/roboto/`, with the license file. Only the weights the report uses are registered. The unused italics, 300 and 900 are dropped, after checking the dynamic `fontWeight` in `sections.tsx`.
+- **Fonts.** Roboto 400, 500, 700, 400 italic and 700 italic go in `public/fonts/roboto/`, with their license (Apache 2.0, as the v2 files declare). Only the faces the report uses are registered; 300, 900 and the condensed faces are dropped.
+  - **Italics.** They were dropped at first, and a layer whose considerations had `_italic_` failed the whole render ("Could not resolve font for Roboto, fontWeight 400, fontStyle italic"). They are back.
+  - **Bold italic.** Its old gstatic URL (`…MmWUlfBBc-.ttf`) answers 404, so `**_bold italic_**` already failed before this change. It comes from the official v2.138 release, subset to the same characters as the other faces.
 - **The leaf image.** It is quantized to a palette PNG with alpha (pngquant or equivalent), aiming for ≤ 60 KB with no visible change. It overlaps the other cover backgrounds, so it keeps transparency.
 - **Static URLs.** The report's paths become absolute (`assetUrl`, from `globalThis.location.origin`), so they resolve the same in the window and in the worker.
 
