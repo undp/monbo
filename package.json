@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.26.1",
   "scripts": {
     "dev": "pnpm exec concurrently -n front,api -c blue,green \"pnpm --dir apps/web dev\" \"uv run --directory apps/api fastapi dev app/main.py\"",
-    "test": "uv run --directory apps/api pytest",
+    "test": "uv run --directory apps/api pytest && pnpm --dir apps/web test",
     "lint": "pnpm --dir apps/web lint && uv run --directory apps/api ruff check . && uv run --directory apps/api black --check . && uv run --directory apps/api mypy app",
     "build": "pnpm --dir apps/web build",
     "contracts": "uv run --directory apps/api python -m app.openapi && pnpm --dir apps/web generate:api-types"

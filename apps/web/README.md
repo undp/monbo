@@ -194,15 +194,64 @@ files. `pnpm generate:api-types` regenerates only the types, from the committed
 
 ### Testing
 
-There are no tests for this project yet.
+Unit tests run with [Vitest](https://vitest.dev) in a jsdom environment, with
+[Testing Library](https://testing-library.com/docs/react-testing-library/intro/) for
+hooks:
+
+```bash
+pnpm test         # the whole suite, once
+pnpm test:watch   # re-runs the affected tests on save
+```
+
+`pnpm test` at the repository root runs the API's pytest suite and then this one.
+
+- **Where they live:** next to the code, as `src/**/*.test.ts(x)`. Shared helpers are
+  in `src/test/`:
+  - the setup;
+  - typed factories for farms, layers and results (`factories.ts`);
+  - `renderHookWithData` (`renderWithData.tsx`), which renders a hook under an
+    injected `DataContext` with the real translations. Its `wrapper` option mounts a
+    provider inside that context, as the `ReportProvider` tests do;
+  - `renderWithDataProvider`, which mounts the real `DataProvider`;
+  - `deferred`, to settle a mocked response when the test chooses;
+  - `FakeWorker` / `installFakeWorker` and `stubObjectUrls`, for the browser APIs
+    jsdom lacks;
+  - the upload-file helpers (`files.ts`).
+- **What they cover:**
+  - the formatting and domain helpers in `src/utils/`;
+  - upload validation and the real upload templates in `public/files/`;
+  - en/es translation parity;
+  - the hooks that read `DataContext`;
+  - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
+  - the PDF worker client.
+
+  The PDF rendering itself (`reportPdf.worker.tsx`) and the components aren't
+  covered.
+- **What is replaced** (`src/test/setup.ts`): `next/navigation` (a shared router whose
+  methods are spies; `setSearchParams` and `setParams` control what the hooks read),
+  `file-saver`, and `fetch`. A request a test didn't stub fails that test; a test that
+  needs the API mocks the `@/api/*` module it goes through. Translations are the real
+  files, not a mock.
+- **Module state:** after every test, the setup resets:
+  - the runtime config (`GET /config`). A test that formats thresholds sets its own
+    with `setRuntimeConfig`;
+  - `DataContext`'s kept flow and selected country (`resetDataStoreForTests`);
+  - both storages;
+  - the timers.
+- **Fake timers:** a test that needs them (the layer polling, the admin session expiry)
+  calls `vi.useFakeTimers` itself, and advances time with `vi.advanceTimersByTimeAsync`
+  inside `act`. i18next needs real timers to start, so such a test awaits
+  `createTestI18n` for its locales before faking them; the instance is then reused.
+- **Imports:** tests import `describe`, `it`, `expect` and `vi` from `vitest` (no
+  globals), and `tsc --noEmit` type-checks them with the rest of the app.
 
 ### Continuous Integration
 
 Pull requests into `dev` and `main` marked "ready for review" are validated by the
-`Type-check, lint, build` job of the `CI` GitHub Actions workflow
+`Tests, type-check, lint, build` job of the `CI` GitHub Actions workflow
 (`.github/workflows/ci.yml`), which runs `pnpm install --frozen-lockfile`,
 a check that `src/api/schema.d.ts` matches `apps/api/openapi.json`, `tsc --noEmit`,
-`pnpm run lint`, and `pnpm run build` on Node 24, caching the pnpm store and
+`pnpm run lint`, `pnpm test`, and `pnpm run build` on Node 24, caching the pnpm store and
 `.next/cache`. It runs when the PR changes `apps/web/` or the API contract
 (`apps/api/openapi.json`), or the workflow itself; otherwise it is skipped, which counts
 as passed. Draft PRs are skipped.

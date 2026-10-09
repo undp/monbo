@@ -15,12 +15,31 @@ is the classic failure: the rule silently matches nothing and protects nothing.
 | Required check (job name) | Workflow | File |
 | --- | --- | --- |
 | `Test and static checks` | `CI` | `.github/workflows/ci.yml` (job `api`) |
-| `Type-check, lint, build` | `CI` | `.github/workflows/ci.yml` (job `web`) |
+| `Tests, type-check, lint, build` | `CI` | `.github/workflows/ci.yml` (job `web`) |
 
 Copy those two strings exactly. They are the `jobs.<id>.name` values, and they are
 what appears in the "Checks" list on a pull request. Because the match is by job
 name, moving a job to another workflow file doesn't touch the rulesets, as long as
 its `name` stays the same.
+
+### Renaming a required check
+
+Renaming a job changes the check a pull request reports. Until a ruleset requires
+the new name, it waits for the old one, which nothing reports anymore:
+"Expected — waiting for status", and the merge is blocked. The bypass list is empty,
+so the rename has to be coordinated with the rulesets:
+
+1. **The PR that renames the job.** Its CI reports the new name, so the PR stays
+   blocked on the old one. Get it reviewed and its other checks green.
+2. **`dev`, right before merging it.** An admin replaces the old name with the new
+   one in the `dev` ruleset (Settings → Rules → Rulesets, or the API call in
+   [How to apply it](#how-to-apply-it)), and the PR is merged at once.
+   Other open PRs into `dev` then wait for the new name: update them from `dev` so
+   their CI runs the renamed job.
+3. **`main`, at the next release.** `main` keeps the old workflow until the release
+   that carries the rename, so a hotfix in between still reports the old name and
+   `main`'s ruleset keeps requiring it. When that release PR is ready, the admin
+   changes `main`'s ruleset the same way, and the release is merged at once.
 
 ### Which checks run
 
@@ -31,10 +50,10 @@ releases and hotfixes. Its first job, `Detect changes`, reads the pull request's
 
 | The PR changes | Runs |
 | --- | --- |
-| `apps/api/openapi.json` (the API contract) | `Test and static checks` and `Type-check, lint, build` |
+| `apps/api/openapi.json` (the API contract) | `Test and static checks` and `Tests, type-check, lint, build` |
 | `apps/api/**` | `Test and static checks` |
-| `apps/web/public/files/**` (upload templates, which the API's regression suite reads) | `Test and static checks` and `Type-check, lint, build` |
-| `apps/web/**` | `Type-check, lint, build` |
+| `apps/web/public/files/**` (upload templates, which the API's regression suite reads) | `Test and static checks` and `Tests, type-check, lint, build` |
+| `apps/web/**` | `Tests, type-check, lint, build` |
 | `infra/**` | `Terraform` (not a required check) |
 | `.github/workflows/ci.yml` | all three |
 | anything else only (docs, specs) | none |
@@ -240,7 +259,7 @@ gh api -X POST repos/undp/monbo/rulesets --input - <<'JSON'
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           { "context": "Test and static checks", "integration_id": 15368 },
-          { "context": "Type-check, lint, build", "integration_id": 15368 } ] } }
+          { "context": "Tests, type-check, lint, build", "integration_id": 15368 } ] } }
   ]
 }
 JSON
@@ -258,7 +277,7 @@ gh api -X PUT repos/undp/monbo/branches/main/protection --input - <<'JSON'
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["Test and static checks", "Type-check, lint, build"]
+    "contexts": ["Test and static checks", "Tests, type-check, lint, build"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {

@@ -2,7 +2,6 @@
 
 ## Purpose
 The API's request and response shapes are defined once, in its Pydantic models. Their OpenAPI document is committed, the web's types are generated from it, and CI keeps both files current, so the two apps can't drift apart.
-
 ## Requirements
 ### Requirement: The API's OpenAPI is the committed source of contracts
 
@@ -49,5 +48,5 @@ CI SHALL fail when `apps/api/openapi.json` doesn't match the current models, and
 #### Scenario: OpenAPI changed without regenerating the types
 
 - **WHEN** a pull request changes `openapi.json` but not `schema.d.ts`
-- **THEN** "Type-check, lint, build" fails
+- **THEN** "Tests, type-check, lint, build" fails
 

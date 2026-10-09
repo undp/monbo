@@ -8,13 +8,18 @@ run for a given change, when they run, and how they are enforced as required che
 ## Requirements
 ### Requirement: Frontend CI pipeline
 
-A GitHub Actions job named "Type-check, lint, build" in the CI workflow SHALL validate the frontend on every eligible pull request that change detection selects for it. It SHALL install with a frozen lockfile and run type-check (`tsc --noEmit`), lint, and build in `apps/web`. The job SHALL cache the pnpm store and `.next/cache` to keep runs fast. `start:standalone` SHALL NOT be represented as a CI step; it is a separate documented manual acceptance check for PR 8.
+A GitHub Actions job named "Tests, type-check, lint, build" in the CI workflow SHALL validate the frontend on every eligible pull request that change detection selects for it. It SHALL install with a frozen lockfile and run type-check (`tsc --noEmit`), lint, unit tests (`pnpm test`), and build in `apps/web`. The unit tests SHALL run in this job rather than in a new one, and the job's name SHALL say that it runs them, so the required check describes what it gates. The job SHALL cache the pnpm store and `.next/cache` to keep runs fast. `start:standalone` SHALL NOT be represented as a CI step; it is a separate documented manual acceptance check for PR 8.
 
 #### Scenario: Frontend checks gate a pull request
 
 - **WHEN** an eligible pull request touches the frontend
-- **THEN** CI runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, lint, and build
+- **THEN** CI runs `pnpm install --frozen-lockfile`, `tsc --noEmit`, lint, the unit tests, and build
 - **AND** the pull request is blocked if any step fails
+
+#### Scenario: A failing web unit test blocks the pull request
+
+- **WHEN** an eligible pull request into `dev` or `main` makes a web unit test fail
+- **THEN** the "Tests, type-check, lint, build" check fails and the pull request cannot be merged
 
 #### Scenario: Build caches are reused
 
@@ -40,7 +45,7 @@ A GitHub Actions job named "Test and static checks" in the CI workflow SHALL val
 
 ### Requirement: Required checks enforce merge blocking
 
-Repository rulesets SHALL require the final frontend and API job checks on both `main` and `dev`. Workflow failure semantics alone are insufficient: the required check names SHALL be recorded and a failing required check SHALL prevent merging. Each ruleset SHALL target its branch by name (`refs/heads/main`, `refs/heads/dev`) and SHALL NOT target `~DEFAULT_BRANCH`, so changing the default branch cannot move or remove a branch's protection. Both branches SHALL require a pull request, block force pushes and deletions, and keep an empty bypass list. The required checks are job names ("Test and static checks", "Type-check, lint, build"). Renaming those jobs or moving them to another workflow SHALL NOT change the names. A required job MAY be satisfied by being skipped through its own condition, and SHALL NOT be satisfied by being skipped because a job it depends on failed.
+Repository rulesets SHALL require the final frontend and API job checks on both `main` and `dev`. Workflow failure semantics alone are insufficient: the required check names SHALL be recorded and a failing required check SHALL prevent merging. Each ruleset SHALL target its branch by name (`refs/heads/main`, `refs/heads/dev`) and SHALL NOT target `~DEFAULT_BRANCH`, so changing the default branch cannot move or remove a branch's protection. Both branches SHALL require a pull request, block force pushes and deletions, and keep an empty bypass list. The required checks are job names ("Test and static checks", "Tests, type-check, lint, build"). Moving a job to another workflow SHALL NOT change its name. A job SHALL be renamed only together with the required checks of the rulesets that require it: `dev`'s when the rename merges into `dev`, and `main`'s when the release carrying it merges into `main`. The procedure SHALL be documented. A required job MAY be satisfied by being skipped through its own condition, and SHALL NOT be satisfied by being skipped because a job it depends on failed.
 
 #### Scenario: Branch protection rejects a failing change
 
@@ -62,6 +67,12 @@ Repository rulesets SHALL require the final frontend and API job checks on both 
 
 - **WHEN** the API and frontend jobs move into a single workflow file
 - **THEN** the rulesets still match both checks by their unchanged job names
+
+#### Scenario: Renaming a required check
+
+- **WHEN** a pull request renames the frontend job from "Type-check, lint, build" to "Tests, type-check, lint, build"
+- **THEN** an admin replaces the old name with the new one in the `dev` ruleset right before it merges, and in the `main` ruleset right before the release that carries it merges
+- **AND** at no point does a ruleset require a check that the branch's workflow no longer reports
 
 ### Requirement: CI triggers on ready-for-review only
 
@@ -118,12 +129,12 @@ Detection SHALL NOT depend on third-party actions and SHALL run with read-only p
 #### Scenario: API-only pull request
 
 - **WHEN** a pull request changes only files under `apps/api/`
-- **THEN** "Test and static checks" runs and "Type-check, lint, build" is skipped
+- **THEN** "Test and static checks" runs and "Tests, type-check, lint, build" is skipped
 
 #### Scenario: Frontend-only pull request
 
 - **WHEN** a pull request changes only files under `apps/web/`
-- **THEN** "Type-check, lint, build" runs and "Test and static checks" is skipped
+- **THEN** "Tests, type-check, lint, build" runs and "Test and static checks" is skipped
 
 #### Scenario: Workflow change runs everything
 
@@ -143,7 +154,7 @@ Detection SHALL NOT depend on third-party actions and SHALL run with read-only p
 #### Scenario: Contract change runs the frontend too
 
 - **WHEN** a pull request changes `apps/api/openapi.json`
-- **THEN** both "Test and static checks" and "Type-check, lint, build" run
+- **THEN** both "Test and static checks" and "Tests, type-check, lint, build" run
 
 #### Scenario: Upload template change runs the API too
 

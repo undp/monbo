@@ -13,6 +13,8 @@
     "postbuild": "cp -r public .next/standalone/ && mkdir -p .next/standalone/.next/static && cp -r .next/static .next/standalone/.next/",
     "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "docker:build": "docker build -t monbo-front .",
     "generate:api-types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
   },
@@ -47,6 +49,8 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/file-saver": "^2.0.7",
     "@types/google.maps": "^3.66.4",
     "@types/lodash": "^4.17.25",
@@ -55,8 +59,10 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.26.0",
     "eslint-config-next": "^16.3.7",
+    "jsdom": "^30.1.2",
     "openapi-typescript": "7.13.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
   },
   "pnpm": {
     "overrides": {

@@ -135,7 +135,7 @@ monbo/
 | **i18n** | bilingual metadata (en/es) | `i18next` (`[locale]` routes, en/es) |
 | **Data/docs** | — | `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`, `file-saver` |
 | **Packages** | `pip` (there is a `package.json` "wrapper" only to expose scripts) | `pnpm` |
-| **Tests** | `pytest` (in `tests/`) | — |
+| **Tests** | `pytest` (in `tests/`) | Vitest + Testing Library (`src/**/*.test.ts(x)`, helpers in `src/test/`) |
 | **Container** | `Dockerfile.dev` / `Dockerfile.prod` (Python 3.13) | `Dockerfile.dev` / `Dockerfile.prod` (Node 24) |
 
 ### 3.2 Backend — `apps/api/app/`
