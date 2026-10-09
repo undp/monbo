@@ -170,6 +170,17 @@ type KeptKey =
   | "reportGenerationParams";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
 
+/**
+ * Forgets the module state above: the kept flow, the in-memory country and its
+ * subscribers. For tests, so a flow doesn't leak from one to the next.
+ * `flowGeneration` only goes up, so it is left as is.
+ */
+export const resetDataStoreForTests = () => {
+  (Object.keys(keptState) as KeptKey[]).forEach((key) => delete keptState[key]);
+  inMemorySelectedCountry = null;
+  selectedCountryListeners.clear();
+};
+
 function useKeptState<K extends KeptKey>(
   key: K,
   initial: DataContextValue[K]

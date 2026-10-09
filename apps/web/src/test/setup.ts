@@ -24,13 +24,19 @@ beforeEach(() => {
   vi.stubGlobal("fetch", unexpectedFetch);
 });
 
-afterEach(() => {
+afterEach(async () => {
   // Fails the test even when the code under test swallowed the rejection.
   const urls = unexpectedFetch.mock.calls.map(([input]) => String(input));
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   resetRuntimeConfig();
+  // Imported here, not at the top: an import from this file would load DataContext
+  // (and the @/api modules it uses) before a test file's vi.mock could replace them.
+  (await import("@/context/DataContext")).resetDataStoreForTests();
+  sessionStorage.clear();
+  localStorage.clear();
   resetNavigation();
   if (urls.length > 0) {
     throw new Error(`Unexpected request: ${urls.join(", ")}`);

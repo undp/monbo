@@ -47,6 +47,8 @@ interface RenderOptions<P> {
   context?: DataContextValue;
   locale?: TestLocale;
   initialProps?: P;
+  /** Mounted inside the injected DataContext, e.g. a provider that reads it. */
+  wrapper?: (props: { children: ReactNode }) => ReactNode;
 }
 
 /**
@@ -55,13 +57,20 @@ interface RenderOptions<P> {
  */
 export const renderHookWithData = async <R, P = undefined>(
   hook: (props: P) => R,
-  { context = makeDataContext(), locale = "es", initialProps }: RenderOptions<P> = {}
+  {
+    context = makeDataContext(),
+    locale = "es",
+    initialProps,
+    wrapper: Inner = ({ children }) => children,
+  }: RenderOptions<P> = {}
 ) => {
   const i18n = await createTestI18n(locale);
   let current = context;
   const wrapper = ({ children }: { children: ReactNode }) => (
     <I18nextProvider i18n={i18n}>
-      <DataContext.Provider value={current}>{children}</DataContext.Provider>
+      <DataContext.Provider value={current}>
+        <Inner>{children}</Inner>
+      </DataContext.Provider>
     </I18nextProvider>
   );
   const rendered = renderHook(hook, { wrapper, initialProps: initialProps as P });
