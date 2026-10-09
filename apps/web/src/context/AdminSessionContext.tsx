@@ -18,6 +18,8 @@ import { localizedPath } from "@/utils/languageChange";
 
 // sessionStorage only: the token dies with the tab. The passkey is never stored.
 const STORAGE_KEY = "monbo.adminSession";
+// The longest setTimeout delay browsers honor (2^31 - 1 ms, ~24.8 days).
+const MAX_TIMER_DELAY = 2 ** 31 - 1;
 
 interface AdminSessionContextValue {
   session: AdminSession | null;
@@ -84,10 +86,17 @@ export const AdminSessionProvider: React.FC<{
   // Sign out when the token expires. Only sign out: the provider wraps the whole
   // app (the header shows the session's country), and the admin pages already
   // send a visitor without a session to the login.
+  // A delay above MAX_TIMER_DELAY fires at once, so a long session waits in steps.
   useEffect(() => {
     if (!session) return;
-    const remaining = Date.parse(session.expiresAt) - Date.now();
-    const timer = setTimeout(logout, Math.max(0, remaining));
+    const expiresAt = Date.parse(session.expiresAt);
+    let timer: ReturnType<typeof setTimeout>;
+    const wait = () => {
+      const remaining = expiresAt - Date.now();
+      if (remaining <= 0) return logout();
+      timer = setTimeout(wait, Math.min(remaining, MAX_TIMER_DELAY));
+    };
+    wait();
     return () => clearTimeout(timer);
   }, [session, logout]);
 

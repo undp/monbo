@@ -206,21 +206,42 @@ pnpm test:watch   # re-runs the affected tests on save
 `pnpm test` at the repository root runs the API's pytest suite and then this one.
 
 - **Where they live:** next to the code, as `src/**/*.test.ts(x)`. Shared helpers are
-  in `src/test/`: the setup, typed factories for farms, layers and results
-  (`factories.ts`), `renderHookWithData` to render a hook under an injected
-  `DataContext` with the real translations (`renderWithData.tsx`), and the upload-file
-  helpers (`files.ts`).
-- **What they cover:** the formatting and domain helpers in `src/utils/`, upload
-  validation and the real upload templates in `public/files/`, en/es translation
-  parity, and the hooks that read `DataContext`. The context providers and the PDF
-  rendering aren't covered yet.
+  in `src/test/`:
+  - the setup;
+  - typed factories for farms, layers and results (`factories.ts`);
+  - `renderHookWithData` (`renderWithData.tsx`), which renders a hook under an
+    injected `DataContext` with the real translations. Its `wrapper` option mounts a
+    provider inside that context, as the `ReportProvider` tests do;
+  - `renderWithDataProvider`, which mounts the real `DataProvider`;
+  - `deferred`, to settle a mocked response when the test chooses;
+  - `FakeWorker` / `installFakeWorker` and `stubObjectUrls`, for the browser APIs
+    jsdom lacks;
+  - the upload-file helpers (`files.ts`).
+- **What they cover:**
+  - the formatting and domain helpers in `src/utils/`;
+  - upload validation and the real upload templates in `public/files/`;
+  - en/es translation parity;
+  - the hooks that read `DataContext`;
+  - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
+  - the PDF worker client.
+
+  The PDF rendering itself (`reportPdf.worker.tsx`) and the components aren't
+  covered.
 - **What is replaced** (`src/test/setup.ts`): `next/navigation` (a shared router whose
   methods are spies; `setSearchParams` and `setParams` control what the hooks read),
   `file-saver`, and `fetch`. A request a test didn't stub fails that test; a test that
   needs the API mocks the `@/api/*` module it goes through. Translations are the real
   files, not a mock.
-- **Module state:** the runtime config (`GET /config`) is reset after every test. A
-  test that formats thresholds sets its own with `setRuntimeConfig`.
+- **Module state:** after every test, the setup resets:
+  - the runtime config (`GET /config`). A test that formats thresholds sets its own
+    with `setRuntimeConfig`;
+  - `DataContext`'s kept flow and selected country (`resetDataStoreForTests`);
+  - both storages;
+  - the timers.
+- **Fake timers:** a test that needs them (the layer polling, the admin session expiry)
+  calls `vi.useFakeTimers` itself, and advances time with `vi.advanceTimersByTimeAsync`
+  inside `act`. i18next needs real timers to start, so such a test awaits
+  `createTestI18n` for its locales before faking them; the instance is then reused.
 - **Imports:** tests import `describe`, `it`, `expect` and `vi` from `vitest` (no
   globals), and `tsc --noEmit` type-checks them with the rest of the app.
 

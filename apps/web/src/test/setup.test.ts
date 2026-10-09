@@ -41,4 +41,17 @@ describe("test setup", () => {
     saveAs(new Blob(["x"]), "farms.geojson");
     expect(saveAs).toHaveBeenCalledOnce();
   });
+
+  it("writes to storage and fakes timers in one test…", () => {
+    sessionStorage.setItem("monbo.selectedCountry", "CR");
+    localStorage.setItem("key", "value");
+    vi.useFakeTimers();
+    expect(vi.isFakeTimers()).toBe(true);
+  });
+
+  it("…and the next test starts with empty storage and real timers", () => {
+    expect(sessionStorage.length).toBe(0);
+    expect(localStorage.length).toBe(0);
+    expect(vi.isFakeTimers()).toBe(false);
+  });
 });
