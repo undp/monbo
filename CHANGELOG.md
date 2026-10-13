@@ -37,9 +37,13 @@
 - The report's fonts (Roboto, Apache 2.0) are served by the frontend instead of `fonts.gstatic.com`, and the cover image is lighter
 - `NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION` counts distinct farms, which is what costs Google calls, instead of farm × layer pairs
 - The deforestation analysis table no longer shows the "EU Official" chip in the first layer's header; the column keeps its light blue background
+- The overlap percentage in the polygon validation is the overlap's area divided by the smaller farm's area, instead of by the two farms' union. A farm inside another, or nearly inside, now scores close to 100% and is flagged HIGH; before, a small farm inside a large one could stay valid. Overlap percentages shown in the table and the Excel download go up for the same data. The threshold (`OVERLAP_THRESHOLD_PERCENTAGE`) and the HIGH cut (above 80%) don't change
 
 ### Fixed
 
+- A farm with an invalid polygon (for example, one that crosses itself) got a negative deforestation ratio, which the web showed as deforestation-free. Its ratio is now empty (N/A), as is that of an empty polygon
+- The polygon validation no longer fails with a 500 when two farms overlap and also share an edge, when two tiny farms only touch, or when a polygon has a single vertex. Farms that only share an edge or a vertex are not an overlap, and a single-vertex polygon is reported as an invalid geometry
+- A GeoJSON polygon with holes was read as one self-intersecting ring, and a WKT polygon with holes was analysed as its outer ring, with a deforestation ratio that was too low. Polygons with holes are now rejected when the farms are uploaded, in both formats, until the farm's path can carry them
 - Show layer names, aliases and considerations in the page's language (they were always in English)
 - Keep retained farms and report selections aligned with the analysis country, and ignore analysis responses from an earlier country or layer selection
 - Accept only `https:` and `mailto:` links for the landing page contact button

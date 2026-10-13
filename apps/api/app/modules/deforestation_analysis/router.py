@@ -62,13 +62,18 @@ def analize(body: AnalizeBody):
                     try:
                         coords, radius = get_farm_coords_and_radius(farm)
                         polygon = generate_polygon(coords, radius)
-                        loss_year_data = get_map_pixels_inside_polygon(polygon, src)
-                        pixel_area = get_pixel_area(map_data)
-                        deforestation_ratio = get_deforestation_ratio(
-                            loss_year_data,
-                            GeometryCalculator.calculate_polygon_area(polygon),
-                            pixel_area,
+                        polygon_area = GeometryCalculator.calculate_polygon_area(
+                            polygon
                         )
+                        # An invalid, empty or zero-area polygon can't be measured
+                        deforestation_ratio = None
+                        if polygon_area > 0:
+                            loss_year_data = get_map_pixels_inside_polygon(polygon, src)
+                            deforestation_ratio = get_deforestation_ratio(
+                                loss_year_data,
+                                polygon_area,
+                                get_pixel_area(map_data),
+                            )
                         farmsResults.append(
                             {
                                 "farmId": farm.id,

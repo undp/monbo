@@ -4,8 +4,12 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import httpx
+import numpy as np
+import pytest
+import rasterio
 from fastapi.testclient import TestClient
 from PIL import Image
+from rasterio.transform import from_bounds
 
 from app.config.constants import FarmDefaults
 from app.main import app
@@ -413,3 +417,96 @@ def test_generate_image_does_not_block_other_requests(
     assert image.status_code == 200
     assert len(latencies) > 5
     assert max(latencies) < 0.2
+
+
+# --- /analize on a real raster: farms that can't be measured --------------------
+
+# A 100x100 EPSG:4326 raster around (0, 0), about 22 m per pixel. Its western half
+# (lng < 0) is loss (1), its eastern half no loss (0).
+LOSS_BOUNDS = (-0.01, -0.01, 0.01, 0.01)
+
+
+def _write_loss_layer(maps_root):
+    path = maps_root.root / "layers" / "rasters" / "loss.tif"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = np.zeros((100, 100), dtype=np.uint8)
+    data[:, :50] = 1
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=100,
+        height=100,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_bounds(*LOSS_BOUNDS, 100, 100),
+    ) as dst:
+        dst.write(data, 1)
+    maps_root.write_index(
+        [{"id": 0, "raster_filename": "loss.tif", "pixel_size": 30, "version": 1}]
+    )
+
+
+def _polygon_farm(farm_id, path):
+    return {
+        "id": farm_id,
+        "type": "polygon",
+        "details": {
+            "center": {"lng": path[0][0], "lat": path[0][1]},
+            "path": [{"lng": lng, "lat": lat} for lng, lat in path],
+        },
+    }
+
+
+def _analize(farms):
+    response = client.post(
+        "/deforestation_analysis/analize", json={"maps": [0], "farms": farms}
+    )
+    assert response.status_code == 200
+    return {r["farmId"]: r["value"] for r in response.json()[0]["farmResults"]}
+
+
+# Bow-ties (self-intersecting) and degenerate polygons: their area is -1
+BOWTIE_ON_LOSS = [(-0.008, -0.008), (-0.002, 0.008), (-0.002, -0.008), (-0.008, 0.008)]
+BOWTIE_NO_LOSS = [(0.002, -0.008), (0.008, 0.008), (0.008, -0.008), (0.002, 0.008)]
+SQUARE_ON_LOSS = [
+    (-0.008, -0.008),
+    (-0.008, -0.002),
+    (-0.002, -0.002),
+    (-0.002, -0.008),
+]
+SQUARE_OUTSIDE = [(1.0, 1.0), (1.0, 1.001), (1.001, 1.001), (1.001, 1.0)]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param(BOWTIE_ON_LOSS, id="bow-tie touching loss"),
+        pytest.param(BOWTIE_NO_LOSS, id="bow-tie touching no loss"),
+        pytest.param([(-0.005, -0.005)], id="1 vertex"),
+        pytest.param([(-0.008, -0.008), (-0.002, -0.002)], id="2 vertices"),
+        pytest.param(
+            [(-0.008, -0.008), (-0.005, -0.005), (-0.002, -0.002)], id="collinear"
+        ),
+        pytest.param(SQUARE_OUTSIDE, id="outside the raster"),
+    ],
+)
+def test_analize_unmeasurable_farm_gets_none(maps_root, path):
+    _write_loss_layer(maps_root)
+    results = _analize([_polygon_farm("bad", path)])
+    assert results["bad"] is None
+
+
+def test_analize_bad_farm_leaves_the_others_intact(maps_root):
+    _write_loss_layer(maps_root)
+    results = _analize(
+        [
+            _polygon_farm("good", SQUARE_ON_LOSS),
+            _polygon_farm("bowtie", BOWTIE_ON_LOSS),
+            _polygon_farm("single", [(-0.005, -0.005)]),
+        ]
+    )
+    assert results["good"] == 1.0
+    assert results["bowtie"] is None
+    assert results["single"] is None

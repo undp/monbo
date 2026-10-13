@@ -221,9 +221,8 @@ export const InconsistentFarmsTable: React.FC = () => {
   );
 
   // Sort the filtered polygons based on the selected sort criteria
-  // - Calculate total area of all polygons in the group
-  // - Calculate overlap percentage as: overlap area / (total area - overlap area)
-  // - Add overlap area as separate field for display
+  // - Overlap percentage comes from the API: overlap area / the smaller farm's area
+  // - Add overlap percentage and area as separate fields to sort by
   // - If no sort criteria selected, return original filtered data
   const sortedInconsistencies = useMemo(
     () =>

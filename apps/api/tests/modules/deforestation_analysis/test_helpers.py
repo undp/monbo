@@ -103,6 +103,24 @@ def test_get_deforestation_percentage_valid():
     assert result == 0.15
 
 
+@pytest.mark.parametrize(
+    ("pixels", "polygon_area", "pixel_area", "expected"),
+    [
+        pytest.param([1, 1, 0, 0], 9_000.0, 900, 0.2, id="loss inside"),
+        pytest.param([0, 0, 0], 9_000.0, 900, 0.0, id="no loss"),
+        # A polygon smaller than the loss pixels it touches
+        pytest.param([1, 1], 36.0, 900, 1.0, id="capped at 1"),
+        # calculate_polygon_area's results for an empty and an invalid polygon
+        pytest.param([1, 1, 1], 0.0, 900, None, id="area 0"),
+        pytest.param([1, 1, 1], -1.0, 900, None, id="area -1"),
+        pytest.param([0], -1.0, 900, None, id="area -1, no loss"),
+    ],
+)
+def test_get_deforestation_ratio_edges(pixels, polygon_area, pixel_area, expected):
+    result = get_deforestation_ratio(np.array(pixels), polygon_area, pixel_area)
+    assert result == expected
+
+
 @patch("app.modules.deforestation_analysis.helpers.mask")
 def test_get_map_pixels_inside_polygon(mock_mask):
     # Create a simple polygon (square)

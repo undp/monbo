@@ -119,11 +119,11 @@
         "5": null
       },
       "F10": {
-        "0": -0.0,
-        "1": -0.0,
-        "2": -0.0,
-        "3": -0.0,
-        "4": -0.0,
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
         "5": null
       }
     },
@@ -135,7 +135,7 @@
         "F04": "VALID",
         "F05": "NOT_VALID",
         "F06": "NOT_VALID",
-        "F07": "VALID",
+        "F07": "NOT_VALID",
         "F08": "VALID",
         "F09": "VALID",
         "F10": "NOT_VALID"
@@ -147,9 +147,19 @@
             "F05",
             "F06"
           ],
-          "percentage": 0.08021692005908215,
+          "percentage": 0.6126396795816079,
           "criticality": "MEDIUM",
           "area": 5992.97
+        },
+        {
+          "type": "overlap",
+          "farmIds": [
+            "F06",
+            "F07"
+          ],
+          "percentage": 1.0,
+          "criticality": "HIGH",
+          "area": 35.93
         },
         {
           "type": "invalid_geometry",
