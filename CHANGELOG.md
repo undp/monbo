@@ -36,6 +36,7 @@
 - `POST /deforestation_analysis/generate-image` returns a JPEG (about 5× smaller than the previous PNG), so the complete PDF goes from 42 MB to 17 MB. The API fetches each farm's satellite image from Google Static Maps once for all layers (an in-memory cache of 10 minutes), keeps rasters open between requests and draws the images in threads: a report makes one Google call per farm instead of one per farm and layer
 - The report's fonts (Roboto, Apache 2.0) are served by the frontend instead of `fonts.gstatic.com`, and the cover image is lighter
 - `NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION` counts distinct farms, which is what costs Google calls, instead of farm × layer pairs
+- The deforestation analysis table no longer shows the "EU Official" chip in the first layer's header; the column keeps its light blue background
 - The overlap percentage in the polygon validation is the overlap's area divided by the smaller farm's area, instead of by the two farms' union. A farm inside another, or nearly inside, now scores close to 100% and is flagged HIGH; before, a small farm inside a large one could stay valid. Overlap percentages shown in the table and the Excel download go up for the same data. The threshold (`OVERLAP_THRESHOLD_PERCENTAGE`) and the HIGH cut (above 80%) don't change
 
 ### Fixed

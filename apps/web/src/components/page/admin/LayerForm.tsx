@@ -128,35 +128,63 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
           label={labels.considerations}
           multiline
           minRows={10}
+          maxRows={20}
           size="medium"
           // Always on the border: a tall box whose label moves reads oddly.
           slotProps={{ inputLabel: { shrink: true } }}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
-        <Text color="secondary" variant="body2" sx={{ marginBottom: 1 }}>
-          {labels.preview}
-        </Text>
-        <Box
-          sx={{
-            border: 1,
-            borderColor: "divider",
-            borderRadius: 1,
-            padding: 2,
-            minHeight: 240,
-            maxHeight: 480,
-            overflow: "auto",
-            typography: "body2",
-          }}
-        >
-          {considerations?.trim() ? (
-            // react-markdown doesn't render raw HTML, so this is safe to preview.
-            <ReactMarkdown>{considerations}</ReactMarkdown>
-          ) : (
-            <Text color="secondary" variant="body2">
-              {labels.emptyPreview}
-            </Text>
-          )}
+        {/* Outlined like the field beside it, and as tall: the field sets the
+            row's height and the preview scrolls within it. */}
+        <Box sx={{ position: "relative", height: "100%", minHeight: { xs: 240, md: 0 } }}>
+          <Box
+            component="fieldset"
+            aria-hidden
+            sx={{
+              position: "absolute",
+              inset: "-5px 0 0 0",
+              margin: 0,
+              padding: "0 8px",
+              border: 1,
+              // MUI's outlined input border, which isn't a palette color.
+              borderColor: "rgba(0, 0, 0, 0.23)",
+              borderRadius: 1,
+              pointerEvents: "none",
+            }}
+          >
+            <Box
+              component="legend"
+              sx={{
+                typography: "caption",
+                lineHeight: "11px",
+                color: "text.secondary",
+                padding: "0 5px",
+              }}
+            >
+              {labels.preview}
+            </Box>
+          </Box>
+          <Box
+            role="region"
+            aria-label={labels.preview}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              padding: "16.5px 14px",
+              overflow: "auto",
+              typography: "body2",
+            }}
+          >
+            {considerations?.trim() ? (
+              // react-markdown doesn't render raw HTML, so this is safe to preview.
+              <ReactMarkdown>{considerations}</ReactMarkdown>
+            ) : (
+              <Text color="secondary" variant="body2">
+                {labels.emptyPreview}
+              </Text>
+            )}
+          </Box>
         </Box>
       </Grid>
     </Grid>
