@@ -221,17 +221,6 @@ export const DeforestationResultsTable: React.FC<Props> = ({
               ? { backgroundColor: "#F3FAFD", padding: "16px 24px" }
               : {}),
           },
-          ...(m!.mapId === 0
-            ? {
-                chip: {
-                  label: t("deforestationAnalysis:euOfficialMap"),
-                  sx: {
-                    color: "white",
-                    backgroundColor: "#03689E",
-                  },
-                },
-              }
-            : {}),
         })),
       ]}
       rows={parseRows(

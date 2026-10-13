@@ -14,7 +14,6 @@ import {
   Checkbox,
   TableSortLabel,
   Theme,
-  Box,
 } from "@mui/material";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,7 +24,6 @@ export interface Header {
   type: "label" | "chip" | "icon";
   sortable?: boolean;
   columnStyle?: SxProps<Theme>;
-  chip?: ChipCellProps;
 }
 
 type Footer = Record<string, React.ReactNode>;
@@ -143,32 +141,13 @@ export function Table<T>({
             {headers.map((header) => (
               <TableCell key={header.attr} sx={header.columnStyle}>
                 {header.sortable ? (
-                  header.chip ? (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <TableSortLabel
-                        active={sortedBy?.attr == header.attr}
-                        direction={sortedBy?.order}
-                        onClick={() => sortBy?.(header.attr)}
-                      >
-                        {header.name}
-                      </TableSortLabel>
-                      <ChipCell {...header.chip} />
-                    </Box>
-                  ) : (
-                    <TableSortLabel
-                      active={sortedBy?.attr == header.attr}
-                      direction={sortedBy?.order}
-                      onClick={() => sortBy?.(header.attr)}
-                    >
-                      {header.name}
-                    </TableSortLabel>
-                  )
+                  <TableSortLabel
+                    active={sortedBy?.attr == header.attr}
+                    direction={sortedBy?.order}
+                    onClick={() => sortBy?.(header.attr)}
+                  >
+                    {header.name}
+                  </TableSortLabel>
                 ) : (
                   header.name
                 )}
