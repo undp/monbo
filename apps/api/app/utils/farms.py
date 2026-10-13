@@ -169,18 +169,20 @@ def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinate
                                [5.0, 6.0], [1.0, 2.0]]]")
 
     Returns:
-        list[Coordinates]: List of coordinate objects from all linear rings
+        list[Coordinates]: List of coordinate objects from the outer ring. Inner
+        rings (holes) are checked but dropped, as WKT does: a farm's path is one ring.
     """
     try:
         rings = json.loads(farm_coordinates)
         if not isinstance(rings, list) or len(rings) == 0:
             raise ValueError("GeoJSON Polygon must be an array of linear rings")
 
-        coordinates = []
+        parsed_rings = []
         for ring in rings:
             if not isinstance(ring, list):
                 raise ValueError("Each ring in GeoJSON Polygon must be an array")
 
+            coordinates = []
             for coord in ring:
                 if not isinstance(coord, list) or len(coord) != 2:
                     raise ValueError(
@@ -188,8 +190,9 @@ def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinate
                     )
                 lng, lat = coord
                 coordinates.append(Coordinates(lng=float(lng), lat=float(lat)))
+            parsed_rings.append(coordinates)
 
-        return coordinates
+        return parsed_rings[0]
     except (json.JSONDecodeError, TypeError, ValueError) as e:
         raise ValueError(f"Invalid GeoJSON Polygon coordinates: {e}")
 

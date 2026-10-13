@@ -27,12 +27,14 @@ def get_map_pixels_inside_polygon(polygon, map_asset):
 
 def get_pixel_area(map_data):
     pixel_size = map_data["pixel_size"]  # Pixel size in meters
-    return pixel_size * pixel_size  # Pixel area in square kilometers
+    return pixel_size * pixel_size  # Pixel area in square meters
 
 
-def get_deforestation_ratio(pixels, polygon_area, pixel_area):
-    if polygon_area == 0:
-        return 0
+def get_deforestation_ratio(pixels, polygon_area, pixel_area) -> float | None:
+    # calculate_polygon_area returns 0 for an empty polygon and -1 for an invalid
+    # one: there is no ratio to give, and a negative one would read as no loss.
+    if polygon_area <= 0:
+        return None
     deforested_pixels = np.equal(pixels, 1)
     deforested_pixels_sum = np.sum(deforested_pixels)
     deforested_area = float(deforested_pixels_sum * pixel_area)

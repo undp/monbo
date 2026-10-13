@@ -45,13 +45,26 @@ def get_polygon_inconsistencies(
     4. Marks farms as "NOT_VALID" if they are involved in any inconsistency
     """
     farms_polygons = []
+    # Farms whose polygon can't even be built (a single vertex). They are reported
+    # like any invalid geometry and left out of the other checks.
+    unbuildable_inconsistencies = []
     for farm in body:
         try:
             coords, radius = get_farm_coords_and_radius(farm)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        polygon = generate_polygon(coords, radius)
+        try:
+            polygon = generate_polygon(coords, radius)
+        except ValueError:
+            unbuildable_inconsistencies.append(
+                {
+                    "type": "invalid_geometry",
+                    "farmIds": [farm.id],
+                    "data": {"reason": "Too few points"},
+                }
+            )
+            continue
 
         # Create farm polygon object with all details
         farms_polygons.append(
@@ -73,7 +86,9 @@ def get_polygon_inconsistencies(
     overlap_inconsistencies = get_overlap_inconsistencies(farms_polygons)
     geometry_inconsistencies = get_geometry_inconsistencies(farms_polygons)
 
-    all_inconsistencies = overlap_inconsistencies + geometry_inconsistencies
+    all_inconsistencies = (
+        overlap_inconsistencies + geometry_inconsistencies + unbuildable_inconsistencies
+    )
 
     # Create a set of farm IDs involved in inconsistencies for O(1) lookup
     invalid_farm_ids = {

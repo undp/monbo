@@ -1,7 +1,7 @@
 from typing import List
 
 from shapely import STRtree
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.validation import explain_validity
 
@@ -79,6 +79,46 @@ def get_geometry_paths(geometry: BaseGeometry) -> list[list[dict]]:
     raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
 
 
+def polygonal_part(geometry: BaseGeometry) -> Polygon | MultiPolygon:
+    """
+    The part of an intersection that has an area. Two farms that overlap and also
+    touch elsewhere intersect in a GeometryCollection of polygons and lines; farms
+    that only touch intersect in a line or a point, which has no polygonal part.
+    """
+    if isinstance(geometry, (Polygon, MultiPolygon)):
+        return geometry
+    polygons: list[Polygon] = []
+    for part in getattr(geometry, "geoms", []):
+        if isinstance(part, Polygon):
+            polygons.append(part)
+        elif isinstance(part, MultiPolygon):
+            polygons.extend(part.geoms)
+    if len(polygons) == 1:
+        return polygons[0]
+    return MultiPolygon(polygons) if polygons else Polygon()
+
+
+def get_overlap_ratio(
+    overlap_area: float, polygon1_area: float, polygon2_area: float
+) -> float:
+    """
+    The share of the smaller farm covered by the overlap, capped at 1. A farm
+    inside another scores 1, however large the other one is.
+    """
+    smaller_area = min(polygon1_area, polygon2_area)
+    if overlap_area <= 0 or smaller_area <= 0:
+        return 0.0
+    return min(1.0, overlap_area / smaller_area)
+
+
+def is_overlap_above_threshold(overlap_ratio: float) -> bool:
+    return 100 * overlap_ratio > OVERLAP_THRESHOLD_PERCENTAGE
+
+
+def get_overlap_criticality(overlap_ratio: float) -> str:
+    return "HIGH" if overlap_ratio > 0.8 else "MEDIUM"
+
+
 def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
     polygons = list(map(lambda x: x.polygon, farms))
 
@@ -86,50 +126,39 @@ def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
 
     inconsistencies = []
     for overlap in overlaps:
-        overlap_area = GeometryCalculator.calculate_polygon_area(
-            overlap["intersection_polygon"]
+        intersection = polygonal_part(overlap["intersection_polygon"])
+        overlap_area = GeometryCalculator.calculate_polygon_area(intersection)
+        # Shared edges and vertices aren't overlaps
+        if overlap_area <= 0:
+            continue
+
+        overlap_ratio = get_overlap_ratio(
+            overlap_area,
+            GeometryCalculator.calculate_polygon_area(
+                polygons[overlap["polygon1_idx"]]
+            ),
+            GeometryCalculator.calculate_polygon_area(
+                polygons[overlap["polygon2_idx"]]
+            ),
         )
 
-        overlap_farms_ids = [
-            farms[overlap["polygon1_idx"]].id,
-            farms[overlap["polygon2_idx"]].id,
-        ]
-
-        overlap_polygons = [
-            polygons[overlap["polygon1_idx"]],
-            polygons[overlap["polygon2_idx"]],
-        ]
-        overlap_polygons_area = sum(
-            [
-                GeometryCalculator.calculate_polygon_area(polygon)
-                for polygon in overlap_polygons
-            ]
-        )
-
-        # Calculate the union area (total area minus the double-counted overlap)
-        union_area = overlap_polygons_area - overlap_area
-
-        # Handle the case where polygons are identical or nearly identical
-        # Using a small epsilon for floating point comparison
-        if abs(overlap_area - union_area) < 1e-10:
-            overlap_ratio = 1.0  # 100% overlap
-        else:
-            overlap_ratio = min(1.0, overlap_area / union_area)  # Cap at 100%
-
-        if 100 * overlap_ratio > OVERLAP_THRESHOLD_PERCENTAGE:
+        if is_overlap_above_threshold(overlap_ratio):
             inconsistencies.append(
                 {
                     "type": "overlap",
-                    "farmIds": overlap_farms_ids,
+                    "farmIds": [
+                        farms[overlap["polygon1_idx"]].id,
+                        farms[overlap["polygon2_idx"]].id,
+                    ],
                     "data": {
                         "percentage": overlap_ratio,
-                        "criticality": "HIGH" if overlap_ratio > 0.8 else "MEDIUM",
+                        "criticality": get_overlap_criticality(overlap_ratio),
                         "area": overlap_area,
                         "center": {
-                            "lng": overlap["intersection_polygon"].centroid.x,
-                            "lat": overlap["intersection_polygon"].centroid.y,
+                            "lng": intersection.centroid.x,
+                            "lat": intersection.centroid.y,
                         },
-                        "paths": get_geometry_paths(overlap["intersection_polygon"]),
+                        "paths": get_geometry_paths(intersection),
                     },
                 }
             )
