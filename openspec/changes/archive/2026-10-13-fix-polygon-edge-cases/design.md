@@ -63,13 +63,12 @@ A `type`/`details` mismatch from `get_farm_coords_and_radius` stays a 400, becau
 
 `generate_polygon` keeps raising on a point without a radius: that is a programming error for its other callers.
 
-### 5. GeoJSON keeps the outer ring only
+### 5. Polygons with holes are rejected, in GeoJSON and in WKT
 
-`_parse_geojson_polygon_coordinates` reads `rings[0]` and ignores the others, like WKT's `geom.exterior`. The inner rings are still checked for shape (each one a list of `[lng, lat]` pairs), so a malformed file is still rejected.
+`_parse_geojson_polygon_coordinates` rejects a coordinate array with more than one ring, and `_parse_wkt_coordinates` rejects a polygon with interiors, both with the same message ("Polygons with holes (inner rings) are not supported"). `/farms/parse` turns it into the 400 it already returns for any invalid coordinates, so the farm never enters the flow.
 
-- *Alternative: carry holes through the contract.* Rejected for this change. `PolygonDetails.path` would become a list of rings, and the map, the report, the downloads and the image generation would all have to draw them.
-
-  Ignoring holes means a farm is analysed over its full outline. For deforestation, the risk runs in the cautious direction: loss inside an excluded patch counts against the farm, rather than going unseen.
+- *Alternative: keep the outer ring only, as WKT did.* This was the first version of this change, and review rejected it. Dropping the hole adds its area to the denominator of the deforestation ratio, so a farm with a loss-free hole gets a ratio that is too low: with a ~100 ha outer ring and a ~90 ha hole, two 30 m loss pixels are 1.81% of the real farm but 0.18% of the outline, under the 1% threshold. The numerator only grows when the hole itself has loss, so the "cautious direction" argument doesn't hold in general.
+- *Alternative: carry holes through the contract.* Rejected for this change. `PolygonDetails.path` would become a list of rings, and the map, the report, the downloads and the image generation would all have to draw them. Rejecting holes keeps that door open without reporting a wrong number in the meantime.
 
 ### 6. Tests first, parametrized, next to the code they cover
 

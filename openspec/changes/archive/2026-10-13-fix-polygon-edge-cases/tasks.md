@@ -31,8 +31,8 @@
 
 ## 4. GeoJSON holes (tests first)
 
-- [x] 4.1 Add tests for `parse_farm_coordinates_string`: a GeoJSON polygon with a hole gives the outer ring only, and the same polygon in WKT and GeoJSON gives the same path. A malformed inner ring is still rejected. Confirm the hole case fails on the current code.
-- [x] 4.2 Make `_parse_geojson_polygon_coordinates` return the first ring only, after checking every ring's shape.
+- [x] 4.1 Add tests for `parse_farm_coordinates_string`: a polygon with a hole is rejected in GeoJSON and in WKT with a message that names holes, a single-ring polygon gives the same path in both formats, a malformed inner ring is still rejected, and `/farms/parse` answers 400 for a farm with a hole. Confirm the hole cases fail on the current code.
+- [x] 4.2 Make `_parse_geojson_polygon_coordinates` reject more than one ring and `_parse_wkt_coordinates` reject interiors (revised in review: the first version kept the outer ring, which understates the ratio).
 - [x] 4.3 Run 4.1 and see it pass.
 
 ## 5. Cleanup, regression and docs

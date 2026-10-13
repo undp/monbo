@@ -19,7 +19,7 @@ The regression suite didn't catch any of this. It pins whatever the code returns
   - an overlap uses only the polygonal part of the intersection;
   - intersections with no area (shared edges or vertices only) are not overlaps;
   - a polygon with fewer than 3 vertices is reported as `invalid_geometry`, like 2 vertices already are.
-- **GeoJSON polygons keep only their outer ring**, like WKT. A farm with a hole is analysed and validated as its full outline.
+- **Polygons with holes are rejected at upload**, in GeoJSON and in WKT, until the farm's path can carry them. Dropping the hole (what WKT did) measures a larger farm and understates its deforestation ratio.
 - **The overlap percentage becomes intersection ÷ the smaller farm's area.** A contained farm scores 100%, so it is HIGH and both farms are NOT_VALID. The threshold (`OVERLAP_THRESHOLD_PERCENTAGE`, strictly greater) and the HIGH cut (above 80%) don't change. Their meaning does, so the percentages users see go up. This is a **BREAKING** change in reported numbers, not in the contract.
 - **Parametrized tests for each edge case**, written first so they fail on the current code. The regression's expected results are regenerated, and the dead `test_polygon_validation_valid_request` is replaced.
 
@@ -48,5 +48,5 @@ The regression suite didn't catch any of this. It pins whatever the code returns
 ### Out of scope
 - **"No data" vs "no loss":** a farm inside a raster's extent but outside its coverage gets 0.0, not `None`. This was judged acceptable.
 - **Point buffers** are drawn in latitude degrees, so they shrink east–west away from the equator.
-- **Holes as real holes:** supporting them would change `PolygonDetails.path` and everything that draws farms.
+- **Holes as real holes:** supporting them would change `PolygonDetails.path` and everything that draws farms. Until then they are rejected, not dropped.
 - **Coordinate range and NaN checks**, and duplicate IDs in `/validate`.

@@ -42,7 +42,7 @@
 
 - A farm with an invalid polygon (for example, one that crosses itself) got a negative deforestation ratio, which the web showed as deforestation-free. Its ratio is now empty (N/A), as is that of an empty polygon
 - The polygon validation no longer fails with a 500 when two farms overlap and also share an edge, when two tiny farms only touch, or when a polygon has a single vertex. Farms that only share an edge or a vertex are not an overlap, and a single-vertex polygon is reported as an invalid geometry
-- A GeoJSON polygon with holes was read as one self-intersecting ring. Its outer ring is used, as with WKT
+- A GeoJSON polygon with holes was read as one self-intersecting ring, and a WKT polygon with holes was analysed as its outer ring, with a deforestation ratio that was too low. Polygons with holes are now rejected when the farms are uploaded, in both formats, until the farm's path can carry them
 - Show layer names, aliases and considerations in the page's language (they were always in English)
 - Keep retained farms and report selections aligned with the analysis country, and ignore analysis responses from an earlier country or layer selection
 - Accept only `https:` and `mailto:` links for the landing page contact button

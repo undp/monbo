@@ -92,15 +92,20 @@ A problem in a farm's geometry SHALL be reported as an inconsistency of that far
 
 ### Requirement: Polygon coordinates from WKT and GeoJSON
 
-When parsing farms, a polygon's coordinates SHALL be its outer ring, whether given as WKT or as a GeoJSON coordinate array. Inner rings (holes) SHALL be ignored in both formats, so the same polygon written in either format yields the same path and the same area.
+When parsing farms, a polygon's coordinates SHALL be a single ring, whether given as WKT or as a GeoJSON coordinate array. A polygon with inner rings (holes) SHALL be rejected in both formats, with a message that names holes as the reason: a farm's path can't carry a hole, and dropping it would measure a larger farm than the one declared, with a deforestation ratio that is too low.
 
 #### Scenario: GeoJSON polygon with a hole
 
 - **WHEN** a farm's coordinates are a GeoJSON polygon with an outer ring and one inner ring
-- **THEN** its path is the outer ring only, its polygon is valid, and its area is the outer ring's area
+- **THEN** the farm is rejected as invalid coordinates, and the message says that polygons with holes are not supported
 
-#### Scenario: Same polygon in WKT and GeoJSON
+#### Scenario: WKT polygon with a hole
 
-- **WHEN** the same polygon with a hole is given once as WKT and once as GeoJSON
-- **THEN** both farms get the same path and the same area
+- **WHEN** a farm's coordinates are a WKT polygon with an outer ring and one inner ring
+- **THEN** the farm is rejected with the same message
+
+#### Scenario: GeoJSON polygon with a single ring
+
+- **WHEN** a farm's coordinates are a GeoJSON polygon with only an outer ring
+- **THEN** its path is that ring, and it gets the same path and area as the same polygon in WKT
 

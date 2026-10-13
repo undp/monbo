@@ -550,21 +550,30 @@ def _ring_wkt(ring):
     return "(" + ", ".join(f"{x} {y}" for x, y in ring) + ")"
 
 
-def test_geojson_polygon_with_a_hole_keeps_the_outer_ring():
-    geojson = json.dumps([OUTER, HOLE])
-    coords = parse_farm_coordinates_string("GeoJSON", "Polygon", geojson)
-    assert [(c.lng, c.lat) for c in coords] == OUTER
-    polygon = generate_polygon(coords)
-    assert polygon.is_valid
-    assert GeometryCalculator.calculate_polygon_area(polygon) > 0
+def _polygon_wkt(*rings):
+    return "POLYGON (" + ", ".join(_ring_wkt(ring) for ring in rings) + ")"
 
 
-def test_same_polygon_in_wkt_and_geojson():
-    wkt = f"POLYGON ({_ring_wkt(OUTER)}, {_ring_wkt(HOLE)})"
-    from_wkt = parse_farm_coordinates_string("WKT", "Polygon", wkt)
+@pytest.mark.parametrize(
+    "coordinates_format, coordinates",
+    [
+        ("GeoJSON", json.dumps([OUTER, HOLE])),
+        ("WKT", _polygon_wkt(OUTER, HOLE)),
+    ],
+)
+def test_polygon_with_a_hole_is_rejected(coordinates_format, coordinates):
+    # The path can't carry the hole, and dropping it would measure a larger farm
+    # (and a lower deforestation ratio) than the one declared.
+    with pytest.raises(ValueError, match="holes"):
+        parse_farm_coordinates_string(coordinates_format, "Polygon", coordinates)
+
+
+def test_same_single_ring_polygon_in_wkt_and_geojson():
+    from_wkt = parse_farm_coordinates_string("WKT", "Polygon", _polygon_wkt(OUTER))
     from_geojson = parse_farm_coordinates_string(
-        "GeoJSON", "Polygon", json.dumps([OUTER, HOLE])
+        "GeoJSON", "Polygon", json.dumps([OUTER])
     )
+    assert [(c.lng, c.lat) for c in from_geojson] == OUTER
     assert from_wkt == from_geojson
     assert GeometryCalculator.calculate_polygon_area(
         generate_polygon(from_wkt)
@@ -575,3 +584,43 @@ def test_geojson_polygon_with_a_malformed_hole_is_rejected():
     geojson = json.dumps([OUTER, [[0.004, 0.004], [0.006]]])
     with pytest.raises(ValueError):
         parse_farm_coordinates_string("GeoJSON", "Polygon", geojson)
+
+
+def _upload_row(coordinates_format, coordinates):
+    return {
+        "id": "F01",
+        "producerName": "Producer",
+        "productionDate": "2025-01-15",
+        "productionQuantity": 100,
+        "productionQuantityUnit": "kg",
+        "country": "EC",
+        "coordinatesFormat": coordinates_format,
+        "geometryType": "Polygon",
+        "farmCoordinates": coordinates,
+        "cropType": "Café",
+        "documents": [],
+    }
+
+
+@pytest.mark.parametrize(
+    "coordinates_format, coordinates",
+    [
+        ("GeoJSON", json.dumps([OUTER, HOLE])),
+        ("WKT", _polygon_wkt(OUTER, HOLE)),
+    ],
+)
+def test_farm_with_a_hole_is_rejected_at_upload(coordinates_format, coordinates):
+    response = client.post(
+        "/farms/parse", json=[_upload_row(coordinates_format, coordinates)]
+    )
+    assert response.status_code == 400
+    assert "holes" in json.dumps(response.json()["detail"])
+
+
+def test_farm_with_a_single_ring_is_accepted_at_upload():
+    response = client.post(
+        "/farms/parse", json=[_upload_row("GeoJSON", json.dumps([OUTER]))]
+    )
+    assert response.status_code == 200
+    [farm] = response.json()
+    assert farm["polygon"]["area"] > 0

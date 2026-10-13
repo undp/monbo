@@ -20,6 +20,12 @@ from app.utils.polygons import (
     get_point_area_and_radius,
 )
 
+# A farm's path (`PolygonDetails.path`) is a single ring, so a hole can't be carried
+# through the contract. Silently dropping it would analyse a larger farm than the one
+# declared, and the deforestation ratio would come out too low. Until holes are
+# supported end to end, a polygon with holes is rejected at upload.
+HOLES_NOT_SUPPORTED = "Polygons with holes (inner rings) are not supported"
+
 
 def get_farm_coords_and_radius(
     farm: FarmPolygonDetailData,
@@ -132,6 +138,8 @@ def _parse_wkt_coordinates(
     if geometry_type == "Polygon":
         if not isinstance(geom, ShapelyPolygon):
             raise ValueError("Inconsistent geometry_type and WKT coordinates")
+        if len(geom.interiors) > 0:
+            raise ValueError(HOLES_NOT_SUPPORTED)
         return [
             Coordinates(lng=float(x), lat=float(y)) for x, y in geom.exterior.coords
         ]
@@ -169,30 +177,30 @@ def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinate
                                [5.0, 6.0], [1.0, 2.0]]]")
 
     Returns:
-        list[Coordinates]: List of coordinate objects from the outer ring. Inner
-        rings (holes) are checked but dropped, as WKT does: a farm's path is one ring.
+        list[Coordinates]: List of coordinate objects from the polygon's only ring.
+        A polygon with inner rings (holes) is rejected, as in WKT.
     """
     try:
         rings = json.loads(farm_coordinates)
         if not isinstance(rings, list) or len(rings) == 0:
             raise ValueError("GeoJSON Polygon must be an array of linear rings")
+        if len(rings) > 1:
+            raise ValueError(HOLES_NOT_SUPPORTED)
 
-        parsed_rings = []
-        for ring in rings:
-            if not isinstance(ring, list):
-                raise ValueError("Each ring in GeoJSON Polygon must be an array")
+        [ring] = rings
+        if not isinstance(ring, list):
+            raise ValueError("Each ring in GeoJSON Polygon must be an array")
 
-            coordinates = []
-            for coord in ring:
-                if not isinstance(coord, list) or len(coord) != 2:
-                    raise ValueError(
-                        "Each coordinate must be an array with exactly 2 elements"
-                    )
-                lng, lat = coord
-                coordinates.append(Coordinates(lng=float(lng), lat=float(lat)))
-            parsed_rings.append(coordinates)
+        coordinates = []
+        for coord in ring:
+            if not isinstance(coord, list) or len(coord) != 2:
+                raise ValueError(
+                    "Each coordinate must be an array with exactly 2 elements"
+                )
+            lng, lat = coord
+            coordinates.append(Coordinates(lng=float(lng), lat=float(lat)))
 
-        return parsed_rings[0]
+        return coordinates
     except (json.JSONDecodeError, TypeError, ValueError) as e:
         raise ValueError(f"Invalid GeoJSON Polygon coordinates: {e}")
 
