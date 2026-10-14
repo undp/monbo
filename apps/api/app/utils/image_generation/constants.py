@@ -24,8 +24,11 @@ class MapDefaults:
     # Map styling
     MAP_TYPE = "satellite"  # Options: satellite, roadmap, hybrid, terrain
 
-    # Default dimensions (width, height) in pixels for generated map images
-    OUTPUT_SIZE = (500, 500)
+    # Default dimensions (width, height) in pixels for generated map images. The
+    # aspect ratio is the map box's on the report's farm page
+    # (apps/web/src/utils/deforestationReport/styles.ts): with another ratio, the
+    # PDF would crop or band the image. 640 is Static Maps' widest without `scale`.
+    OUTPUT_SIZE = (640, 420)
 
     # Extra padding ratio added around geometries to provide visual context
     PADDING_RATIO = 0.1

@@ -77,8 +77,9 @@ class MapImageGenerator:
 
         Returns:
             PIL Image with composited layers in RGBA mode. The layers are composited
-            in order: satellite imagery (bottom), geometry overlay, deforestation data
-            (if available, top).
+            in order: satellite imagery (bottom), deforestation data (if available),
+            geometry overlay (top), so the farm's outline stays visible over the
+            deforestation, as on the web map.
 
         Raises:
             GeometryTypeError: If geometry is not a Polygon or Point
@@ -108,16 +109,6 @@ class MapImageGenerator:
             satellite_img = MapImageGenerator.generate_solid_background(output_size)
             layers.append(satellite_img)
 
-        # Create geometry overlay (CPU-bound drawing: off the event loop)
-        geometry_overlay = await asyncio.to_thread(
-            GeometryHelper.create_feature_overlay,
-            geometry,
-            output_size,
-            zoom_level,
-            point_radius_meters,
-        )
-        layers.append(geometry_overlay)
-
         # Generate deforestation image
         try:
             deforestation_overlay = (
@@ -139,6 +130,17 @@ class MapImageGenerator:
             raise MapGenerationError(
                 f"Error processing deforestation data: {str(e)}"
             ) from e
+
+        # Create geometry overlay, above the deforestation (CPU-bound drawing: off
+        # the event loop)
+        geometry_overlay = await asyncio.to_thread(
+            GeometryHelper.create_feature_overlay,
+            geometry,
+            output_size,
+            zoom_level,
+            point_radius_meters,
+        )
+        layers.append(geometry_overlay)
 
         # Combine all layers (decodes the satellite image: off the event loop)
         return await asyncio.to_thread(
