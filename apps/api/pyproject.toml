@@ -4,8 +4,8 @@ version = "1.5.1"
 description = "FastAPI application"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi[standard]==0.142.2",
-    "shapely==2.1.2",
+    "fastapi[standard]==0.143.0",
+    "shapely==2.2.0",
     "pyproj==3.8.0",
     "uvicorn==0.54.0",
     "httpx==0.28.1",
@@ -25,8 +25,8 @@ azure = [
 dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "ruff==0.16.10",
-    "black==26.5.1",
+    "ruff==0.17.0",
+    "black==26.10.1",
     "mypy==2.4.0",
     "memory-profiler==0.61.0",
     "openpyxl==3.1.5",
