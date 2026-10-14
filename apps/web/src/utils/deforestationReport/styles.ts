@@ -1,5 +1,11 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
+// The farm page's map image: the A4 width (595.28 pt) minus the page's padding, in
+// the aspect ratio of the API's images (MapDefaults.OUTPUT_SIZE, 640×420). With
+// another ratio the farm would be cut or banded.
+const FARM_MAP_IMAGE_WIDTH = 595.28 - 2 * 30;
+const FARM_MAP_IMAGE_HEIGHT = (FARM_MAP_IMAGE_WIDTH * 420) / 640;
+
 export const styles = StyleSheet.create({
   document: {
     fontFamily: "Roboto",
@@ -140,12 +146,12 @@ export const styles = StyleSheet.create({
   farmMapPageMapImageContainer: {
     marginBottom: 30,
     width: "100%",
-    maxHeight: "370px",
   },
   farmMapPageMapImage: {
-    width: "100%", // Adjust as needed
-    height: "95%", // Fills the container
-    objectFit: "cover", // Ensures the image scales properly
+    width: FARM_MAP_IMAGE_WIDTH,
+    height: FARM_MAP_IMAGE_HEIGHT,
+    // Never crops: if the ratios drift, the image gets bands, not a cut farm.
+    objectFit: "contain",
   },
   appendixPage: {
     padding: "30px",

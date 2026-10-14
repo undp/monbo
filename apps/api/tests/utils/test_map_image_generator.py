@@ -1,0 +1,101 @@
+import asyncio
+
+import numpy as np
+import pytest
+import rasterio
+from rasterio.transform import from_bounds
+from shapely.geometry import Point, Polygon
+
+from app.utils.image_generation.constants import MapDefaults
+from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
+from app.utils.image_generation.MapImageGenerator import MapImageGenerator
+
+# A 100x100 EPSG:4326 raster around (0, 0), about 22 m per pixel, all loss (1).
+LOSS_BOUNDS = (-0.01, -0.01, 0.01, 0.01)
+
+
+@pytest.fixture
+def all_loss_raster(tmp_path):
+    path = tmp_path / "loss.tif"
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=100,
+        height=100,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_bounds(*LOSS_BOUNDS, 100, 100),
+    ) as dst:
+        dst.write(np.ones((100, 100), dtype=np.uint8), 1)
+    return str(path)
+
+
+def _generate(geometry, tif_path, point_radius_meters=None):
+    return asyncio.run(
+        MapImageGenerator.generate(
+            geometry,
+            tif_path,
+            point_radius_meters,
+            include_satelital_background=False,
+        )
+    )
+
+
+def _outline_pixels(image) -> int:
+    """Pixels with the outline's yellow on top: over the red, the outline's green
+    stays above 200, while the red over the outline brings it under 100, and the
+    fills (16% and 47% opaque) keep it under 150."""
+    rgb = np.asarray(image.convert("RGB")).astype(int)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    return int(((r > 200) & (g > 180) & (b < 120)).sum())
+
+
+def test_the_polygon_outline_is_drawn_over_the_deforestation(all_loss_raster):
+    square = Polygon(
+        [(-0.002, -0.002), (-0.002, 0.002), (0.002, 0.002), (0.002, -0.002)]
+    )
+    image = _generate(square, all_loss_raster)
+    assert _outline_pixels(image) > 100
+
+
+def test_the_point_outline_is_drawn_over_the_deforestation(all_loss_raster):
+    image = _generate(Point(0, 0), all_loss_raster, point_radius_meters=50)
+    assert _outline_pixels(image) > 50
+
+
+# North–south extent 10 times the east–west one, and the other way around.
+TALL = Polygon([(-0.0005, -0.005), (-0.0005, 0.005), (0.0005, 0.005), (0.0005, -0.005)])
+WIDE = Polygon([(-0.005, -0.0005), (-0.005, 0.0005), (0.005, 0.0005), (0.005, -0.0005)])
+
+
+@pytest.mark.parametrize(
+    "farm", [pytest.param(TALL, id="tall"), pytest.param(WIDE, id="wide")]
+)
+def test_the_whole_farm_fits_the_image_with_its_padding(farm):
+    min_lon, min_lat, max_lon, max_lat = farm.bounds
+    zoom = GoogleMapsAPIHelper.calculate_zoom_from_bounds(
+        min_lat, max_lat, min_lon, max_lon, MapDefaults.OUTPUT_SIZE
+    )
+    img_min_lat, img_max_lat, img_min_lon, img_max_lon = (
+        GoogleMapsAPIHelper.get_image_bounds(
+            (min_lat + max_lat) / 2,
+            (min_lon + max_lon) / 2,
+            zoom,
+            MapDefaults.OUTPUT_SIZE,
+        )
+    )
+    # Near the equator, degrees are close enough to Web Mercator's linear scale.
+    lat_padding = (max_lat - min_lat) * MapDefaults.PADDING_RATIO * 0.99
+    lon_padding = (max_lon - min_lon) * MapDefaults.PADDING_RATIO * 0.99
+    assert img_min_lat <= min_lat - lat_padding
+    assert img_max_lat >= max_lat + lat_padding
+    assert img_min_lon <= min_lon - lon_padding
+    assert img_max_lon >= max_lon + lon_padding
+
+
+def test_the_image_has_the_report_box_aspect_ratio(all_loss_raster):
+    """640x420: the ratio of the map box on the report's farm page (styles.ts)."""
+    image = _generate(TALL, all_loss_raster)
+    assert image.size == (640, 420)

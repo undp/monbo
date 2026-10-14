@@ -342,7 +342,7 @@ def test_generate_image_checks_the_analysed_version(
         "version": 3,
     }
     mock_get_map_raster_path.return_value = "dummy/path.tif"
-    mock_generate.return_value = Image.new("RGBA", (500, 500), (0, 64, 0, 255))
+    mock_generate.return_value = Image.new("RGBA", (640, 420), (0, 64, 0, 255))
     url = "/deforestation_analysis/generate-image?include_satelital_background=false"
 
     # The analysis used an older raster: the image would not match its results.
@@ -359,7 +359,7 @@ def test_generate_image_checks_the_analysed_version(
     # JPEG: the report embeds it as is (see _encode_jpeg).
     assert response.headers["Content-Type"] == "image/jpeg"
     image = Image.open(BytesIO(response.content))
-    assert (image.format, image.mode, image.size) == ("JPEG", "RGB", (500, 500))
+    assert (image.format, image.mode, image.size) == ("JPEG", "RGB", (640, 420))
 
     # Clients that don't send a version keep working.
     response = client.post(url, json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE})
@@ -388,7 +388,7 @@ def test_generate_image_does_not_block_other_requests(
 
     def slow_overlay(*args, **kwargs):
         time.sleep(0.5)  # blocking, like drawing a large polygon
-        return Image.new("RGBA", (500, 500), (0, 0, 0, 0))
+        return Image.new("RGBA", (640, 420), (0, 0, 0, 0))
 
     mock_geometry_helper.create_feature_overlay.side_effect = slow_overlay
 

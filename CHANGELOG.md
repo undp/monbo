@@ -41,6 +41,8 @@
 
 ### Fixed
 
+- In the report's maps, the farm's outline is drawn above the deforestation (it was hidden under it where the loss crosses the farm's edge), as on the web map
+- The report's maps no longer cut off tall farms at the top and bottom: `POST /deforestation_analysis/generate-image` returns 640×420 images (they were 500×500), in the aspect ratio of the map box on the farm page, which shows them whole
 - A farm with an invalid polygon (for example, one that crosses itself) got a negative deforestation ratio, which the web showed as deforestation-free. Its ratio is now empty (N/A), as is that of an empty polygon
 - The polygon validation no longer fails with a 500 when two farms overlap and also share an edge, when two tiny farms only touch, or when a polygon has a single vertex. Farms that only share an edge or a vertex are not an overlap, and a single-vertex polygon is reported as an invalid geometry
 - A GeoJSON polygon with holes was read as one self-intersecting ring, and a WKT polygon with holes was analysed as its outer ring, with a deforestation ratio that was too low. Polygons with holes are now rejected when the farms are uploaded, in both formats, until the farm's path can carry them

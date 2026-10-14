@@ -239,8 +239,10 @@ to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
 
 `POST /deforestation_analysis/generate-image` (feature, layer id, country) draws the
 raster around a farm on top of a Google Maps satellite image (Static Maps API, with
-the API's key and signature secret), for the PDF report. It returns a 500×500 JPEG
-(quality 85, no chroma subsampling), which the report embeds as is.
+the API's key and signature secret), for the PDF report. The farm is drawn last, so
+its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85, no
+chroma subsampling), the aspect ratio of the map box on the PDF's farm page, which
+the report embeds as is.
 
 - **One satellite call per farm.** The satellite image depends only on the farm's
   center and zoom, not on the layer, so the API caches it in memory: bounded (256
