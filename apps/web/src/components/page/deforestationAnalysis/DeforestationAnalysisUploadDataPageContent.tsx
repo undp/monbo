@@ -48,8 +48,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
     selectedCountry,
     analysisOutdated,
     setAnalysisOutdated,
+    refreshAvailableMaps,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
+
+  // A layer enabled since the last fetch shows up when the page opens.
+  useEffect(() => {
+    refreshAvailableMaps();
+  }, [refreshAvailableMaps]);
   // With farms already loaded the analysis starts right away, unless no map is
   // selected yet: then the form is shown so the user can pick one.
   const [loading, setLoading] = useState(

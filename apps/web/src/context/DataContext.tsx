@@ -21,7 +21,10 @@ import {
 import { getMaps } from "@/api/deforestationAnalysis";
 import { getCountries } from "@/api/countries";
 import { orderBy } from "lodash";
-import { AVAILABLE_MAPS_POLLING_INTERVAL } from "@/config/constants";
+import {
+  AVAILABLE_MAPS_POLLING_INTERVAL,
+  ON_DEMAND_REFRESH_MIN_GAP,
+} from "@/config/constants";
 
 export interface DataContextValue {
   farmsData: FarmData[] | null;
@@ -58,6 +61,9 @@ export interface DataContextValue {
   // The selected country's layers could not be fetched (and none arrived yet)
   availableMapsError: boolean;
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
+  // Refetches the selected country's layers unless they were fetched less than
+  // ON_DEMAND_REFRESH_MIN_GAP ago (or are being fetched). For layer selectors.
+  refreshAvailableMaps: () => void;
   // The countries that can be analyzed (`GET /countries`), by ISO code.
   availableCountries: string[];
   // True once the first `GET /countries` has answered.
@@ -147,6 +153,7 @@ export const DataContext = createContext<DataContextValue>({
   availableMaps: [],
   availableMapsError: false,
   setAvailableMaps: () => {},
+  refreshAvailableMaps: () => {},
   availableCountries: [],
   availableCountriesLoaded: false,
   availableCountriesError: false,
@@ -193,6 +200,12 @@ function useKeptState<K extends KeptKey>(
   }, [key, value]);
   return [value, setValue];
 }
+
+// On-demand refetches (returning to the tab, opening a layer selector) are
+// skipped while the list is being fetched or was fetched less than
+// ON_DEMAND_REFRESH_MIN_GAP ago.
+const isRecent = ({ startedAt, inFlight }: { startedAt: number; inFlight: boolean }) =>
+  inFlight || Date.now() - startedAt < ON_DEMAND_REFRESH_MIN_GAP;
 
 const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   children,
@@ -329,55 +342,128 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     }
   });
 
+  // The latest fetch of each list. Every fetch takes the next request number and
+  // its response is applied only while it is still the latest, so a late
+  // response (for the previous country, or after a newer one) is dropped.
+  const countriesFetch = useRef({ request: 0, startedAt: -Infinity, inFlight: false });
+  const mapsFetch = useRef({
+    request: 0,
+    country: null as string | null,
+    startedAt: -Infinity,
+    inFlight: false,
+  });
+
+  const fetchAvailableCountries = useEffectEvent(async () => {
+    const latest = countriesFetch.current;
+    const request = ++latest.request;
+    latest.startedAt = Date.now();
+    latest.inFlight = true;
+    let countries: { code: string }[];
+    try {
+      countries = await getCountries();
+    } catch (error) {
+      console.error(error);
+      // Once a list has arrived, a failed refresh keeps it.
+      if (request === latest.request) setAvailableCountriesError(true);
+      return;
+    } finally {
+      if (request === latest.request) latest.inFlight = false;
+    }
+    if (request !== latest.request) return;
+    setAvailableCountries(countries.map(({ code }) => code));
+    setAvailableCountriesLoaded(true);
+    setAvailableCountriesError(false);
+  });
+
+  const fetchAvailableMaps = useEffectEvent(async () => {
+    // The layers are only needed once a country is chosen.
+    if (!selectedCountry) return;
+    const country = selectedCountry;
+    const latest = mapsFetch.current;
+    const request = ++latest.request;
+    latest.country = country;
+    latest.startedAt = Date.now();
+    latest.inFlight = true;
+    let maps: MapData[];
+    try {
+      maps = await getMaps(locale, country);
+    } catch (error) {
+      console.error(error);
+      if (request === latest.request) setAvailableMapsErrorCountry(country);
+      return;
+    } finally {
+      if (request === latest.request) latest.inFlight = false;
+    }
+    if (request !== latest.request) return;
+    onMapsLoaded(maps, country);
+  });
+
+  // On-demand refetches skip a list fetched recently; the poll and a country
+  // change always fetch.
+  const refreshAvailableCountriesOnDemand = useEffectEvent(() => {
+    if (!isRecent(countriesFetch.current)) fetchAvailableCountries();
+  });
+
+  const refreshAvailableMapsOnDemand = useEffectEvent(() => {
+    const latest = mapsFetch.current;
+    if (latest.country === selectedCountry && isRecent(latest)) return;
+    fetchAvailableMaps();
+  });
+
   useEffect(() => {
-    let active = true;
-    const fetchAvailableCountries = async () => {
-      try {
-        const countries = await getCountries();
-        if (!active) return;
-        setAvailableCountries(countries.map(({ code }) => code));
-        setAvailableCountriesLoaded(true);
-        setAvailableCountriesError(false);
-      } catch (error) {
-        console.error(error);
-        // Once a list has arrived, a failed refresh keeps it.
-        if (active) setAvailableCountriesError(true);
-      }
-    };
+    const latest = countriesFetch.current;
     const interval = setInterval(
       fetchAvailableCountries,
       AVAILABLE_MAPS_POLLING_INTERVAL
     );
     fetchAvailableCountries();
     return () => {
-      active = false;
+      // Drops the pending response.
+      latest.request += 1;
+      latest.inFlight = false;
       clearInterval(interval);
     };
   }, []);
 
   useEffect(() => {
-    // The layers are only needed once a country is chosen.
     if (!selectedCountry) return;
-    let active = true;
-    const fetchAvailableMaps = async () => {
-      let maps: MapData[];
-      try {
-        maps = await getMaps(locale, selectedCountry);
-      } catch (error) {
-        console.error(error);
-        if (active) setAvailableMapsErrorCountry(selectedCountry);
-        return;
-      }
-      if (!active) return;
-      onMapsLoaded(maps, selectedCountry);
-    };
+    const latest = mapsFetch.current;
     const interval = setInterval(fetchAvailableMaps, AVAILABLE_MAPS_POLLING_INTERVAL);
     fetchAvailableMaps();
     return () => {
-      active = false;
+      // Drops the pending response: it is for the previous country or language.
+      latest.request += 1;
+      latest.inFlight = false;
       clearInterval(interval);
     };
   }, [locale, selectedCountry]);
+
+  // A layer enabled while the user was on another tab or app shows up when they
+  // come back, instead of on the next poll.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshAvailableCountriesOnDemand();
+      refreshAvailableMapsOnDemand();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  // Layer selectors ask for a refresh through the context; the request is
+  // counted in state so the refetch runs from an effect.
+  const [mapsRefreshRequests, setMapsRefreshRequests] = useState(0);
+  const refreshAvailableMaps = useCallback(
+    () => setMapsRefreshRequests((count) => count + 1),
+    []
+  );
+  useEffect(() => {
+    if (mapsRefreshRequests > 0) refreshAvailableMapsOnDemand();
+  }, [mapsRefreshRequests]);
 
   // A country kept from earlier in the tab session may have lost its layers
   // meanwhile: drop it once per mount, when the first country list arrives.
@@ -436,6 +522,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         availableMapsErrorCountry === selectedCountry &&
         availableMapsCountry !== selectedCountry,
       setAvailableMaps,
+      refreshAvailableMaps,
       availableCountries,
       availableCountriesLoaded,
       availableCountriesError,
@@ -463,6 +550,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     availableMapsCountry,
     availableMapsErrorCountry,
     setAvailableMaps,
+    refreshAvailableMaps,
     availableCountries,
     availableCountriesLoaded,
     availableCountriesError,
