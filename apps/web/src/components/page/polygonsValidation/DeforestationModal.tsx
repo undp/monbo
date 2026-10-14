@@ -12,7 +12,7 @@ import {
   RadioGroup,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useCallback, useContext, useMemo } from "react";
+import { useCallback, useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
 import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
@@ -31,8 +31,14 @@ export const DeforestationModal: React.FC<
     polygonsValidationResults,
     deforestationAnalysisParams: { polygonsSubset, selectedMaps },
     setDeforestationAnalysisParams,
+    refreshAvailableMaps,
   } = useContext(DataContext);
   const router = useRouter();
+
+  // A layer enabled since the last fetch shows up when the modal opens.
+  useEffect(() => {
+    if (isOpen) refreshAvailableMaps();
+  }, [isOpen, refreshAvailableMaps]);
   const countryName = selectedCountry
     ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
       selectedCountry)

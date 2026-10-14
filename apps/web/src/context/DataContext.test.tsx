@@ -2,7 +2,10 @@ import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCountries } from "@/api/countries";
 import { getMaps } from "@/api/deforestationAnalysis";
-import { AVAILABLE_MAPS_POLLING_INTERVAL } from "@/config/constants";
+import {
+  AVAILABLE_MAPS_POLLING_INTERVAL,
+  ON_DEMAND_REFRESH_MIN_GAP,
+} from "@/config/constants";
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
 import { deferred } from "@/test/deferred";
 import { createTestI18n } from "@/test/i18n";
@@ -24,6 +27,16 @@ const tmf = makeMap({ id: 2, name: "TMF", alias: "TMF", availableCountriesCodes:
 const flush = () => act(() => vi.advanceTimersByTimeAsync(0));
 /** The next poll of /countries and /maps. */
 const poll = () => act(() => vi.advanceTimersByTimeAsync(AVAILABLE_MAPS_POLLING_INTERVAL));
+/** Lets the minimum gap between on-demand refreshes pass (before the next poll). */
+const passGap = () => act(() => vi.advanceTimersByTimeAsync(ON_DEMAND_REFRESH_MIN_GAP));
+
+/** The user comes back to the tab: `visibilitychange` with the document `state`. */
+const changeVisibility = (state: DocumentVisibilityState = "visible") => {
+  vi.spyOn(document, "visibilityState", "get").mockReturnValue(state);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+};
 
 /** `/maps` answers each country's list from `lists` (CR: GFW, PE: TMF by default). */
 const mapsByCountry = (lists: Record<string, MapData[]> = { CR: [gfw], PE: [tmf] }) =>
@@ -34,7 +47,8 @@ beforeEach(async () => {
   await createTestI18n("es");
   await createTestI18n("en");
   vi.useFakeTimers({
-    toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+    // Date too: the minimum gap between on-demand refreshes reads Date.now().
+    toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
   });
   vi.mocked(getCountries).mockResolvedValue([{ code: "CR" }, { code: "PE" }]);
   mapsByCountry();
@@ -253,6 +267,20 @@ describe("DataProvider polling with a selected layer", () => {
     expect(result.current.deforestationAnalysisResults).not.toBeNull();
   });
 
+  it("invalidates the analysis on an on-demand refresh, as on a poll", async () => {
+    const { result } = await withSelectedLayer(true);
+    const changed = { ...gfw, version: 2 };
+    mapsByCountry({ CR: [changed] });
+    await passGap();
+
+    act(() => result.current.refreshAvailableMaps());
+    await flush();
+
+    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([changed]);
+  });
+
   it("deselects a hidden layer without an analysis", async () => {
     const { result } = await withSelectedLayer(false);
     mapsByCountry({ CR: [] });
@@ -260,6 +288,94 @@ describe("DataProvider polling with a selected layer", () => {
     await poll();
 
     expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([]);
+  });
+});
+
+describe("DataProvider on-demand refresh", () => {
+  const newLayer = makeMap({ id: 3, name: "MOCUPP", alias: "MOCUPP" });
+
+  it("refreshes both lists when the user returns to the tab", async () => {
+    const { result } = await withCountry("CR");
+    vi.mocked(getCountries).mockClear();
+    vi.mocked(getMaps).mockClear();
+    mapsByCountry({ CR: [gfw, newLayer] });
+    await passGap();
+
+    changeVisibility();
+    await flush();
+
+    expect(getCountries).toHaveBeenCalledTimes(1);
+    expect(getMaps).toHaveBeenCalledTimes(1);
+    expect(result.current.availableMaps).toEqual([gfw, newLayer]);
+  });
+
+  it("sends one request per list when visibility and focus fire together", async () => {
+    await withCountry("CR");
+    vi.mocked(getCountries).mockClear();
+    vi.mocked(getMaps).mockClear();
+    await passGap();
+
+    changeVisibility();
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await flush();
+
+    expect(getCountries).toHaveBeenCalledTimes(1);
+    expect(getMaps).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not refresh when the tab is hidden", async () => {
+    await withCountry("CR");
+    vi.mocked(getCountries).mockClear();
+    vi.mocked(getMaps).mockClear();
+    await passGap();
+
+    changeVisibility("hidden");
+    await flush();
+
+    expect(getCountries).not.toHaveBeenCalled();
+    expect(getMaps).not.toHaveBeenCalled();
+  });
+
+  it("skips a layers refresh within the minimum gap", async () => {
+    const { result } = await withCountry("CR");
+    vi.mocked(getMaps).mockClear();
+
+    act(() => result.current.refreshAvailableMaps());
+    await flush();
+
+    expect(getMaps).not.toHaveBeenCalled();
+  });
+
+  it("skips a layers refresh while one is in flight", async () => {
+    const { result } = await withCountry("CR");
+    await passGap();
+    vi.mocked(getMaps).mockClear();
+    const pending = deferred<MapData[]>();
+    vi.mocked(getMaps).mockReturnValue(pending.promise);
+
+    act(() => result.current.refreshAvailableMaps());
+    await flush();
+    // Past the gap again, but the first refresh hasn't answered yet.
+    await passGap();
+    act(() => result.current.refreshAvailableMaps());
+    await flush();
+    expect(getMaps).toHaveBeenCalledTimes(1);
+
+    pending.resolve([gfw, newLayer]);
+    await flush();
+    expect(result.current.availableMaps).toEqual([gfw, newLayer]);
+  });
+
+  it("does nothing without a selected country", async () => {
+    const { result } = await renderWithDataProvider();
+    await flush();
+
+    act(() => result.current.refreshAvailableMaps());
+    await flush();
+
+    expect(getMaps).not.toHaveBeenCalled();
   });
 });
 
