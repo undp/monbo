@@ -22,9 +22,7 @@ from rasterio.transform import from_bounds
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.polygons import Coordinates
 from app.modules.deforestation_analysis.helpers import (
-    get_deforestation_ratio,
-    get_map_pixels_inside_polygon,
-    get_pixel_area,
+    get_loss_area_fraction,
     get_tile,
 )
 from app.utils.polygons import generate_polygon
@@ -42,10 +40,6 @@ WEST, SOUTH, EAST, NORTH = -70.02, -5.02, -69.98, -4.98
 WIDTH = HEIGHT = 64
 NODATA = 255
 
-# Metadata pixel size (meters) used by the deforestation math, mirroring the
-# real map index (pixel_size == 30 -> 900 m^2 per pixel).
-MAP_DATA = {"pixel_size": 30}
-
 # Fixed analysis polygon (lng, lat) fully inside the raster, covering the
 # central loss block.
 ANALYSIS_POLYGON = [
@@ -54,11 +48,6 @@ ANALYSIS_POLYGON = [
     (-69.988, -4.988),
     (-69.988, -5.012),
 ]
-
-# Deterministic inputs for the pure scalar-ratio check.
-SCALAR_PIXELS = [1, 0, 3, 1, 0, 2, 0, 0, 1, 3]
-SCALAR_POLYGON_AREA = 100.0
-SCALAR_PIXEL_AREA = 5.0
 
 # Rendered-imagery tile, chosen to overlap the fixture so the tile is non-empty.
 _TILE_ZOOM = 14
@@ -111,11 +100,13 @@ def compute_outputs(raster_path: Path) -> dict:
     polygon = generate_polygon(coords, None)
 
     with rasterio.open(raster_path) as src:
-        # Scalar path exercises the real helper used in production.
-        loss_year_data = get_map_pixels_inside_polygon(polygon, src)
+        # Scalar path exercises the real helper used in production. The polygon
+        # holds the whole loss block minus its nodata hole (960 pixels), so the
+        # expected ratio is exactly 960 * 0.000625^2 / 0.024^2 = 0.6510416...
+        scalar_ratio = get_loss_area_fraction(polygon, src)
 
         # Full masked raster (all bands) + transform for the raster gate,
-        # mirroring get_map_pixels_inside_polygon's masking.
+        # mirroring get_loss_area_fraction's masking.
         polygon_gdf = gpd.GeoDataFrame({"geometry": [polygon]}, crs="EPSG:4326").to_crs(
             src.crs
         )
@@ -125,12 +116,7 @@ def compute_outputs(raster_path: Path) -> dict:
         count = int(src.count)
         nodata = src.nodata
 
-    pixel_area = get_pixel_area(MAP_DATA)
     polygon_area = GeometryCalculator.calculate_polygon_area(polygon)
-    scalar_ratio = get_deforestation_ratio(loss_year_data, polygon_area, pixel_area)
-    scalar_ratio_pure = get_deforestation_ratio(
-        np.array(SCALAR_PIXELS), SCALAR_POLYGON_AREA, SCALAR_PIXEL_AREA
-    )
 
     if nodata is not None:
         valid_mask = np.asarray(out_image != nodata)
@@ -142,7 +128,6 @@ def compute_outputs(raster_path: Path) -> dict:
 
     return {
         "scalar_ratio": float(scalar_ratio),
-        "scalar_ratio_pure": float(scalar_ratio_pure),
         "polygon_area": float(polygon_area),
         "raster": {
             "pixels": np.asarray(out_image),

@@ -85,7 +85,8 @@ Each country's `index.json` is a list with one entry per layer:
   discards the old results and recalculates them before showing the map or report.
   A layer created in the admin starts at `0`, before it has a raster. Missing means
   `1`.
-- **pixel_size**: Pixel size in meters; the analysis uses it for the pixel area.
+- **pixel_size**: Pixel size in meters, the layer's declared resolution. The analysis
+  doesn't use it: it measures each pixel from the raster's transform.
   Uploads and later edits must agree with the raster's measured pixel area within
   5% everywhere in the raster. For a geographic CRS (degrees) the cell area changes
   with latitude, so it is checked at the latitudes nearest to and farthest from the
