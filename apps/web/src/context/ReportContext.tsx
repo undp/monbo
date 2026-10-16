@@ -407,8 +407,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [selection, attempt, render, renderFirstFarm, invalidateAnalysis]);
 
-  // A ZIP job belongs to the selection it started with.
-  useEffect(() => () => zipJobRef.current?.abort(), [selection]);
+  // A ZIP job belongs to the selection it started with. By key, not identity:
+  // the /maps poll replaces the selected map objects with equal ones, which gives
+  // a new `selection` for the same report, and that must not stop a job.
+  const selectionKey = selection?.key ?? null;
+  useEffect(() => () => zipJobRef.current?.abort(), [selectionKey]);
 
   const retryPreview = useCallback(() => {
     setFailedKey(null);

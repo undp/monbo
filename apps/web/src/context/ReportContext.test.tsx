@@ -363,6 +363,46 @@ describe("ReportProvider with a large report", () => {
     expect(progress).not.toHaveBeenCalled();
   });
 
+  /** A job with F01 added and F02 waiting for its images (`pending`). */
+  const jobHalfway = async () => {
+    const { job } = zipJob();
+    const pending = deferred<DeforestationImageBlob[]>();
+    const rendered = await renderReport();
+    await waitFor(() => expect(rendered.result.current.previewUrl).toBe("blob:test/1"));
+    vi.mocked(fetchFarmImages)
+      .mockResolvedValueOnce(farmImages("F01"))
+      .mockReturnValueOnce(pending.promise);
+    const building = rendered.result.current.buildLargeReportZip(() => {});
+    building.catch(() => {});
+    await waitFor(() => expect(job.add).toHaveBeenCalledOnce());
+    return { job, pending, rendered, building };
+  };
+
+  it("keeps the job when the maps are refreshed with the same selection", async () => {
+    const { job, pending, rendered, building } = await jobHalfway();
+
+    // The /maps poll replaces the selected map objects with equal ones: the
+    // selection is a new object with the same key.
+    rendered.setContext(reportContext());
+    rendered.rerender(undefined);
+    await act(async () => pending.resolve(farmImages("F02")));
+
+    expect(await (await building).text()).toBe("zip:F01,F02");
+    expect(job.cancel).not.toHaveBeenCalled();
+  });
+
+  it("stops the job when the selection changes", async () => {
+    const { job, pending, rendered, building } = await jobHalfway();
+
+    rendered.setContext(reportContext([f1]));
+    rendered.rerender(undefined);
+    await act(async () => pending.resolve(farmImages("F02")));
+
+    await expect(building).rejects.toThrow();
+    expect(job.cancel).toHaveBeenCalledOnce();
+    expect(job.finish).not.toHaveBeenCalled();
+  });
+
   it("aborts the job's requests when the page goes away", async () => {
     zipJob();
     let signal: AbortSignal | undefined;
