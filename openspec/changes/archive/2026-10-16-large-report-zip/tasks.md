@@ -177,6 +177,8 @@
   - check the one-farm preview, the ZIP time and size, and that the tab doesn't crash;
   - hide the test layer again.
 
+  Deferred: it can only run once this change is deployed to `dev`, so it is left open when the change is archived with its PR.
+
 ## 6. Close
 
 - [x] 6.1 Docs:
