@@ -257,7 +257,10 @@ the report embeds as is.
   are generated.
 
 The PDF itself is rendered by the frontend in a Web Worker (see
-[the frontend's README](../apps/web/README.md#pdf-report)).
+[the frontend's README](../apps/web/README.md#pdf-report)). A large report (more than
+1000 farm pages) is a ZIP with one PDF per farm, whose images are requested farm by
+farm while it's built: for 1000 farms × 5 layers, about 5000 requests over a few
+minutes, from one browser.
 
 ### Raster versions and concurrency
 

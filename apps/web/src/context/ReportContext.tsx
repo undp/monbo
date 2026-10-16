@@ -16,10 +16,15 @@ import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
+import pLimit from "p-limit";
 import {
   DeforestationImageBlob,
   fetchDeforestationImages,
+  fetchFarmImages,
+  includesSatelliteBackground,
+  mapsWithResults,
 } from "@/utils/deforestationImages";
+import { countFarmPages, isLargeReport } from "@/utils/reportSize";
 import {
   ReportPdfClient,
   ReportPdfWorkerTerminatedError,
@@ -31,11 +36,14 @@ import type {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 
-// The report page's images and renders, shared by the preview and both downloads:
-// - the images are fetched once per selection;
+// The report page's images and renders, shared by the preview and the downloads:
 // - every PDF renders in a worker (src/workers/reportPdf.worker.tsx);
-// - once the preview is shown, the complete report (with links, which the preview
-//   hides) is pre-rendered, so "Download" doesn't wait for a render.
+// - a report that isn't large fetches its images once per selection, and once its
+//   preview is shown, pre-renders the complete report (with links, which the
+//   preview hides), so "Download" doesn't wait for a render;
+// - a large report (more than LARGE_REPORT_FARM_PAGES farm pages) never renders a
+//   complete PDF, which would run the tab out of memory: its preview is the first
+//   farm's PDF, and its download is a ZIP built farm by farm (`buildLargeReportZip`).
 
 interface Selection {
   /** Identifies the selection: what's fetched or rendered for it is reused. */
@@ -45,6 +53,9 @@ interface Selection {
   maps: MapData[];
   results: DeforestationAnalysisMapResults[];
   locale: string;
+  /** Its (farm, layer) pairs with a result: one page each in a complete PDF. */
+  farmPages: number;
+  isLarge: boolean;
 }
 
 interface ReportContextValue {
@@ -58,6 +69,18 @@ interface ReportContextValue {
   getCompleteReport: () => Promise<Blob>;
   /** A ZIP with one report per farm. */
   getSeparatedReports: () => Promise<Blob>;
+  /** The selection is large: its preview is one farm, its download a ZIP only. */
+  isLarge: boolean;
+  /** The selected farms: the PDFs in the ZIP. */
+  farmCount: number;
+  /**
+   * A large report's ZIP, built farm by farm; `onProgress` gets the farms done. It
+   * stops when `signal` aborts, the selection changes or the page goes away.
+   */
+  buildLargeReportZip: (
+    onProgress: (done: number, total: number) => void,
+    signal?: AbortSignal
+  ) => Promise<Blob>;
 }
 
 const noSelection = () =>
@@ -70,7 +93,58 @@ export const ReportContext = createContext<ReportContextValue>({
   retryPreview: () => {},
   getCompleteReport: noSelection,
   getSeparatedReports: noSelection,
+  isLarge: false,
+  farmCount: 0,
+  buildLargeReportZip: noSelection,
 });
+
+// A large report's ZIP job: the farms whose images are fetched ahead, and the
+// farms handed to the worker at once. Both bound the images held in memory.
+const LOOK_AHEAD_FARMS = 8;
+const FARMS_IN_WORKER = 2;
+// One farm's PDF renders in well under a second: a worker that takes this long is
+// stuck, and the job fails instead of waiting forever.
+const FARM_RENDER_TIMEOUT_MS = 2 * 60 * 1000;
+
+/** The worker didn't answer for a farm within FARM_RENDER_TIMEOUT_MS. */
+export class ReportWorkerStalledError extends Error {
+  constructor() {
+    super("The report worker stopped answering");
+    this.name = "ReportWorkerStalledError";
+  }
+}
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new ReportWorkerStalledError()), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+
+/** Only `farm`'s results, per layer: all that its PDF needs. */
+const farmResults = (
+  farm: FarmData,
+  results: DeforestationAnalysisMapResults[]
+) =>
+  results.map((layer) => ({
+    ...layer,
+    farmResults: layer.farmResults.filter(({ farmId }) => farmId === farm.id),
+  }));
+
+/** Whether the selection's images get the satellite background (all or none). */
+const satelliteFor = (s: Selection) =>
+  includesSatelliteBackground(
+    s.farms.filter((farm) => mapsWithResults(farm, s.maps, s.results).length)
+      .length
+  );
 
 type Keyed<T> = { key: string; promise: Promise<T> } | null;
 
@@ -116,6 +190,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       results.map((r) => `${r.mapId}@${r.version}`).sort(),
       selectedFarms.map((f) => f.id).sort(),
     ]);
+    const farmPages = countFarmPages(selectedFarms, results);
     return {
       key,
       country: selectedCountry,
@@ -123,6 +198,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       maps: selectedMaps,
       results,
       locale,
+      farmPages,
+      isLarge: isLargeReport(farmPages),
     };
   }, [
     deforestationAnalysisResults,
@@ -138,6 +215,15 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   const previewRef = useRef<Keyed<Blob>>(null);
   const completeRef = useRef<Keyed<Blob>>(null);
 
+  /** The page's worker client, started on first use; never after the page left. */
+  const workerClient = useCallback(() => {
+    // The page may have gone away while the images were fetched. Its cleanup
+    // found no worker to terminate then, so don't start one now.
+    if (!mountedRef.current) throw new ReportPdfWorkerTerminatedError();
+    clientRef.current ??= new ReportPdfClient();
+    return clientRef.current;
+  }, []);
+
   const render = useCallback(
     async (
       s: Selection,
@@ -147,11 +233,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       const images = await keyed(imagesRef, s.key, () =>
         fetchDeforestationImages(s.country, s.maps, s.farms, s.results)
       );
-      // The page may have gone away while the images were fetched. Its cleanup
-      // found no worker to terminate then, so don't start one now.
-      if (!mountedRef.current) throw new ReportPdfWorkerTerminatedError();
-      clientRef.current ??= new ReportPdfClient();
-      return clientRef.current.render({
+      return workerClient().render({
         kind,
         showLinks,
         locale: s.locale,
@@ -162,8 +244,109 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         images,
       });
     },
-    []
+    [workerClient]
   );
+
+  /** A large report's preview: its first farm with a result, as in the ZIP. */
+  const renderFirstFarm = useCallback(
+    async (s: Selection): Promise<Blob> => {
+      const farm =
+        s.farms.find((f) => mapsWithResults(f, s.maps, s.results).length) ??
+        s.farms[0];
+      const images = await fetchFarmImages({
+        country: s.country,
+        farm,
+        maps: s.maps,
+        results: s.results,
+        includeSatelliteBackground: satelliteFor(s),
+        limit: pLimit(20),
+      });
+      return workerClient().render({
+        kind: "complete",
+        showLinks: false,
+        locale: s.locale,
+        config: getRuntimeConfig(),
+        farms: [farm],
+        results: farmResults(farm, s.results),
+        maps: s.maps,
+        images,
+      });
+    },
+    [workerClient]
+  );
+
+  /**
+   * A large report's ZIP: each farm's images are fetched (a few farms ahead), its
+   * PDF is added in the worker, and its images are let go, so memory doesn't grow
+   * with the number of farms.
+   */
+  const runZipJob = useCallback(
+    async (
+      s: Selection,
+      onProgress: (done: number, total: number) => void,
+      signal: AbortSignal
+    ): Promise<Blob> => {
+      const job = await workerClient().startZip({
+        locale: s.locale,
+        config: getRuntimeConfig(),
+        maps: s.maps,
+      });
+      const includeSatelliteBackground = satelliteFor(s);
+      const limit = pLimit(20);
+      const total = s.farms.length;
+      const images: (Promise<DeforestationImageBlob[]> | null | undefined)[] = [];
+      const fetchAhead = (i: number) => {
+        if (i >= total || images[i] !== undefined) return;
+        const fetching = fetchFarmImages({
+          country: s.country,
+          farm: s.farms[i],
+          maps: s.maps,
+          results: s.results,
+          includeSatelliteBackground,
+          limit,
+          signal,
+        });
+        fetching.catch(() => {}); // awaited in order below
+        images[i] = fetching;
+      };
+      const inWorker: Promise<void>[] = [];
+      try {
+        for (let i = 0; i < total; i++) {
+          for (let j = i; j < i + LOOK_AHEAD_FARMS; j++) fetchAhead(j);
+          const farmImages = await images[i]!;
+          signal.throwIfAborted();
+          if (inWorker.length >= FARMS_IN_WORKER) await inWorker.shift();
+          const farm = s.farms[i];
+          const adding = withTimeout(
+            job.add(farm, farmResults(farm, s.results), farmImages),
+            FARM_RENDER_TIMEOUT_MS
+          ).then((added) => {
+            // A farm can finish after the job was cancelled: no progress then.
+            if (!signal.aborted) onProgress(added, total);
+          });
+          adding.catch(() => {}); // awaited below
+          inWorker.push(adding);
+          images[i] = null; // the worker has its own copy now
+        }
+        await Promise.all(inWorker);
+        signal.throwIfAborted();
+        return await job.finish();
+      } catch (error) {
+        if (error instanceof ReportWorkerStalledError) {
+          // Don't reuse a stuck worker: the next render starts a new one.
+          clientRef.current?.terminate();
+          clientRef.current = null;
+        } else {
+          job.cancel();
+        }
+        throw error;
+      }
+    },
+    [workerClient]
+  );
+
+  // The running ZIP job, stopped when the selection changes or the page goes away.
+  const zipJobRef = useRef<AbortController | null>(null);
 
   // The worker lives as long as the page. Renders it had in progress are dropped
   // with it, so a remount (React's dev double mount) starts them again.
@@ -171,6 +354,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      zipJobRef.current?.abort();
       clientRef.current?.terminate();
       clientRef.current = null;
       previewRef.current = null;
@@ -190,8 +374,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     let active = true;
     // Preview first, without links (they would navigate the previewer away);
     // then the download's render, with them.
+    // A large report previews one farm, and has no complete report to pre-render.
     keyed(previewRef, selection.key, () =>
-      render(selection, "complete", false)
+      selection.isLarge
+        ? renderFirstFarm(selection)
+        : render(selection, "complete", false)
     )
       .then((blob) => {
         if (!active) return;
@@ -200,6 +387,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
           if (previous) URL.revokeObjectURL(previous.url);
           return { key: selection.key, url };
         });
+        if (selection.isLarge) return;
         // Its errors show up if the user downloads (it is rendered again then).
         keyed(completeRef, selection.key, () =>
           render(selection, "complete", true)
@@ -217,7 +405,10 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       active = false;
     };
-  }, [selection, attempt, render, invalidateAnalysis]);
+  }, [selection, attempt, render, renderFirstFarm, invalidateAnalysis]);
+
+  // A ZIP job belongs to the selection it started with.
+  useEffect(() => () => zipJobRef.current?.abort(), [selection]);
 
   const retryPreview = useCallback(() => {
     setFailedKey(null);
@@ -238,6 +429,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   const getCompleteReport = useCallback(() => {
     if (!selection) return noSelection();
+    if (selection.isLarge)
+      return Promise.reject(new Error("A large report is downloaded as a ZIP"));
     // The pre-render if it exists, finished or not; a new render otherwise.
     return keyed(completeRef, selection.key, () =>
       render(selection, "complete", true)
@@ -249,6 +442,29 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     return render(selection, "perFarm", true);
   }, [selection, render]);
 
+  const buildLargeReportZip = useCallback(
+    async (
+      onProgress: (done: number, total: number) => void,
+      signal?: AbortSignal
+    ): Promise<Blob> => {
+      if (!selection) return noSelection();
+      // One job at a time; the user's signal, the selection and the page stop it.
+      zipJobRef.current?.abort();
+      const controller = new AbortController();
+      zipJobRef.current = controller;
+      const abort = () => controller.abort(signal?.reason);
+      if (signal?.aborted) abort();
+      signal?.addEventListener("abort", abort, { once: true });
+      try {
+        return await runZipJob(selection, onProgress, controller.signal);
+      } finally {
+        signal?.removeEventListener("abort", abort);
+        if (zipJobRef.current === controller) zipJobRef.current = null;
+      }
+    },
+    [selection, runZipJob]
+  );
+
   const isCurrent = !!selection && preview?.key === selection.key;
   const previewFailed = !!selection && failedKey === selection.key;
   const value = useMemo(
@@ -259,6 +475,9 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       retryPreview,
       getCompleteReport,
       getSeparatedReports,
+      isLarge: !!selection?.isLarge,
+      farmCount: selection?.farms.length ?? 0,
+      buildLargeReportZip,
     }),
     [
       isCurrent,
@@ -268,6 +487,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       selection,
       getCompleteReport,
       getSeparatedReports,
+      buildLargeReportZip,
     ]
   );
 

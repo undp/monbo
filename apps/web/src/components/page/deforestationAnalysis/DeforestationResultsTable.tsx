@@ -28,6 +28,17 @@ import {
   getDeforestationPercentageChipColor,
 } from "@/utils/styling";
 
+/** Each layer's results by farm id: one lookup per cell instead of a scan. */
+const indexResults = (
+  results: NonNullable<DataContextValue["deforestationAnalysisResults"]>
+) =>
+  new Map(
+    results.map((layer) => [
+      layer.mapId,
+      new Map(layer.farmResults.map(({ farmId, value }) => [farmId, value])),
+    ])
+  );
+
 const parseRows = (
   data: FarmData[],
   deforestationAnalysisResults: NonNullable<
@@ -37,6 +48,13 @@ const parseRows = (
   t: TFunction<"translation", undefined>,
   language: string
 ): RowData<FarmData>[] => {
+  const resultsByMap = indexResults(deforestationAnalysisResults);
+  const statusByFarm = new Map(
+    polygonsValidationResults?.farmResults.map(({ farmId, status }) => [
+      farmId,
+      status,
+    ])
+  );
   return data.map((farm) => ({
     cells: {
       id: { value: farm.id },
@@ -46,9 +64,7 @@ const parseRows = (
           <PolygonTypeIcon
             polygonType={farm.polygon.type}
             isValidManually={
-              polygonsValidationResults?.farmResults.find(
-                ({ farmId }) => farmId === farm.id
-              )?.status === FarmValidationStatus.VALID_MANUALLY
+              statusByFarm.get(farm.id) === FarmValidationStatus.VALID_MANUALLY
             }
           />
         ),
@@ -57,36 +73,34 @@ const parseRows = (
       ...deforestationAnalysisResults.reduce<Record<string, CellData>>(
         (acc, current) => {
           const farmResultValue =
-            current.farmResults.find(({ farmId }) => farmId === farm.id)
-              ?.value ?? null;
-          return {
-            ...acc,
-            [`map_${current.mapId}`]: {
-              value:
-                farmResultValue === null
-                  ? t("common:na")
-                  : farmResultValue === 0
-                  ? t("deforestationAnalysis:deforestationFreeShortText")
-                  : `${formatDeforestationPercentage(
-                      farmResultValue,
-                      language
-                    )} Def.`,
-              chipStyle: {
-                width: 100,
-                color: getDeforestationPercentageChipColor(farmResultValue),
-                backgroundColor:
-                  getDeforestationPercentageChipBackgroundColor(
-                    farmResultValue
-                  ),
-              },
+            resultsByMap.get(current.mapId)?.get(farm.id) ?? null;
+          acc[`map_${current.mapId}`] = {
+            value:
+              farmResultValue === null
+                ? t("common:na")
+                : farmResultValue === 0
+                ? t("deforestationAnalysis:deforestationFreeShortText")
+                : `${formatDeforestationPercentage(
+                    farmResultValue,
+                    language
+                  )} Def.`,
+            chipStyle: {
+              width: 100,
+              color: getDeforestationPercentageChipColor(farmResultValue),
+              backgroundColor:
+                getDeforestationPercentageChipBackgroundColor(farmResultValue),
             },
           };
+          return acc;
         },
         {}
       ),
     },
   }));
 };
+
+// Stable, so the search index isn't rebuilt on every render.
+const SEARCH_OPTIONS = { keys: ["id", "producer"] };
 
 interface Props {
   tableProps?: Partial<TableProps<FarmData>>;
@@ -112,9 +126,7 @@ export const DeforestationResultsTable: React.FC<Props> = ({
   const deforestationFreeResultsCountByMap =
     useDeforestationFreeResultsCountByMap();
 
-  const filteredData = useSearch(farmsData, searchValue ?? "", {
-    keys: ["id", "producer"],
-  });
+  const filteredData = useSearch(farmsData, searchValue ?? "", SEARCH_OPTIONS);
 
   const deforestationAnalysisResults = useMemo(() => {
     if (!mapsSubset) return originalDeforestationAnalysisResults;
@@ -126,11 +138,10 @@ export const DeforestationResultsTable: React.FC<Props> = ({
   const sortedData: FarmData[] = useMemo(() => {
     if (!sortedBy) return filteredData;
 
+    const allIdsAreNumbers = filteredData.every(({ id }) => !isNaN(Number(id)));
+    const resultsByMap = indexResults(deforestationAnalysisResults ?? []);
     const results = orderBy(
       filteredData.map((item) => {
-        const allIdsAreNumbers = filteredData.every(
-          ({ id }) => !isNaN(Number(id))
-        );
         return {
           ...item,
           id: allIdsAreNumbers ? Number(item.id) : item.id,
@@ -140,8 +151,7 @@ export const DeforestationResultsTable: React.FC<Props> = ({
             Record<string, number | null>
           >((acc, current) => {
             acc[`map_${current.mapId}`] =
-              current.farmResults.find(({ farmId }) => farmId === item.id)
-                ?.value ?? null;
+              resultsByMap.get(current.mapId)?.get(item.id) ?? null;
             return acc;
           }, {}),
         };
@@ -179,57 +189,76 @@ export const DeforestationResultsTable: React.FC<Props> = ({
     deforestationFreeResultsCountByMap,
   ]);
 
-  // TODO: search some nice message into Table when no results found of text searching
-  return (
-    <Table
-      {...tableProps}
-      headerStyle={{ backgroundColor: "#FFFFFF" }}
-      headers={[
-        {
-          name: t("common:tableColumns:type"),
-          attr: "type",
-          type: "icon",
-          columnStyle: { width: 100 },
+  const headers = useMemo<Header[]>(
+    () => [
+      {
+        name: t("common:tableColumns:type"),
+        attr: "type",
+        type: "icon",
+        columnStyle: { width: 100 },
+      },
+      { name: "Id", attr: "id", type: "label", sortable: true },
+      {
+        name: t("common:tableColumns:producer"),
+        attr: "producer",
+        type: "label",
+        sortable: true,
+      },
+      {
+        name: t("common:tableColumns:cropType"),
+        attr: "cropType",
+        type: "label",
+        sortable: true,
+      },
+      ...deforestationAnalysisResults.map<Header>((m) => ({
+        name: availableMaps.find(({ id }) => id === m.mapId)?.alias,
+        attr: `map_${m!.mapId}`,
+        type: "chip",
+        sortable: true,
+        columnStyle: {
+          textAlign: "center",
+          ...(deforestationAnalysisResults.length > 1
+            ? {
+                width: `${60 / deforestationAnalysisResults.length}%`,
+                maxWidth: "20%",
+              }
+            : { width: "20%" }),
+          ...(m!.mapId === 0
+            ? { backgroundColor: "#F3FAFD", padding: "16px 24px" }
+            : {}),
         },
-        { name: "Id", attr: "id", type: "label", sortable: true },
-        {
-          name: t("common:tableColumns:producer"),
-          attr: "producer",
-          type: "label",
-          sortable: true,
-        },
-        {
-          name: t("common:tableColumns:cropType"),
-          attr: "cropType",
-          type: "label",
-          sortable: true,
-        },
-        ...deforestationAnalysisResults.map<Header>((m) => ({
-          name: availableMaps.find(({ id }) => id === m.mapId)?.alias,
-          attr: `map_${m!.mapId}`,
-          type: "chip",
-          sortable: true,
-          columnStyle: {
-            textAlign: "center",
-            ...(deforestationAnalysisResults.length > 1
-              ? {
-                  width: `${60 / deforestationAnalysisResults.length}%`,
-                  maxWidth: "20%",
-                }
-              : { width: "20%" }),
-            ...(m!.mapId === 0
-              ? { backgroundColor: "#F3FAFD", padding: "16px 24px" }
-              : {}),
-          },
-        })),
-      ]}
-      rows={parseRows(
+      })),
+    ],
+    [t, deforestationAnalysisResults, availableMaps]
+  );
+
+  // Memoized, so the table's rows only re-render when they change (selection
+  // clicks re-render only the checkboxes).
+  const rows = useMemo(
+    () =>
+      parseRows(
         sortedData,
         deforestationAnalysisResults,
         polygonsValidationResults,
         t,
         i18n.language
-      )}
+      ),
+    [
+      sortedData,
+      deforestationAnalysisResults,
+      polygonsValidationResults,
+      t,
+      i18n.language,
+    ]
+  );
+
+  // TODO: search some nice message into Table when no results found of text searching
+  return (
+    <Table
+      {...tableProps}
+      headerStyle={{ backgroundColor: "#FFFFFF" }}
+      headers={headers}
+      rows={rows}
       footerStyle={{ backgroundColor: "#FFFFFF70" }}
       footerCellStyle={{ backgroundColor: "#FFFFFF70" }}
       footer={footer}

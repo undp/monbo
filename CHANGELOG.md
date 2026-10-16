@@ -38,6 +38,9 @@
 - `NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION` counts distinct farms, which is what costs Google calls, instead of farm × layer pairs
 - The deforestation analysis table no longer shows the "EU Official" chip in the first layer's header; the column keeps its light blue background
 - The overlap percentage in the polygon validation is the overlap's area divided by the smaller farm's area, instead of by the two farms' union. A farm inside another, or nearly inside, now scores close to 100% and is flagged HIGH; before, a small farm inside a large one could stay valid. Overlap percentages shown in the table and the Excel download go up for the same data. The threshold (`OVERLAP_THRESHOLD_PERCENTAGE`) and the HIGH cut (above 80%) don't change
+- Reports of more than 1000 farm pages (selected farms × layers with a result) are delivered only as a ZIP with one PDF per farm, built farm by farm while a card centered on the page shows the percentage and the farms done, with a Cancel button. Their preview shows the first farm. Before, the preview of a report of about 3500 pages (500 farms × 7 layers, or 1000 × 4) ran the tab out of memory and nothing could be downloaded; 1000 farms × 5 layers now download in about 3 minutes (~245 MB)
+- Selecting farms for the report stays responsive with 1000 farms (a click blocked the page for 300–430 ms), and the result tables no longer re-render every row on each change or mouse move
+- An upload with many invalid rows shows its first 5 errors and one notice with the count of the rest, instead of one notice per row
 
 ### Fixed
 

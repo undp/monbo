@@ -90,6 +90,155 @@ export interface TableProps<T> {
   sortBy?: (attr: string) => void;
 }
 
+const CLICKABLE_ROW_SX = { cursor: "pointer" };
+const HOVERED_ROW_SX = { cursor: "pointer", backgroundColor: "rgba(0, 0, 0, 0.04)" };
+
+const cellContent = <T,>(row: RowData<T>, header: Header, language: string) => {
+  const cell = row.cells[header.attr];
+  return (
+    <>
+      {header.type === "label"
+        ? typeof cell.value === "number"
+          ? formatNumber(cell.value as number, 2, language)
+          : cell.value
+        : null}
+      {header.type === "chip" && cell.value !== null ? (
+        <ChipCell label={cell.value || ""} sx={cell.chipStyle} />
+      ) : null}
+      {header.type === "icon" ? cell.icon : null}
+    </>
+  );
+};
+
+interface RowCellsProps<T> {
+  row: RowData<T>;
+  index: number;
+  headers: Header[];
+  actions?: TableProps<T>["actions"];
+  language: string;
+}
+
+// A row's cells, kept apart from its checkbox and hover: with 1000 rows, checking
+// one (or all) re-renders the checkboxes, not every cell.
+const RowCells = React.memo(function RowCells<T>({
+  row,
+  index,
+  headers,
+  actions,
+  language,
+}: RowCellsProps<T>) {
+  return (
+    <>
+      {headers.map(
+        (header) =>
+          row.cells[header.attr] && (
+            <TableCell
+              key={header.attr}
+              rowSpan={row.cells[header.attr].rowSpan}
+              sx={
+                {
+                  ...header.columnStyle,
+                  ...row.rowStyle,
+                  ...row.cells[header.attr].cellStyle,
+                } as SxProps<Theme>
+              }
+            >
+              {cellContent(row, header, language)}
+            </TableCell>
+          )
+      )}
+      {row.haveActions && actions ? (
+        <TableCell
+          sx={{ padding: 0, ...row.rowStyle }}
+          rowSpan={row.cells["actions"]?.rowSpan}
+        >
+          {actions(row, index)}
+        </TableCell>
+      ) : null}
+    </>
+  );
+}) as <T>(props: RowCellsProps<T>) => React.ReactElement;
+
+interface BodyRowProps<T> extends RowCellsProps<T> {
+  selectable?: boolean;
+  selected: boolean;
+  onRowSelected?: TableProps<T>["onRowSelected"];
+  onRowClick?: TableProps<T>["onRowClick"];
+  hovered: boolean;
+  onHover?: (data: T | null) => void;
+}
+
+const BodyRow = React.memo(function BodyRow<T>({
+  row,
+  index,
+  headers,
+  selectable,
+  selected,
+  onRowSelected,
+  onRowClick,
+  hovered,
+  onHover,
+  actions,
+  language,
+}: BodyRowProps<T>) {
+  return (
+    <>
+      <TableRow
+        sx={onRowClick ? (hovered ? HOVERED_ROW_SX : CLICKABLE_ROW_SX) : undefined}
+        onClick={onRowClick ? () => onRowClick(row) : undefined}
+        onMouseEnter={onHover ? () => onHover(row.data ?? null) : undefined}
+        onMouseLeave={onHover ? () => onHover(null) : undefined}
+      >
+        {selectable ? (
+          <TableCell sx={{ padding: 0, textAlign: "center", ...row.rowStyle }}>
+            <Checkbox
+              onClick={() => onRowSelected?.(row, index)}
+              checked={selected}
+            />
+          </TableCell>
+        ) : null}
+        <RowCells
+          row={row}
+          index={index}
+          headers={headers}
+          actions={actions}
+          language={language}
+        />
+      </TableRow>
+      {row.isOpen &&
+        row.foldedRows?.map((fr, frIdx) => (
+          <TableRow key={`${index}-${frIdx}`} onClick={() => onRowClick?.(row)}>
+            {selectable ? (
+              <TableCell sx={{ padding: 0, ...fr.rowStyle }}></TableCell>
+            ) : null}
+            {headers.map(
+              (header) =>
+                fr.cells[header.attr] && (
+                  <TableCell
+                    key={`${frIdx}-${header.attr}`}
+                    rowSpan={fr.cells[header.attr].rowSpan}
+                    sx={fr.rowStyle}
+                  >
+                    {header.type === "chip" ? (
+                      <ChipCell
+                        label={fr.cells[header.attr].value || ""}
+                        sx={fr.cells[header.attr].chipStyle}
+                      />
+                    ) : (
+                      cellContent(fr, header, language)
+                    )}
+                  </TableCell>
+                )
+            )}
+            {row.haveActions && actions ? (
+              <TableCell sx={fr.rowStyle}></TableCell>
+            ) : null}
+          </TableRow>
+        ))}
+    </>
+  );
+}) as <T>(props: BodyRowProps<T>) => React.ReactElement;
+
 export function Table<T>({
   headers,
   rows,
@@ -158,125 +307,22 @@ export function Table<T>({
         </TableHead>
         <TableBody sx={props.bodyStyle}>
           {rows.map((r, index) => (
-            <React.Fragment key={index}>
-              <TableRow
-                sx={
-                  onRowClick
-                    ? {
-                        cursor: "pointer",
-                        ...(overRow === r.data
-                          ? {
-                              backgroundColor: "rgba(0, 0, 0, 0.04)",
-                            }
-                          : {}),
-                      }
-                    : {}
-                }
-                onClick={() => onRowClick?.(r)}
-                onMouseEnter={() => setOverRow(r.data || null)}
-                onMouseLeave={() => setOverRow(null)}
-              >
-                {selectable ? (
-                  <TableCell
-                    sx={{ padding: 0, textAlign: "center", ...r.rowStyle }}
-                  >
-                    <Checkbox
-                      onClick={() => onRowSelected?.(r, index)}
-                      checked={isRowSelected?.(r, index)}
-                    />
-                  </TableCell>
-                ) : null}
-                {headers.map(
-                  (header) =>
-                    r.cells[header.attr] && (
-                      <TableCell
-                        key={header.attr}
-                        rowSpan={r.cells[header.attr].rowSpan}
-                        sx={
-                          {
-                            ...header.columnStyle,
-                            ...r.rowStyle,
-                            ...r.cells[header.attr].cellStyle,
-                          } as SxProps<Theme>
-                        }
-                      >
-                        {header.type === "label"
-                          ? typeof r.cells[header.attr].value === "number"
-                            ? formatNumber(
-                                r.cells[header.attr].value as number,
-                                2,
-                                i18n.language
-                              )
-                            : r.cells[header.attr].value
-                          : null}
-                        {header.type === "chip" &&
-                        r.cells[header.attr].value !== null ? (
-                          <ChipCell
-                            label={r.cells[header.attr].value || ""}
-                            sx={r.cells[header.attr].chipStyle}
-                          />
-                        ) : null}
-                        {header.type === "icon"
-                          ? r.cells[header.attr].icon
-                          : null}
-                      </TableCell>
-                    )
-                )}
-                {r.haveActions && actions ? (
-                  <TableCell
-                    sx={{ padding: 0, ...r.rowStyle }}
-                    rowSpan={r.cells["actions"]?.rowSpan}
-                  >
-                    {actions(r, index)}
-                  </TableCell>
-                ) : null}
-              </TableRow>
-              {r.isOpen &&
-                r.foldedRows?.map((fr, frIdx) => (
-                  <TableRow
-                    key={`${index}-${frIdx}`}
-                    onClick={() => onRowClick?.(r)}
-                  >
-                    {selectable ? (
-                      <TableCell
-                        sx={{ padding: 0, ...fr.rowStyle }}
-                      ></TableCell>
-                    ) : null}
-                    {headers.map(
-                      (header) =>
-                        fr.cells[header.attr] && (
-                          <TableCell
-                            key={`${frIdx}-${header.attr}`}
-                            rowSpan={fr.cells[header.attr].rowSpan}
-                            sx={fr.rowStyle}
-                          >
-                            {header.type === "label"
-                              ? typeof fr.cells[header.attr].value === "number"
-                                ? formatNumber(
-                                    fr.cells[header.attr].value as number,
-                                    2,
-                                    i18n.language
-                                  )
-                                : fr.cells[header.attr].value
-                              : null}
-                            {header.type === "chip" ? (
-                              <ChipCell
-                                label={fr.cells[header.attr].value || ""}
-                                sx={fr.cells[header.attr].chipStyle}
-                              />
-                            ) : null}
-                            {header.type === "icon"
-                              ? fr.cells[header.attr].icon
-                              : null}
-                          </TableCell>
-                        )
-                    )}
-                    {r.haveActions && actions ? (
-                      <TableCell sx={fr.rowStyle}></TableCell>
-                    ) : null}
-                  </TableRow>
-                ))}
-            </React.Fragment>
+            <BodyRow
+              key={index}
+              row={r}
+              index={index}
+              headers={headers}
+              selectable={selectable}
+              selected={!!selectable && !!isRowSelected?.(r, index)}
+              onRowSelected={onRowSelected}
+              onRowClick={onRowClick}
+              // Rows that share `data` (one inconsistency over several rows) are
+              // highlighted together.
+              hovered={!!onRowClick && r.data !== undefined && overRow === r.data}
+              onHover={onRowClick ? setOverRow : undefined}
+              actions={actions}
+              language={i18n.language}
+            />
           ))}
         </TableBody>
         {footer && (

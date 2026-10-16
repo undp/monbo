@@ -11,17 +11,24 @@ import { stubObjectUrls } from "@/test/objectUrls";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
 import {
   fetchDeforestationImages,
+  fetchFarmImages,
   type DeforestationImageBlob,
 } from "@/utils/deforestationImages";
+import { isLargeReport } from "@/utils/reportSize";
 import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
-import { ReportContext, ReportProvider } from "./ReportContext";
+import {
+  ReportContext,
+  ReportProvider,
+  ReportWorkerStalledError,
+} from "./ReportContext";
 
 // The worker client, replaced: `render` and `terminate` are shared spies, and
 // `created` counts the clients the provider made.
 const client = vi.hoisted(() => ({
   render: vi.fn(),
   terminate: vi.fn(),
+  startZip: vi.fn(),
   created: 0,
 }));
 
@@ -33,12 +40,20 @@ vi.mock("@/workers/reportPdfClient", async (importOriginal) => ({
     }
     render = client.render;
     terminate = client.terminate;
+    startZip = client.startZip;
   },
 }));
 
 vi.mock("@/utils/deforestationImages", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/utils/deforestationImages")>()),
   fetchDeforestationImages: vi.fn(),
+  fetchFarmImages: vi.fn(),
+}));
+
+// Whether a selection is large, set per test: the real threshold needs 1000 pages.
+vi.mock("@/utils/reportSize", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/reportSize")>()),
+  isLargeReport: vi.fn(() => false),
 }));
 
 const CONFIG = { deforestationThresholdPercentage: 1, overlapThresholdPercentage: 0 };
@@ -83,6 +98,7 @@ beforeEach(() => {
       new Blob([`${request.kind}:${request.showLinks}`])
   );
   vi.mocked(fetchDeforestationImages).mockResolvedValue(images);
+  vi.mocked(isLargeReport).mockReturnValue(false);
   urls = stubObjectUrls();
   setParams({ locale: "es" });
   setRuntimeConfig(CONFIG);
@@ -235,5 +251,160 @@ describe("ReportProvider unmount", () => {
 
     expect(client.created).toBe(0);
     expect(client.render).not.toHaveBeenCalled();
+  });
+});
+
+describe("ReportProvider with a large report", () => {
+  /** A ZIP job double: records the farms added and answers like the worker. */
+  const zipJob = () => {
+    const added: { farm: string; results: unknown; images: unknown }[] = [];
+    const job = {
+      add: vi.fn(async (farm, results, farmImages) => {
+        added.push({ farm: farm.id, results, images: farmImages });
+        return added.length;
+      }),
+      finish: vi.fn(async () => new Blob([`zip:${added.map((a) => a.farm)}`])),
+      cancel: vi.fn(),
+    };
+    client.startZip.mockResolvedValue(job);
+    return { job, added };
+  };
+  const farmImages = (farmId: string) => images.filter((i) => i.farmId === farmId);
+
+  beforeEach(() => {
+    vi.mocked(isLargeReport).mockReturnValue(true);
+    vi.mocked(fetchFarmImages).mockImplementation(async ({ farm }) => farmImages(farm.id));
+  });
+
+  it("previews only the first farm, and pre-renders nothing", async () => {
+    const { result } = await renderReport();
+
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    expect(result.current).toMatchObject({ isLarge: true, farmCount: 2 });
+    expect(fetchDeforestationImages).not.toHaveBeenCalled();
+    expect(fetchFarmImages).toHaveBeenCalledOnce();
+    expect(vi.mocked(fetchFarmImages).mock.calls[0][0]).toMatchObject({ farm: f1 });
+    expect(requests()).toHaveLength(1);
+    expect(requests()[0]).toMatchObject({
+      kind: "complete",
+      showLinks: false,
+      farms: [f1],
+      images: farmImages("F01"),
+    });
+    await expect(result.current.getCompleteReport()).rejects.toThrow("ZIP");
+  });
+
+  it("builds the ZIP farm by farm, with each farm's results and images", async () => {
+    const { job, added } = zipJob();
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    const progress: [number, number][] = [];
+
+    const zip = await result.current.buildLargeReportZip((done, total) =>
+      progress.push([done, total])
+    );
+
+    expect(await zip.text()).toBe("zip:F01,F02");
+    expect(client.startZip).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "es", config: CONFIG, maps: [gfw] })
+    );
+    expect(added).toEqual([
+      { farm: "F01", results: [makeMapResults(1, { F01: 0.1 })], images: farmImages("F01") },
+      { farm: "F02", results: [makeMapResults(1, { F02: 0 })], images: farmImages("F02") },
+    ]);
+    expect(progress).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+    expect(job.cancel).not.toHaveBeenCalled();
+  });
+
+  it("stops and cancels the job when the user cancels", async () => {
+    const { job } = zipJob();
+    const pending = deferred<DeforestationImageBlob[]>();
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    vi.mocked(fetchFarmImages).mockReturnValueOnce(pending.promise);
+    const controller = new AbortController();
+
+    const building = result.current.buildLargeReportZip(() => {}, controller.signal);
+    const assertion = expect(building).rejects.toThrow();
+    await waitFor(() => expect(client.startZip).toHaveBeenCalled());
+    controller.abort();
+    pending.resolve(farmImages("F01"));
+
+    await assertion;
+    expect(job.add).not.toHaveBeenCalled();
+    expect(job.finish).not.toHaveBeenCalled();
+    expect(job.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("reports no progress for a farm that finishes after the cancel", async () => {
+    const { job } = zipJob();
+    // Both farms are still rendering in the worker when the user cancels.
+    const renderings = [deferred<number>(), deferred<number>()];
+    job.add.mockReturnValueOnce(renderings[0].promise);
+    job.add.mockReturnValueOnce(renderings[1].promise);
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    const controller = new AbortController();
+    const progress = vi.fn();
+
+    const building = result.current.buildLargeReportZip(progress, controller.signal);
+    building.catch(() => {});
+    await waitFor(() => expect(job.add).toHaveBeenCalledTimes(2));
+    controller.abort();
+    await act(async () => {
+      renderings[0].resolve(1);
+      renderings[1].resolve(2);
+    });
+
+    await expect(building).rejects.toThrow();
+    expect(progress).not.toHaveBeenCalled();
+  });
+
+  it("aborts the job's requests when the page goes away", async () => {
+    zipJob();
+    let signal: AbortSignal | undefined;
+    const { result, unmount } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    vi.mocked(fetchFarmImages).mockImplementation(({ signal: s }) => {
+      signal = s;
+      return new Promise(() => {}); // never answers
+    });
+
+    const building = result.current.buildLargeReportZip(() => {});
+    building.catch(() => {});
+    await waitFor(() => expect(signal).toBeDefined());
+    unmount();
+
+    expect(signal!.aborted).toBe(true);
+  });
+
+  it("fails the job, and drops the worker, when a farm never renders", async () => {
+    const { job } = zipJob();
+    job.add.mockImplementation(() => new Promise(() => {})); // a stuck worker
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    vi.useFakeTimers();
+
+    const building = result.current.buildLargeReportZip(() => {});
+    const assertion = expect(building).rejects.toBeInstanceOf(ReportWorkerStalledError);
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+    await assertion;
+    expect(client.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("fails the job when a layer changed", async () => {
+    const { job } = zipJob();
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    vi.mocked(fetchFarmImages).mockRejectedValue(new MapLayerChangedError());
+
+    await expect(result.current.buildLargeReportZip(() => {})).rejects.toBeInstanceOf(
+      MapLayerChangedError
+    );
+    expect(job.cancel).toHaveBeenCalledOnce();
   });
 });
