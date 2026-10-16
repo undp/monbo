@@ -17,6 +17,7 @@ import {
 } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
+import { notifyUploadErrors } from "@/utils/uploadErrors";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
 import { DownloadTemplateStep } from "@/components/page/uploadData/DownloadTemplateStep";
 import { UploadFileStep } from "@/components/page/uploadData/UploadFileStep";
@@ -142,12 +143,7 @@ export function PolygonsValidationUploadDataPageContent() {
       );
 
       if (errorMessages.length > 0) {
-        for (const errorMessage of errorMessages) {
-          openSnackbar({
-            message: errorMessage,
-            type: "error",
-          });
-        }
+        notifyUploadErrors(openSnackbar, errorMessages, t);
         setLoading(false);
         return;
       } else {

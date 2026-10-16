@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 
-type SnackbarType = "success" | "info" | "error" | "warning";
+export type SnackbarType = "success" | "info" | "error" | "warning";
 
 interface SnackbarContextValue {
   openSnackbar: (params: { message: string; type: SnackbarType }) => void;

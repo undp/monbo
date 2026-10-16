@@ -71,12 +71,10 @@ def main() -> None:
     baseline = {
         "reference_platform": "Linux x86_64 (GitHub Actions)",
         "tooling": _tooling(),
-        "map_data": _common.MAP_DATA,
         "analysis_polygon": _common.ANALYSIS_POLYGON,
         "tile_zxy": list(_common.TILE_ZXY),
         "scalars": {
             "scalar_ratio": outputs["scalar_ratio"],
-            "scalar_ratio_pure": outputs["scalar_ratio_pure"],
             "polygon_area": outputs["polygon_area"],
         },
         "raster_metadata": {

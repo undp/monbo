@@ -8,8 +8,14 @@ import { ReportContext } from "@/context/ReportContext";
 export const ReportGenerationPreviewPageContent = () => {
   const { t } = useTranslation();
   // Rendered in a worker (ReportProvider): the page stays responsive meanwhile.
-  const { previewUrl, isPreviewLoading, previewFailed, retryPreview } =
-    useContext(ReportContext);
+  const {
+    previewUrl,
+    isPreviewLoading,
+    previewFailed,
+    retryPreview,
+    isLarge,
+    farmCount,
+  } = useContext(ReportContext);
 
   return (
     <Box
@@ -17,31 +23,45 @@ export const ReportGenerationPreviewPageContent = () => {
         width: "100%",
         height: "calc(100vh - 64px - 64px)",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        flexDirection: "column",
       }}
     >
-      {previewUrl && (
-        <iframe
-          // No toolbar, like the previous <PDFViewer showToolbar={false}>.
-          src={`${previewUrl}#toolbar=0`}
-          title={t("reportGeneration:preview:title")}
-          style={{ width: "100%", height: "100%", border: "none" }}
-        />
-      )}
-      {isPreviewLoading && <CircularProgress size={100} />}
-      {previewFailed && (
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={retryPreview}>
-              {t("reportGeneration:preview:retry")}
-            </Button>
-          }
-        >
-          {t("reportGeneration:preview:error")}
+      {/* A large report previews its first farm, and downloads as a ZIP. */}
+      {isLarge && (
+        <Alert severity="info" sx={{ borderRadius: 0 }}>
+          {t("reportGeneration:preview:largeReport", { count: farmCount })}
         </Alert>
       )}
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        {previewUrl && (
+          <iframe
+            // No toolbar, like the previous <PDFViewer showToolbar={false}>.
+            src={`${previewUrl}#toolbar=0`}
+            title={t("reportGeneration:preview:title")}
+            style={{ width: "100%", height: "100%", border: "none" }}
+          />
+        )}
+        {isPreviewLoading && <CircularProgress size={100} />}
+        {previewFailed && (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={retryPreview}>
+                {t("reportGeneration:preview:retry")}
+              </Button>
+            }
+          >
+            {t("reportGeneration:preview:error")}
+          </Alert>
+        )}
+      </Box>
     </Box>
   );
 };

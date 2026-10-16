@@ -341,6 +341,10 @@ The report is rendered in the browser with `@react-pdf/renderer`, off the main t
 - `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /deforestation_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
 - Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
 - Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
+- **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, selected (farm, layer) pairs with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:
+  - the preview shows only the first farm's PDF, with a notice;
+  - there is no complete PDF and no pre-render;
+  - "Download ZIP" builds a ZIP with one PDF per farm, farm by farm. Each farm's images are fetched a few farms ahead (with retries), its PDF is added in the worker, and its images are released, so memory doesn't grow with the farms. The footer shows the progress and can cancel the job, and leaving the page cancels it too. 1000 farms × 5 layers take about 3 minutes and give ~245 MB.
 - The fonts (`public/fonts/roboto`: Roboto regular, medium, bold, italic and bold italic, Apache 2.0) and images are served by the app itself: rendering makes no third-party requests.
 
 The endpoints of each module are defined as environment variables because this project is modularized and each module has its own backend service. You could use your own backend services by changing the environment variables and following the same structure for the requests and responses.

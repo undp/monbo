@@ -190,13 +190,9 @@ def test_parse_farms():
 @patch("app.modules.deforestation_analysis.router.get_map_raster_path")
 @patch("app.modules.deforestation_analysis.router.rasterio_open")
 @patch("app.modules.deforestation_analysis.router.get_country_maps")
-@patch("app.modules.deforestation_analysis.router.get_map_pixels_inside_polygon")
-@patch("app.modules.deforestation_analysis.router.get_pixel_area")
-@patch("app.modules.deforestation_analysis.router.get_deforestation_ratio")
+@patch("app.modules.deforestation_analysis.router.get_loss_area_fraction")
 def test_analize(
-    mock_get_deforestation_percentage,
-    mock_get_pixel_area,
-    mock_get_map_pixels_inside_polygon,
+    mock_get_loss_area_fraction,
     mock_get_country_maps,
     mock_raster_open,
     mock_get_map_raster_path,
@@ -226,14 +222,7 @@ def test_analize(
     ]
 
     # Mock function behavior
-    mock_get_map_pixels_inside_polygon.return_value = [
-        2020,
-        2021,
-    ]  # Example years of deforestation
-    mock_get_pixel_area.return_value = 10.0  # Example pixel area
-    mock_get_deforestation_percentage.return_value = (
-        15.5  # Example deforested percentage
-    )
+    mock_get_loss_area_fraction.return_value = 0.155  # Example deforestation ratio
 
     # Define test request payload
     request_data = {
@@ -261,7 +250,7 @@ def test_analize(
             "farmResults": [
                 {
                     "farmId": "farm_001",
-                    "value": 15.5,
+                    "value": 0.155,
                 }
             ],
         }
@@ -510,3 +499,17 @@ def test_analize_bad_farm_leaves_the_others_intact(maps_root):
     assert results["good"] == 1.0
     assert results["bowtie"] is None
     assert results["single"] is None
+
+
+def test_analize_ratio_is_the_share_of_area_on_loss(maps_root):
+    _write_loss_layer(maps_root)
+    # The loss is the layer's west half: this square lies half on it.
+    results = _analize(
+        [
+            _polygon_farm(
+                "half",
+                [(-0.004, -0.006), (-0.004, 0.002), (0.004, 0.002), (0.004, -0.006)],
+            ),
+        ]
+    )
+    assert results["half"] == pytest.approx(0.5)

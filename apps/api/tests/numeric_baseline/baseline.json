@@ -17,9 +17,6 @@
       -5.012
     ]
   ],
-  "map_data": {
-    "pixel_size": 30
-  },
   "raster_metadata": {
     "count": 1,
     "crs": "EPSG:4326",
@@ -42,8 +39,7 @@
   "reference_platform": "Linux x86_64 (GitHub Actions)",
   "scalars": {
     "polygon_area": 7063764.16,
-    "scalar_ratio": 0.12231438938640896,
-    "scalar_ratio_pure": 0.15
+    "scalar_ratio": 0.6510416666664296
   },
   "tile_zxy": [
     14,

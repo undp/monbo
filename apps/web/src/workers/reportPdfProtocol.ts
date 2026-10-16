@@ -22,11 +22,34 @@ export interface ReportPdfRequest {
   images: DeforestationImageBlob[];
 }
 
-export interface ReportPdfMessage {
-  id: number;
-  request: ReportPdfRequest;
-}
+/**
+ * A large report's ZIP, built farm by farm (one job per download): the page starts
+ * the job, adds each farm with only that farm's results and images as they arrive,
+ * and finishes it. The worker never holds more than the farms in flight.
+ */
+export type ZipCommand =
+  | {
+      op: "start";
+      locale: string;
+      config: RuntimeConfig;
+      maps: MapData[];
+    }
+  | {
+      op: "add";
+      farm: FarmData;
+      /** Only this farm's results, per selected layer. */
+      results: DeforestationAnalysisMapResults[];
+      images: DeforestationImageBlob[];
+    }
+  | { op: "finish" }
+  | { op: "cancel" };
+
+export type ReportPdfMessage =
+  | { id: number; request: ReportPdfRequest }
+  | { id: number; job: number; zip: ZipCommand };
 
 export type ReportPdfResponse =
   | { id: number; blob: Blob }
-  | { id: number; error: string };
+  | { id: number; error: string }
+  /** A ZIP job's `start`, `add` or `cancel` was done: `added` farms are in its ZIP. */
+  | { id: number; added: number };

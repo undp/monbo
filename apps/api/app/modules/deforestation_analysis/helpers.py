@@ -3,6 +3,7 @@ import asyncio
 import geopandas as gpd
 import mercantile
 import numpy as np
+import shapely
 from fastapi import HTTPException
 from PIL import Image
 from rasterio.enums import Resampling
@@ -12,33 +13,33 @@ from rasterio.mask import mask
 from app.utils.image_generation.RasterDataContext import RasterDataContext
 
 
-def get_map_pixels_inside_polygon(polygon, map_asset):
-    polygon_gdf = gpd.GeoDataFrame({"geometry": [polygon]}, crs="EPSG:4326")
-    raster_crs = map_asset.crs
-    polygon_gdf = polygon_gdf.to_crs(raster_crs)
-    polygon_geometry = [polygon_gdf.geometry[0]]
+def get_loss_area_fraction(polygon, src) -> float:
+    """The share of the polygon's area that lies on loss pixels (value 1).
 
-    # Clip the raster to the polygon
-    out_image, _ = mask(map_asset, polygon_geometry, crop=True, all_touched=True)
-    loss_year_data = out_image[0]  # Extract the first band
-
-    return loss_year_data
-
-
-def get_pixel_area(map_data):
-    pixel_size = map_data["pixel_size"]  # Pixel size in meters
-    return pixel_size * pixel_size  # Pixel area in square meters
-
-
-def get_deforestation_ratio(pixels, polygon_area, pixel_area) -> float | None:
-    # calculate_polygon_area returns 0 for an empty polygon and -1 for an invalid
-    # one: there is no ratio to give, and a negative one would read as no loss.
-    if polygon_area <= 0:
-        return None
-    deforested_pixels = np.equal(pixels, 1)
-    deforested_pixels_sum = np.sum(deforested_pixels)
-    deforested_area = float(deforested_pixels_sum * pixel_area)
-    return min(1.0, deforested_area / polygon_area)
+    Each loss pixel counts by the area of its intersection with the polygon, so a
+    pixel the polygon only grazes adds that sliver and not a whole pixel. Both areas
+    are measured in the raster's CRS: exact in a projected one, and in EPSG:4326 the
+    ratio of two areas a few hundred metres across is the same as on the ground.
+    Raises ValueError (from `mask`) when the polygon is outside the raster.
+    """
+    geometry = gpd.GeoSeries([polygon], crs="EPSG:4326").to_crs(src.crs).iloc[0]
+    # all_touched: the window must hold every pixel the polygon overlaps, also those
+    # it only grazes. Pixels outside it are filled, so they never read as loss.
+    out_image, transform = mask(src, [geometry], crop=True, all_touched=True)
+    rows, cols = np.nonzero(out_image[0] == 1)
+    if len(rows) == 0 or geometry.area <= 0:
+        return 0.0
+    # Each loss pixel's corners, from the window's affine transform.
+    corners = [
+        transform * (cols + dc, rows + dr)
+        for dc, dr in ((0, 0), (1, 0), (1, 1), (0, 1))
+    ]
+    squares = shapely.polygons(
+        np.stack([np.column_stack(corner) for corner in corners], axis=1)
+    )
+    loss_area = shapely.area(shapely.intersection(squares, geometry)).sum()
+    # Clamped against floating point at the pixels' edges
+    return min(1.0, max(0.0, float(loss_area / geometry.area)))
 
 
 def create_empty_tile():

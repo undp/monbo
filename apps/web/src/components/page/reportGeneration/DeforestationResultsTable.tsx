@@ -6,7 +6,7 @@ import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
-import { useCallback, useContext, useMemo } from "react";
+import { startTransition, useCallback, useContext, useMemo } from "react";
 
 export const DeforestationResultsTable: React.FC = () => {
   const { farmsData } = useVisibleDataForDeforestationPage();
@@ -23,39 +23,55 @@ export const DeforestationResultsTable: React.FC = () => {
     [selectedMapsForReport]
   );
 
+  // Selection changes render as transitions: with 1000 rows, React re-renders the
+  // checkboxes in slices and the page never blocks on a click.
   const onAllRowsSelected = useCallback(() => {
-    setReportGenerationParams((prev) => ({
-      ...prev,
-      selectedFarms:
-        prev.selectedFarms.length === farmsData.length ? [] : farmsData,
-    }));
+    startTransition(() =>
+      setReportGenerationParams((prev) => ({
+        ...prev,
+        selectedFarms:
+          prev.selectedFarms.length === farmsData.length ? [] : farmsData,
+      }))
+    );
   }, [setReportGenerationParams, farmsData]);
+
+  // Lookups by id: with 1000 farms, a scan per row made each click O(n²).
+  const farmsById = useMemo(
+    () => new Map(farmsData.map((farm) => [farm.id, farm])),
+    [farmsData]
+  );
+  const selectedIds = useMemo(
+    () => new Set(selectedFarmsForReport.map(({ id }) => id)),
+    [selectedFarmsForReport]
+  );
 
   const onRowSelected = useCallback(
     (row: RowData<FarmData>) => {
-      const rowValue = row.cells.id.value;
-      setReportGenerationParams((prev) => {
-        const isSelected = prev.selectedFarms.some((r) => r.id === rowValue);
-        if (isSelected) {
+      const rowValue = row.cells.id.value as string;
+      startTransition(() =>
+        setReportGenerationParams((prev) => {
+          const isSelected = prev.selectedFarms.some((r) => r.id === rowValue);
+          if (isSelected) {
+            return {
+              ...prev,
+              selectedFarms: prev.selectedFarms.filter(
+                (r) => r.id !== rowValue
+              ),
+            };
+          }
           return {
             ...prev,
-            selectedFarms: prev.selectedFarms.filter((r) => r.id !== rowValue),
+            selectedFarms: [...prev.selectedFarms, farmsById.get(rowValue)!],
           };
-        }
-        const farmData = farmsData.find((r) => r.id === rowValue)!;
-        return {
-          ...prev,
-          selectedFarms: [...prev.selectedFarms, farmData],
-        };
-      });
+        })
+      );
     },
-    [setReportGenerationParams, farmsData]
+    [setReportGenerationParams, farmsById]
   );
 
   const isRowSelected = useCallback(
-    (row: RowData<FarmData>) =>
-      selectedFarmsForReport.some(({ id }) => id === row.cells.id.value),
-    [selectedFarmsForReport]
+    (row: RowData<FarmData>) => selectedIds.has(row.cells.id.value as string),
+    [selectedIds]
   );
 
   return (

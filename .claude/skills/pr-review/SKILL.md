@@ -24,7 +24,7 @@ The repository lives in the UNDP GitHub organization but is **not yet run as a p
 It is a monorepo of **two independent apps with no workspace manager** (each keeps its own lockfile; a root `package.json` only orchestrates):
 
 - `apps/api/` — Python 3.13, FastAPI, managed with **uv** (`pyproject.toml` + `uv.lock`). Geospatial core: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`, `pillow`. Tests with `pytest`.
-- `apps/web/` — Next.js 16 (App Router) + React 19 + TypeScript, MUI 7 + Emotion, `@vis.gl/react-google-maps`, `i18next` (`[locale]` routes, `es` default + `en`), `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`. Managed with **pnpm**. **No frontend test suite.**
+- `apps/web/` — Next.js 16 (App Router) + React 19 + TypeScript, MUI 7 + Emotion, `@vis.gl/react-google-maps`, `i18next` (`[locale]` routes, `es` default + `en`), `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`. Managed with **pnpm**. Tests with **Vitest** + Testing Library in jsdom (`src/**/*.test.ts(x)`, helpers in `src/test/`; see `apps/web/README.md` → Testing).
 - `tools/update-gfw-tmf/` — offline Google Earth Engine pipeline that regenerates the `.tif` rasters. Never runs at request time.
 - `infra/` — Terraform for the Azure environment (`terraform/platform`, `terraform/apps`) and `deploy.sh`; `tools/layers-ops/` — seed and country commands on the share. `docs/` — project docs (`docs/onboarding.md` is the canonical architecture description). `openspec/` — spec-driven change proposals and specs.
 
@@ -182,7 +182,7 @@ There is no auth and CORS is open, so treat every endpoint as public and the req
 
 - API: new or changed endpoints and helpers have `pytest` coverage under `apps/api/tests/`, mirroring `modules/`. Look for negative cases (malformed coordinates, unknown map ids, wrong locale) and regression tests for the bug being fixed.
 - Numeric changes: whether a deterministic test pins the expected values.
-- Frontend: there is no test harness. Do not demand frontend tests. If the PR adds non-trivial pure logic (e.g. in `utils/`), you may note as Low that it would be a good first candidate for one.
+- Frontend: Vitest + Testing Library cover the helpers in `src/utils/`, upload validation, en/es translation parity, the hooks that read `DataContext`, the context providers and the PDF worker client. A PR that changes one of those without a test, or fixes a bug there without a regression test, is a finding (Medium for a behavioral fix, Low otherwise). Components and the PDF rendering (`reportPdf.worker.tsx`) are not covered: do not demand tests for them, but check that the PR says whether it was exercised in a running app. Tests follow the README's conventions: next to the code, the `src/test/` helpers instead of ad-hoc mocks, `@/api/*` mocked rather than `fetch`, and `vi.useFakeTimers` only where the README allows it.
 
 ## 8. Maintainability
 

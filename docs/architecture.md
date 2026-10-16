@@ -216,8 +216,10 @@ For each requested layer of that country:
 2. For each farm, its polygon (or a circle of the farm's radius around its point) is
    reprojected to the raster's CRS, and `rasterio.mask(crop=True, all_touched=True)`
    reads only the pixels inside it.
-3. The ratio is the number of pixels equal to `1` (loss), times the pixel area
-   (`pixel_size`² from the index), divided by the farm's area, capped at 1.
+3. The ratio is the share of the farm's area on loss pixels (`1`): each loss pixel
+   counts by the area of its intersection with the polygon, both measured in the
+   raster's CRS (`get_loss_area_fraction`). A pixel the farm only grazes adds that
+   sliver, not a whole pixel, so the ratio is between 0 and 1 by construction.
 
 Rasters are Cloud Optimized GeoTIFFs (512×512 tiles, DEFLATE compression), so only
 the tiles that cover a farm are read from the share, not the whole file.
@@ -257,7 +259,10 @@ the report embeds as is.
   are generated.
 
 The PDF itself is rendered by the frontend in a Web Worker (see
-[the frontend's README](../apps/web/README.md#pdf-report)).
+[the frontend's README](../apps/web/README.md#pdf-report)). A large report (more than
+1000 farm pages) is a ZIP with one PDF per farm, whose images are requested farm by
+farm while it's built: for 1000 farms × 5 layers, about 5000 requests over a few
+minutes, from one browser.
 
 ### Raster versions and concurrency
 
