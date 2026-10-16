@@ -28,6 +28,7 @@ import { countFarmPages, isLargeReport } from "@/utils/reportSize";
 import {
   ReportPdfClient,
   ReportPdfWorkerTerminatedError,
+  type ZipJob,
 } from "@/workers/reportPdfClient";
 import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import type { FarmData } from "@/interfaces/Farm";
@@ -276,6 +277,29 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   );
 
   /**
+   * The job's ZIP. Its generation can't be interrupted in the worker, so a cancel
+   * while it runs drops the worker (the next render starts a new one), and a ZIP
+   * that finished after a cancel is not returned.
+   */
+  const finishZip = useCallback(
+    async (job: ZipJob, signal: AbortSignal): Promise<Blob> => {
+      const dropWorker = () => {
+        clientRef.current?.terminate();
+        clientRef.current = null;
+      };
+      signal.addEventListener("abort", dropWorker, { once: true });
+      try {
+        const blob = await job.finish();
+        signal.throwIfAborted();
+        return blob;
+      } finally {
+        signal.removeEventListener("abort", dropWorker);
+      }
+    },
+    []
+  );
+
+  /**
    * A large report's ZIP: each farm's images are fetched (a few farms ahead), its
    * PDF is added in the worker, and its images are let go, so memory doesn't grow
    * with the number of farms.
@@ -330,7 +354,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         }
         await Promise.all(inWorker);
         signal.throwIfAborted();
-        return await job.finish();
+        return await finishZip(job, signal);
       } catch (error) {
         if (error instanceof ReportWorkerStalledError) {
           // Don't reuse a stuck worker: the next render starts a new one.
@@ -342,7 +366,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
     },
-    [workerClient]
+    [workerClient, finishZip]
   );
 
   // The running ZIP job, stopped when the selection changes or the page goes away.

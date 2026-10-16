@@ -403,6 +403,43 @@ describe("ReportProvider with a large report", () => {
     expect(job.finish).not.toHaveBeenCalled();
   });
 
+  /** A job with every farm added, waiting for `finish` (`finishing`). */
+  const jobFinishing = async () => {
+    const { job } = zipJob();
+    const finishing = deferred<Blob>();
+    job.finish.mockReturnValueOnce(finishing.promise);
+    const { result } = await renderReport();
+    await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
+    const controller = new AbortController();
+    const building = result.current.buildLargeReportZip(() => {}, controller.signal);
+    building.catch(() => {});
+    await waitFor(() => expect(job.finish).toHaveBeenCalledOnce());
+    return { job, finishing, controller, building };
+  };
+
+  it("drops the worker when the user cancels while the ZIP is generated", async () => {
+    const { finishing, controller, building } = await jobFinishing();
+    // The ZIP's generation can't be interrupted: terminating the worker is what
+    // stops it, and it rejects the pending answer.
+    client.terminate.mockImplementationOnce(() =>
+      finishing.reject(new ReportPdfWorkerTerminatedError())
+    );
+
+    controller.abort();
+
+    await expect(building).rejects.toBeInstanceOf(ReportPdfWorkerTerminatedError);
+    expect(client.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("doesn't return a ZIP that finished after the cancel", async () => {
+    const { finishing, controller, building } = await jobFinishing();
+
+    controller.abort();
+    await act(async () => finishing.resolve(new Blob(["zip"])));
+
+    await expect(building).rejects.toThrow();
+  });
+
   it("aborts the job's requests when the page goes away", async () => {
     zipJob();
     let signal: AbortSignal | undefined;
