@@ -37,6 +37,7 @@
     "error": "There was an error generating the report preview",
     "retry": "Retry",
     "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm.",
+    "largeReportWithoutSatellite": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm, and the maps are generated without the satellite background image. The preview shows the first farm.",
     "withoutSatellite": "This report has more than {{limit}} farms: the maps are generated without the satellite background image."
   },
   "downloadTypeSelectionModal": {

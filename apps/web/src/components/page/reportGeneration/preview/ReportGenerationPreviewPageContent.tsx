@@ -17,6 +17,19 @@ export const ReportGenerationPreviewPageContent = () => {
     farmCount,
     satelliteLimit,
   } = useContext(ReportContext);
+  // One notice: a large report previews its first farm and downloads as a ZIP,
+  // and above the satellite limit every map goes without it.
+  const withoutSatellite = satelliteLimit !== null;
+  const notice = isLarge
+    ? t(
+        withoutSatellite
+          ? "reportGeneration:preview:largeReportWithoutSatellite"
+          : "reportGeneration:preview:largeReport",
+        { count: farmCount }
+      )
+    : withoutSatellite
+      ? t("reportGeneration:preview:withoutSatellite", { limit: satelliteLimit })
+      : null;
 
   return (
     <Box
@@ -27,18 +40,9 @@ export const ReportGenerationPreviewPageContent = () => {
         flexDirection: "column",
       }}
     >
-      {/* A large report previews its first farm, and downloads as a ZIP. */}
-      {isLarge && (
+      {notice && (
         <Alert severity="info" sx={{ borderRadius: 0 }}>
-          {t("reportGeneration:preview:largeReport", { count: farmCount })}
-        </Alert>
-      )}
-      {/* Above the limit, every map goes without it (see the images' fetch). */}
-      {satelliteLimit !== null && (
-        <Alert severity="info" sx={{ borderRadius: 0 }}>
-          {t("reportGeneration:preview:withoutSatellite", {
-            limit: satelliteLimit,
-          })}
+          {notice}
         </Alert>
       )}
       <Box

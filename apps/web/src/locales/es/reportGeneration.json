@@ -37,6 +37,7 @@
     "error": "Ocurrió un error al generar la vista previa del reporte",
     "retry": "Reintentar",
     "largeReport": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca. La vista previa muestra la primera finca.",
+    "largeReportWithoutSatellite": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra la primera finca.",
     "withoutSatellite": "Este reporte tiene más de {{limit}} fincas: los mapas se generan sin la imagen satelital de fondo."
   },
   "downloadTypeSelectionModal": {
