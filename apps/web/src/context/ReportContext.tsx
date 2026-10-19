@@ -16,6 +16,7 @@ import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { MapLayerChangedError } from "@/api/deforestationAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
+import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import pLimit from "p-limit";
 import {
   DeforestationImageBlob,
@@ -75,6 +76,11 @@ interface ReportContextValue {
   /** The selected farms: the PDFs in the ZIP. */
   farmCount: number;
   /**
+   * The farms limit of the satellite background when the selection is above it,
+   * so its maps go without it; null when they have it.
+   */
+  satelliteLimit: number | null;
+  /**
    * A large report's ZIP, built farm by farm; `onProgress` gets the farms done. It
    * stops when `signal` aborts, the selection changes or the page goes away.
    */
@@ -96,6 +102,7 @@ export const ReportContext = createContext<ReportContextValue>({
   getSeparatedReports: noSelection,
   isLarge: false,
   farmCount: 0,
+  satelliteLimit: null,
   buildLargeReportZip: noSelection,
 });
 
@@ -209,6 +216,15 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     selectedCountry,
     locale,
   ]);
+
+  // Once per selection: it looks up every farm's results.
+  const satelliteLimit = useMemo(
+    () =>
+      selection && !satelliteFor(selection)
+        ? MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
+        : null,
+    [selection]
+  );
 
   const clientRef = useRef<ReportPdfClient | null>(null);
   const mountedRef = useRef(true);
@@ -504,6 +520,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       getSeparatedReports,
       isLarge: !!selection?.isLarge,
       farmCount: selection?.farms.length ?? 0,
+      satelliteLimit,
       buildLargeReportZip,
     }),
     [
@@ -512,6 +529,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       previewFailed,
       retryPreview,
       selection,
+      satelliteLimit,
       getCompleteReport,
       getSeparatedReports,
       buildLargeReportZip,

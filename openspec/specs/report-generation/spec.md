@@ -53,7 +53,7 @@ When `/generate-image` is called with `include_satelital_background=true` for th
 
 ### Requirement: The satellite limit counts farms
 
-The web SHALL decide whether to include the satellite background by comparing the number of distinct farms that have images against `MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION`, not the number of (farm, map) pairs. When the limit is unset, the background SHALL always be included.
+The web SHALL decide whether to include the satellite background by comparing the number of distinct farms that have images against `MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION`, not the number of (farm, map) pairs. When the limit is unset, the background SHALL always be included. When the report is above the limit, its preview SHALL say so, with the limit, in the user's language.
 
 #### Scenario: Under the limit by farms
 
@@ -64,6 +64,7 @@ The web SHALL decide whether to include the satellite background by comparing th
 
 - **WHEN** the limit is 100 and the report has 120 farms
 - **THEN** every image uses the solid background, as today
+- **AND** the preview shows "This report has more than 100 farms: the maps are generated without the satellite background image."
 
 ### Requirement: Report images are JPEG
 

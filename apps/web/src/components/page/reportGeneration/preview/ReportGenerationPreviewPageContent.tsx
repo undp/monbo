@@ -15,6 +15,7 @@ export const ReportGenerationPreviewPageContent = () => {
     retryPreview,
     isLarge,
     farmCount,
+    satelliteLimit,
   } = useContext(ReportContext);
 
   return (
@@ -30,6 +31,14 @@ export const ReportGenerationPreviewPageContent = () => {
       {isLarge && (
         <Alert severity="info" sx={{ borderRadius: 0 }}>
           {t("reportGeneration:preview:largeReport", { count: farmCount })}
+        </Alert>
+      )}
+      {/* Above the limit, every map goes without it (see the images' fetch). */}
+      {satelliteLimit !== null && (
+        <Alert severity="info" sx={{ borderRadius: 0 }}>
+          {t("reportGeneration:preview:withoutSatellite", {
+            limit: satelliteLimit,
+          })}
         </Alert>
       )}
       <Box

@@ -50,6 +50,12 @@ vi.mock("@/utils/deforestationImages", async (importOriginal) => ({
   fetchFarmImages: vi.fn(),
 }));
 
+// A satellite background limit of 1 farm: the 2-farm selection is above it.
+vi.mock("@/config/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/config/env")>()),
+  MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION: 1,
+}));
+
 // Whether a selection is large, set per test: the real threshold needs 1000 pages.
 vi.mock("@/utils/reportSize", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/utils/reportSize")>()),
@@ -186,6 +192,18 @@ describe("ReportProvider with a selection", () => {
     await waitFor(() => expect(rendered.result.current.previewUrl).toBe("blob:test/2"));
     expect(fetchDeforestationImages).toHaveBeenCalledTimes(2);
     expect(urls.revokeObjectURL).toHaveBeenCalledWith("blob:test/1");
+  });
+});
+
+describe("ReportProvider satellite background", () => {
+  it("gives the limit when the selection's farms are above it", async () => {
+    const { result } = await renderReport();
+    expect(result.current.satelliteLimit).toBe(1);
+  });
+
+  it("gives null when the maps get the satellite background", async () => {
+    const { result } = await renderReport(reportContext([f1]));
+    expect(result.current.satelliteLimit).toBeNull();
   });
 });
 

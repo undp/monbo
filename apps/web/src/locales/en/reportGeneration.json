@@ -36,7 +36,8 @@
     "title": "Report preview",
     "error": "There was an error generating the report preview",
     "retry": "Retry",
-    "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm."
+    "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm.",
+    "withoutSatellite": "This report has more than {{limit}} farms: the maps are generated without the satellite background image."
   },
   "downloadTypeSelectionModal": {
     "title": "How do you want to download the report?",
