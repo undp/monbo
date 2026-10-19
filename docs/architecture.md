@@ -220,6 +220,7 @@ For each requested layer of that country:
    counts by the area of its intersection with the polygon, both measured in the
    raster's CRS (`get_loss_area_fraction`). A pixel the farm only grazes adds that
    sliver, not a whole pixel, so the ratio is between 0 and 1 by construction.
+   The full method is in [`deforestation_calculation.md`](deforestation_calculation.md).
 
 Rasters are Cloud Optimized GeoTIFFs (512×512 tiles, DEFLATE compression), so only
 the tiles that cover a farm are read from the share, not the whole file.

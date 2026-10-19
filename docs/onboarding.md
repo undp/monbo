@@ -94,6 +94,7 @@ This is the core concept worth understanding clearly.
   - A pixel the farm only grazes adds that sliver, not a whole pixel. Before October 2026 each touched loss pixel counted in full (`pixels × pixel_size² / area`, capped at 1), which over-estimated small farms: one of 2.7 ha with 67% of its area on loss showed 100%.
   - Whether there is a ratio at all is decided by the real geodesic area (*Albers Equal Area*, `helpers/GeometryCalculator.py`): an empty or invalid polygon has none (`null`).
   - The result is a **ratio from 0 to 1** (the UI shows it as a percentage). In one sentence: *"what fraction of this farm's real area falls on cells flagged as post-baseline forest loss?"*
+  - The full method, with an example and how each pixel's piece is measured, is in [`deforestation_calculation.md`](deforestation_calculation.md).
 
 ### 2.4 Integrations and quirks
 
