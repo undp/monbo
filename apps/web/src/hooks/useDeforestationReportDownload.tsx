@@ -13,7 +13,8 @@ export const useDeforestationReportDownload = () => {
   const { invalidateAnalysis } = useContext(DataContext);
   // The images and the renders come from the report page (ReportProvider): the
   // preview's images are reused, and the complete report is usually pre-rendered.
-  const { getCompleteReport, getSeparatedReports } = useContext(ReportContext);
+  const { getCompleteReport, getSeparatedReports, buildLargeReportZip } =
+    useContext(ReportContext);
 
   const downloadSeparatedReports = useCallback(async () => {
     try {
@@ -50,5 +51,39 @@ export const useDeforestationReportDownload = () => {
     }
   }, [getCompleteReport, invalidateAnalysis, openSnackbar, t]);
 
-  return { downloadCompleteReport, downloadSeparatedReports };
+  /** A large report's ZIP, built farm by farm; `signal` cancels it. */
+  const downloadLargeReport = useCallback(
+    async (
+      onProgress: (done: number, total: number) => void,
+      signal?: AbortSignal
+    ) => {
+      try {
+        const zipBlob = await buildLargeReportZip(onProgress, signal);
+        // TODO: internationalize filename
+        saveAs(zipBlob, "deforestation-reports.zip");
+      } catch (error) {
+        // Cancelled by the user, or stopped because the selection changed or the
+        // page went away: nothing to save or to report.
+        if (
+          signal?.aborted ||
+          error instanceof ReportPdfWorkerTerminatedError ||
+          (error instanceof DOMException && error.name === "AbortError")
+        )
+          return;
+        if (error instanceof MapLayerChangedError) return invalidateAnalysis();
+        console.error("Error downloading the large report:", error);
+        openSnackbar({
+          message: t("common:snackbarAlerts:errorDownloadingSeparatedReports"),
+          type: "error",
+        });
+      }
+    },
+    [buildLargeReportZip, invalidateAnalysis, openSnackbar, t]
+  );
+
+  return {
+    downloadCompleteReport,
+    downloadSeparatedReports,
+    downloadLargeReport,
+  };
 };

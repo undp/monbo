@@ -360,7 +360,15 @@ export const FarmMapPage = ({
       {/* Map Image */}
       {!!imageBlobUrl && (
         <View style={styles.farmMapPageMapImageContainer}>
-          <ImagePDF src={imageBlobUrl} style={styles.farmMapPageMapImage} />
+          {/* Not cached: each farm's image is used once. @react-pdf keeps only its
+              last 30 images, so caching these pushed the cover's PNGs out, and
+              decoding a PNG starts a new worker (png-js → fflate's async unzlib):
+              a large report's ZIP started ~10 workers per farm. */}
+          <ImagePDF
+            src={imageBlobUrl}
+            style={styles.farmMapPageMapImage}
+            cache={false}
+          />
           <Text
             style={[
               styles.farmMapPageLightText,

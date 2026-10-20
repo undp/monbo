@@ -11,14 +11,14 @@ You are acting as the author of a pull request, triaging and resolving its open 
 
 ## Preconditions
 
-- The GitHub MCP is configured, authenticated, and available.
+- The GitHub MCP is configured, authenticated, and available, or the `gh` CLI is authenticated: `gh api graphql` (review threads, with `isResolved` / `isOutdated`), `gh api repos/.../pulls/<n>/comments/<id>/replies` and `gh api repos/.../issues/<n>/comments` cover every call below.
 - The PR exists and is open.
 - `uv` and `pnpm` are installed, with Node 24 (see `docs/onboarding.md` §4.0).
 - Git LFS is installed only if you need to run module 2 by hand against the real rasters. The `pytest` suite does not need it: it uses mocks and a committed fixture raster.
 
 ## Project Context
 
-**Monbo** is a deforestation-analysis and due-diligence-report tool for EU Deforestation Regulation (EUDR) compliance. It is a monorepo of two independent apps with no workspace manager: `apps/api/` (Python 3.13, FastAPI, uv, pytest) and `apps/web/` (Next.js 16, React 19, TypeScript, MUI 7, i18next with `es`/`en`, pnpm, **no test suite**). The system is stateless: no database, no auth, all session state in the browser. Results end up in compliance reports, so a silently wrong deforestation or area value is the worst outcome.
+**Monbo** is a deforestation-analysis and due-diligence-report tool for EU Deforestation Regulation (EUDR) compliance. It is a monorepo of two independent apps with no workspace manager: `apps/api/` (Python 3.13, FastAPI, uv, pytest) and `apps/web/` (Next.js 16, React 19, TypeScript, MUI 7, i18next with `es`/`en`, pnpm, Vitest + Testing Library). The system is stateless: no database, no auth, all session state in the browser. Results end up in compliance reports, so a silently wrong deforestation or area value is the worst outcome.
 
 The repository lives in the UNDP GitHub organization but is not yet run as a public open-source project.
 
@@ -80,11 +80,13 @@ For each:
 11. Make the change. Stay strictly within the scope of the comment. Do not opportunistically refactor adjacent code. If the fix touches a cross-cutting convention, make the whole change: an API field rename updates the Pydantic model, runs `pnpm contracts` (committing `apps/api/openapi.json` and `apps/web/src/api/schema.d.ts`), and fixes what the web's `tsc --noEmit` reports; a new UI string goes in both `locales/es/` and `locales/en/`; a new `NEXT_PUBLIC_*` variable goes in `config/env.ts`, `entrypoint.sh`, the web app's `env` blocks in `infra/terraform/apps/web.tf`, and the `.env.*.example` files.
 12. Run the gate for each app you touched — the same commands CI runs:
     - API (in `apps/api/`): `uv run black . && uv run ruff check . && uv run mypy app`
-    - Frontend (in `apps/web/`): `pnpm exec tsc --noEmit && pnpm run lint`, plus `pnpm run build` if the fix touches config, routing, env handling, or server/client boundaries. ESLint warnings don't fail CI, but the fix must not add new ones.
+    - Frontend (in `apps/web/`): `pnpm exec tsc --noEmit && pnpm run lint && pnpm test`, plus `pnpm run build` if the fix touches config, routing, env handling, or server/client boundaries. ESLint warnings don't fail CI, but the fix must not add new ones.
 13. Run the tests covering the touched area:
     - API: `uv run pytest tests/modules/<module>` for the module, and `uv run pytest tests/test_numeric_baseline.py` whenever the fix touches deforestation math, area calculation, reprojection, raster masking, or image generation.
     - If the fix changes API behavior that had no test, add or extend one under `apps/api/tests/`. A behavioral API fix without a regression test is incomplete.
-    - Frontend: there is no test harness — do not set one up as part of a fix. Rely on the type-check, lint and build, and say plainly in the reply that the change was not exercised in a running app unless you actually did so (`pnpm dev` at the root).
+    - Frontend: Vitest + Testing Library, in jsdom (`apps/web/README.md` → Testing). Tests live next to the code as `src/**/*.test.ts(x)`; the helpers are in `src/test/` (`factories.ts`, `renderHookWithData` with a `wrapper` to mount a provider, `deferred`, `installFakeWorker`, `stubObjectUrls`, `setParams`). `fetch`, `next/navigation` and `file-saver` are replaced by the setup; a test that needs the API mocks the `@/api/*` module. Run the touched file with `pnpm exec vitest run <path>` while iterating, and the whole suite before committing.
+      - A fix to a `utils/` helper, a hook, a context provider or the worker client gets a regression test, written **before** the fix so it is seen to fail. A behavioral fix there without one is incomplete, as for the API.
+      - Components and the PDF rendering itself (`reportPdf.worker.tsx`) are not covered by the suite: for those, rely on the type-check, lint and build, and say plainly in the reply that the change was not exercised in a running app unless you actually did so (`pnpm dev` at the root).
 14. Commit using Conventional Commits, scoped to the app (e.g. `fix(api): reject polygons with fewer than three vertices`, `fix(front): add missing es translation for overlap modal`).
 15. **Push before replying.** A SHA that is not on `origin` is useless to the reviewer.
 16. Capture the SHA with `git rev-parse HEAD` **after** the commit lands.

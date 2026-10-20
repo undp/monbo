@@ -77,6 +77,8 @@ Each document follows Markdown format for consistency and readability.
 
 Start with [`docs/architecture.md`](docs/architecture.md): the Azure infrastructure and how its resources interact, how the API reads the layers' rasters, and how each country administers its own layers.
 
+How the deforestation percentage of each farm is calculated is in [`docs/deforestation_calculation.md`](docs/deforestation_calculation.md).
+
 ### Tools
 
 The `/tools` directory houses standalone utility scripts and mini-projects for data processing and automation. They are not deployed.

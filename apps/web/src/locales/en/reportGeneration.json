@@ -29,12 +29,16 @@
   },
   "buttons": {
     "generateReport": "Generate report",
-    "download": "Download"
+    "download": "Download",
+    "downloadZip": "Download ZIP ({{count}} PDFs)"
   },
   "preview": {
     "title": "Report preview",
     "error": "There was an error generating the report preview",
-    "retry": "Retry"
+    "retry": "Retry",
+    "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm.",
+    "largeReportWithoutSatellite": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm, and the maps are generated without the satellite background image. The preview shows the first farm.",
+    "withoutSatellite": "This report has more than {{limit}} farms: the maps are generated without the satellite background image."
   },
   "downloadTypeSelectionModal": {
     "title": "How do you want to download the report?",
@@ -77,5 +81,10 @@
       "title": "Maps used for deforestation analysis",
       "mapsText": "The maps used for deforestation analysis are:"
     }
+  },
+  "zipProgress": {
+    "title": "Generating the ZIP",
+    "count": "{{done}} of {{total}} farms",
+    "hint": "You can stay on this page. Leaving it cancels the download."
   }
 }

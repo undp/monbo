@@ -29,12 +29,16 @@
   },
   "buttons": {
     "generateReport": "Generar reporte",
-    "download": "Descargar"
+    "download": "Descargar",
+    "downloadZip": "Descargar ZIP ({{count}} PDFs)"
   },
   "preview": {
     "title": "Vista previa del reporte",
     "error": "Ocurrió un error al generar la vista previa del reporte",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "largeReport": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca. La vista previa muestra la primera finca.",
+    "largeReportWithoutSatellite": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra la primera finca.",
+    "withoutSatellite": "Este reporte tiene más de {{limit}} fincas: los mapas se generan sin la imagen satelital de fondo."
   },
   "downloadTypeSelectionModal": {
     "title": "¿Cómo quieres descargar el reporte?",
@@ -77,5 +81,10 @@
       "title": "Mapas utilizados para el análisis de deforestación",
       "mapsText": "Los mapas utilizados para el análisis de deforestación son:"
     }
+  },
+  "zipProgress": {
+    "title": "Generando el ZIP",
+    "count": "{{done}} de {{total}} fincas",
+    "hint": "Puedes seguir en esta página. Si sales de ella, la descarga se cancela."
   }
 }

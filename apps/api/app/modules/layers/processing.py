@@ -19,10 +19,10 @@ from rasterio.windows import Window
 WINDOW_SIZE = 2048
 MAX_REPORTED_VALUES = 10
 LOSS_YEARS = range(1980, 2101)
-# The analysis applies one pixel area (`pixel_size`²) to the whole layer, so the
-# declared size must match the raster's cell area at every latitude it covers within
-# this relative tolerance, which bounds the area (and ratio) bias. Existing layers
-# differ by up to ~3.6% (ideam's projection, gfw at its northern edge).
+# The declared `pixel_size` (the layer's resolution) must match the raster's cell
+# area at every latitude it covers within this relative tolerance. The analysis
+# measures pixels from the raster itself, so this keeps the metadata honest. Existing
+# layers differ by up to ~3.6% (ideam's projection, gfw at its northern edge).
 PIXEL_AREA_RELATIVE_TOLERANCE = 0.05
 # Metres per degree of longitude at the equator and of latitude.
 _M_PER_DEG_LON = 111_320

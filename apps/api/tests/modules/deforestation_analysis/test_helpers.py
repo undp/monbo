@@ -3,17 +3,19 @@ from unittest.mock import MagicMock, patch
 
 import mercantile
 import numpy as np
+import pyproj
 import pytest
 from fastapi import HTTPException
 from PIL import Image
 from rasterio.errors import WindowError
-from shapely import Polygon
+from rasterio.io import MemoryFile
+from rasterio.transform import from_origin
+from shapely import box
+from shapely.ops import transform as transform_geometry
 
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
-    get_deforestation_ratio,
-    get_map_pixels_inside_polygon,
-    get_pixel_area,
+    get_loss_area_fraction,
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
@@ -79,77 +81,96 @@ def test_get_map_by_id(mock_get_all_maps):
     assert response is None
 
 
-def test_get_pixel_area():
-    map_data = {"pixel_size": 10}
-    response = get_pixel_area(map_data)
-    assert response == 100
-
-
 def test_create_empty_tile():
     response = create_empty_tile()
     assert response == Image.new("RGBA", (256, 256), (0, 0, 0, 0))
 
 
-def test_get_deforestation_percentage_valid():
-    # Mock pixel data (example: 10 pixels, with 6 deforested)
-    pixels = np.array([1, 0, 3, 1, 0, 2, 0, 0, 1, 3])
-    pixel_area = 5  # Example area per pixel
-    polygon_area = 100  # Example polygon area
+# Synthetic layers of 4 x 4 pixels: one in EPSG:4326 (pixels of 0.00027°, as GFW
+# and TMF) and one in UTM 17S (30 m, as the MAATE layers), both in Ecuador.
+LAYERS = {
+    "EPSG:4326": (-79.0, -1.0, 0.00027),
+    "EPSG:32717": (700_000.0, 9_890_000.0, 30.0),
+}
 
-    # Call the function
-    result = get_deforestation_ratio(pixels, polygon_area, pixel_area)
 
-    # Expected: (3 deforested pixels * 5 pixel area) / 100 polygon area = 0.15 (15%)
-    assert result == 0.15
+@pytest.fixture(params=list(LAYERS), ids=["EPSG:4326", "UTM"])
+def layer(request):
+    """Opens a 4 x 4 layer whose loss pixels are given as (row, col)."""
+    crs = request.param
+    west, north, size = LAYERS[crs]
+    to_wgs84 = pyproj.Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    files = []
+
+    def open_layer(loss_pixels):
+        data = np.zeros((4, 4), dtype=np.uint8)
+        for row, col in loss_pixels:
+            data[row, col] = 1
+        memfile = MemoryFile()
+        files.append(memfile)
+        with memfile.open(
+            driver="GTiff",
+            width=4,
+            height=4,
+            count=1,
+            dtype="uint8",
+            crs=crs,
+            transform=from_origin(west, north, size, size),
+        ) as dst:
+            dst.write(data, 1)
+        return memfile.open()
+
+    def polygon(col_min, row_min, col_max, row_max):
+        """A box in pixel units (columns east, rows south), in EPSG:4326."""
+        shape = box(
+            west + col_min * size,
+            north - row_max * size,
+            west + col_max * size,
+            north - row_min * size,
+        )
+        return transform_geometry(to_wgs84.transform, shape.segmentize(size / 8))
+
+    yield open_layer, polygon
+    for memfile in files:
+        memfile.close()
 
 
 @pytest.mark.parametrize(
-    ("pixels", "polygon_area", "pixel_area", "expected"),
+    ("loss_pixels", "pixel_box", "expected"),
     [
-        pytest.param([1, 1, 0, 0], 9_000.0, 900, 0.2, id="loss inside"),
-        pytest.param([0, 0, 0], 9_000.0, 900, 0.0, id="no loss"),
-        # A polygon smaller than the loss pixels it touches
-        pytest.param([1, 1], 36.0, 900, 1.0, id="capped at 1"),
-        # calculate_polygon_area's results for an empty and an invalid polygon
-        pytest.param([1, 1, 1], 0.0, 900, None, id="area 0"),
-        pytest.param([1, 1, 1], -1.0, 900, None, id="area -1"),
-        pytest.param([0], -1.0, 900, None, id="area -1, no loss"),
+        pytest.param([(0, 0), (0, 1)], (0, 0, 2, 2), 0.5, id="2 of 4 pixels"),
+        pytest.param([], (0, 0, 2, 2), 0.0, id="no loss"),
+        pytest.param([(1, 1)], (0, 0, 4, 4), 1 / 16, id="1 of 16 pixels"),
+        # Half of the loss pixel (0, 2) next to 4 pixels without loss
+        pytest.param([(0, 2), (1, 2)], (0, 0, 2.5, 2), 1 / 5, id="half a loss pixel"),
+        # 1% of a loss pixel: a whole pixel would be 1 / 4.01, above the threshold
+        pytest.param([(0, 2)], (0, 0, 2.01, 2), 0.01 / 4.02, id="edge sliver"),
+        pytest.param(
+            [(1, 1)], (1.25, 1.25, 1.75, 1.75), 1.0, id="sub-pixel, inside loss"
+        ),
+        pytest.param(
+            [(1, 1)], (1.75, 1.25, 2.25, 1.75), 0.5, id="sub-pixel, half on loss"
+        ),
+        pytest.param(
+            [(r, c) for r in range(4) for c in range(4)],
+            (0, 0, 4, 4),
+            1.0,
+            id="all loss",
+        ),
     ],
 )
-def test_get_deforestation_ratio_edges(pixels, polygon_area, pixel_area, expected):
-    result = get_deforestation_ratio(np.array(pixels), polygon_area, pixel_area)
-    assert result == expected
+def test_get_loss_area_fraction(layer, loss_pixels, pixel_box, expected):
+    open_layer, polygon = layer
+    with open_layer(loss_pixels) as src:
+        result = get_loss_area_fraction(polygon(*pixel_box), src)
+    assert result == pytest.approx(expected, abs=1e-6)
+    assert 0.0 <= result <= 1.0
 
 
-@patch("app.modules.deforestation_analysis.helpers.mask")
-def test_get_map_pixels_inside_polygon(mock_mask):
-    # Create a simple polygon (square)
-    polygon = Polygon(
-        [
-            (-50.0, -10.0),
-            (-50.0, -9.5),
-            (-49.5, -9.5),
-            (-49.5, -10.0),
-            (-50.0, -10.0),
-        ]
-    )
-
-    # Mock rasterio dataset
-    mock_dataset = MagicMock()
-    mock_dataset.crs = "EPSG:4326"
-
-    mock_mask.return_value = (
-        np.array([[[1, 2], [3, 4]]]),
-        None,
-    )  # Fake clipped raster data
-
-    # Call function
-    result = get_map_pixels_inside_polygon(polygon, mock_dataset)
-
-    # Assertions
-    assert isinstance(result, np.ndarray)  # Ensure it returns a NumPy array
-    assert result.shape == (2, 2)  # Expected shape
-    assert (result == np.array([[[1, 2], [3, 4]]])).all()  # Ensure correct pixel values
+def test_get_loss_area_fraction_outside_the_raster(layer):
+    open_layer, polygon = layer
+    with open_layer([(0, 0)]) as src, pytest.raises(ValueError):
+        get_loss_area_fraction(polygon(10, 10, 12, 12), src)
 
 
 @patch("app.modules.deforestation_analysis.helpers.RasterDataContext")

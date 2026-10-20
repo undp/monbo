@@ -78,19 +78,22 @@ The libraries used for this module are:
 - [Pillow](https://pillow.readthedocs.io/en/stable/): for image processing
 - [asyncio](https://docs.python.org/3/library/asyncio.html): for asynchronous operations and context management
 
-The deforestation percentage is calculated using the following formula:
+The deforestation percentage is the share of the polygon's area that lies on loss pixels:
 
 $$
-\text{deforestationPercentage} = \frac{\text{deforestedPixelsInsidePolygon} * \text{pixelArea}}{\text{totalPolygonArea}}
+\text{deforestationPercentage} = \frac{\sum_{\text{loss pixels}} \text{area}(\text{pixel} \cap \text{polygon})}{\text{area}(\text{polygon})}
 $$
 
 with the following considerations:
 
-- The pixels inside the polygon are found using [rasterio's mask](https://rasterio.readthedocs.io/en/latest/api/rasterio.mask.html) method.
-- The pixel area depends on the raster layer resolution. For example, if the resolution is 30x30 meters, the pixel area will be 900 m².
-- The polygon total area is calculated based on the [area calculation methodology](docs/polygon_area_calculation.md).
+- The pixels the polygon overlaps are found using [rasterio's mask](https://rasterio.readthedocs.io/en/latest/api/rasterio.mask.html) method, with `all_touched=True` so that the pixels it only grazes are included.
+- Each loss pixel counts by the part of it inside the polygon, not in full: a pixel the polygon only grazes adds that sliver. So the percentage is never above 100%, and a polygon smaller than a pixel gets the share of it on loss.
+- Both areas are measured in the raster's CRS, with each pixel's square taken from the raster's transform (the layer's `pixel_size` doesn't enter it). In a projected CRS they are exact; in EPSG:4326 the ratio of two areas a few hundred metres across is the same as on the ground.
+- Whether a farm can be measured at all is decided by its geodesic area (`GeometryCalculator`, an Albers equal-area projection): an empty, invalid or zero-area polygon has no percentage (`null`), as does one outside the raster.
 
-So, if the deforested pixels inside the polygon are 100, the pixel area is 900 square meters and the total polygon area is 50 hectares, the deforestation percentage would be 18%.
+So, if a 10-hectare polygon lies on 20 whole loss pixels of 900 m² and on half of 4 more, the deforestation percentage would be (20 + 2) × 900 m² / 100,000 m² = 19.8%.
+
+The step-by-step calculation, how the area of each pixel's part inside the polygon is measured, and the method used before October 2026 are in [`docs/deforestation_calculation.md`](../../docs/deforestation_calculation.md).
 
 ### 3. Report Generation
 

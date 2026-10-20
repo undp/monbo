@@ -81,25 +81,28 @@ This is the core concept worth understanding clearly.
 - Those masks are produced by the **offline pipeline** `tools/update-gfw-tmf/run.py` using Google Earth Engine (`data.gt(baseline_year).selfMask()` = "loss year > baseline → 1"). This script **does not run at runtime**; it is only used to regenerate the `.tif` files.
 - **To cross-reference a polygon (vector, lat/lng) with a raster (pixel grid)**, in `deforestation_analysis/helpers.py`:
   1. Reproject the polygon to the raster's CRS.
-  2. Crop the raster to the polygon's shape with `rasterio.mask.mask(..., all_touched=True)`. *(`all_touched=True` includes any pixel the polygon touches, even partially → it tends to over-count at the edges.)*
-  3. Count the pixels whose value is exactly `1`.
-- **The formula:**
+  2. Crop the raster to the polygon's shape with `rasterio.mask.mask(..., all_touched=True)`. *(`all_touched=True` includes any pixel the polygon touches, even partially, so that the next step sees every pixel the farm overlaps.)*
+  3. Take the pixels whose value is exactly `1`, and build each one's square from the raster's transform.
+  4. Intersect those squares with the polygon (vectorized with `shapely`) and add up their areas.
+- **The formula** (`get_loss_area_fraction`):
 
   ```
-  ratio = min(1.0, (deforested_pixels × pixel_area) / real_polygon_area)
+  ratio = Σ area(loss_pixel ∩ polygon) / area(polygon)
   ```
 
-  - `pixel_area = pixel_size²`, in **square meters** (`pixel_size` comes from the raster metadata, in meters).
-  - `real_polygon_area` is **not** a pixel count: it is the real geodesic area, computed with an *Albers Equal Area* projection in `helpers/GeometryCalculator.py`.
+  - Both areas are in the **raster's CRS**: exact in a projected one (UTM), and in EPSG:4326 the ratio of two areas a few hundred metres across is the same as on the ground. The layer's `pixel_size` doesn't enter it.
+  - A pixel the farm only grazes adds that sliver, not a whole pixel. Before October 2026 each touched loss pixel counted in full (`pixels × pixel_size² / area`, capped at 1), which over-estimated small farms: one of 2.7 ha with 67% of its area on loss showed 100%.
+  - Whether there is a ratio at all is decided by the real geodesic area (*Albers Equal Area*, `helpers/GeometryCalculator.py`): an empty or invalid polygon has none (`null`).
   - The result is a **ratio from 0 to 1** (the UI shows it as a percentage). In one sentence: *"what fraction of this farm's real area falls on cells flagged as post-baseline forest loss?"*
+  - The full method, with an example and how each pixel's piece is measured, is in [`deforestation_calculation.md`](deforestation_calculation.md).
 
 ### 2.4 Integrations and quirks
 
 - **Google Maps Platform**: base map and satellite background (requires `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` on the frontend and credentials on the backend).
 - **Google Earth Engine**: only in the offline raster-generation script.
 - **No DB and no queues.** In Azure the layers live on an **Azure Files share**; raster uploads from the admin are processed as in-process background jobs, one at a time.
-- **Raster ingestion checks the calculation inputs.** Nodata cannot be `1`, and
-  the area of the configured `pixel_size` must be within 5% of the raster's cell
+- **Raster ingestion checks the layer's data.** Nodata cannot be `1` (it would read
+  as loss), and the area of the configured `pixel_size` must be within 5% of the raster's cell
   area at every latitude it covers. The same size check applies when an admin edits
   a layer with a raster.
 - **Silently swallowed errors**: the analysis catches per-farm/per-map exceptions and returns `value: null` instead of failing; `calculate_polygon_area` returns `-1` for invalid geometries. A `null`/`-1` in the results means "could not be computed", not a crash.

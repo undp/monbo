@@ -20,6 +20,14 @@ export class MapLayerChangedError extends Error {
   }
 }
 
+/** `/generate-image` answered with an error status (other than 409). */
+export class ImageRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Error on generate polygon deforestation image (HTTP ${status})`);
+    this.name = "ImageRequestError";
+  }
+}
+
 export const getMaps = async (
   language: string,
   country?: string | null
@@ -70,7 +78,8 @@ export const generatePolygonDeforestationImage = async (
   mapId: number,
   feature: GeoJsonFeature,
   includeSatelitalBackground: boolean = true,
-  version?: number
+  version?: number,
+  signal?: AbortSignal
 ): Promise<Blob> => {
   const url = `${DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL}?include_satelital_background=${includeSatelitalBackground}`;
   const body: components["schemas"]["GenerateImageBody"] = {
@@ -85,12 +94,13 @@ export const generatePolygonDeforestationImage = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal,
   });
   if (response.status === 409) {
     throw new MapLayerChangedError();
   }
   if (!response.ok) {
-    throw new Error("Error on generate polygon deforestation image");
+    throw new ImageRequestError(response.status);
   }
 
   return response.blob();

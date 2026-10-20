@@ -13,9 +13,7 @@ from starlette.concurrency import run_in_threadpool
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.maps import COUNTRY_CODE_PATTERN, CountryCode
 from app.modules.deforestation_analysis.helpers import (
-    get_deforestation_ratio,
-    get_map_pixels_inside_polygon,
-    get_pixel_area,
+    get_loss_area_fraction,
     get_tile,
 )
 from app.modules.layers.store import is_layer
@@ -68,12 +66,7 @@ def analize(body: AnalizeBody):
                         # An invalid, empty or zero-area polygon can't be measured
                         deforestation_ratio = None
                         if polygon_area > 0:
-                            loss_year_data = get_map_pixels_inside_polygon(polygon, src)
-                            deforestation_ratio = get_deforestation_ratio(
-                                loss_year_data,
-                                polygon_area,
-                                get_pixel_area(map_data),
-                            )
+                            deforestation_ratio = get_loss_area_fraction(polygon, src)
                         farmsResults.append(
                             {
                                 "farmId": farm.id,
