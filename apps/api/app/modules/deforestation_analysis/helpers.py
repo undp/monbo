@@ -6,11 +6,10 @@ import numpy as np
 import shapely
 from fastapi import HTTPException
 from PIL import Image
-from rasterio.enums import Resampling
-from rasterio.errors import WindowError
 from rasterio.mask import mask
 
-from app.utils.image_generation.RasterDataContext import RasterDataContext
+from app.utils.image_generation.loss_mask import render_loss_mask
+from app.utils.image_generation.RasterDatasetCache import raster_dataset_cache
 
 
 def get_loss_area_fraction(polygon, src) -> float:
@@ -49,55 +48,24 @@ def create_empty_tile():
 
 
 async def get_tile(tif_path, z, x, y):
-    """Dynamically extract and reproject a tile (PNG) for the specified z/x/y."""
+    """The z/x/y tile (256x256, RGBA) with the layer's loss pixels in red: each
+    tile pixel takes the source pixel under its centre (see `render_loss_mask`)."""
     try:
-        # Open the GeoTIFF
-        async with RasterDataContext(tif_path) as vrt:
-            # Get tile bounds in the target CRS
-            bounds = mercantile.xy_bounds(x, y, z)
+        bounds = tuple(mercantile.xy_bounds(x, y, z))
+        # Off the event loop, on a raster kept open between requests.
+        loss = await asyncio.to_thread(
+            raster_dataset_cache.read,
+            tif_path,
+            lambda raster: render_loss_mask(raster, bounds, 256, 256),
+        )
+        if loss is None:  # the tile is outside the raster
+            return create_empty_tile()
 
-            # Check if the tile bounds overlap the GeoTIFF's bounds
-            tif_bounds = vrt.bounds
-            if (
-                bounds.right < tif_bounds.left  # Tile is left of the GeoTIFF
-                or bounds.left > tif_bounds.right  # Tile is right of the GeoTIFF
-                or bounds.top < tif_bounds.bottom  # Tile is below the GeoTIFF
-                or bounds.bottom > tif_bounds.top  # Tile is above the GeoTIFF
-            ):
-                return create_empty_tile()
-
-            # Calculate the raster window for the requested bounds
-            window = vrt.window(bounds.left, bounds.bottom, bounds.right, bounds.top)
-
-            # Read the data for the specified window, resampled to 256x256 pixels
-            data = await asyncio.to_thread(
-                vrt.read,
-                out_shape=(vrt.count, 256, 256),
-                window=window,
-                # Nearest neighbor preserves True/False
-                resampling=Resampling.nearest,
-            )
-
-            # Select the first band if there are multiple bands
-            if data.shape[0] > 1:
-                data = data[0]  # Use the first band
-            else:
-                data = data.squeeze()  # Flatten single-band data
-
-            # Convert data to a binary mask (True/False)
-            mask = np.equal(data, 1).astype(np.uint8)  # 1 for True, 0 for False
-
-            # Create an RGBA array
-            rgba_data = np.zeros((256, 256, 4), dtype=np.uint8)
-            rgba_data[..., 0] = mask * 255  # Red channel (255 if True)
-            rgba_data[..., 3] = mask * 255  # Alpha channel (255 if True)
-
-            # Create a PIL Image
-            img = Image.fromarray(rgba_data, mode="RGBA")
-            return img
-    except WindowError:
-        # If the window calculation fails, return an empty tile
-        return create_empty_tile()
+        alpha = loss.astype(np.uint8) * 255
+        rgba_data = np.zeros((256, 256, 4), dtype=np.uint8)
+        rgba_data[..., 0] = alpha  # red
+        rgba_data[..., 3] = alpha
+        return Image.fromarray(rgba_data, mode="RGBA")
     except Exception as e:
         print(f"Error generating tile: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

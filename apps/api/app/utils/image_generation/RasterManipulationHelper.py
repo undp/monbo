@@ -4,13 +4,13 @@ from typing import Tuple
 import numpy as np
 from PIL import Image
 from pyproj import Transformer
-from rasterio.transform import from_bounds
 from shapely.geometry.base import BaseGeometry
 
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.utils.image_generation.constants import MapColors, MapDefaults
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
+from app.utils.image_generation.loss_mask import render_loss_mask
 from app.utils.image_generation.RasterDatasetCache import raster_dataset_cache
 
 
@@ -51,7 +51,7 @@ class RasterManipulationHelper:
             center_lat, center_lon, zoom_level, output_size
         )
 
-        # Convert lat/lon bounds to the VRT's CRS (Web Mercator)
+        # The image's grid is in Web Mercator, like the satellite image's
         transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
         # Transform bounds from WGS84 to Web Mercator
@@ -67,46 +67,19 @@ class RasterManipulationHelper:
             max(min_y, max_y),  # maxy
         )
 
-        # Get transform that maps between webmerc and image pixels
-        # This ensures exact pixel alignment with Google Maps tiles
-        dst_transform = from_bounds(
-            web_mercator_bounds[0],
-            web_mercator_bounds[1],
-            web_mercator_bounds[2],
-            web_mercator_bounds[3],
-            output_size[0],
-            output_size[1],
+        # Off the event loop, on a raster kept open between requests.
+        loss = await asyncio.to_thread(
+            raster_dataset_cache.read,
+            tif_path,
+            lambda raster: render_loss_mask(raster, web_mercator_bounds, *output_size),
         )
-
-        def read_window(vrt) -> np.ndarray:
-            # Check if the bounds intersect with the VRT's bounds
-            vrt_bounds = vrt.bounds
-            if (
-                (web_mercator_bounds[0] > vrt_bounds[2])  # minx > vrt.maxx
-                or (web_mercator_bounds[2] < vrt_bounds[0])  # maxx < vrt.minx
-                or (web_mercator_bounds[1] > vrt_bounds[3])  # miny > vrt.maxy
-                or (web_mercator_bounds[3] < vrt_bounds[1])  # maxy < vrt.miny
-            ):
-                raise NoRasterDataOverlapError(
-                    "The requested viewport does not overlap with the map's raster data"
-                )
-
-            # Read the raster window
-            return vrt.read(
-                1,
-                window=vrt.window(*web_mercator_bounds),
-                out_shape=output_size[::-1],  # (height, width)
-                resampling=MapDefaults.RASTER_RESAMPLING,
-                # Use Google Maps alignment transform
-                # This maps from destination pixels to web mercator space
-                dst_transform=dst_transform,
+        if loss is None:
+            raise NoRasterDataOverlapError(
+                "The requested viewport does not overlap with the map's raster data"
             )
 
-        # Off the event loop, on a raster kept open between requests.
-        data = await asyncio.to_thread(raster_dataset_cache.read, tif_path, read_window)
-
         # Create deforestation mask using the defined colors
-        mask_data = (data == 1).astype(np.uint8)
+        mask_data = loss.astype(np.uint8)
         rgba_data = np.zeros((output_size[1], output_size[0], 4), dtype=np.uint8)
         rgba_data[..., 0] = mask_data * MapColors.DEFORESTATION[0]
         rgba_data[..., 1] = mask_data * MapColors.DEFORESTATION[1]

@@ -1,6 +1,8 @@
 import asyncio
+import shutil
 import time
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -499,6 +501,32 @@ def test_analize_bad_farm_leaves_the_others_intact(maps_root):
     assert results["good"] == 1.0
     assert results["bowtie"] is None
     assert results["single"] is None
+
+
+# F-VALIDACION: a rectangle whose edges run along the centres of a 5 x 4 block of
+# real GFW pixels (a crop of app/maps' gfw.tif with its grid). Of those pixels, 2
+# loss pixels lie whole inside it, 1 is cut in half and 2 corners are cut in four.
+VALIDATION_FARM = [
+    (-76.8974353169, -0.2157370319),
+    (-76.8963573386, -0.2157370319),
+    (-76.8963573386, -0.2165455157),
+    (-76.8974353169, -0.2165455157),
+]
+GFW_CROP = Path(__file__).parent / "fixtures" / "gfw_validation_farm.tif"
+
+
+def test_analize_the_validation_farm_on_real_gfw_pixels(maps_root):
+    path = maps_root.root / "layers" / "rasters" / "gfw.tif"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(GFW_CROP, path)
+    maps_root.write_index(
+        [{"id": 0, "raster_filename": "gfw.tif", "pixel_size": 30, "version": 1}]
+    )
+
+    results = _analize([_polygon_farm("F-VALIDACION", VALIDATION_FARM)])
+
+    # (2 + 0.5 + 0.25 + 0.25) / 12 pixels; counting whole pixels gave 5 / 12
+    assert results["F-VALIDACION"] == pytest.approx(0.25, abs=1e-6)
 
 
 def test_analize_ratio_is_the_share_of_area_on_loss(maps_root):

@@ -4,36 +4,56 @@ from collections import OrderedDict
 from typing import Any, Callable, TypeVar
 
 from rasterio import open as rasterio_open
-from rasterio.vrt import WarpedVRT
+from rasterio.warp import transform_bounds
+
+from app.utils.image_generation.loss_mask import WEB_MERCATOR
 
 T = TypeVar("T")
 
 
-class _CachedRaster:
-    def __init__(self, path: str, target_crs: str, signature: tuple[int, int]):
+class CachedRaster:
+    """An open raster, its bounds in Web Mercator and the overviews opened so far.
+    Use it only inside `RasterDatasetCache.read`, which holds its lock."""
+
+    def __init__(self, path: str, signature: tuple[int, int]):
+        self.path = path
         self.signature = signature
         self.src: Any = rasterio_open(path)
         try:
-            self.vrt: Any = WarpedVRT(self.src, crs=target_crs)
+            self.bounds_3857 = transform_bounds(
+                self.src.crs, WEB_MERCATOR, *self.src.bounds
+            )
         except BaseException:
             # Not stored, so nobody would close the dataset: do it here.
             self.src.close()
             raise
+        self._overviews: dict[int, Any] = {}
         # GDAL handles are not thread-safe: one reader at a time per raster.
         self.lock = threading.Lock()
         self.closed = False
 
+    def dataset(self, overview_level: int | None) -> Any:
+        """The raster, or one of its overviews (opened on first use)."""
+        if overview_level is None:
+            return self.src
+        if overview_level not in self._overviews:
+            self._overviews[overview_level] = rasterio_open(
+                self.path, overview_level=overview_level
+            )
+        return self._overviews[overview_level]
+
     def close(self) -> None:
         with self.lock:  # waits for a read in progress
             self.closed = True
-            self.vrt.close()
+            for overview in self._overviews.values():
+                overview.close()
             self.src.close()
 
 
 class RasterDatasetCache:
     """
-    Keeps rasters open, warped to the target CRS, between requests. Synchronous:
-    call it from a worker thread.
+    Keeps rasters open between requests, for the map's tiles and the report's
+    images. Synchronous: call it from a worker thread.
 
     Keyed by path, and checked against the file's mtime and size on every read (as
     `LayerStore.read_index` does): a raster's filename names its version and the
@@ -44,20 +64,19 @@ class RasterDatasetCache:
     beyond `max_entries`.
     """
 
-    def __init__(self, max_entries: int = 16, target_crs: str = "EPSG:3857"):
+    def __init__(self, max_entries: int = 16):
         self.max_entries = max_entries
-        self.target_crs = target_crs
-        self._entries: OrderedDict[str, _CachedRaster] = OrderedDict()
+        self._entries: OrderedDict[str, CachedRaster] = OrderedDict()
         self._lock = threading.Lock()
 
-    def read(self, path: str, fn: Callable[[Any], T]) -> T:
-        """Calls `fn` with the raster's WarpedVRT, holding the raster's lock."""
+    def read(self, path: str, fn: Callable[[CachedRaster], T]) -> T:
+        """Calls `fn` with the cached raster, holding the raster's lock."""
         while True:
             entry = self._get(path)
             with entry.lock:
                 if entry.closed:
                     continue  # evicted between _get and the lock: open it again
-                return fn(entry.vrt)
+                return fn(entry)
 
     def clear(self) -> None:
         with self._lock:
@@ -69,8 +88,8 @@ class RasterDatasetCache:
     def __len__(self) -> int:
         return len(self._entries)
 
-    def _get(self, path: str) -> _CachedRaster:
-        evicted: list[_CachedRaster] = []
+    def _get(self, path: str) -> CachedRaster:
+        evicted: list[CachedRaster] = []
         stat = os.stat(path)
         signature = (stat.st_mtime_ns, stat.st_size)
         with self._lock:
@@ -81,7 +100,7 @@ class RasterDatasetCache:
             if entry is not None:  # the file at this path changed: reopen it
                 evicted.append(self._entries.pop(path))
             # Opened under the lock, so two threads don't open the same raster.
-            entry = _CachedRaster(path, self.target_crs, signature)
+            entry = CachedRaster(path, signature)
             self._entries[path] = entry
             while len(self._entries) > self.max_entries:
                 evicted.append(self._entries.popitem(last=False)[1])
