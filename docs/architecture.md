@@ -257,6 +257,10 @@ its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85,
 chroma subsampling), the aspect ratio of the map box on the PDF's farm page, which
 the report embeds as is.
 
+- **Drawn like the tiles.** The loss comes from `render_loss_mask` on the image's
+  own 640×420 grid, with the same overview rule: a farm more than about 10 km across
+  (zoom 11 or lower for a 30 m layer) is drawn from an overview, so its red share is
+  an approximation of the ratio `/analize` computes from the native pixels.
 - **One satellite call per farm.** The satellite image depends only on the farm's
   center and zoom, not on the layer, so the API caches it in memory: bounded (256
   images), for 10 minutes, and shared by concurrent requests. A report's images for

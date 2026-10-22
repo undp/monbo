@@ -193,9 +193,10 @@ Cancelling (`DELETE /admin/jobs/{jobId}`) stops the job within one window while 
 validates or verifies, or when the conversion returns, and the layer keeps its
 raster. Once the new raster is being put in place, it is too late to cancel (409).
 
-The overviews make low-zoom tiles fast, and at low zoom levels they draw a
-downsampled version of the raster. Analyses and report images always read the full
-resolution.
+The overviews make low-zoom tiles fast. Tiles and report images read the coarsest
+overview whose pixel is still no larger than an output pixel, so at low zoom (zoom 11
+and below for a 30 m layer; a report image of a farm more than about 10 km across) they
+draw a downsampled version of the raster. Analyses always read the full resolution.
 
 ## Preparing public layers
 

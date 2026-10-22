@@ -80,6 +80,7 @@
 - [x] 6.1 Docs: `docs/architecture.md` (how tiles and report images are drawn) and `docs/deforestation_calculation.md` (the map is exact to the pixel)
 
   The new section of `docs/deforestation_calculation.md` is "Checking it on the map".
+  - **After review:** the check is exact only where the full resolution is drawn; the section, `docs/maps.md` (which said report images always read the full resolution) and `docs/architecture.md` now say when an overview is read (zoom 11 and below for a 30 m layer; a report image of a farm more than about 10 km across).
 - [x] 6.2 CHANGELOG, under Fixed
 
   It notes that browsers may keep cached tiles for up to a day: the tile URL only changes with the layer's version.
