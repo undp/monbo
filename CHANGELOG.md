@@ -46,6 +46,7 @@
 
 ### Fixed
 
+- The map's deforestation layers and the report's maps draw each loss pixel where the raster puts it. They were off by up to one pixel (about 13 m up and to the left around a test farm in Ecuador), because the raster was resampled twice: first onto a Web Mercator grid of its own, then onto the tile or image. They are now reprojected in one step onto the tile's or image's grid, using the raster's overviews at low zoom. The deforestation percentages didn't change: they never used that drawing. Tiles are also faster at every zoom (a z6 tile of a raster without overviews: 2.8 s → 0.4 s). Browsers may keep showing cached tiles for up to a day
 - In the report's maps, the farm's outline is drawn above the deforestation (it was hidden under it where the loss crosses the farm's edge), as on the web map
 - The report's maps no longer cut off tall farms at the top and bottom: `POST /deforestation_analysis/generate-image` returns 640×420 images (they were 500×500), in the aspect ratio of the map box on the farm page, which shows them whole
 - A farm with an invalid polygon (for example, one that crosses itself) got a negative deforestation ratio, which the web showed as deforestation-free. Its ratio is now empty (N/A), as is that of an empty polygon

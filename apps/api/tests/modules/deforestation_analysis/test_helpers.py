@@ -1,17 +1,21 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import geopandas as gpd
 import mercantile
 import numpy as np
 import pyproj
 import pytest
+import rasterio
 from fastapi import HTTPException
 from PIL import Image
-from rasterio.errors import WindowError
+from rasterio import features
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 from shapely import box
+from shapely.geometry import Polygon, shape
 from shapely.ops import transform as transform_geometry
+from shapely.ops import unary_union
 
 from app.modules.deforestation_analysis.helpers import (
     create_empty_tile,
@@ -19,19 +23,6 @@ from app.modules.deforestation_analysis.helpers import (
     get_tile,
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
-
-
-class _AsyncRasterContext:
-    """Minimal async context manager standing in for RasterDataContext."""
-
-    def __init__(self, vrt):
-        self._vrt = vrt
-
-    async def __aenter__(self):
-        return self._vrt
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return False
 
 
 def test_get_all_maps(maps_root):
@@ -157,6 +148,15 @@ def layer(request):
             1.0,
             id="all loss",
         ),
+        # docs/deforestation_calculation.md: 1 ha (10/3 x 10/3 pixels of 30 m in
+        # UTM) on 2 whole loss pixels and on a third of another (300 m²):
+        # (1,800 + 300) / 10,000. Counting whole pixels gave 27%.
+        pytest.param(
+            [(0, 0), (0, 1), (0, 3)],
+            (0, 0, 10 / 3, 10 / 3),
+            0.21,
+            id="the documentation's example",
+        ),
     ],
 )
 def test_get_loss_area_fraction(layer, loss_pixels, pixel_box, expected):
@@ -167,67 +167,94 @@ def test_get_loss_area_fraction(layer, loss_pixels, pixel_box, expected):
     assert 0.0 <= result <= 1.0
 
 
+@pytest.mark.parametrize("crs", list(LAYERS), ids=["EPSG:4326", "UTM"])
+def test_get_loss_area_fraction_matches_an_equal_area_reference(crs):
+    """Random polygons on a random layer, against an independent computation: the
+    union of the loss pixels intersected with the polygon, and the polygon, both
+    measured in an equal-area projection (EPSG:6933)."""
+    rng = np.random.default_rng(2026)
+    west, north, size = LAYERS[crs]
+    n = 40
+    data = (rng.random((n, n)) < 0.3).astype(np.uint8)
+    transform = from_origin(west, north, size, size)
+    loss = unary_union(
+        [
+            shape(geometry)
+            for geometry, value in features.shapes(
+                data, mask=data == 1, transform=transform
+            )
+            if value == 1
+        ]
+    )
+    to_wgs84 = pyproj.Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    with MemoryFile() as memfile:
+        with memfile.open(
+            driver="GTiff",
+            width=n,
+            height=n,
+            count=1,
+            dtype="uint8",
+            crs=crs,
+            transform=transform,
+        ) as dst:
+            dst.write(data, 1)
+        with memfile.open() as src:
+            for _ in range(25):
+                # A star-shaped polygon of up to 6 pixels' radius in the layer
+                col, row = rng.uniform(8, n - 8, 2)
+                vertices = int(rng.integers(6, 11))
+                angles = np.sort(rng.uniform(0, 2 * np.pi, vertices))
+                radii = rng.uniform(0.5, 6, vertices)
+                farm = Polygon(
+                    zip(
+                        west + (col + radii * np.cos(angles)) * size,
+                        north - (row + radii * np.sin(angles)) * size,
+                    )
+                ).segmentize(size / 8)
+                areas = gpd.GeoSeries([loss.intersection(farm), farm], crs=crs).to_crs(
+                    "EPSG:6933"
+                )
+                expected = areas.iloc[0].area / areas.iloc[1].area
+
+                result = get_loss_area_fraction(
+                    transform_geometry(to_wgs84.transform, farm), src
+                )
+
+                assert result == pytest.approx(expected, abs=1e-6)
+
+
 def test_get_loss_area_fraction_outside_the_raster(layer):
     open_layer, polygon = layer
     with open_layer([(0, 0)]) as src, pytest.raises(ValueError):
         get_loss_area_fraction(polygon(10, 10, 12, 12), src)
 
 
-@patch("app.modules.deforestation_analysis.helpers.RasterDataContext")
-@patch("app.modules.deforestation_analysis.helpers.mercantile.xy_bounds")
-def test_get_tile(mock_xy_bounds, mock_raster_context):
-    # get_tile is an async coroutine with signature (tif_path, z, x, y). It opens
-    # the raster through RasterDataContext (an async context manager) and renders
-    # a 256x256 RGBA PNG tile for the requested z/x/y.
-    tif_path = "app/maps/layers/rasters/example.tif"
-    z, x, y = 10, 500, 300  # Tile coordinates
+def test_get_tile(tmp_path):
+    # Where each pixel is drawn is checked in tests/utils/test_loss_drawing.py.
+    path = tmp_path / "all_loss.tif"
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=100,
+        height=100,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_origin(-0.01, 0.01, 0.0002, 0.0002),
+    ) as dst:
+        dst.write(np.ones((100, 100), dtype=np.uint8), 1)
+    inside = mercantile.tile(0, 0, 18)
 
-    # Mock the warped VRT exposed by RasterDataContext.__aenter__
-    mock_vrt = MagicMock()
-    mock_vrt.count = 1  # Single-band raster
-    mock_vrt.bounds = mercantile.Bbox(-180, -90, 180, 90)  # Global coverage
-    mock_vrt.window.return_value = mercantile.Bbox(0, 0, 10, 10)  # Mock window
-    mock_vrt.read.return_value = np.random.randint(0, 2, (1, 256, 256), dtype=np.uint8)
+    tile = asyncio.run(get_tile(str(path), inside.z, inside.x, inside.y))
 
-    mock_raster_context.return_value = _AsyncRasterContext(mock_vrt)
+    assert tile.size == (256, 256) and tile.mode == "RGBA"
+    assert set(tile.getdata()) == {(255, 0, 0, 255)}  # loss is red, opaque
+    outside = mercantile.tile(10, 10, 18)
+    empty = asyncio.run(get_tile(str(path), outside.z, outside.x, outside.y))
+    assert empty == create_empty_tile()
 
-    mock_xy_bounds.return_value = mercantile.Bbox(
-        left=-45, bottom=-45, right=45, top=45
-    )
 
-    # Call function
-    result = asyncio.run(get_tile(tif_path, z, x, y))
-
-    # Assertions
-    assert isinstance(result, Image.Image)  # Ensure return type is PIL Image
-    assert result.size == (256, 256)  # Ensure correct size
-    assert result.mode == "RGBA"  # Ensure correct mode
-    mock_raster_context.assert_called_once_with(tif_path)  # Ensure raster opened
-    mock_xy_bounds.assert_called_once_with(x, y, z)  # Ensure tile bounds checked
-
-    # Multi-band data: only the first band is used
-    mock_vrt.read.return_value = np.random.randint(0, 2, (2, 256, 256), dtype=np.uint8)
-    result = asyncio.run(get_tile(tif_path, z, x, y))
-
-    # Assertions
-    assert isinstance(result, Image.Image)  # Ensure return type is PIL Image
-    assert result.size == (256, 256)  # Ensure correct size
-    assert result.mode == "RGBA"  # Ensure correct mode
-
-    # Simulate a case where the tile is outside bounds
-    mock_vrt.bounds = mercantile.Bbox(60, 60, 70, 70)  # Change bounds to exclude tile
-    result_empty = asyncio.run(get_tile(tif_path, z, x, y))
-    assert result_empty == Image.new(
-        "RGBA", (256, 256), (0, 0, 0, 0)
-    )  # Ensure empty tile returned
-
-    # Simulate a window calculation failure
-    mock_vrt.bounds = mercantile.Bbox(-180, -90, 180, 90)  # Global coverage
-    mock_vrt.window.side_effect = WindowError("Invalid window")
-    mock_window_error = asyncio.run(get_tile(tif_path, z, x, y))
-    assert mock_window_error == Image.new("RGBA", (256, 256), (0, 0, 0, 0))
-
-    # Simulate Exception
-    mock_vrt.window.side_effect = OSError("Invalid window")
+def test_get_tile_of_an_unreadable_raster_is_an_error(tmp_path):
     with pytest.raises(HTTPException):
-        asyncio.run(get_tile(tif_path, z, x, y))
+        asyncio.run(get_tile(str(tmp_path / "missing.tif"), 18, 0, 0))

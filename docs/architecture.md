@@ -229,11 +229,21 @@ the tiles that cover a farm are read from the share, not the whole file.
 
 `GET /deforestation_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`:
 
-- The API opens the raster through a `WarpedVRT` in Web Mercator.
-- It reads the tile's window resampled to 256×256 with nearest neighbour, and paints
-  the loss pixels red on a transparent PNG.
-- At low zoom it reads the COG's overviews instead of the full resolution.
-- A tile outside the raster is an empty PNG.
+- The API reprojects the raster in one step, with nearest neighbour, onto the
+  tile's own 256×256 grid in Web Mercator (`render_loss_mask` in
+  `app/utils/image_generation/loss_mask.py`). Each tile pixel shows the source pixel
+  under its centre, so a loss pixel's edges are drawn where the raster puts them.
+- At low zoom it reads the coarsest of the COG's overviews whose pixel is still
+  finer than a tile pixel, instead of the full resolution.
+- It paints the loss pixels red on a transparent PNG. A tile outside the raster is
+  an empty PNG.
+- The rasters stay open between requests, shared with the report images (see
+  below).
+
+Until October 2026 the tiles and report images were read from a `WarpedVRT` of the
+whole raster, whose own Web Mercator grid doesn't line up with the raster's pixels.
+Resampling twice drew the loss pixels up to one pixel (about 13 m around a test farm
+in Ecuador) away from where they are.
 
 Tiles are cached by the browser for a day. The frontend adds the layer's `version`
 to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
@@ -247,11 +257,18 @@ its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85,
 chroma subsampling), the aspect ratio of the map box on the PDF's farm page, which
 the report embeds as is.
 
+- **Drawn like the tiles.** The loss comes from `render_loss_mask` on the image's
+  own 640×420 grid, with the same overview rule: a farm more than about 10 km across
+  (zoom 11 or lower for a 30 m layer) is drawn from an overview, so its red share is
+  an approximation of the ratio `/analize` computes from the native pixels.
 - **One satellite call per farm.** The satellite image depends only on the farm's
   center and zoom, not on the layer, so the API caches it in memory: bounded (256
   images), for 10 minutes, and shared by concurrent requests. A report's images for
   several layers make one Google call per farm. Failed calls aren't cached.
-- **Rasters stay open.** The rasters are kept open between requests (an LRU of 16,
+- **The loss is drawn as on the map tiles.** It is reprojected in one step onto the
+  image's grid (the satellite image's), with `render_loss_mask`.
+- **Rasters stay open.** The rasters, and the overviews read so far, are kept open
+  between requests for the tiles and the report images (an LRU of 16,
   keyed by the versioned filename and checked against the file's mtime and size, so
   a raster rewritten in place, as by a seed, is reopened), with one reader at a time
   per raster: GDAL handles aren't thread-safe.

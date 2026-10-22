@@ -75,6 +75,24 @@ A percentage can also go up. The old formula used the layer's declared `pixel_si
 
 The details are in the archived OpenSpec change `openspec/changes/archive/2026-10-16-area-weighted-deforestation/`.
 
+## Checking it on the map
+
+The map and the report's images draw each loss pixel where the raster puts it, within
+one image or tile pixel (see `docs/architecture.md`, "Map tiles"). So, at a zoom where
+the raster's pixels are drawn at full resolution, the share of a farm drawn red is its
+ratio. The farm `F-VALIDACION` of the tests (a rectangle along the centres of a 5 × 4
+block of real GFW pixels in Orellana) reads 25%, and on the map its edges cut two loss
+pixels in four and one in half. Before October 2026 the drawing was off by up to a
+pixel, so a check by eye could disagree with a correct ratio.
+
+The check only holds at those zooms. The ratio is always computed from the raster's
+native pixels, but the map and the report's images read one of the raster's overviews
+when an output pixel is at least twice the raster's: on the map, zoom 11 and below
+for a 30 m layer; in a report image, a farm more than about 10 km across (zoom 11
+or lower). An overview keeps one source pixel out of 2, 4, 8… per axis, so the red
+share it shows is an approximation of the ratio, and the smaller the farm looks, the
+coarser it is.
+
 ## The limit of the method
 
 The precision stops at the pixel. When a layer marks a pixel as loss, the whole pixel (30 × 30 m, or 10 × 10 m in Costa Rica) is taken as lost forest. The calculation splits each pixel exactly between the farm and its surroundings, but it can't know where the loss was inside the pixel. That depends on each layer's resolution, not on the calculation.
