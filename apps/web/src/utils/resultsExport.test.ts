@@ -71,7 +71,28 @@ const POINT_FARM: FarmData = {
   },
 };
 
-const FARMS = [POLYGON_FARM, POINT_FARM];
+// A small point: its area must survive the round trip as it is, since an upload
+// takes a zero area as missing and gives the point the default 1 ha
+const SMALL_POINT_FARM: FarmData = {
+  id: "F03",
+  producer: "Luisa Rojas",
+  producerId: "",
+  cropType: "Cacao",
+  productionDate: "2024-12-01T00:00:00.000Z",
+  production: 20,
+  productionQuantityUnit: "kg",
+  country: COUNTRY,
+  region: null,
+  association: null,
+  documents: [],
+  polygon: {
+    type: "point",
+    details: { center: { lng: -84.12, lat: 10.11 }, radius: 3.57 },
+    area: 40,
+  },
+};
+
+const FARMS = [POLYGON_FARM, POINT_FARM, SMALL_POINT_FARM];
 
 // What uploading the export gives back for each farm
 const UPLOADED = [
@@ -103,6 +124,22 @@ const UPLOADED = [
     geometryType: "Point",
     farmCoordinates: "[-84.1,10.1]",
     area: 2.5,
+    cropType: "Cacao",
+    association: null,
+    documents: [],
+  },
+  {
+    id: "F03",
+    producerName: "Luisa Rojas",
+    productionDate: "2024-12-01T00:00:00.000Z",
+    productionQuantity: 20,
+    productionQuantityUnit: "kg",
+    region: null,
+    coordinatesFormat: "GeoJSON",
+    geometryType: "Point",
+    farmCoordinates: "[-84.12,10.11]",
+    // 40 m², not rounded to 0 ha
+    area: 0.004,
     cropType: "Cacao",
     association: null,
     documents: [],

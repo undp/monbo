@@ -47,8 +47,13 @@ export const farmToTemplateRow = (farm: FarmData): Cell[] => {
     coordinatesFormat: "GeoJSON",
     geometryType: farm.polygon.type === "point" ? "Point" : "Polygon",
     farmCoordinates: getGeoJsonCoordinates(farm),
-    // In hectares, with 2 decimals
-    area: farm.polygon.area ? Math.round(farm.polygon.area / 100) / 100 : "",
+    // In hectares, not rounded: an upload takes 0 as a missing area and gives
+    // the point 1 ha, so a small point must keep its exact area. Empty when the
+    // API could not compute it (null or -1).
+    area:
+      farm.polygon.area && farm.polygon.area > 0
+        ? farm.polygon.area / 10000
+        : "",
     cropType: farm.cropType,
     association: farm.association || "",
     documentName1: farm.documents[0]?.name || "",

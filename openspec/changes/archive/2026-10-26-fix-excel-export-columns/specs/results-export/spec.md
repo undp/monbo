@@ -21,7 +21,7 @@ The Excel exports of "Polygon validation" and "Deforestation analysis" SHALL sta
 
 ### Requirement: Excel exports can be uploaded again
 
-An Excel export SHALL be readable as a farms file in the same language: uploading it SHALL give back the same farms, with the same ID, producer, production date, quantity, unit, region, crop, association, documents and geometry. A point's area SHALL come back within 0.01 ha. Production quantity and area SHALL be written as numeric cells, so they don't depend on the language's decimal separator.
+An Excel export SHALL be readable as a farms file in the same language: uploading it SHALL give back the same farms, with the same ID, producer, production date, quantity, unit, region, crop, association, documents and geometry. A point's area SHALL come back as it was, not rounded: an upload takes a zero area as missing and gives the point the default 1 ha. Production quantity and area SHALL be written as numeric cells, so they don't depend on the language's decimal separator.
 
 #### Scenario: Spanish export uploaded again
 
