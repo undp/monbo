@@ -1,67 +1,15 @@
 "use client";
 
 import { DownloadButton } from "@/components/reusable/DownloadButton";
-import { FarmData } from "@/interfaces/Farm";
-import { SheetData, loadTemplateHeaders } from "@/utils/excel";
 import { useCallback, useContext } from "react";
-import { formatDeforestationPercentage } from "@/utils/numbers";
-import { getRowCommonDataAsArray } from "@/utils/download";
+import { buildDeforestationSheets } from "@/utils/resultsExport";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import {
-  DeforestationAnalysisMapResults,
-  MapData,
-} from "@/interfaces/DeforestationAnalysis";
 import { DataContext } from "@/context/DataContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
 import { GeoJsonData, useGeoJsonDownload } from "@/hooks/useGeoJsonDownload";
 import { useTranslation } from "react-i18next";
 import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "@/utils/geojson";
-import * as XLSX from "xlsx";
-
-const parseData = async (
-  farmsData: FarmData[],
-  deforestationAnalysisResults: DeforestationAnalysisMapResults[],
-  availableMaps: MapData[],
-  language: string
-): Promise<Record<string, SheetData>> => {
-  const mapsHeaders = deforestationAnalysisResults.map(({ mapId }) => {
-    const map = availableMaps.find((map) => map.id === mapId);
-    return `Deforestación según ${map?.alias ?? ""}`;
-  });
-
-  const polygonsParsedData = farmsData.map((farm) => {
-    const deforestationPercentages = deforestationAnalysisResults.map(
-      ({ farmResults }) => {
-        const farmMapResult = farmResults.find(
-          ({ farmId }) => farmId === farm.id
-        );
-        if (!farmMapResult || farmMapResult.value === null) return "N/D";
-        return formatDeforestationPercentage(farmMapResult.value, language);
-      }
-    );
-    return [
-      ...getRowCommonDataAsArray(farm, language),
-      ...deforestationPercentages,
-    ];
-  });
-
-  const templateHeadersRows = await loadTemplateHeaders(language);
-
-  const deforestationHeaders: (string | XLSX.CellObject)[][] = [[], []];
-  deforestationHeaders[0].push(...templateHeadersRows[0]);
-  deforestationHeaders[1].push(...templateHeadersRows[1], ...mapsHeaders);
-  // deforestationHeaders[2].push(
-  //   ...templateHeadersRows[2],
-  //   ...mapsHeaders.map((_, idx) => `${idx + 2}%`)
-  // );
-
-  return {
-    "Resultados de deforestación": {
-      rows: [...deforestationHeaders, ...polygonsParsedData],
-    },
-  };
-};
 
 export const DownloadPageData = () => {
   const { farmsData, deforestationAnalysisResults } =
@@ -78,7 +26,7 @@ export const DownloadPageData = () => {
     if (isDisabled) return;
 
     try {
-      const parsedData = await parseData(
+      const parsedData = await buildDeforestationSheets(
         farmsData,
         deforestationAnalysisResults,
         availableMaps,

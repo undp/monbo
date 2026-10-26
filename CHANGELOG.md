@@ -61,6 +61,12 @@
 - With a 1% overlap or deforestation threshold, percentages above it lost their decimal (1.4% showed as "1%", 10.5% as "10%"). Values above a threshold now show as many decimals as the threshold has, and at least one, in the tables, the map and the Excel and GeoJSON downloads
 - The "below the threshold" label follows the page's language ("< 0,5%" in Spanish, not "< 0.5%")
 - An admin session configured to last more than about 24.8 days (`ADMIN_SESSION_TTL_MINUTES` above ~35,790) no longer ends right after logging in: the browser fires a longer timer at once, so the sign-out now waits in steps until the real expiry
+- The Excel downloads of the polygon validation and the deforestation analysis put most values under the wrong headers. From the sixth column on, each value sat one header off: the country under "Region", the region under "Coordinates format", and so on, and the overlap percentage was merged in a document link column. The rows follow the upload template's columns again:
+  - the coordinates are written as GeoJSON, with their format and geometry type;
+  - the country column the template no longer has is dropped;
+  - quantity and area are numbers.
+
+  A download can now be uploaded again: the deforestation download kept only 2 of the template's 3 header rows, so its first farm was read as the example row, and a decimal quantity like 1200.5 was rejected in Spanish
 - A layer an admin enabled took up to five minutes to show up for users who already had the app open (the web only fetched the countries and layers on load and every five minutes). The web now fetches them again when the user returns to the tab or the window, and the deforestation modal and the deforestation upload page fetch the layers when they open, at most once every 30 seconds per list
 
 ### Security
