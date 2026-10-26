@@ -404,7 +404,8 @@ export const createWorksheet = (
 };
 
 export interface SheetData {
-  rows: (string | XLSX.CellObject)[][];
+  // Numbers are written as numeric cells
+  rows: (string | number | XLSX.CellObject)[][];
   merges?: XLSX.Range[];
 }
 
@@ -597,6 +598,43 @@ const headerKeywordsMappings: Record<string, string[]> = {
   documentName3: ["nombre documento 3", "document name 3"],
   documentUrl3: ["enlace documento 3", "document link 3"],
 };
+
+/** The internal key a template header maps to, or undefined if none. */
+export const getHeaderKey = (header: string): string | undefined => {
+  // A header may hold both languages, one per line
+  const parts = header.split(/\r?\n/).map((part) => part.toLowerCase().trim());
+  return Object.keys(headerKeywordsMappings).find((key) =>
+    headerKeywordsMappings[key].some((h) => parts.includes(h))
+  );
+};
+
+/**
+ * The upload templates' columns (row 2), in order, as internal keys. The Excel
+ * exports write farms in this order under the templates' headers, so they can be
+ * uploaded again; a test checks it against the template files.
+ */
+export const TEMPLATE_COLUMNS = [
+  "id",
+  "producerName",
+  "productionDate",
+  "productionQuantity",
+  "productionQuantityUnit",
+  "region",
+  "coordinatesFormat",
+  "geometryType",
+  "farmCoordinates",
+  "area",
+  "cropType",
+  "association",
+  "documentName1",
+  "documentUrl1",
+  "documentName2",
+  "documentUrl2",
+  "documentName3",
+  "documentUrl3",
+] as const;
+
+export type TemplateColumn = (typeof TEMPLATE_COLUMNS)[number];
 
 const mandatoryHeaders: string[] = [
   "producerName",
@@ -803,20 +841,11 @@ export const loadExcelFileFarmsData = async (
 
   // Create a mapping from Excel header to our internal key
   const headerToKeyMap: Record<string, string> = {};
-  Object.entries(headerKeywordsMappings).forEach(
-    ([internalKey, expectedHeaders]) => {
-      headers.forEach((incomingHeader) => {
-        if (!incomingHeader) return;
-        // Split header by newline and get the first part
-        const cleanHeaderParts = incomingHeader
-          .split(/\r?\n/)
-          .map((part) => part.toLowerCase().trim());
-        if (expectedHeaders.some((h) => cleanHeaderParts.includes(h))) {
-          headerToKeyMap[incomingHeader] = internalKey;
-        }
-      });
-    }
-  );
+  headers.forEach((incomingHeader) => {
+    if (!incomingHeader) return;
+    const internalKey = getHeaderKey(incomingHeader);
+    if (internalKey) headerToKeyMap[incomingHeader] = internalKey;
+  });
 
   // Remapping data based on header keywords
   const mappedData: MappedData[] = data.map((row) => {

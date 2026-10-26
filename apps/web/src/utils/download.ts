@@ -1,5 +1,4 @@
 import { FarmData } from "@/interfaces/Farm";
-import { parseAreaToHectares } from "./polygons";
 
 export const getCoordinates = (farm: FarmData): string[] => {
   const coordinates: string[] = [];
@@ -12,33 +11,6 @@ export const getCoordinates = (farm: FarmData): string[] => {
     });
   }
   return coordinates;
-};
-
-export const getRowCommonDataAsArray = (
-  farm: FarmData,
-  language: string
-): string[] => {
-  return [
-    farm.id,
-    farm.producer,
-    farm.productionDate || "",
-    farm.production.toString(),
-    farm.productionQuantityUnit || "",
-    farm.country || "",
-    farm.region || "",
-    `[${getCoordinates(farm).join(", ")}]`,
-    farm.polygon.area
-      ? parseAreaToHectares(farm.polygon.area, 2, false, language)
-      : "",
-    farm.cropType,
-    farm.association || "",
-    farm.documents[0]?.name || "",
-    farm.documents[0]?.url || "",
-    farm.documents[1]?.name || "",
-    farm.documents[1]?.url || "",
-    farm.documents[2]?.name || "",
-    farm.documents[2]?.url || "",
-  ];
 };
 
 /*
