@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createTestI18n } from "@/test/i18n";
+import { makeMultiPolygonFarm, makePolygonFarm } from "@/test/factories";
+import type { PolygonPart } from "@/interfaces/Map";
 import {
+  getPolygonVertices,
   parseAreaToHectares,
   parseLatitude,
   parseLongitude,
@@ -40,5 +44,36 @@ describe("coordinates", () => {
   it("names the longitude's direction (O for west)", () => {
     expect(parseLongitude(-84.3752215666988)).toBe("84.375222° (O)");
     expect(parseLongitude(12.5)).toBe("12.500000° (E)");
+  });
+});
+
+
+describe("getPolygonVertices", () => {
+  const partsOf = (farm: ReturnType<typeof makePolygonFarm>): PolygonPart[] =>
+    farm.polygon.type === "polygon" ? (farm.polygon.details?.parts ?? []) : [];
+
+  it("numbers the vertices of a farm with one ring, as before", async () => {
+    const { t } = await createTestI18n("es");
+    const vertices = getPolygonVertices(partsOf(makePolygonFarm()), t);
+    expect(vertices.map(({ label }) => label)).toEqual(["1", "2", "3", "4"]);
+  });
+
+  it("names the part and ring of each vertex when there are several", async () => {
+    const { t } = await createTestI18n("es");
+    const labels = getPolygonVertices(partsOf(makeMultiPolygonFarm()), t).map(
+      ({ label }) => label
+    );
+    expect(labels.length).toBe(15);
+    expect(labels[0]).toBe("Parte 1 · Exterior · 1");
+    expect(labels[5]).toBe("Parte 1 · Hueco 1 · 1");
+    expect(labels[10]).toBe("Parte 2 · Exterior · 1");
+  });
+
+  it("leaves the part out for a single part with a hole", async () => {
+    const { t } = await createTestI18n("en");
+    const [withHole] = partsOf(makeMultiPolygonFarm());
+    const labels = getPolygonVertices([withHole], t).map(({ label }) => label);
+    expect(labels[0]).toBe("Exterior · 1");
+    expect(labels[5]).toBe("Hole 1 · 1");
   });
 });

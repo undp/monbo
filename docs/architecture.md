@@ -149,6 +149,36 @@ ingestions at once. Don't scale the API out while the admin is enabled.
 | Someone deletes a file on the share | Restore it from a snapshot (vault "Restore"). |
 | Someone deletes the share | Undelete it within 14 days (soft delete). |
 
+## A farm's geometry
+
+Nothing is stored, so a farm travels between the web and the API on every call
+(validation, analysis, report images), and the API rebuilds its geometry each time.
+A point farm is a `center` and a `radius`. A polygon farm is a list of `parts`, each
+an `exterior` ring and its `holes`:
+
+- **One part** for a Polygon; **one part per polygon** for a MultiPolygon, which is
+  still one farm (one ID, one producer, one declared production), as the EUDR treats
+  it as one production place.
+- **Holes** are excluded from the farm's area, from its deforestation ratio (loss
+  inside a hole doesn't count) and from overlaps (a farm inside another's hole
+  doesn't overlap it).
+- **Rings are oriented by the API**: exteriors counter-clockwise, holes clockwise.
+  Google Maps only draws a hole empty when it winds opposite to its exterior, so the
+  web draws the rings as they come.
+- **`center`** is the farm's centroid when it lies inside the farm, and otherwise a
+  point Shapely guarantees inside it (a hole over the centroid, or parts apart).
+
+Uploads accept WKT and GeoJSON coordinates for Polygons and MultiPolygons, with or
+without holes. The geometry type is read from the coordinates, so `Polygon` and
+`MultiPolygon` are interchangeable in the template's geometry type column.
+
+`app/utils/polygons.py` is the only crossing between Shapely and the contract:
+`geometry_to_parts` (Shapely to parts, oriented) and `parts_to_geometry` (parts to a
+`Polygon` or `MultiPolygon`). `build_farm_geometry` in `app/utils/farms.py` builds a
+farm's geometry from what the web sends back. The web exports a farm with one part
+as a GeoJSON `Polygon` and one with several as a `MultiPolygon`, in the GeoJSON
+download and in the Excel downloads' coordinates column.
+
 ## Where the API reads layers from
 
 `MAPS_ROOT` decides it. At startup, the API detects the layout:

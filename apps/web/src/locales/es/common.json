@@ -20,6 +20,11 @@
   "polygon": "Polígono",
   "polygons": "Polígonos",
   "point": "Punto",
+  "polygonRings": {
+    "exterior": "Exterior",
+    "hole": "Hueco {{hole}}",
+    "part": "Parte {{part}}"
+  },
   "latitude": "Latitud",
   "longitude": "Longitud",
   "fileErrors": {
@@ -42,6 +47,7 @@
     "performingAnalysisError": "Ocurrió un error al realizar el análisis",
     "dataAnalizedSuccessfully": "Datos analizados correctamente",
     "notValidFileContent": "El contenido del archivo no es válido",
+    "farmTooLargeForExcel": "La finca {{id}} tiene demasiados vértices para una celda de Excel. Descarga los resultados en GeoJSON",
     "errorParsingDataForExcel": "Ocurrió un error al procesar los datos para generar el archivo Excel",
     "errorGeneratingExcelFile": "Ocurrió un error al generar el archivo Excel",
     "errorParsingDataForGeoJson": "Ocurrió un error al procesar los datos para generar el archivo GeoJSON",

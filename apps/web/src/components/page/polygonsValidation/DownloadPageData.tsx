@@ -3,7 +3,10 @@
 import { DownloadButton } from "@/components/reusable/DownloadButton";
 import { DataContext } from "@/context/DataContext";
 import { useCallback, useContext } from "react";
-import { buildPolygonValidationSheets } from "@/utils/resultsExport";
+import {
+  FarmTooLargeForExcelError,
+  buildPolygonValidationSheets,
+} from "@/utils/resultsExport";
 import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useExcelDownload } from "@/hooks/useExcelDownload";
@@ -38,7 +41,12 @@ export const DownloadPageData = () => {
     } catch (error) {
       console.error("Error generating Excel:", error);
       openSnackbar({
-        message: t("common:snackbarAlerts:errorParsingDataForExcel"),
+        message:
+          error instanceof FarmTooLargeForExcelError
+            ? t("common:snackbarAlerts:farmTooLargeForExcel", {
+                id: error.farmId,
+              })
+            : t("common:snackbarAlerts:errorParsingDataForExcel"),
         type: "error",
       });
     }

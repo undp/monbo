@@ -38,11 +38,52 @@ export const makePolygonFarm = (overrides: Partial<FarmData> = {}): FarmData =>
       area: 67074.88,
       details: {
         center: { lat: 10.1445, lng: -84.3734 },
-        path: [
-          { lat: 10.1453, lng: -84.3752 },
-          { lat: 10.1461, lng: -84.3741 },
-          { lat: 10.1432, lng: -84.3715 },
-          { lat: 10.1453, lng: -84.3752 },
+        parts: [
+          {
+            exterior: [
+              { lat: 10.1453, lng: -84.3752 },
+              { lat: 10.1461, lng: -84.3741 },
+              { lat: 10.1432, lng: -84.3715 },
+              { lat: 10.1453, lng: -84.3752 },
+            ],
+            holes: [],
+          },
+        ],
+      },
+    },
+    ...overrides,
+  });
+
+const ring = (...points: [number, number][]) =>
+  points.map(([lng, lat]) => ({ lng, lat }));
+
+/** A farm of two parts, the first with a hole, as the API returns it. */
+export const makeMultiPolygonFarm = (
+  overrides: Partial<FarmData> = {}
+): FarmData =>
+  makeFarm({
+    polygon: {
+      type: "polygon",
+      area: 1_100_000,
+      details: {
+        center: { lat: 0.0005, lng: 0.0005 },
+        parts: [
+          {
+            exterior: ring([0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]),
+            holes: [
+              ring(
+                [0.004, 0.004],
+                [0.004, 0.006],
+                [0.006, 0.006],
+                [0.006, 0.004],
+                [0.004, 0.004]
+              ),
+            ],
+          },
+          {
+            exterior: ring([0.05, 0], [0.06, 0], [0.06, 0.01], [0.05, 0.01], [0.05, 0]),
+            holes: [],
+          },
         ],
       },
     },

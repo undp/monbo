@@ -8,6 +8,7 @@ import { BasePolygonModal } from "./BasePolygonModal";
 import { InconsistentPolygonData } from "@/interfaces/PolygonValidation";
 import { multipleObjectsMapColors } from "@/config/theme";
 import {
+  getPolygonVertices,
   parseLatitude,
   parseLongitude,
   parseAreaToHectares,
@@ -67,7 +68,10 @@ const foldedCellsStyle: SxProps = {
   textAlign: "right",
 };
 
-const getFoldedRows = (farm: FarmData) => {
+const getFoldedRows = (
+  farm: FarmData,
+  t: TFunction<"translation", undefined>
+) => {
   if (farm.polygon.type === "point") {
     return [
       {
@@ -86,7 +90,8 @@ const getFoldedRows = (farm: FarmData) => {
   }
   if (farm.polygon.type === "polygon") {
     return (
-      farm.polygon.details?.path?.map((point, idx, array) => ({
+      getPolygonVertices(farm.polygon.details?.parts ?? [], t).map(
+        ({ label, point }, idx, array) => ({
         cellStyle: {
           ...foldedCellsStyle,
           ...(idx < array.length - 1
@@ -100,11 +105,12 @@ const getFoldedRows = (farm: FarmData) => {
         cells: {
           producer: { value: "" },
           producerId: { value: "" },
-          type: { value: idx + 1 },
+          type: { value: label },
           id: { value: parseLatitude(point.lat) },
           area: { value: parseLongitude(point.lng) },
         },
-      })) ?? []
+        })
+      )
     );
   }
   return [];
@@ -165,7 +171,7 @@ const generateRows = (
             area: { value: t("common:longitude") },
           },
         },
-        ...getFoldedRows(farm),
+        ...getFoldedRows(farm, t),
       ],
     };
   }) as RowData<Exclude<InconsistentPolygonData, { type: "overlap" }>>[];
@@ -190,7 +196,7 @@ const generateMapObjects = (
       return {
         id: farmId,
         type: "polygon",
-        path: farm.polygon.details?.path ?? [],
+        parts: farm.polygon.details?.parts ?? [],
         color: multipleObjectsMapColors[i % multipleObjectsMapColors.length],
         showPoints: true,
       };

@@ -7,10 +7,10 @@ import { useTranslation } from "react-i18next";
 export type GeoJsonFeature = {
   type: "Feature";
   properties: Record<string, unknown>;
-  geometry: {
-    type: "Point" | "Polygon";
-    coordinates: number[] | number[][][] | number[][];
-  };
+  geometry:
+    | { type: "Point"; coordinates: number[] }
+    | { type: "Polygon"; coordinates: number[][][] }
+    | { type: "MultiPolygon"; coordinates: number[][][][] };
 };
 
 export interface GeoJsonData {

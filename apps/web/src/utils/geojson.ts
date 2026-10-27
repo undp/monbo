@@ -1,4 +1,5 @@
 import { FarmData } from "@/interfaces/Farm";
+import { Coordinates, PolygonPart } from "@/interfaces/Map";
 import { GeoJsonData, GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
 import { getRowCommonDataAsObject } from "./download";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
@@ -9,22 +10,37 @@ import {
 import { formatDeforestationPercentage } from "./numbers";
 import { layerLabel } from "./layerLabel";
 
+const toPositions = (ring: Coordinates[]) => ring.map(({ lng, lat }) => [lng, lat]);
+
+// A part's rings: its exterior, then its holes
+const toRings = (part: PolygonPart) =>
+  [part.exterior, ...part.holes].map(toPositions);
+
+/**
+ * A farm's geometry as GeoJSON: a Point, a Polygon for a farm of one part and a
+ * MultiPolygon for a farm of several, with the holes as inner rings.
+ */
+export const getFarmGeoJsonGeometry = (
+  farm: FarmData
+): GeoJsonFeature["geometry"] => {
+  if (farm.polygon.type === "point") {
+    const { lng, lat } = farm.polygon.details.center;
+    return { type: "Point", coordinates: [lng, lat] };
+  }
+  const parts = farm.polygon.details?.parts ?? [];
+  if (parts.length > 1) {
+    return { type: "MultiPolygon", coordinates: parts.map(toRings) };
+  }
+  return { type: "Polygon", coordinates: parts.length ? toRings(parts[0]) : [[]] };
+};
+
 export const generateGeoJsonFeature = (farm: FarmData): GeoJsonFeature => {
   return {
     type: "Feature",
     properties: {
       ...getRowCommonDataAsObject(farm),
     },
-    geometry: {
-      type: farm.polygon.type === "point" ? "Point" : "Polygon",
-      coordinates:
-        farm.polygon.type === "point"
-          ? [farm.polygon.details.center.lng, farm.polygon.details.center.lat]
-          : [
-              farm.polygon.details?.path?.map(({ lng, lat }) => [lng, lat]) ??
-                [],
-            ],
-    },
+    geometry: getFarmGeoJsonGeometry(farm),
   };
 };
 

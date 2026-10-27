@@ -875,7 +875,8 @@
           "geometryType": {
             "enum": [
               "Point",
-              "Polygon"
+              "Polygon",
+              "MultiPolygon"
             ],
             "title": "Geometrytype",
             "type": "string"
@@ -1293,14 +1294,11 @@
             "title": "Criticality",
             "type": "string"
           },
-          "paths": {
+          "parts": {
             "items": {
-              "items": {
-                "$ref": "#/components/schemas/Coordinates"
-              },
-              "type": "array"
+              "$ref": "#/components/schemas/PolygonPart"
             },
-            "title": "Paths",
+            "title": "Parts",
             "type": "array"
           },
           "percentage": {
@@ -1311,7 +1309,7 @@
         "required": [
           "area",
           "center",
-          "paths",
+          "parts",
           "percentage",
           "criticality"
         ],
@@ -1390,17 +1388,17 @@
           "center": {
             "$ref": "#/components/schemas/Coordinates"
           },
-          "path": {
+          "parts": {
             "items": {
-              "$ref": "#/components/schemas/Coordinates"
+              "$ref": "#/components/schemas/PolygonPart"
             },
-            "title": "Path",
+            "title": "Parts",
             "type": "array"
           }
         },
         "required": [
           "center",
-          "path"
+          "parts"
         ],
         "title": "PolygonDetails",
         "type": "object"
@@ -1445,6 +1443,34 @@
           "inconsistencies"
         ],
         "title": "PolygonInconsistenciesResponse",
+        "type": "object"
+      },
+      "PolygonPart": {
+        "description": "One polygon of a farm: its outer ring and its holes, each a closed ring. The\nAPI returns the exterior counter-clockwise and the holes clockwise.",
+        "properties": {
+          "exterior": {
+            "items": {
+              "$ref": "#/components/schemas/Coordinates"
+            },
+            "title": "Exterior",
+            "type": "array"
+          },
+          "holes": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              "type": "array"
+            },
+            "title": "Holes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "exterior",
+          "holes"
+        ],
+        "title": "PolygonPart",
         "type": "object"
       },
       "PolygonShapeSummary": {

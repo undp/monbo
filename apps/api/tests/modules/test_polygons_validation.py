@@ -3,7 +3,13 @@ import math
 
 import pytest
 from fastapi.testclient import TestClient
-from shapely.geometry import GeometryCollection, LineString, MultiPolygon, Polygon
+from shapely.geometry import (
+    GeometryCollection,
+    LinearRing,
+    LineString,
+    MultiPolygon,
+    Polygon,
+)
 from shapely.geometry import Point as SPoint
 
 from app.helpers.GeometryCalculator import GeometryCalculator
@@ -11,7 +17,6 @@ from app.main import app
 from app.models.polygons import Coordinates
 from app.modules.polygons_validation.helpers import (
     detect_overlaps,
-    get_geometry_paths,
     get_overlap_criticality,
     get_overlap_ratio,
     is_overlap_above_threshold,
@@ -23,6 +28,7 @@ from app.utils.image_generation.GeoHelper import GeoHelper
 from app.utils.polygons import (
     determine_polygon_type,
     generate_polygon,
+    geometry_to_parts,
 )
 
 
@@ -198,65 +204,24 @@ def test_get_polygon_area():
 
 
 def test_parse_farm_coordinates_data():
-    """
-    Test the parse_farm_coordinates_data function.
-    This test checks if the parse_farm_coordinates_data function correctly
-    parses a WKT polygon string into a list of Coordinates objects.
-    The parser returns every vertex of the exterior ring, including the closing
-    coordinate that repeats the first vertex.
-    Test case:
-    - coordinates_format: "WKT"
-    - geometry_type: "Polygon"
-    - input_coordinates: "POLYGON((0 0, 1 1, 2 2, 0 0))"
-    - expected_points: the four ring vertices (closing point included)
-    Asserts:
-    - The parsed coordinates match the expected list of Coordinates objects.
-    """
-    coordinates_format = "WKT"
-    geometry_type = "Polygon"
-    input_coordinates = "POLYGON((0 0, 1 1, 2 2, 0 0))"
-    expected_points = [
-        Coordinates(lng=0, lat=0),
-        Coordinates(lng=1, lat=1),
-        Coordinates(lng=2, lat=2),
-        Coordinates(lng=0, lat=0),
-    ]
-
-    parsed_points = parse_farm_coordinates_string(
-        coordinates_format, geometry_type, input_coordinates
+    """A WKT polygon is parsed into the same Shapely polygon."""
+    geometry = parse_farm_coordinates_string(
+        "WKT", "Polygon", "POLYGON((0 0, 1 1, 2 2, 0 0))"
     )
-    assert parsed_points == expected_points
+    assert geometry.equals(Polygon([(0, 0), (1, 1), (2, 2)]))
 
 
-def test_get_polygon_coordinates():
-    """
-    Test the get_polygon_coordinates function.
-    This test creates a polygon with specified coordinates and checks if the
-    get_polygon_coordinates function returns the expected list of coordinates
-    in the correct format.
-    The polygon created has the following coordinates:
-    - (0, 0)
-    - (0, 1)
-    - (1, 1)
-    - (1, 0)
-    - (0, 0)
-    The expected output is a list of dictionaries with 'lat' and 'lng' keys
-    representing the latitude and longitude of each point in the polygon.
-    The test asserts that the output of get_polygon_coordinates matches the
-    expected list of coordinates.
-    """
-    polygon = Polygon([(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)])
-    expected_coordinates = [
-        [
-            {"lng": 0, "lat": 0},
-            {"lng": 0, "lat": 1},
-            {"lng": 1, "lat": 1},
-            {"lng": 1, "lat": 0},
-            {"lng": 0, "lat": 0},
-        ]
-    ]
-
-    assert get_geometry_paths(polygon) == expected_coordinates
+def test_geometry_to_parts_orients_the_rings():
+    """The exterior comes back counter-clockwise and the holes clockwise, whatever
+    the input's orientation, so Google Maps draws the holes empty."""
+    clockwise = [(0, 0), (0, 1), (1, 1), (1, 0), (0, 0)]
+    counter_clockwise_hole = [(0.4, 0.4), (0.6, 0.4), (0.6, 0.6), (0.4, 0.6)]
+    [part] = geometry_to_parts(Polygon(clockwise, [counter_clockwise_hole]))
+    exterior = [(c.lng, c.lat) for c in part.exterior]
+    [hole] = [[(c.lng, c.lat) for c in ring] for ring in part.holes]
+    assert exterior == [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]
+    assert LinearRing(exterior).is_ccw
+    assert not LinearRing(hole).is_ccw
 
 
 def test_each_inconsistency_kind_serializes_unchanged():
@@ -269,7 +234,7 @@ def test_each_inconsistency_kind_serializes_unchanged():
             "data": {
                 "area": 1.5,
                 "center": {"lat": 1.0, "lng": 2.0},
-                "paths": [[{"lat": 1.0, "lng": 2.0}]],
+                "parts": [{"exterior": [{"lat": 1.0, "lng": 2.0}], "holes": []}],
                 "percentage": 0.9,
                 "criticality": "HIGH",
             },
@@ -299,17 +264,32 @@ def overlap_threshold_1(monkeypatch):
     )
 
 
-def _farm(farm_id, path):
+def _ring(points):
+    return [{"lng": lng, "lat": lat} for lng, lat in points]
+
+
+def _multi_farm(farm_id, *parts):
+    """A farm of several parts, each an (exterior, holes) pair."""
+    exterior = parts[0][0] if parts else []
     return {
         "id": farm_id,
         "type": "polygon",
         "details": {
             "center": (
-                {"lng": path[0][0], "lat": path[0][1]} if path else {"lng": 0, "lat": 0}
+                {"lng": exterior[0][0], "lat": exterior[0][1]}
+                if exterior
+                else {"lng": 0, "lat": 0}
             ),
-            "path": [{"lng": lng, "lat": lat} for lng, lat in path],
+            "parts": [
+                {"exterior": _ring(ext), "holes": [_ring(h) for h in holes]}
+                for ext, holes in parts
+            ],
         },
     }
+
+
+def _farm(farm_id, path, holes=()):
+    return _multi_farm(farm_id, (path, holes))
 
 
 def _box(west, south, east, north):
@@ -406,7 +386,8 @@ def test_overlap_that_also_shares_an_edge():
     [overlap] = _overlaps(inconsistencies)
     # B covers 1.05 units; 0.25 of them overlap A
     assert overlap["data"]["percentage"] == pytest.approx(0.25 / 1.05, abs=1e-3)
-    [path] = overlap["data"]["paths"]
+    [part] = overlap["data"]["parts"]
+    path = part["exterior"]
     lngs = {round(p["lng"] * 1000, 6) for p in path}
     lats = {round(p["lat"] * 1000, 6) for p in path}
     assert lngs == {1.5, 2.0}
@@ -420,6 +401,76 @@ def test_tiny_farms_that_only_touch():
     b = [(1e-8, 0), (2e-8, 0), (2e-8, 1e-8), (1e-8, 1e-8)]
     _, inconsistencies = _validate(_farm("a", a), _farm("b", b))
     assert _overlaps(inconsistencies) == []
+
+
+# --- /validate: holes and parts -------------------------------------------------
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_farm_inside_another_farms_hole_doesnt_overlap_it():
+    statuses, inconsistencies = _validate(
+        _farm("ring", _box(0, 0, 10, 10), [_box(3, 3, 7, 7)]),
+        _farm("inside", _box(4, 4, 6, 6)),
+    )
+    assert inconsistencies == []
+    assert statuses == {"ring": "VALID", "inside": "VALID"}
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_overlap_with_one_part_of_a_multipolygon():
+    # Two parts of 4 units; the other farm (4 units) overlaps one of them by 1
+    statuses, inconsistencies = _validate(
+        _multi_farm("two-parts", (_box(0, 0, 2, 2), []), (_box(10, 10, 12, 12), [])),
+        _farm("other", _box(1, 1, 3, 3)),
+    )
+    [overlap] = _overlaps(inconsistencies)
+    assert overlap["data"]["percentage"] == pytest.approx(0.25, abs=1e-3)
+    assert statuses == {"two-parts": "NOT_VALID", "other": "NOT_VALID"}
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_overlap_area_keeps_its_hole():
+    # B lies inside A's exterior and covers A's hole: they overlap in B minus the hole
+    _, inconsistencies = _validate(
+        _farm("a", _box(0, 0, 10, 10), [_box(4, 4, 6, 6)]),
+        _farm("b", _box(2, 2, 8, 8)),
+    )
+    [overlap] = _overlaps(inconsistencies)
+    [part] = overlap["data"]["parts"]
+    assert len(part["holes"]) == 1
+    # 36 - 4 units of B's 36
+    assert overlap["data"]["percentage"] == pytest.approx(32 / 36, abs=1e-3)
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+@pytest.mark.parametrize(
+    "farm",
+    [
+        pytest.param(
+            _farm("bad", _box(0, 0, 2, 2), [_box(5, 5, 6, 6)]), id="hole outside"
+        ),
+        pytest.param(
+            _multi_farm("bad", (_box(0, 0, 2, 2), []), (_box(1, 1, 3, 3), [])),
+            id="overlapping parts",
+        ),
+    ],
+)
+def test_bad_holes_and_parts_are_invalid_geometries(farm):
+    statuses, inconsistencies = _validate(farm, _farm("far", _box(20, 20, 21, 21)))
+    [inconsistency] = inconsistencies
+    assert inconsistency["type"] == "invalid_geometry"
+    assert inconsistency["farmIds"] == ["bad"]
+    assert statuses == {"bad": "NOT_VALID", "far": "VALID"}
+
+
+def test_farm_with_a_hole_and_two_parts_is_valid():
+    statuses, inconsistencies = _validate(
+        _multi_farm(
+            "farm", (_box(0, 0, 4, 4), [_box(1, 1, 2, 2)]), (_box(6, 0, 8, 2), [])
+        )
+    )
+    assert inconsistencies == []
+    assert statuses == {"farm": "VALID"}
 
 
 # --- Overlap helpers ------------------------------------------------------------
@@ -544,6 +595,9 @@ def test_type_and_details_mismatch_is_a_bad_request():
 
 OUTER = [(0, 0), (0.01, 0), (0.01, 0.01), (0, 0.01), (0, 0)]
 HOLE = [(0.004, 0.004), (0.006, 0.004), (0.006, 0.006), (0.004, 0.006), (0.004, 0.004)]
+# A second part about 5.5 km east
+FAR = [(0.05, 0), (0.06, 0), (0.06, 0.01), (0.05, 0.01), (0.05, 0)]
+MULTI = [[OUTER, HOLE], [FAR]]
 
 
 def _ring_wkt(ring):
@@ -554,6 +608,17 @@ def _polygon_wkt(*rings):
     return "POLYGON (" + ", ".join(_ring_wkt(ring) for ring in rings) + ")"
 
 
+def _multipolygon_wkt(*polygons):
+    return (
+        "MULTIPOLYGON ("
+        + ", ".join(
+            "(" + ", ".join(_ring_wkt(ring) for ring in rings) + ")"
+            for rings in polygons
+        )
+        + ")"
+    )
+
+
 @pytest.mark.parametrize(
     "coordinates_format, coordinates",
     [
@@ -561,11 +626,12 @@ def _polygon_wkt(*rings):
         ("WKT", _polygon_wkt(OUTER, HOLE)),
     ],
 )
-def test_polygon_with_a_hole_is_rejected(coordinates_format, coordinates):
-    # The path can't carry the hole, and dropping it would measure a larger farm
-    # (and a lower deforestation ratio) than the one declared.
-    with pytest.raises(ValueError, match="holes"):
-        parse_farm_coordinates_string(coordinates_format, "Polygon", coordinates)
+def test_polygon_with_a_hole_keeps_it(coordinates_format, coordinates):
+    geometry = parse_farm_coordinates_string(coordinates_format, "Polygon", coordinates)
+    assert geometry.equals(Polygon(OUTER, [HOLE]))
+    assert GeometryCalculator.calculate_polygon_area(
+        geometry
+    ) < GeometryCalculator.calculate_polygon_area(Polygon(OUTER))
 
 
 def test_same_single_ring_polygon_in_wkt_and_geojson():
@@ -573,11 +639,68 @@ def test_same_single_ring_polygon_in_wkt_and_geojson():
     from_geojson = parse_farm_coordinates_string(
         "GeoJSON", "Polygon", json.dumps([OUTER])
     )
-    assert [(c.lng, c.lat) for c in from_geojson] == OUTER
-    assert from_wkt == from_geojson
+    assert from_wkt.equals(from_geojson)
     assert GeometryCalculator.calculate_polygon_area(
-        generate_polygon(from_wkt)
-    ) == GeometryCalculator.calculate_polygon_area(generate_polygon(from_geojson))
+        from_wkt
+    ) == GeometryCalculator.calculate_polygon_area(from_geojson)
+
+
+@pytest.mark.parametrize("geometry_type", ["Polygon", "MultiPolygon"])
+@pytest.mark.parametrize(
+    "coordinates_format, coordinates",
+    [
+        ("GeoJSON", json.dumps(MULTI)),
+        ("WKT", _multipolygon_wkt(*MULTI)),
+    ],
+)
+def test_multipolygon_is_accepted_as_either_type(
+    geometry_type, coordinates_format, coordinates
+):
+    geometry = parse_farm_coordinates_string(
+        coordinates_format, geometry_type, coordinates
+    )
+    assert geometry.equals(MultiPolygon([Polygon(OUTER, [HOLE]), Polygon(FAR)]))
+
+
+def test_simple_polygon_declared_as_multipolygon():
+    geometry = parse_farm_coordinates_string(
+        "GeoJSON", "MultiPolygon", json.dumps([OUTER])
+    )
+    assert geometry.equals(Polygon(OUTER))
+
+
+@pytest.mark.parametrize(
+    "geometry_type, coordinates_format, coordinates",
+    [
+        pytest.param("Polygon", "WKT", "POINT (1 2)", id="WKT point as polygon"),
+        pytest.param("Polygon", "GeoJSON", "[1, 2]", id="GeoJSON point as polygon"),
+        pytest.param("Point", "WKT", _polygon_wkt(OUTER), id="WKT polygon as point"),
+        pytest.param(
+            "Point", "GeoJSON", json.dumps([OUTER]), id="GeoJSON polygon as point"
+        ),
+        pytest.param(
+            "Point", "WKT", _multipolygon_wkt(*MULTI), id="multipolygon as point"
+        ),
+    ],
+)
+def test_point_and_polygon_types_must_match(
+    geometry_type, coordinates_format, coordinates
+):
+    with pytest.raises(ValueError):
+        parse_farm_coordinates_string(coordinates_format, geometry_type, coordinates)
+
+
+@pytest.mark.parametrize(
+    "coordinates_format, coordinates",
+    [
+        ("WKT", "LINESTRING (0 0, 1 1)"),
+        ("WKT", "MULTIPOINT ((0 0), (1 1))"),
+        ("GeoJSON", json.dumps([[0, 0], [1, 1]])),
+    ],
+)
+def test_other_geometries_are_rejected(coordinates_format, coordinates):
+    with pytest.raises(ValueError):
+        parse_farm_coordinates_string(coordinates_format, "Polygon", coordinates)
 
 
 def test_geojson_polygon_with_a_malformed_hole_is_rejected():
@@ -586,7 +709,7 @@ def test_geojson_polygon_with_a_malformed_hole_is_rejected():
         parse_farm_coordinates_string("GeoJSON", "Polygon", geojson)
 
 
-def _upload_row(coordinates_format, coordinates):
+def _upload_row(coordinates_format, coordinates, geometry_type="Polygon"):
     return {
         "id": "F01",
         "producerName": "Producer",
@@ -595,11 +718,25 @@ def _upload_row(coordinates_format, coordinates):
         "productionQuantityUnit": "kg",
         "country": "EC",
         "coordinatesFormat": coordinates_format,
-        "geometryType": "Polygon",
+        "geometryType": geometry_type,
         "farmCoordinates": coordinates,
         "cropType": "Café",
         "documents": [],
     }
+
+
+def _parse_farm(coordinates_format, coordinates, geometry_type="Polygon"):
+    response = client.post(
+        "/farms/parse",
+        json=[_upload_row(coordinates_format, coordinates, geometry_type)],
+    )
+    assert response.status_code == 200, response.text
+    [farm] = response.json()
+    return farm
+
+
+def _points(ring):
+    return [(c["lng"], c["lat"]) for c in ring]
 
 
 @pytest.mark.parametrize(
@@ -609,18 +746,72 @@ def _upload_row(coordinates_format, coordinates):
         ("WKT", _polygon_wkt(OUTER, HOLE)),
     ],
 )
-def test_farm_with_a_hole_is_rejected_at_upload(coordinates_format, coordinates):
-    response = client.post(
-        "/farms/parse", json=[_upload_row(coordinates_format, coordinates)]
+def test_farm_with_a_hole_is_parsed_with_it(coordinates_format, coordinates):
+    farm = _parse_farm(coordinates_format, coordinates)
+    [part] = farm["polygon"]["details"]["parts"]
+    [hole] = part["holes"]
+    assert Polygon(_points(part["exterior"]), [_points(hole)]).equals(
+        Polygon(OUTER, [HOLE])
     )
-    assert response.status_code == 400
-    assert "holes" in json.dumps(response.json()["detail"])
+    assert farm["polygon"]["area"] == GeometryCalculator.calculate_polygon_area(
+        Polygon(OUTER, [HOLE])
+    )
+
+
+@pytest.mark.parametrize("geometry_type", ["Polygon", "MultiPolygon"])
+def test_multipolygon_is_one_farm_with_its_parts(geometry_type):
+    farm = _parse_farm("WKT", _multipolygon_wkt(*MULTI), geometry_type)
+    assert farm["id"] == "F01"
+    assert farm["polygon"]["type"] == "polygon"
+    parts = farm["polygon"]["details"]["parts"]
+    assert [len(part["holes"]) for part in parts] == [1, 0]
+    assert farm["polygon"]["area"] == pytest.approx(
+        GeometryCalculator.calculate_polygon_area(
+            MultiPolygon([Polygon(OUTER, [HOLE]), Polygon(FAR)])
+        )
+    )
+
+
+def test_farm_rings_are_oriented():
+    clockwise_outer = list(reversed(OUTER))
+    counter_clockwise_hole = list(reversed(HOLE))
+    farm = _parse_farm("WKT", _polygon_wkt(clockwise_outer, counter_clockwise_hole))
+    [part] = farm["polygon"]["details"]["parts"]
+    assert LinearRing(_points(part["exterior"])).is_ccw
+    assert not LinearRing(_points(part["holes"][0])).is_ccw
+
+
+def _center(farm):
+    center = farm["polygon"]["details"]["center"]
+    return SPoint(center["lng"], center["lat"])
+
+
+def test_convex_farm_center_is_its_centroid():
+    farm = _parse_farm("WKT", _polygon_wkt(OUTER))
+    assert _center(farm).equals_exact(Polygon(OUTER).centroid, 1e-12)
+
+
+def test_ring_shaped_farm_center_is_inside_it():
+    # The hole covers the centroid
+    big_hole = [
+        (0.001, 0.001),
+        (0.009, 0.001),
+        (0.009, 0.009),
+        (0.001, 0.009),
+        (0.001, 0.001),
+    ]
+    farm = _parse_farm("WKT", _polygon_wkt(OUTER, big_hole))
+    assert Polygon(OUTER, [big_hole]).contains(_center(farm))
+
+
+def test_two_part_farm_center_is_inside_a_part():
+    farm = _parse_farm("WKT", _multipolygon_wkt([OUTER], [FAR]))
+    center = _center(farm)
+    assert Polygon(OUTER).contains(center) or Polygon(FAR).contains(center)
 
 
 def test_farm_with_a_single_ring_is_accepted_at_upload():
-    response = client.post(
-        "/farms/parse", json=[_upload_row("GeoJSON", json.dumps([OUTER]))]
-    )
-    assert response.status_code == 200
-    [farm] = response.json()
+    farm = _parse_farm("GeoJSON", json.dumps([OUTER]))
     assert farm["polygon"]["area"] > 0
+    [part] = farm["polygon"]["details"]["parts"]
+    assert part["holes"] == []

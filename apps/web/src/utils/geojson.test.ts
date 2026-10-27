@@ -5,6 +5,7 @@ import {
   makeFarm,
   makeMap,
   makeMapResults,
+  makeMultiPolygonFarm,
   makePolygonFarm,
   makeValidationResults,
 } from "@/test/factories";
@@ -31,6 +32,23 @@ describe("generateGeoJsonFeature", () => {
         [-84.3752, 10.1453],
       ],
     ]);
+  });
+
+  it("writes a farm with a hole as one Polygon, the hole as an inner ring", () => {
+    const farm = makeMultiPolygonFarm();
+    if (farm.polygon.type !== "polygon" || !farm.polygon.details) throw new Error();
+    farm.polygon.details.parts = farm.polygon.details.parts.slice(0, 1);
+    const { geometry } = generateGeoJsonFeature(farm);
+    expect(geometry.type).toBe("Polygon");
+    expect(geometry.coordinates).toHaveLength(2);
+  });
+
+  it("writes a farm of several parts as a MultiPolygon", () => {
+    const { geometry } = generateGeoJsonFeature(makeMultiPolygonFarm());
+    expect(geometry.type).toBe("MultiPolygon");
+    expect(geometry.coordinates).toHaveLength(2);
+    expect((geometry.coordinates as number[][][][])[0]).toHaveLength(2);
+    expect((geometry.coordinates as number[][][][])[0][0][1]).toEqual([0.01, 0]);
   });
 
   it("carries the EUDR properties", () => {

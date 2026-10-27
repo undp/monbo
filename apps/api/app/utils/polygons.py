@@ -1,10 +1,11 @@
 import math
-from typing import Literal, Tuple
+from typing import Literal, Tuple, TypeAlias
 
+from shapely.geometry import LinearRing, MultiPolygon, Polygon
 from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon
+from shapely.geometry.polygon import orient
 
-from app.models.polygons import Coordinates
+from app.models.polygons import Coordinates, PolygonPart
 from app.utils.image_generation.GeoHelper import GeoHelper
 
 
@@ -91,8 +92,74 @@ def generate_polygon(
         points = [(coord.lng, coord.lat) for coord in coordinates + coordinates[:1]]
         return Polygon(points)
 
-    points = [(coord.lng, coord.lat) for coord in coordinates]
-    return Polygon(points)
+    polygon = parts_to_geometry([PolygonPart(exterior=coordinates, holes=[])])
+    assert isinstance(polygon, Polygon)
+    return polygon
+
+
+# A farm's polygon geometry: a Polygon, or a MultiPolygon when the farm has several
+# parts. The functions below are the only crossing between it and `PolygonPart`s.
+FarmGeometry: TypeAlias = Polygon | MultiPolygon
+
+
+def _ring_points(ring: list[Coordinates]) -> list[tuple[float, float]]:
+    return [(coord.lng, coord.lat) for coord in ring]
+
+
+def parts_to_geometry(parts: list[PolygonPart]) -> FarmGeometry:
+    """
+    The Shapely geometry of a farm's parts: a Polygon for one part (or an empty
+    Polygon for none) and a MultiPolygon for several, with every hole.
+
+    Raises:
+        ValueError: If a ring has too few vertices to be built (1 or 2).
+    """
+    polygons = [
+        Polygon(_ring_points(part.exterior), [_ring_points(h) for h in part.holes])
+        for part in parts
+        if part.exterior
+    ]
+    if not polygons:
+        return Polygon()
+    if len(polygons) == 1:
+        return polygons[0]
+    return MultiPolygon(polygons)
+
+
+def _ring_coordinates(ring: LinearRing) -> list[Coordinates]:
+    return [Coordinates(lng=x, lat=y) for x, y, *_ in ring.coords]
+
+
+def geometry_to_parts(geometry: FarmGeometry) -> list[PolygonPart]:
+    """
+    A Polygon's or MultiPolygon's parts, each with its holes. The exterior is
+    oriented counter-clockwise and the holes clockwise: Google Maps draws a hole only
+    when it winds opposite to its exterior.
+    """
+    polygons = geometry.geoms if isinstance(geometry, MultiPolygon) else [geometry]
+    parts = []
+    for polygon in polygons:
+        if polygon.is_empty:
+            continue
+        oriented = orient(polygon, sign=1.0)
+        parts.append(
+            PolygonPart(
+                exterior=_ring_coordinates(oriented.exterior),
+                holes=[_ring_coordinates(hole) for hole in oriented.interiors],
+            )
+        )
+    return parts
+
+
+def farm_center(geometry: FarmGeometry) -> Coordinates:
+    """
+    A point inside the farm. Its centroid when that lies inside it, as for any
+    convex farm; otherwise (a hole over the centroid, or parts apart) a point that
+    Shapely guarantees inside it.
+    """
+    centroid = geometry.centroid
+    point = centroid if geometry.contains(centroid) else geometry.representative_point()
+    return Coordinates(lng=point.x, lat=point.y)
 
 
 def get_point_area_and_radius(area: float) -> Tuple[float, float]:

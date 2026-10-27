@@ -5,15 +5,16 @@ from typing import Literal
 
 import pycountry
 from fastapi import HTTPException
+from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import Point as ShapelyPoint
 
 from app.config.constants import FarmDefaults
 from app.models.farms import (
-    Coordinates,
     Document,
     InputFarmData,
     PreProcessedFarmData,
 )
-from app.utils.farms import parse_farm_coordinates_string
+from app.utils.farms import GeometryType, parse_farm_coordinates_string
 from app.utils.numbers import parse_float_string
 from app.utils.url import is_valid_url
 
@@ -177,9 +178,9 @@ def validate_country_code(country_code: str) -> str:
 
 def validate_farm_coordinates(
     coordinates_format: Literal["WKT", "GeoJSON"],
-    geometry_type: Literal["Point", "Polygon"],
+    geometry_type: GeometryType,
     coordinates: str,
-) -> list[Coordinates]:
+) -> ShapelyPoint | Polygon | MultiPolygon:
     """
     Validates and parses farm coordinates string.
     Returns parsed coordinates or raises HTTPException if invalid.

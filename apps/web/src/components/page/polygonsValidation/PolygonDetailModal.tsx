@@ -8,18 +8,23 @@ import { Text } from "@/components/reusable/Text";
 import { FarmData } from "@/interfaces/Farm";
 import { baseMapColor } from "@/config/theme";
 import {
+  getPolygonVertices,
   parsePolygonArea,
   parseLatitude,
   parseLongitude,
 } from "@/utils/polygons";
 import { useTranslation } from "react-i18next";
+import { TFunction } from "i18next";
 import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
 import { Box } from "@mui/material";
 import { DataContext } from "@/context/DataContext";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import { ValidManuallyChip } from "./ValidManuallyChip";
 
-const generateRows = (farm: FarmData) => {
+const generateRows = (
+  farm: FarmData,
+  t: TFunction<"translation", undefined>
+) => {
   if (farm.polygon.type === "point") {
     return [
       {
@@ -31,14 +36,14 @@ const generateRows = (farm: FarmData) => {
       },
     ];
   }
-  return (
-    farm.polygon.details?.path?.map((point, idx) => ({
+  return getPolygonVertices(farm.polygon.details?.parts ?? [], t).map(
+    ({ label, point }) => ({
       cells: {
-        point: { value: idx + 1 },
+        point: { value: label },
         latitude: { value: parseLatitude(point.lat) },
         longitude: { value: parseLongitude(point.lng) },
       },
-    })) ?? []
+    })
   );
 };
 
@@ -61,7 +66,7 @@ const generateMapObjects = (
     {
       id: farm.id,
       type: "polygon",
-      path: farm.polygon.details?.path ?? [],
+      parts: farm.polygon.details?.parts ?? [],
       color: baseMapColor,
       showPoints: true,
     },
@@ -100,7 +105,7 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
       isOpen={isOpen}
       row={row}
       handleClose={handleClose}
-      rowsGenerator={generateRows}
+      rowsGenerator={(farm) => generateRows(farm, t)}
       mapObjectsGenerator={generateMapObjects}
       title={
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>

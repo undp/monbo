@@ -64,7 +64,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
             return {
               id: d.id,
               type: "polygon",
-              path: d.polygon.details?.path ?? [],
+              parts: d.polygon.details?.parts ?? [],
               color: "yellow",
               fill: isDetailsOpen && selectedFarmData?.id === d.id,
               onClick: () => handlePolygonClick(d.id),

@@ -79,7 +79,7 @@ const validateWKTCoordinates = (coordinates: string): boolean => {
   // Basic WKT validation - should start with geometry type and contain parentheses
   // const allWktRegex =
   //   /^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*\(/i;
-  const wktRegex = /^(POINT|POLYGON)\s*\(/i;
+  const wktRegex = /^(POINT|POLYGON|MULTIPOLYGON)\s*\(/i;
   return wktRegex.test(coordinates.trim());
 };
 
@@ -122,29 +122,29 @@ const validateGeoJSONPolygonCoordinates = (coordinates: string): boolean => {
  * @param coordinates - The coordinate string to validate
  * @returns boolean indicating if the coordinates are valid GeoJSON MultiPolygon format
  */
-// const validateGeoJSONMultiPolygonCoordinates = (
-//   coordinates: string
-// ): boolean => {
-//   try {
-//     const parsed = JSON.parse(coordinates.trim());
+const validateGeoJSONMultiPolygonCoordinates = (
+  coordinates: string
+): boolean => {
+  try {
+    const parsed = JSON.parse(coordinates.trim());
 
-//     // Must be an array of polygons
-//     if (!Array.isArray(parsed) || parsed.length === 0) {
-//       return false;
-//     }
+    // Must be an array of polygons
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return false;
+    }
 
-//     // Each polygon must be an array of linear rings
-//     for (const polygon of parsed) {
-//       if (!isValidLinearRings(polygon)) {
-//         return false;
-//       }
-//     }
+    // Each polygon must be an array of linear rings
+    for (const polygon of parsed) {
+      if (!isValidLinearRings(polygon)) {
+        return false;
+      }
+    }
 
-//     return true;
-//   } catch {
-//     return false; // Invalid JSON
-//   }
-// };
+    return true;
+  } catch {
+    return false; // Invalid JSON
+  }
+};
 
 /**
  * Creates an Excel cell object with line break support and centered vertical alignment.
@@ -705,7 +705,8 @@ export const validateData = ({
     }
 
     // Check if geometry type is valid
-    const validGeometryTypes = ["Point", "Polygon"];
+    // "Polygon" and "MultiPolygon" are interchangeable: the coordinates tell which
+    const validGeometryTypes = ["Point", "Polygon", "MultiPolygon"];
     if (
       row["geometryType"] &&
       !validGeometryTypes.includes(row["geometryType"] as string)
@@ -733,8 +734,13 @@ export const validateData = ({
       } else if (coordinatesFormat === "GeoJSON") {
         if (geometryType === "Point") {
           isValidCoordinates = validateGeoJSONPointCoordinates(coordinates);
-        } else if (geometryType === "Polygon") {
-          isValidCoordinates = validateGeoJSONPolygonCoordinates(coordinates);
+        } else if (
+          geometryType === "Polygon" ||
+          geometryType === "MultiPolygon"
+        ) {
+          isValidCoordinates =
+            validateGeoJSONPolygonCoordinates(coordinates) ||
+            validateGeoJSONMultiPolygonCoordinates(coordinates);
         }
       }
 

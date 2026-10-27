@@ -2,8 +2,9 @@ from typing import Optional, Tuple
 
 from PIL import Image, ImageDraw
 from pyproj import Transformer
-from shapely.geometry import Point, shape
+from shapely.geometry import MultiPolygon, Point
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import transform
 
 from app.config.logger import get_logger
 from app.helpers.GeometryCalculator import GeometryCalculator
@@ -22,6 +23,10 @@ from app.utils.image_generation.ImageManipulationHelper import (
 logger = get_logger("utils.image_generation.GeometryHelper")
 
 
+# A farm's polygon geometries: a MultiPolygon is a farm of several parts
+POLYGONAL_TYPES = ("Polygon", "MultiPolygon")
+
+
 class GeometryHelper:
     """Handles processing for different geometry types."""
 
@@ -34,9 +39,9 @@ class GeometryHelper:
         Validate geometry parameters based on geometry type.
 
         Args:
-            geom_type: The geometry type ("Polygon", "Point", etc.)
+            geom_type: The geometry type ("Polygon", "MultiPolygon", "Point", etc.)
             point_radius_meters: Radius parameter for Point geometries. Must be None
-                for Polygon geometries and required for Point geometries.
+                for (Multi)Polygon geometries and required for Point geometries.
 
         Raises:
             ParameterValidationError: If point_radius_meters is provided for Polygon
@@ -49,11 +54,11 @@ class GeometryHelper:
             point_radius_meters,
         )
 
-        if geom_type == "Polygon":
+        if geom_type in POLYGONAL_TYPES:
             if point_radius_meters is not None:
                 error_msg = (
                     "'point_radius_meters' parameter is not supported for "
-                    "Polygon geometries"
+                    f"{geom_type} geometries"
                 )
                 logger.error(error_msg)
                 raise ParameterValidationError(error_msg)
@@ -101,9 +106,11 @@ class GeometryHelper:
         # Validate parameters
         GeometryHelper.validate_geometry_parameters(geom.geom_type, point_radius_meters)
 
-        if geom.geom_type == "Polygon":
-            # Handle Polygon type
-            lons, lats = zip(*[(lon, lat) for lon, lat in geom.exterior.coords])
+        if geom.geom_type in POLYGONAL_TYPES:
+            # Every part of the farm, so one image holds them all
+            bounds_min_lon, bounds_min_lat, bounds_max_lon, bounds_max_lat = geom.bounds
+            lons = (bounds_min_lon, bounds_max_lon)
+            lats = (bounds_min_lat, bounds_max_lat)
         elif geom.geom_type == "Point":
             # Handle Point type - point_radius_meters already validated
             assert point_radius_meters is not None
@@ -166,15 +173,9 @@ class GeometryHelper:
         # Create transformer for the coordinate transformation
         transformer = Transformer.from_crs(source_crs, target_crs, always_xy=True)
 
-        if geom.geom_type == "Polygon":
-            # For Polygon geometries, transform all coordinates
-            # In GeoJSON, coordinates are [longitude, latitude]
-            reprojected_coords = [
-                transformer.transform(lon, lat) for lon, lat in geom.exterior.coords
-            ]
-            projected_geom = shape(
-                {"type": "Polygon", "coordinates": [reprojected_coords]}
-            )
+        if geom.geom_type in POLYGONAL_TYPES:
+            # Every part and hole, as (longitude, latitude)
+            projected_geom = transform(transformer.transform, geom)
 
         if geom.geom_type == "Point":
             # For Point geometries, transform the point and optionally create a buffer
@@ -320,29 +321,47 @@ class GeometryHelper:
         )
         logger.debug(f"Image bounds: {min_lat}, {max_lat}, {min_lon}, {max_lon}")
 
-        # Create a transparent overlay for the polygon
-        overlay = Image.new("RGBA", output_size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
-
-        # Convert polygon vertices to pixel coordinates using image bounds
+        # Convert every ring's vertices to pixel coordinates using image bounds
         width, height = output_size
-        pixel_coords = []
 
-        for lon, lat in geom.exterior.coords:
-            # Calculate x pixel position based on longitude within image bounds
-            x_ratio = (lon - min_lon) / (max_lon - min_lon)
-            pixel_x = int(x_ratio * width)
+        def to_pixels(ring) -> list[Tuple[int, int]]:
+            pixel_coords = []
+            for lon, lat, *_ in ring.coords:
+                # x from the longitude within the image bounds
+                x_ratio = (lon - min_lon) / (max_lon - min_lon)
+                # y from the latitude, inverted in pixel space (min_lat at the bottom)
+                y_ratio = 1.0 - (lat - min_lat) / (max_lat - min_lat)
+                pixel_coords.append((int(x_ratio * width), int(y_ratio * height)))
+            return pixel_coords
 
-            # Calculate y pixel position based on latitude within image bounds
-            # Note: Latitude is inverted in pixel space (min_lat is at the bottom)
-            y_ratio = 1.0 - (lat - min_lat) / (max_lat - min_lat)
-            pixel_y = int(y_ratio * height)
+        polygons = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
+        parts = [
+            (
+                to_pixels(polygon.exterior),
+                [to_pixels(hole) for hole in polygon.interiors],
+            )
+            for polygon in polygons
+        ]
+        exteriors = [exterior for exterior, _ in parts]
+        holes = [hole for _, part_holes in parts for hole in part_holes]
 
-            pixel_coords.append((pixel_x, pixel_y))
-
-        # Draw the polygon with smoother, anti-aliased edges
-        # 1. Draw a semi-transparent filled polygon
-        draw.polygon(pixel_coords, fill=MapColors.FEATURE_FILL)
+        # 1. The semi-transparent fill, through a mask: PIL can't fill a polygon
+        # with holes, so each part is its exterior filled and then its holes
+        # cleared. Parts are masked one at a time and joined: a valid farm can
+        # have a part inside another part's hole, which that hole must not erase
+        mask = Image.new("L", output_size, 0)
+        for exterior, part_holes in parts:
+            part_mask = Image.new("L", output_size, 0)
+            part_draw = ImageDraw.Draw(part_mask)
+            part_draw.polygon(exterior, fill=255)
+            for hole in part_holes:
+                part_draw.polygon(hole, fill=0)
+            mask.paste(255, mask=part_mask)
+        overlay = Image.composite(
+            Image.new("RGBA", output_size, MapColors.FEATURE_FILL),
+            Image.new("RGBA", output_size, (0, 0, 0, 0)),
+            mask,
+        )
 
         # Define a drawing function for our anti-aliased outline
         def draw_polygon_outline(
@@ -350,16 +369,16 @@ class GeometryHelper:
             draw: ImageDraw.ImageDraw,
             scale_factor: float,
         ) -> None:
-            # Scale up the coordinates
-            scaled_coords = [
-                (x * scale_factor, y * scale_factor) for x, y in pixel_coords
-            ]
-            # Draw thicker line on larger canvas
-            draw.line(
-                scaled_coords + [scaled_coords[0]],
-                fill=MapColors.FEATURE_OUTLINE,
-                width=MapStyles.POLYGON_LINE_WIDTH,
-            )
+            # Every exterior and hole is outlined
+            for ring in exteriors + holes:
+                # Scale up the coordinates
+                scaled_coords = [(x * scale_factor, y * scale_factor) for x, y in ring]
+                # Draw thicker line on larger canvas
+                draw.line(
+                    scaled_coords + [scaled_coords[0]],
+                    fill=MapColors.FEATURE_OUTLINE,
+                    width=MapStyles.POLYGON_LINE_WIDTH,
+                )
 
         # Create the anti-aliased overlay for the outline
         smooth_overlay = ImageManipulationHelper.create_anti_aliased_overlay(
@@ -400,7 +419,7 @@ class GeometryHelper:
         """
         GeometryHelper.validate_geometry_parameters(geom.geom_type, point_radius_meters)
 
-        if geom.geom_type == "Polygon":
+        if geom.geom_type in POLYGONAL_TYPES:
             overlay = GeometryHelper._generate_polygon_overlay(
                 geom, output_size, zoom_level
             )

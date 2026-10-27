@@ -18,13 +18,10 @@ from app.modules.deforestation_analysis.helpers import (
 )
 from app.modules.layers.store import is_layer
 from app.modules.maps.helpers import get_country_maps, get_map_by_id, require_country
-from app.utils.farms import get_farm_coords_and_radius
+from app.utils.farms import build_farm_geometry
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 from app.utils.maps import get_map_raster_path
-from app.utils.polygons import (
-    generate_polygon,
-)
 
 from .models import AnalizeBody, MapData
 
@@ -58,8 +55,7 @@ def analize(body: AnalizeBody):
             with rasterio_open(raster_path) as src:
                 for farm in farms:
                     try:
-                        coords, radius = get_farm_coords_and_radius(farm)
-                        polygon = generate_polygon(coords, radius)
+                        polygon = build_farm_geometry(farm)
                         polygon_area = GeometryCalculator.calculate_polygon_area(
                             polygon
                         )

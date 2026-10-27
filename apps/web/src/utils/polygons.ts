@@ -1,3 +1,5 @@
+import { TFunction } from "i18next";
+import { Coordinates, PolygonPart } from "@/interfaces/Map";
 import { formatNumber } from "./numbers";
 
 /**
@@ -59,4 +61,34 @@ export const parseLatitude = (latitude: number): string => {
  */
 export const parseLongitude = (longitude: number): string => {
   return `${Math.abs(longitude).toFixed(6)}° (${longitude > 0 ? "E" : "O"})`;
+};
+
+/**
+ * A polygon farm's vertices, ring by ring: each part's exterior, then its holes.
+ * Each vertex is labelled with its number in its ring and, when the farm has more
+ * than one ring, with its ring ("Hueco 1 · 3") and part ("Parte 2 · Exterior · 3").
+ */
+export const getPolygonVertices = (
+  parts: PolygonPart[],
+  t: TFunction<"translation", undefined>
+): { label: string; point: Coordinates }[] => {
+  const ringCount = parts.reduce((count, part) => count + 1 + part.holes.length, 0);
+  return parts.flatMap((part, partIdx) =>
+    [part.exterior, ...part.holes].flatMap((ring, ringIdx) =>
+      ring.map((point, idx) => {
+        const vertex = String(idx + 1);
+        if (ringCount <= 1) return { label: vertex, point };
+        const labels = [
+          ringIdx === 0
+            ? t("common:polygonRings.exterior")
+            : t("common:polygonRings.hole", { hole: ringIdx }),
+          vertex,
+        ];
+        if (parts.length > 1) {
+          labels.unshift(t("common:polygonRings.part", { part: partIdx + 1 }));
+        }
+        return { label: labels.join(" · "), point };
+      })
+    )
+  );
 };

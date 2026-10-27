@@ -4,8 +4,7 @@ from app.models.farms import (
     FarmPolygonDetailData,
     FarmPolygonDetailDataWithPolygon,
 )
-from app.utils.farms import get_farm_coords_and_radius
-from app.utils.polygons import generate_polygon
+from app.utils.farms import FarmDetailsMismatchError, build_farm_geometry
 
 from .helpers import (
     get_geometry_inconsistencies,
@@ -45,17 +44,14 @@ def get_polygon_inconsistencies(
     4. Marks farms as "NOT_VALID" if they are involved in any inconsistency
     """
     farms_polygons = []
-    # Farms whose polygon can't even be built (a single vertex). They are reported
-    # like any invalid geometry and left out of the other checks.
+    # Farms whose polygon can't even be built (a ring of 1 or 2 vertices). They are
+    # reported like any invalid geometry and left out of the other checks.
     unbuildable_inconsistencies = []
     for farm in body:
         try:
-            coords, radius = get_farm_coords_and_radius(farm)
-        except ValueError as exc:
+            polygon = build_farm_geometry(farm)
+        except FarmDetailsMismatchError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-        try:
-            polygon = generate_polygon(coords, radius)
         except ValueError:
             unbuildable_inconsistencies.append(
                 {

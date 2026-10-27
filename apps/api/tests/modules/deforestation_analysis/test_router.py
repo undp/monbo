@@ -417,11 +417,12 @@ def test_generate_image_does_not_block_other_requests(
 LOSS_BOUNDS = (-0.01, -0.01, 0.01, 0.01)
 
 
-def _write_loss_layer(maps_root):
+def _write_loss_layer(maps_root, data=None):
     path = maps_root.root / "layers" / "rasters" / "loss.tif"
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = np.zeros((100, 100), dtype=np.uint8)
-    data[:, :50] = 1
+    if data is None:
+        data = np.zeros((100, 100), dtype=np.uint8)
+        data[:, :50] = 1
     with rasterio.open(
         path,
         "w",
@@ -439,15 +440,28 @@ def _write_loss_layer(maps_root):
     )
 
 
-def _polygon_farm(farm_id, path):
+def _ring(points):
+    return [{"lng": lng, "lat": lat} for lng, lat in points]
+
+
+def _multi_polygon_farm(farm_id, *parts):
+    """A farm of several parts, each an (exterior, holes) pair."""
+    exterior = parts[0][0]
     return {
         "id": farm_id,
         "type": "polygon",
         "details": {
-            "center": {"lng": path[0][0], "lat": path[0][1]},
-            "path": [{"lng": lng, "lat": lat} for lng, lat in path],
+            "center": {"lng": exterior[0][0], "lat": exterior[0][1]},
+            "parts": [
+                {"exterior": _ring(ext), "holes": [_ring(h) for h in holes]}
+                for ext, holes in parts
+            ],
         },
     }
+
+
+def _polygon_farm(farm_id, path, holes=()):
+    return _multi_polygon_farm(farm_id, (path, holes))
 
 
 def _analize(farms):
@@ -541,3 +555,88 @@ def test_analize_ratio_is_the_share_of_area_on_loss(maps_root):
         ]
     )
     assert results["half"] == pytest.approx(0.5)
+
+
+# --- /analize: holes and parts --------------------------------------------------
+
+
+def _square(west, south, east, north):
+    """A rectangle in thousandths of a degree."""
+    west, south, east, north = (v / 1000 for v in (west, south, east, north))
+    return [(west, south), (east, south), (east, north), (west, north)]
+
+
+def test_analize_loss_inside_a_hole_doesnt_count(maps_root):
+    # Loss only in the raster's central block, about (-0.002, 0.002) on each axis
+    data = np.zeros((100, 100), dtype=np.uint8)
+    data[40:60, 40:60] = 1
+    _write_loss_layer(maps_root, data)
+    results = _analize(
+        [
+            # Not symmetric about the equator: GeometryCalculator can't build its
+            # equal-area projection for a farm whose latitudes are exactly opposite
+            _polygon_farm("ring", _square(-8, -7, 8, 9), [_square(-3, -3, 3, 3)]),
+            _polygon_farm("solid", _square(-8, -7, 8, 9)),
+        ]
+    )
+    assert results["ring"] == 0
+    assert results["solid"] > 0
+
+
+def test_analize_loss_in_one_of_two_parts(maps_root):
+    _write_loss_layer(maps_root)
+    # Two parts of the same size: the first lies half on the loss (west half), the
+    # second all east of it
+    results = _analize(
+        [
+            _multi_polygon_farm(
+                "two-parts",
+                (_square(-3, -3, 3, 3), []),
+                (_square(2, 4, 8, 10), []),
+            )
+        ]
+    )
+    assert results["two-parts"] == pytest.approx(0.25)
+
+
+def test_analize_a_part_outside_the_raster(maps_root):
+    _write_loss_layer(maps_root)
+    # One part all on loss, the other (the same size) far outside the raster
+    results = _analize(
+        [
+            _multi_polygon_farm(
+                "half-outside",
+                (_square(-8, -8, -2, -2), []),
+                (_square(1000, 1000, 1006, 1006), []),
+            )
+        ]
+    )
+    assert results["half-outside"] == pytest.approx(0.5)
+
+
+def _closed(ring):
+    """A ring as GeoJSON coordinates, its first vertex repeated at the end."""
+    return [list(point) for point in ring + ring[:1]]
+
+
+def test_generate_image_for_a_farm_with_parts_and_a_hole(maps_root):
+    # The web sends a farm of several parts as a GeoJSON MultiPolygon feature
+    _write_loss_layer(maps_root)
+    feature = {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [_closed(_square(-8, -7, 0, 1)), _closed(_square(-6, -5, -2, -1))],
+                [_closed(_square(2, 2, 6, 6))],
+            ],
+        },
+    }
+    response = client.post(
+        "/deforestation_analysis/generate-image?include_satelital_background=false",
+        json={"mapId": 0, "feature": feature},
+    )
+    assert response.status_code == 200, response.text
+    image = Image.open(BytesIO(response.content))
+    assert image.size == (640, 420)

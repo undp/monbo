@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useContext, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   APIProvider,
   ControlPosition,
@@ -10,7 +16,7 @@ import {
   useMap,
 } from "@vis.gl/react-google-maps";
 import { GCP_MAPS_PLATFORM_API_KEY } from "@/config/env";
-import { Coordinates } from "@/interfaces/Map";
+import { Coordinates, PolygonPart } from "@/interfaces/Map";
 import { isEqual } from "lodash";
 import { Box, Button, ButtonGroup } from "@mui/material";
 
@@ -28,7 +34,8 @@ interface MapObject {
 
 export interface PolygonObject extends MapObject {
   type: "polygon";
-  path: Coordinates[];
+  // Each part is drawn with its holes; the API orients the rings so they show empty
+  parts: PolygonPart[];
 }
 export interface CircleObject extends MapObject {
   type: "circle";
@@ -72,16 +79,16 @@ export const Map: React.FC<MapProps> = ({
         {objects.map((obj, idx) => {
           switch (obj.type) {
             case "polygon":
-              return (
+              return obj.parts.map((part, partIdx) => (
                 <Polygon
-                  key={idx}
-                  path={obj.path}
+                  key={`${idx}-${partIdx}`}
+                  part={part}
                   color={obj.color}
                   fill={obj.fill}
                   showPoints={obj.showPoints}
                   onClick={obj.onClick}
                 />
-              );
+              ));
             case "circle":
               return (
                 <CircleMarker
@@ -115,7 +122,9 @@ const centerMap = (
       }).getBounds();
       if (circleBounds) bounds.union(circleBounds);
     } else if (obj.type === "polygon") {
-      obj.path.forEach((point) => bounds.extend(point));
+      obj.parts.forEach((part) =>
+        part.exterior.forEach((point) => bounds.extend(point))
+      );
     }
   });
   map.fitBounds(bounds);
@@ -269,16 +278,19 @@ const CircleMarker = ({
 };
 
 interface PolygonProps {
-  path: Coordinates[];
+  part: PolygonPart;
   color: string;
   fill?: boolean;
   showPoints?: boolean;
   onClick?: () => void;
 }
-const Polygon = ({ path, color, fill, showPoints, onClick }: PolygonProps) => {
+const Polygon = ({ part, color, fill, showPoints, onClick }: PolygonProps) => {
   const map = useContext(GoogleMapsContext)?.map;
   const polygon = useRef(new google.maps.Polygon()).current;
-  const points = useRef(path.map(() => new google.maps.Circle())).current;
+  // The exterior, then the holes
+  const paths = useMemo(() => [part.exterior, ...part.holes], [part]);
+  const vertices = useMemo(() => paths.flat(), [paths]);
+  const points = useRef(vertices.map(() => new google.maps.Circle())).current;
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
   polygon.setOptions({
@@ -287,7 +299,7 @@ const Polygon = ({ path, color, fill, showPoints, onClick }: PolygonProps) => {
     strokeColor: color,
     strokeWeight: 2,
   });
-  polygon.setPath(path);
+  polygon.setPaths(paths);
 
   useEffect(() => {
     if (map) {
@@ -301,7 +313,7 @@ const Polygon = ({ path, color, fill, showPoints, onClick }: PolygonProps) => {
       );
 
       if (showPoints) {
-        path.forEach((point, idx) => {
+        vertices.forEach((point, idx) => {
           generateCircle(points[idx], point, 3, color, 1);
           points[idx].setMap(map);
         });
@@ -312,7 +324,7 @@ const Polygon = ({ path, color, fill, showPoints, onClick }: PolygonProps) => {
       polygon.setMap(null);
       points.forEach((point) => point.setMap(null));
     };
-  }, [color, map, onClick, path, points, polygon, showPoints]);
+  }, [color, map, onClick, vertices, points, polygon, showPoints]);
 
   return null;
 };
