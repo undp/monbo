@@ -63,10 +63,37 @@ describe("validateData", () => {
   });
 
   it("rejects an unknown geometry type", async () => {
-    expect(await validate([validRow({ geometryType: "MultiPolygon" })], "en")).toContain(
+    expect(await validate([validRow({ geometryType: "LineString" })], "en")).toContain(
       "Invalid geometry type in row 4"
     );
   });
+
+  // A farm of several parts, with a hole in its first one
+  const MULTIPOLYGON = JSON.stringify([
+    [
+      [[-84.37, 10.14], [-84.36, 10.14], [-84.36, 10.15], [-84.37, 10.14]],
+      [[-84.368, 10.142], [-84.365, 10.142], [-84.365, 10.145], [-84.368, 10.142]],
+    ],
+    [[[-84.3, 10.1], [-84.29, 10.1], [-84.29, 10.11], [-84.3, 10.1]]],
+  ]);
+
+  it.each(["Polygon", "MultiPolygon"])(
+    "accepts holes and several parts declared as %s",
+    async (geometryType) => {
+      expect(
+        await validate([
+          validRow({ geometryType, farmCoordinates: MULTIPOLYGON }),
+          validRow({ geometryType }),
+          validRow({
+            geometryType,
+            coordinatesFormat: "WKT",
+            farmCoordinates:
+              "MULTIPOLYGON (((-84.37 10.14, -84.36 10.14, -84.36 10.15, -84.37 10.14)), ((-84.3 10.1, -84.29 10.1, -84.29 10.11, -84.3 10.1)))",
+          }),
+        ])
+      ).toEqual([]);
+    }
+  );
 
   it.each([
     ["WKT that isn't a point or polygon", { coordinatesFormat: "WKT", farmCoordinates: "LINESTRING (-84.3 10.1, -84.2 10.2)" }],

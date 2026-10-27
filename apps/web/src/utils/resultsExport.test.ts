@@ -14,7 +14,9 @@ import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
 } from "./excel";
+import { makeMultiPolygonFarm } from "@/test/factories";
 import {
+  FarmTooLargeForExcelError,
   buildDeforestationSheets,
   buildPolygonValidationSheets,
 } from "./resultsExport";
@@ -47,7 +49,10 @@ const POLYGON_FARM: FarmData = {
   ],
   polygon: {
     type: "polygon",
-    details: { center: { lng: -84.365, lat: 10.143 }, path: RING },
+    details: {
+      center: { lng: -84.365, lat: 10.143 },
+      parts: [{ exterior: RING, holes: [] }],
+    },
     area: 67_100,
   },
 };
@@ -152,7 +157,7 @@ const OVERLAP: InconsistentPolygonData = {
   data: {
     area: 100,
     center: { lng: -84.2, lat: 10.12 },
-    paths: [],
+    parts: [],
     percentage: 0.25,
     criticality: "MEDIUM",
   },
@@ -283,5 +288,51 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
       { s: { r: 3, c: percentageColumn }, e: { r: 4, c: percentageColumn } },
     ]);
     expect(sheet.rows[3][percentageColumn]).toBe(sheet.rows[3].at(-1));
+  });
+});
+
+
+describe.each(LOCALES)("the %s Excel export of holes and parts", (locale) => {
+  const sheetsFor = async (farm: FarmData) => {
+    const { t } = await createTestI18n(locale);
+    return buildPolygonValidationSheets(
+      [farm],
+      [farm],
+      [],
+      [{ farmId: farm.id, status: "VALID" }],
+      t,
+      locale
+    );
+  };
+
+  it("writes a farm of several parts as a GeoJSON MultiPolygon, uploaded again", async () => {
+    const farm = makeMultiPolygonFarm({ id: "F09" });
+    const { data, errorMessages } = await upload(await sheetsFor(farm), locale);
+    expect(errorMessages).toEqual([]);
+    const [row] = data;
+    expect(row.geometryType).toBe("MultiPolygon");
+    expect(JSON.parse(row.farmCoordinates as string)).toEqual(
+      farm.polygon.type === "polygon" &&
+        farm.polygon.details?.parts.map((part) =>
+          [part.exterior, ...part.holes].map((ring) =>
+            ring.map(({ lng, lat }) => [lng, lat])
+          )
+        )
+    );
+  });
+
+  it("reports a farm too large for an Excel cell instead of cutting it", async () => {
+    // About 40,000 characters of coordinates
+    const exterior = Array.from({ length: 1500 }, (_, i) => ({
+      lng: -84.123456789 + i * 1e-6,
+      lat: 10.123456789,
+    }));
+    const farm = makeMultiPolygonFarm({ id: "F10" });
+    if (farm.polygon.type === "polygon" && farm.polygon.details) {
+      farm.polygon.details.parts = [{ exterior, holes: [] }];
+    }
+    await expect(sheetsFor(farm)).rejects.toEqual(
+      new FarmTooLargeForExcelError("F10")
+    );
   });
 });

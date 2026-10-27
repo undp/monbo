@@ -19,17 +19,35 @@ import {
   TemplateColumn,
   loadTemplateHeaders,
 } from "./excel";
+import { getFarmGeoJsonGeometry } from "./geojson";
 
 type Cell = SheetData["rows"][number][number];
 
-/** The farm's GeoJSON coordinates: `[lng, lat]` for a point, its rings for a polygon. */
-const getGeoJsonCoordinates = (farm: FarmData): string => {
-  if (farm.polygon.type === "point") {
-    const { lng, lat } = farm.polygon.details.center;
-    return JSON.stringify([lng, lat]);
+// The most characters an Excel cell holds: a longer one would be cut
+const EXCEL_CELL_MAX_LENGTH = 32767;
+
+/** A farm whose coordinates don't fit an Excel cell: the GeoJSON export holds it. */
+export class FarmTooLargeForExcelError extends Error {
+  constructor(public farmId: string) {
+    super(`Farm ${farmId}'s coordinates don't fit an Excel cell`);
   }
-  const path = farm.polygon.details?.path;
-  return path ? JSON.stringify([path.map(({ lng, lat }) => [lng, lat])]) : "";
+}
+
+/**
+ * The farm's geometry type and GeoJSON coordinates: `[lng, lat]` for a point, the
+ * rings of a polygon, or the polygons of a farm of several parts.
+ */
+const getGeoJsonGeometryCells = (
+  farm: FarmData
+): { geometryType: string; coordinates: string } => {
+  const geometry = getFarmGeoJsonGeometry(farm);
+  const isEmpty =
+    farm.polygon.type === "polygon" && !farm.polygon.details?.parts.length;
+  const coordinates = isEmpty ? "" : JSON.stringify(geometry.coordinates);
+  if (coordinates.length > EXCEL_CELL_MAX_LENGTH) {
+    throw new FarmTooLargeForExcelError(farm.id);
+  }
+  return { geometryType: geometry.type, coordinates };
 };
 
 /**
@@ -37,6 +55,7 @@ const getGeoJsonCoordinates = (farm: FarmData): string => {
  * Quantity and area are numbers, so they read the same in any language.
  */
 export const farmToTemplateRow = (farm: FarmData): Cell[] => {
+  const { geometryType, coordinates } = getGeoJsonGeometryCells(farm);
   const values: Record<TemplateColumn, Cell> = {
     id: farm.id,
     producerName: farm.producer,
@@ -45,8 +64,8 @@ export const farmToTemplateRow = (farm: FarmData): Cell[] => {
     productionQuantityUnit: farm.productionQuantityUnit || "",
     region: farm.region || "",
     coordinatesFormat: "GeoJSON",
-    geometryType: farm.polygon.type === "point" ? "Point" : "Polygon",
-    farmCoordinates: getGeoJsonCoordinates(farm),
+    geometryType,
+    farmCoordinates: coordinates,
     // In hectares, not rounded: an upload takes 0 as a missing area and gives
     // the point 1 ha, so a small point must keep its exact area. Empty when the
     // API could not compute it (null or -1).

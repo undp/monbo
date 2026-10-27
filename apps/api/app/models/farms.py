@@ -1,9 +1,9 @@
 from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
-from .polygons import Coordinates, PointDetails, PolygonDetails
+from .polygons import PointDetails, PolygonDetails
 
 
 class PointSummary(BaseModel):
@@ -62,7 +62,8 @@ class InputFarmData(BaseModel):
     country: str
     region: Optional[str] = None
     coordinatesFormat: Literal["WKT", "GeoJSON"]
-    geometryType: Literal["Point", "Polygon"]
+    # "Polygon" and "MultiPolygon" are interchangeable: the coordinates tell which
+    geometryType: Literal["Point", "Polygon", "MultiPolygon"]
     farmCoordinates: str
     cropType: str
     association: Optional[str] = None
@@ -79,12 +80,15 @@ class PreProcessedFarmData(BaseModel):
     country: str
     region: Optional[str] = None
     coordinatesFormat: Literal["WKT", "GeoJSON"]
-    geometryType: Literal["Point", "Polygon"]
-    farmCoordinates: list[Coordinates]
+    geometryType: Literal["Point", "Polygon", "MultiPolygon"]
+    # The parsed coordinates: a point, or a polygon or multipolygon with its holes
+    farmCoordinates: Point | Polygon | MultiPolygon
     cropType: str
     association: Optional[str] = None
     area: float
     documents: list[Document]
+
+    model_config = {"arbitrary_types_allowed": True}
 
 
 class FarmPolygonDetailData(BaseModel):
@@ -94,6 +98,6 @@ class FarmPolygonDetailData(BaseModel):
 
 
 class FarmPolygonDetailDataWithPolygon(FarmPolygonDetailData):
-    polygon: Polygon
+    polygon: Polygon | MultiPolygon
 
     model_config = {"arbitrary_types_allowed": True}

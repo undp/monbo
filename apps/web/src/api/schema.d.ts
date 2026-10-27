@@ -719,7 +719,7 @@ export interface components {
              * Geometrytype
              * @enum {string}
              */
-            geometryType: "Point" | "Polygon";
+            geometryType: "Point" | "Polygon" | "MultiPolygon";
             /** Id */
             id?: string | number | null;
             /** Producername */
@@ -858,8 +858,8 @@ export interface components {
              * @enum {string}
              */
             criticality: "HIGH" | "MEDIUM";
-            /** Paths */
-            paths: components["schemas"]["Coordinates"][][];
+            /** Parts */
+            parts: components["schemas"]["PolygonPart"][];
             /** Percentage */
             percentage: number;
         };
@@ -897,8 +897,8 @@ export interface components {
         /** PolygonDetails */
         PolygonDetails: {
             center: components["schemas"]["Coordinates"];
-            /** Path */
-            path: components["schemas"]["Coordinates"][];
+            /** Parts */
+            parts: components["schemas"]["PolygonPart"][];
         };
         /** PolygonInconsistenciesResponse */
         PolygonInconsistenciesResponse: {
@@ -906,6 +906,17 @@ export interface components {
             farmResults: components["schemas"]["FarmResult"][];
             /** Inconsistencies */
             inconsistencies: (components["schemas"]["OverlapInconsistency"] | components["schemas"]["InvalidGeometryInconsistency"] | components["schemas"]["EmptyPolygonInconsistency"])[];
+        };
+        /**
+         * PolygonPart
+         * @description One polygon of a farm: its outer ring and its holes, each a closed ring. The
+         *     API returns the exterior counter-clockwise and the holes clockwise.
+         */
+        PolygonPart: {
+            /** Exterior */
+            exterior: components["schemas"]["Coordinates"][];
+            /** Holes */
+            holes: components["schemas"]["Coordinates"][][];
         };
         /**
          * PolygonShapeSummary

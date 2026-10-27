@@ -1,7 +1,7 @@
 from typing import Final, Tuple, Union
 
 from pyproj import CRS, Transformer
-from shapely.geometry import Point, Polygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 from shapely.ops import transform
 
 from app.config.logger import get_logger
@@ -44,21 +44,23 @@ class GeometryCalculator:
         return 360.0 - span if span > 180.0 else span
 
     @staticmethod
-    def calculate_geometry_center(geom: Union[Polygon, Point]) -> Tuple[float, float]:
+    def calculate_geometry_center(
+        geom: Union[Polygon, MultiPolygon, Point],
+    ) -> Tuple[float, float]:
         """
-        Calculate the center point of a geometry (Polygon or Point).
+        Calculate the center point of a geometry (Polygon, MultiPolygon or Point):
+        the center of its bounds, so every part of a farm is centered.
 
         Args:
-            geom: A shapely geometry object (Polygon or Point)
+            geom: A shapely geometry object (Polygon, MultiPolygon or Point)
 
         Returns:
             Tuple of (center_lat, center_lon) coordinates
 
         Raises:
-            ValueError: If geometry type is not Polygon or Point
+            ValueError: If geometry type is not Polygon, MultiPolygon or Point
         """
-        if geom.geom_type == "Polygon":
-            # Handle Polygon type
+        if geom.geom_type in ("Polygon", "MultiPolygon"):
             min_x, min_y, max_x, max_y = geom.bounds
             center_lon = (min_x + max_x) / 2
             center_lat = (min_y + max_y) / 2
@@ -75,7 +77,7 @@ class GeometryCalculator:
 
     @staticmethod
     def _calculate_area_with_local_projection(
-        polygon: Polygon,
+        polygon: Polygon | MultiPolygon,
         bounds: Tuple[float, float, float, float],
     ) -> float:
         """Calculate area using a local projection optimized for the polygon's location.
@@ -120,7 +122,9 @@ class GeometryCalculator:
         return round(projected_polygon.area, 2)
 
     @staticmethod
-    def _calculate_area_with_global_projection(polygon: Polygon) -> float:
+    def _calculate_area_with_global_projection(
+        polygon: Polygon | MultiPolygon,
+    ) -> float:
         """Calculate area using a global projection for mid/low latitude areas.
 
         This method uses an Albers Equal Area projection with standard parallels at 30°N
@@ -145,7 +149,7 @@ class GeometryCalculator:
 
     @staticmethod
     def _check_area_accuracy(
-        polygon: Polygon,
+        polygon: Polygon | MultiPolygon,
         calculated_area: float,
         center_lat: float,
         bounds: Tuple[float, float, float, float],
@@ -195,13 +199,14 @@ class GeometryCalculator:
             )
 
     @staticmethod
-    def calculate_polygon_area(polygon: Polygon) -> float:
+    def calculate_polygon_area(polygon: Polygon | MultiPolygon) -> float:
         """
         Calculate the area of a given polygon using optimized methods
         based on size and location, balancing accuracy and performance.
 
         Args:
-            polygon (Polygon): The polygon for which to calculate the area
+            polygon (Polygon | MultiPolygon): The farm (or overlap) whose area to
+                calculate, without its holes
 
         Returns:
             float: The area in square meters, rounded to 2 decimal places

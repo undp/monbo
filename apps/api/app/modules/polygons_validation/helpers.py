@@ -8,6 +8,7 @@ from shapely.validation import explain_validity
 from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.farms import FarmPolygonDetailDataWithPolygon
+from app.utils.polygons import geometry_to_parts
 
 
 def detect_overlaps(polygons: List[Polygon]):
@@ -48,35 +49,6 @@ def detect_overlaps(polygons: List[Polygon]):
                 )
 
     return overlaps
-
-
-def get_geometry_paths(geometry: BaseGeometry) -> list[list[dict]]:
-    """
-    Extracts the coordinates from the exterior of a given polygon or multipolygon
-    and returns them as a list of paths, where each path is a list of points.
-
-    Args:
-        polygon (Polygon or MultiPolygon): A Shapely Polygon or MultiPolygon object
-        from which to extract the coordinates.
-
-    Returns:
-        list[list[Point]]: A list of paths, each path is a list of dictionaries,
-        each containing the longitude ('lng') and latitude ('lat') of a point.
-    """
-    if geometry.geom_type == "MultiPolygon":
-        return [
-            [{"lng": point[0], "lat": point[1]} for point in list(poly.exterior.coords)]
-            for poly in geometry.geoms
-        ]
-    if geometry.geom_type == "Polygon":
-        return [
-            [
-                {"lng": point[0], "lat": point[1]}
-                for point in list(geometry.exterior.coords)
-            ]
-        ]
-
-    raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
 
 
 def polygonal_part(geometry: BaseGeometry) -> Polygon | MultiPolygon:
@@ -158,7 +130,7 @@ def get_overlap_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
                             "lng": intersection.centroid.x,
                             "lat": intersection.centroid.y,
                         },
-                        "paths": get_geometry_paths(intersection),
+                        "parts": geometry_to_parts(intersection),
                     },
                 }
             )

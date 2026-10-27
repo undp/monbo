@@ -36,8 +36,7 @@ from app.modules.layers.store import (
     get_layers_root,
     set_layers_root,
 )
-from app.utils.farms import get_farm_coords_and_radius
-from app.utils.polygons import generate_polygon
+from app.utils.farms import build_farm_geometry
 from tests.regression.pipeline import (
     EXCEL_PATH,
     EXPECTED_PATH,
@@ -68,8 +67,7 @@ def farm_polygons(rows):
             type=farm["polygon"]["type"],
             details=farm["polygon"]["details"],
         )
-        coords, radius = get_farm_coords_and_radius(data)
-        polygons.append(generate_polygon(coords, radius))
+        polygons.append(build_farm_geometry(data))
     return polygons
 
 

@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 import rasterio
 from rasterio.transform import from_bounds
-from shapely.geometry import Point, Polygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
 from app.utils.image_generation.constants import MapDefaults
+from app.utils.image_generation.GeometryHelper import GeometryHelper
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 
@@ -70,8 +71,22 @@ TALL = Polygon([(-0.0005, -0.005), (-0.0005, 0.005), (0.0005, 0.005), (0.0005, -
 WIDE = Polygon([(-0.005, -0.0005), (-0.005, 0.0005), (0.005, 0.0005), (0.005, -0.0005)])
 
 
+# Two parts about 5 km apart: one image holds both
+TWO_PARTS = MultiPolygon(
+    [
+        Polygon([(-0.001, -0.001), (-0.001, 0.001), (0.001, 0.001), (0.001, -0.001)]),
+        Polygon([(0.044, -0.001), (0.044, 0.001), (0.046, 0.001), (0.046, -0.001)]),
+    ]
+)
+
+
 @pytest.mark.parametrize(
-    "farm", [pytest.param(TALL, id="tall"), pytest.param(WIDE, id="wide")]
+    "farm",
+    [
+        pytest.param(TALL, id="tall"),
+        pytest.param(WIDE, id="wide"),
+        pytest.param(TWO_PARTS, id="two parts far apart"),
+    ],
 )
 def test_the_whole_farm_fits_the_image_with_its_padding(farm):
     min_lon, min_lat, max_lon, max_lat = farm.bounds
@@ -99,3 +114,36 @@ def test_the_image_has_the_report_box_aspect_ratio(all_loss_raster):
     """640x420: the ratio of the map box on the report's farm page (styles.ts)."""
     image = _generate(TALL, all_loss_raster)
     assert image.size == (640, 420)
+
+
+def test_the_bounds_hold_every_part():
+    min_lat, max_lat, min_lon, max_lon = GeometryHelper.calculate_geometry_bounds(
+        TWO_PARTS
+    )
+    assert (min_lon, min_lat, max_lon, max_lat) == TWO_PARTS.bounds
+
+
+def test_a_farm_with_two_parts_gets_one_image(all_loss_raster):
+    image = _generate(TWO_PARTS, all_loss_raster)
+    assert image.size == (640, 420)
+    assert _outline_pixels(image) > 0
+
+
+SQUARE = [(-0.004, -0.004), (-0.004, 0.004), (0.004, 0.004), (0.004, -0.004)]
+HOLE = [(-0.002, -0.002), (0.002, -0.002), (0.002, 0.002), (-0.002, 0.002)]
+
+
+def test_a_hole_is_outlined_and_not_filled(all_loss_raster):
+    solid = _generate(Polygon(SQUARE), all_loss_raster)
+    ring = _generate(Polygon(SQUARE, [HOLE]), all_loss_raster)
+    # The hole's outline adds yellow pixels
+    assert _outline_pixels(ring) > _outline_pixels(solid) * 1.3
+    # The image is centered on the farm, so its center is in the hole: there the
+    # loss shows as it does outside the farm (above it, on the raster), without the
+    # fill's tint
+    center = (320, 210)
+    above = (320, 2)
+    ring_rgb = ring.convert("RGB")
+    solid_rgb = solid.convert("RGB")
+    assert ring_rgb.getpixel(center) == ring_rgb.getpixel(above)
+    assert solid_rgb.getpixel(center) != solid_rgb.getpixel(above)

@@ -6,9 +6,12 @@ export const getCoordinates = (farm: FarmData): string[] => {
     const center = farm.polygon.details.center;
     coordinates.push(`(${center.lng},${center.lat})`);
   } else {
-    farm.polygon.details?.path?.forEach((point) => {
-      coordinates.push(`(${point.lng},${point.lat})`);
-    });
+    // Every ring of every part: exteriors and holes
+    farm.polygon.details?.parts.forEach((part) =>
+      [part.exterior, ...part.holes].flat().forEach((point) => {
+        coordinates.push(`(${point.lng},${point.lat})`);
+      })
+    );
   }
   return coordinates;
 };

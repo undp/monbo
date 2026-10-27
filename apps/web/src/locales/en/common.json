@@ -20,6 +20,11 @@
   "polygon": "Polygon",
   "polygons": "Polygons",
   "point": "Point",
+  "polygonRings": {
+    "exterior": "Exterior",
+    "hole": "Hole {{hole}}",
+    "part": "Part {{part}}"
+  },
   "latitude": "Latitude",
   "longitude": "Longitude",
   "fileErrors": {
@@ -42,6 +47,7 @@
     "performingAnalysisError": "An error occurred while performing the analysis",
     "dataAnalizedSuccessfully": "Data analized successfully",
     "notValidFileContent": "The file content is not valid",
+    "farmTooLargeForExcel": "Farm {{id}} has too many vertices for an Excel cell. Download the results as GeoJSON",
     "errorParsingDataForExcel": "There was an error parsing the data to generate the Excel file",
     "errorGeneratingExcelFile": "There was an error generating the Excel file",
     "errorParsingDataForGeoJson": "There was an error parsing the data to generate the GeoJSON file",

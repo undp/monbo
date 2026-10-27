@@ -1,10 +1,12 @@
 import json
 from typing import Literal
 
+import shapely
 from fastapi import HTTPException
 from shapely import wkt
+from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry import Point as ShapelyPoint
-from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.geometry.base import BaseGeometry
 
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.farms import (
@@ -16,193 +18,151 @@ from app.models.farms import (
 )
 from app.models.polygons import Coordinates, PointDetails, PolygonDetails
 from app.utils.polygons import (
+    FarmGeometry,
+    farm_center,
     generate_polygon,
+    geometry_to_parts,
     get_point_area_and_radius,
+    parts_to_geometry,
 )
 
-# A farm's path (`PolygonDetails.path`) is a single ring, so a hole can't be carried
-# through the contract. Silently dropping it would analyse a larger farm than the one
-# declared, and the deforestation ratio would come out too low. Until holes are
-# supported end to end, a polygon with holes is rejected at upload.
-HOLES_NOT_SUPPORTED = "Polygons with holes (inner rings) are not supported"
+GeometryType = Literal["Point", "Polygon", "MultiPolygon"]
 
 
-def get_farm_coords_and_radius(
-    farm: FarmPolygonDetailData,
-) -> tuple[list[Coordinates], float | None]:
+class FarmDetailsMismatchError(ValueError):
+    """A farm's `type` and `details` disagree: a malformed request, not a bad
+    geometry."""
+
+
+def build_farm_geometry(farm: FarmPolygonDetailData) -> FarmGeometry:
     """
-    Derives the (coords, radius) pair used to build a farm's polygon from its
-    ``type`` + ``details``. ``type`` and ``details`` are independent,
-    client-controlled fields (not a discriminated union), so a mismatch between
-    them is rejected here instead of being asserted or silently coerced.
+    The Shapely geometry of a farm as the web sends it back: its parts with their
+    holes for a polygon, or the circle of its radius for a point. ``type`` and
+    ``details`` are independent, client-controlled fields (not a discriminated
+    union), so a mismatch between them is rejected instead of being asserted or
+    silently coerced.
+
+    Raises:
+        FarmDetailsMismatchError: If ``details`` doesn't match ``type``.
+        ValueError: If the geometry can't be built (a ring of 1 or 2 vertices).
     """
     details = farm.details
     if farm.type == "polygon" and isinstance(details, PolygonDetails):
-        return details.path, None
+        return parts_to_geometry(details.parts)
     if farm.type == "point" and isinstance(details, PointDetails):
-        return [details.center], details.radius
-    raise ValueError(f"Details do not match farm type '{farm.type}'")
+        return generate_polygon([details.center], details.radius)
+    raise FarmDetailsMismatchError(f"Details do not match farm type '{farm.type}'")
 
 
 def parse_farm_coordinates_string(
     coordinates_format: str,
-    geometry_type: Literal["Point", "Polygon"],
+    geometry_type: GeometryType,
     farm_coordinates: str,
-) -> list[Coordinates]:
+) -> ShapelyPoint | Polygon | MultiPolygon:
     """
-    Parses a string of farm coordinates into a list of Coordinates objects.
+    Parses a farm's coordinates, in WKT or as a GeoJSON coordinates array, into a
+    2D Shapely geometry: a Point, or a Polygon or MultiPolygon with its holes.
 
-    Args:
-        geometry_type (str): The type of geometry to parse the coordinates from
-        farm_coordinates (str): A string representing farm coordinates in WKT or
-        GeoJSON format. The coordinates should be in decimal degrees with longitude
-        first, then latitude.
-
-    Returns:
-        list[Coordinates]: A list of Coordinates objects with longitude (lng) and
-        latitude (lat) attributes representing the coordinates.
-
-    Raises:
-        ValueError: If the geometry_type is not supported or coordinates
-                   cannot be parsed or are empty.
+    The geometry's type comes from the coordinates (the WKT keyword, or the GeoJSON
+    array's depth). ``geometry_type`` only has to agree on point vs polygon:
+    "Polygon" and "MultiPolygon" are interchangeable, so a farm of several parts
+    declared as "Polygon" is accepted.
 
     Examples:
-        coordinates_format = "WKT"
-        geometry_type = "Point"
-        farm_coordinates = "POINT (1.0 2.0)"
-        coords = parse_farm_coordinates_string(
-            coordinates_format,
-            geometry_type,
-            farm_coordinates
+        parse_farm_coordinates_string("WKT", "Point", "POINT (1.0 2.0)")
+        # Point(1, 2)
+        parse_farm_coordinates_string("GeoJSON", "Point", "[1.0, 2.0]")
+        # Point(1, 2)
+        parse_farm_coordinates_string(
+            "GeoJSON", "Polygon", "[[[0, 0], [1, 0], [1, 1], [0, 0]], [[...hole]]]"
         )
-        # coords will be [Coordinates(lng=1.0, lat=2.0)]
+        # Polygon with one hole
 
-        coordinates_format = "GeoJSON"
-        geometry_type = "Point"
-        farm_coordinates = "[1.0, 2.0]"
-        coords = parse_farm_coordinates_string(
-            coordinates_format,
-            geometry_type,
-            farm_coordinates
-        )
-        # coords will be [Coordinates(lng=1.0, lat=2.0)]
-
-        coordinates_format = "GeoJSON"
-        geometry_type = "Polygon"
-        farm_coordinates = "[[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [1.0, 2.0]]]"
-        coords = parse_farm_coordinates_string(
-            coordinates_format,
-            geometry_type,
-            farm_coordinates
-        )
-        # coords will be [Coordinates(lng=1.0, lat=2.0),
-        #                 Coordinates(lng=3.0, lat=4.0), ...]
+    Raises:
+        ValueError: If the coordinates are empty, can't be parsed, aren't a point,
+            polygon or multipolygon, or disagree with ``geometry_type``.
     """
     if not farm_coordinates.strip():
         raise ValueError("Farm coordinates cannot be empty")
 
     try:
+        geometry: BaseGeometry
         if coordinates_format == "WKT":
-            return _parse_wkt_coordinates(geometry_type, farm_coordinates)
+            geometry = wkt.loads(farm_coordinates)
         elif coordinates_format == "GeoJSON":
-            if geometry_type == "Point":
-                return _parse_geojson_point_coordinates(farm_coordinates)
-            elif geometry_type == "Polygon":
-                return _parse_geojson_polygon_coordinates(farm_coordinates)
-            else:
-                raise ValueError(f"Unsupported geometry type: {geometry_type}")
+            geometry = _parse_geojson_coordinates(farm_coordinates)
         else:
             raise ValueError(f"Unsupported coordinates format: {coordinates_format}")
+        return _check_geometry_type(geometry_type, geometry)
     except Exception as e:
         raise ValueError(f"Error parsing coordinates: {str(e)}") from e
 
 
-def _parse_wkt_coordinates(
-    geometry_type: Literal["Point", "Polygon"], farm_coordinates: str
-) -> list[Coordinates]:
+def _check_geometry_type(
+    geometry_type: GeometryType, geometry: BaseGeometry
+) -> ShapelyPoint | Polygon | MultiPolygon:
+    if not isinstance(geometry, (ShapelyPoint, Polygon, MultiPolygon)):
+        raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
+    if isinstance(geometry, ShapelyPoint) != (geometry_type == "Point"):
+        raise ValueError(
+            f"Inconsistent geometry type '{geometry_type}' and "
+            f"{geometry.geom_type} coordinates"
+        )
+    return shapely.force_2d(geometry)
+
+
+def _parse_geojson_coordinates(
+    farm_coordinates: str,
+) -> ShapelyPoint | Polygon | MultiPolygon:
     """
-    Parses WKT format coordinates. Only supports Point and Polygon geometries.
-
-    Args:
-        farm_coordinates (str): WKT format string (e.g., "POINT (1.0 2.0)",
-                               "POLYGON ((1.0 2.0, 3.0 4.0, 5.0 6.0, 1.0 2.0))")
-
-    Returns:
-        list[Coordinates]: List of coordinate objects
-    """
-    geom = wkt.loads(farm_coordinates)
-    if geometry_type == "Point":
-        if not isinstance(geom, ShapelyPoint):
-            raise ValueError("Inconsistent geometry_type and WKT coordinates")
-        return [Coordinates(lng=float(geom.x), lat=float(geom.y))]
-    if geometry_type == "Polygon":
-        if not isinstance(geom, ShapelyPolygon):
-            raise ValueError("Inconsistent geometry_type and WKT coordinates")
-        if len(geom.interiors) > 0:
-            raise ValueError(HOLES_NOT_SUPPORTED)
-        return [
-            Coordinates(lng=float(x), lat=float(y)) for x, y in geom.exterior.coords
-        ]
-    raise ValueError("Unsupported geometry type")
-
-
-def _parse_geojson_point_coordinates(farm_coordinates: str) -> list[Coordinates]:
-    """
-    Parses GeoJSON Point format coordinates.
-
-    Args:
-        farm_coordinates (str): GeoJSON Point format string (e.g., "[1.0, 2.0]")
-
-    Returns:
-        list[Coordinates]: List containing single coordinate object
+    A GeoJSON coordinates array, by its depth: ``[lng, lat]`` is a Point,
+    ``[ring, ...]`` a Polygon (its first ring the exterior, the rest holes) and
+    ``[polygon, ...]`` a MultiPolygon.
     """
     try:
-        coords = json.loads(farm_coordinates)
-        if not isinstance(coords, list) or len(coords) != 2:
-            raise ValueError("GeoJSON Point must be an array with exactly 2 elements")
+        coordinates = json.loads(farm_coordinates)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid GeoJSON coordinates: {e}") from e
 
-        lng, lat = coords
-        return [Coordinates(lng=float(lng), lat=float(lat))]
-    except (json.JSONDecodeError, TypeError, ValueError) as e:
-        raise ValueError(f"Invalid GeoJSON Point coordinates: {e}")
+    depth = _nesting_depth(coordinates)
+    if depth == 1:
+        return ShapelyPoint(_position(coordinates))
+    if depth == 3:
+        return _geojson_polygon(coordinates)
+    if depth == 4:
+        return MultiPolygon([_geojson_polygon(polygon) for polygon in coordinates])
+    raise ValueError(
+        "GeoJSON coordinates must be a Point, Polygon or MultiPolygon array"
+    )
 
 
-def _parse_geojson_polygon_coordinates(farm_coordinates: str) -> list[Coordinates]:
-    """
-    Parses GeoJSON Polygon format coordinates.
+def _nesting_depth(value: object) -> int:
+    depth = 0
+    while isinstance(value, list):
+        if not value:
+            raise ValueError("GeoJSON coordinates contain an empty array")
+        depth += 1
+        value = value[0]
+    return depth
 
-    Args:
-        farm_coordinates (str): GeoJSON Polygon format string
-                               (e.g., "[[[1.0, 2.0], [3.0, 4.0],
-                               [5.0, 6.0], [1.0, 2.0]]]")
 
-    Returns:
-        list[Coordinates]: List of coordinate objects from the polygon's only ring.
-        A polygon with inner rings (holes) is rejected, as in WKT.
-    """
-    try:
-        rings = json.loads(farm_coordinates)
-        if not isinstance(rings, list) or len(rings) == 0:
-            raise ValueError("GeoJSON Polygon must be an array of linear rings")
-        if len(rings) > 1:
-            raise ValueError(HOLES_NOT_SUPPORTED)
+def _position(value: object) -> tuple[float, float]:
+    if not isinstance(value, list) or len(value) != 2:
+        raise ValueError("Each coordinate must be an array with exactly 2 elements")
+    lng, lat = value
+    return float(lng), float(lat)
 
-        [ring] = rings
+
+def _geojson_polygon(rings: object) -> Polygon:
+    if not isinstance(rings, list) or len(rings) == 0:
+        raise ValueError("A GeoJSON polygon must be an array of linear rings")
+    parsed = []
+    for ring in rings:
         if not isinstance(ring, list):
-            raise ValueError("Each ring in GeoJSON Polygon must be an array")
-
-        coordinates = []
-        for coord in ring:
-            if not isinstance(coord, list) or len(coord) != 2:
-                raise ValueError(
-                    "Each coordinate must be an array with exactly 2 elements"
-                )
-            lng, lat = coord
-            coordinates.append(Coordinates(lng=float(lng), lat=float(lat)))
-
-        return coordinates
-    except (json.JSONDecodeError, TypeError, ValueError) as e:
-        raise ValueError(f"Invalid GeoJSON Polygon coordinates: {e}")
+            raise ValueError("Each ring in a GeoJSON polygon must be an array")
+        parsed.append([_position(coordinate) for coordinate in ring])
+    exterior, *holes = parsed
+    return Polygon(exterior, holes)
 
 
 def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
@@ -211,51 +171,42 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
 
     Args:
         farm (PreProcessedFarmData): The unprocessed farm data containing farm details
-        and coordinates.
+        and its parsed geometry.
 
     Returns:
         FarmData: A FarmData object containing the parsed base information and polygon
                 details. The polygon field will contain type, details
-                (center/path/radius) and area.
+                (center and parts, or center and radius) and area.
 
     Raises:
-        HTTPException: If there is an error parsing the farm coordinates or generating
-                      the polygon. Returns a 400 status code with error details.
+        HTTPException: If there is an error generating the polygon. Returns a 400
+                      status code with error details.
     """
     summary: PointSummary | PolygonShapeSummary
     try:
-        poly_type = farm.geometryType.lower()  # Use the geometryType attribute
-        details: PolygonDetails | PointDetails | None = None
-        area = None
-
-        if poly_type == "polygon":
-            polygon = generate_polygon(farm.farmCoordinates)
-            if not polygon.is_empty:
-                details = PolygonDetails(
-                    center=Coordinates(
-                        lng=polygon.centroid.x,
-                        lat=polygon.centroid.y,
-                    ),
-                    path=farm.farmCoordinates,
-                )
-                area = GeometryCalculator.calculate_polygon_area(polygon)
-        elif poly_type == "point":
+        geometry = farm.farmCoordinates
+        if isinstance(geometry, ShapelyPoint):
             area, radius = get_point_area_and_radius(float(farm.area))
-            polygon = generate_polygon(farm.farmCoordinates, radius)
-            details = PointDetails(
-                center=Coordinates(
-                    lng=farm.farmCoordinates[0].lng,
-                    lat=farm.farmCoordinates[0].lat,
+            summary = PointSummary(
+                type="point",
+                details=PointDetails(
+                    center=Coordinates(lng=geometry.x, lat=geometry.y),
+                    radius=radius,
                 ),
-                radius=radius,
+                area=area,
             )
-
-        if poly_type == "point":
-            assert isinstance(details, PointDetails) and area is not None
-            summary = PointSummary(type="point", details=details, area=area)
         else:
-            assert details is None or isinstance(details, PolygonDetails)
-            summary = PolygonShapeSummary(type="polygon", details=details, area=area)
+            details = None
+            polygon_area = None
+            if not geometry.is_empty:
+                details = PolygonDetails(
+                    center=farm_center(geometry),
+                    parts=geometry_to_parts(geometry),
+                )
+                polygon_area = GeometryCalculator.calculate_polygon_area(geometry)
+            summary = PolygonShapeSummary(
+                type="polygon", details=details, area=polygon_area
+            )
 
     except Exception as e:
         print(e)

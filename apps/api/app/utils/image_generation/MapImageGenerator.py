@@ -66,7 +66,7 @@ class MapImageGenerator:
         a geometry overlay (polygon or point), and optionally deforestation data.
 
         Args:
-            geometry: Shapely geometry object (Polygon or Point). Must be in WGS84
+            geometry: Shapely geometry object (Polygon, MultiPolygon or Point). Must be in WGS84
                 coordinate system (EPSG:4326).
             tif_path: Optional path to TIF file with deforestation data. If provided,
                 will attempt to overlay deforestation data from this file.
@@ -82,7 +82,7 @@ class MapImageGenerator:
             deforestation, as on the web map.
 
         Raises:
-            GeometryTypeError: If geometry is not a Polygon or Point
+            GeometryTypeError: If geometry is not a Polygon, MultiPolygon or Point
             ParameterValidationError: If point_radius_meters is provided for Polygon
                 or missing for Point geometries
             GoogleMapsAPIError: If there are issues fetching satellite imagery

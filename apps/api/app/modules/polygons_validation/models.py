@@ -2,13 +2,14 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.polygons import Coordinates
+from app.models.polygons import Coordinates, PolygonPart
 
 
 class OverlapData(BaseModel):
     area: float
     center: Coordinates
-    paths: list[list[Coordinates]]
+    # The overlapping area, with its holes, shaped like a farm's parts
+    parts: list[PolygonPart]
     percentage: float
     criticality: Literal["HIGH", "MEDIUM"]
 
