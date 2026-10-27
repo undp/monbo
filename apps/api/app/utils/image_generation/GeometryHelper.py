@@ -335,17 +335,28 @@ class GeometryHelper:
             return pixel_coords
 
         polygons = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
-        exteriors = [to_pixels(polygon.exterior) for polygon in polygons]
-        holes = [to_pixels(hole) for polygon in polygons for hole in polygon.interiors]
+        parts = [
+            (
+                to_pixels(polygon.exterior),
+                [to_pixels(hole) for hole in polygon.interiors],
+            )
+            for polygon in polygons
+        ]
+        exteriors = [exterior for exterior, _ in parts]
+        holes = [hole for _, part_holes in parts for hole in part_holes]
 
         # 1. The semi-transparent fill, through a mask: PIL can't fill a polygon
-        # with holes, so the exteriors are filled and then the holes cleared
+        # with holes, so each part is its exterior filled and then its holes
+        # cleared. Parts are masked one at a time and joined: a valid farm can
+        # have a part inside another part's hole, which that hole must not erase
         mask = Image.new("L", output_size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        for ring in exteriors:
-            mask_draw.polygon(ring, fill=255)
-        for ring in holes:
-            mask_draw.polygon(ring, fill=0)
+        for exterior, part_holes in parts:
+            part_mask = Image.new("L", output_size, 0)
+            part_draw = ImageDraw.Draw(part_mask)
+            part_draw.polygon(exterior, fill=255)
+            for hole in part_holes:
+                part_draw.polygon(hole, fill=0)
+            mask.paste(255, mask=part_mask)
         overlay = Image.composite(
             Image.new("RGBA", output_size, MapColors.FEATURE_FILL),
             Image.new("RGBA", output_size, (0, 0, 0, 0)),

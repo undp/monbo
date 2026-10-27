@@ -147,3 +147,21 @@ def test_a_hole_is_outlined_and_not_filled(all_loss_raster):
     solid_rgb = solid.convert("RGB")
     assert ring_rgb.getpixel(center) == ring_rgb.getpixel(above)
     assert solid_rgb.getpixel(center) != solid_rgb.getpixel(above)
+
+
+ISLAND = [(-0.001, -0.001), (-0.001, 0.001), (0.001, 0.001), (0.001, -0.001)]
+
+
+def test_a_part_inside_another_parts_hole_is_filled(all_loss_raster):
+    """A valid MultiPolygon: a ring-shaped part and an island part inside its
+    hole. The hole must not erase the island's fill."""
+    farm = MultiPolygon([Polygon(SQUARE, [HOLE]), Polygon(ISLAND)])
+    assert farm.is_valid
+    solid = _generate(Polygon(SQUARE), all_loss_raster).convert("RGB")
+    ring = _generate(Polygon(SQUARE, [HOLE]), all_loss_raster).convert("RGB")
+    with_island = _generate(farm, all_loss_raster).convert("RGB")
+    # The image is centered on the farm, so its center is on the island: there
+    # the fill tints the loss as it does on a solid farm, unlike in the empty hole
+    center = (320, 210)
+    assert with_island.getpixel(center) == solid.getpixel(center)
+    assert with_island.getpixel(center) != ring.getpixel(center)
