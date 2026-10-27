@@ -815,3 +815,32 @@ def test_farm_with_a_single_ring_is_accepted_at_upload():
     assert farm["polygon"]["area"] > 0
     [part] = farm["polygon"]["details"]["parts"]
     assert part["holes"] == []
+
+
+# --- Farms across the equator ----------------------------------------------------
+
+# About 300 ha, from latitude −0.008 to +0.008: opposite latitudes made the area's
+# projection undefined
+EQUATOR_RING = [
+    (-0.008, -0.008),
+    (0.008, -0.008),
+    (0.008, 0.008),
+    (-0.008, 0.008),
+    (-0.008, -0.008),
+]
+
+
+def test_farm_symmetric_about_the_equator_is_uploaded():
+    farm = _parse_farm("GeoJSON", json.dumps([EQUATOR_RING]))
+    assert farm["polygon"]["area"] / 10_000 == pytest.approx(315.11, abs=0.01)
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_overlap_symmetric_about_the_equator_is_reported():
+    # They overlap from latitude −0.008 to +0.008, in half of the smaller farm
+    statuses, inconsistencies = _validate(
+        _farm("a", _box(-8, -8, 8, 8)), _farm("b", _box(0, -8, 20, 8))
+    )
+    [overlap] = _overlaps(inconsistencies)
+    assert overlap["data"]["percentage"] == pytest.approx(0.5, abs=1e-3)
+    assert statuses == {"a": "NOT_VALID", "b": "NOT_VALID"}
