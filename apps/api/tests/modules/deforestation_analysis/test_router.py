@@ -573,10 +573,9 @@ def test_analize_loss_inside_a_hole_doesnt_count(maps_root):
     _write_loss_layer(maps_root, data)
     results = _analize(
         [
-            # Not symmetric about the equator: GeometryCalculator can't build its
-            # equal-area projection for a farm whose latitudes are exactly opposite
-            _polygon_farm("ring", _square(-8, -7, 8, 9), [_square(-3, -3, 3, 3)]),
-            _polygon_farm("solid", _square(-8, -7, 8, 9)),
+            # Symmetric about the equator (latitudes −0.008 to 0.008), on purpose
+            _polygon_farm("ring", _square(-8, -8, 8, 8), [_square(-3, -3, 3, 3)]),
+            _polygon_farm("solid", _square(-8, -8, 8, 8)),
         ]
     )
     assert results["ring"] == 0

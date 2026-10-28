@@ -107,7 +107,7 @@ A problem in a farm's geometry SHALL be reported as an inconsistency of that far
 
 ### Requirement: Polygon coordinates from WKT and GeoJSON
 
-When parsing farms, a polygonal farm's coordinates SHALL be accepted as a Polygon or a MultiPolygon, with or without inner rings (holes), in WKT and as a GeoJSON coordinate array. The geometry type SHALL be deduced from the coordinates: the WKT keyword, or the GeoJSON array's nesting depth. The farm's `geometryType` SHALL accept `"Polygon"` and `"MultiPolygon"` for any polygonal geometry, so a user doesn't have to tell them apart. A polygonal geometry given with `geometryType` `"Point"`, or a point given as `"Polygon"` or `"MultiPolygon"`, SHALL be rejected as inconsistent. Other geometries (lines, MultiPoints, collections) SHALL be rejected. The same polygon SHALL get the same parts and area in both formats.
+When parsing farms, a polygonal farm's coordinates SHALL be accepted as a Polygon or a MultiPolygon, with or without inner rings (holes), in WKT and as a GeoJSON coordinate array. The geometry type SHALL be deduced from the coordinates: the WKT keyword, or the GeoJSON array's nesting depth. The farm's `geometryType` SHALL accept `"Polygon"` and `"MultiPolygon"` for any polygonal geometry, so a user doesn't have to tell them apart. A polygonal geometry given with `geometryType` `"Point"`, or a point given as `"Polygon"` or `"MultiPolygon"`, SHALL be rejected as inconsistent. Other geometries (lines, MultiPoints, collections) SHALL be rejected. Every coordinate SHALL be a WGS84 position in degrees, longitude from −180 to 180 and latitude from −90 to 90; a farm with a coordinate outside those ranges, point or polygon, in either format, SHALL be rejected as invalid coordinates, since it has no place on the ellipsoid. The same polygon SHALL get the same parts and area in both formats.
 
 #### Scenario: GeoJSON polygon with a hole
 
@@ -148,6 +148,11 @@ When parsing farms, a polygonal farm's coordinates SHALL be accepted as a Polygo
 
 - **WHEN** a farm's coordinates are a WKT `LINESTRING`
 - **THEN** the farm is rejected as invalid coordinates
+
+#### Scenario: Coordinates beyond the poles
+
+- **WHEN** a farm's coordinates are a polygon with latitudes of 95° and 96°, in WKT or GeoJSON, or a point with a longitude of 200°
+- **THEN** `/farms/parse` answers 400 naming the latitude or longitude range, instead of a farm with a null area
 
 ### Requirement: Overlaps respect holes and parts
 

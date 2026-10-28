@@ -70,6 +70,7 @@
 
   A download can now be uploaded again: the deforestation download kept only 2 of the template's 3 header rows, so its first farm was read as the example row, and a decimal quantity like 1200.5 was rejected in Spanish
 - A layer an admin enabled took up to five minutes to show up for users who already had the app open (the web only fetched the countries and layers on load and every five minutes). The web now fetches them again when the user returns to the tab or the window, and the deforestation modal and the deforestation upload page fetch the layers when they open, at most once every 30 seconds per list
+- A farm of more than about 20 ha crossing the equator with opposite latitudes (for example −0.008° to +0.008°) blocked the whole upload with a projection error, made the polygon validation fail with a 500 (it was enough for two farms to overlap that way) and got no deforestation ratio. Farm areas are now measured on the WGS84 ellipsoid (geodesic area) instead of through Albers projections. Areas stay the same: over 1,000 random farms from 0.1 to 1,000 ha, the largest difference is 0.91 m² (0.0007%). A coordinate outside WGS84 (a latitude beyond ±90° or a longitude beyond ±180°), which Shapely accepts but has no area on the ellipsoid, is now rejected on upload with a 400 naming the range, instead of giving a farm with no area that the validation accepted
 
 ### Security
 

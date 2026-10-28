@@ -57,7 +57,7 @@ This was checked against an equal-area projection (EPSG:6933, the union of the l
 
 ## The farm's geodesic area
 
-`GeometryCalculator.calculate_polygon_area` (`apps/api/app/helpers/GeometryCalculator.py`, an Albers equal-area projection) no longer enters the ratio. It only decides whether the farm can be measured: an empty, invalid or zero-area polygon gets no ratio (`null`), and so does a farm outside the raster or one whose layer can't be read.
+`GeometryCalculator.calculate_polygon_area` (`apps/api/app/helpers/GeometryCalculator.py`) measures the farm's area on the WGS84 ellipsoid, with no map projection (`pyproj.Geod.geometry_area_perimeter`): holes are subtracted and parts added. It is the area the web shows and the one overlaps are measured with. It replaced Albers equal-area projections, which gave the same areas to the square centimetre on farms but were undefined for a farm larger than about 20 ha whose latitudes are opposite about the equator. It doesn't enter the ratio. It only decides whether the farm can be measured: an empty, invalid or zero-area polygon gets no ratio (`null`), and so does a farm outside the raster or one whose layer can't be read.
 
 The deforested area in hectares, if it is ever shown, would be the ratio × the farm's geodesic area.
 

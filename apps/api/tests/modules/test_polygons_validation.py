@@ -725,6 +725,28 @@ def _upload_row(coordinates_format, coordinates, geometry_type="Polygon"):
     }
 
 
+@pytest.mark.parametrize(
+    "coordinates_format, geometry_type, coordinates",
+    [
+        ("WKT", "Polygon", "POLYGON ((0 95, 1 95, 1 96, 0 96, 0 95))"),
+        ("GeoJSON", "Polygon", json.dumps([[[0, 95], [1, 95], [1, 96], [0, 95]]])),
+        ("WKT", "Point", "POINT (200 0)"),
+        ("GeoJSON", "Point", json.dumps([0, -91])),
+    ],
+)
+def test_coordinates_outside_wgs84_are_a_bad_request(
+    coordinates_format, geometry_type, coordinates
+):
+    # A polygon beyond the poles is Shapely-valid but has no geodesic area: it
+    # was uploaded with a null area and then validated as VALID
+    response = client.post(
+        "/farms/parse",
+        json=[_upload_row(coordinates_format, coordinates, geometry_type)],
+    )
+    assert response.status_code == 400, response.text
+    assert "latitude" in response.text or "longitude" in response.text
+
+
 def _parse_farm(coordinates_format, coordinates, geometry_type="Polygon"):
     response = client.post(
         "/farms/parse",
@@ -815,3 +837,32 @@ def test_farm_with_a_single_ring_is_accepted_at_upload():
     assert farm["polygon"]["area"] > 0
     [part] = farm["polygon"]["details"]["parts"]
     assert part["holes"] == []
+
+
+# --- Farms across the equator ----------------------------------------------------
+
+# About 300 ha, from latitude −0.008 to +0.008: opposite latitudes made the area's
+# projection undefined
+EQUATOR_RING = [
+    (-0.008, -0.008),
+    (0.008, -0.008),
+    (0.008, 0.008),
+    (-0.008, 0.008),
+    (-0.008, -0.008),
+]
+
+
+def test_farm_symmetric_about_the_equator_is_uploaded():
+    farm = _parse_farm("GeoJSON", json.dumps([EQUATOR_RING]))
+    assert farm["polygon"]["area"] / 10_000 == pytest.approx(315.11, abs=0.01)
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_overlap_symmetric_about_the_equator_is_reported():
+    # They overlap from latitude −0.008 to +0.008, in half of the smaller farm
+    statuses, inconsistencies = _validate(
+        _farm("a", _box(-8, -8, 8, 8)), _farm("b", _box(0, -8, 20, 8))
+    )
+    [overlap] = _overlaps(inconsistencies)
+    assert overlap["data"]["percentage"] == pytest.approx(0.5, abs=1e-3)
+    assert statuses == {"a": "NOT_VALID", "b": "NOT_VALID"}
