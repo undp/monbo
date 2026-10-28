@@ -92,7 +92,7 @@ This is the core concept worth understanding clearly.
 
   - Both areas are in the **raster's CRS**: exact in a projected one (UTM), and in EPSG:4326 the ratio of two areas a few hundred metres across is the same as on the ground. The layer's `pixel_size` doesn't enter it.
   - A pixel the farm only grazes adds that sliver, not a whole pixel. Before October 2026 each touched loss pixel counted in full (`pixels × pixel_size² / area`, capped at 1), which over-estimated small farms: one of 2.7 ha with 67% of its area on loss showed 100%.
-  - Whether there is a ratio at all is decided by the real geodesic area (*Albers Equal Area*, `helpers/GeometryCalculator.py`): an empty or invalid polygon has none (`null`).
+  - Whether there is a ratio at all is decided by the real geodesic area, measured on the WGS84 ellipsoid (`helpers/GeometryCalculator.py`): an empty or invalid polygon has none (`null`).
   - The result is a **ratio from 0 to 1** (the UI shows it as a percentage). In one sentence: *"what fraction of this farm's real area falls on cells flagged as post-baseline forest loss?"*
   - The full method, with an example and how each pixel's piece is measured, is in [`deforestation_calculation.md`](deforestation_calculation.md).
 
@@ -154,7 +154,7 @@ modules/                   # One package per module, each with router.py + helpe
 └── admin/                 #   /admin/* — per-country passkey login, layer CRUD, raster uploads (only when configured); countries CLI
 maps/                      # Git-tracked layers: index.json, .tif rasters (Git LFS), bilingual metadata per layer
 models/                    # Shared Pydantic schemas (farms, maps, polygons)
-helpers/GeometryCalculator.py  # Geodesic area computation (Albers Equal Area)
+helpers/GeometryCalculator.py  # Geodesic area computation (WGS84 ellipsoid, pyproj.Geod)
 utils/image_generation/    # Image generation (raster + geometry + Google Maps)
 config/                    # env.py, constants.py, logger.py
 tests/                     # pytest, mirrors the modules/ structure; tests/regression/ runs a fixed set of farms end to end
