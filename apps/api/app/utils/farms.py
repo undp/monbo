@@ -1,6 +1,7 @@
 import json
 from typing import Literal
 
+import numpy as np
 import shapely
 from fastapi import HTTPException
 from shapely import wkt
@@ -93,7 +94,9 @@ def parse_farm_coordinates_string(
             geometry = _parse_geojson_coordinates(farm_coordinates)
         else:
             raise ValueError(f"Unsupported coordinates format: {coordinates_format}")
-        return _check_geometry_type(geometry_type, geometry)
+        geometry = _check_geometry_type(geometry_type, geometry)
+        _check_coordinates_in_range(geometry)
+        return geometry
     except Exception as e:
         raise ValueError(f"Error parsing coordinates: {str(e)}") from e
 
@@ -109,6 +112,24 @@ def _check_geometry_type(
             f"{geometry.geom_type} coordinates"
         )
     return shapely.force_2d(geometry)
+
+
+def _check_coordinates_in_range(geometry: BaseGeometry) -> None:
+    """
+    Every vertex must be a WGS84 position in degrees. Shapely accepts any number,
+    but a farm beyond the poles has no geodesic area (NaN), and would be uploaded
+    with a null area and validated as if it were fine.
+    """
+    coordinates = shapely.get_coordinates(geometry)
+    lng, lat = coordinates[:, 0], coordinates[:, 1]
+    # Written so that a NaN coordinate counts as outside
+    outside = ~((np.abs(lng) <= 180) & (np.abs(lat) <= 90))
+    if outside.any():
+        bad_lng, bad_lat = coordinates[outside][0]
+        raise ValueError(
+            "Coordinates must be WGS84 degrees, longitude from -180 to 180 and "
+            f"latitude from -90 to 90: got longitude {bad_lng}, latitude {bad_lat}"
+        )
 
 
 def _parse_geojson_coordinates(

@@ -725,6 +725,28 @@ def _upload_row(coordinates_format, coordinates, geometry_type="Polygon"):
     }
 
 
+@pytest.mark.parametrize(
+    "coordinates_format, geometry_type, coordinates",
+    [
+        ("WKT", "Polygon", "POLYGON ((0 95, 1 95, 1 96, 0 96, 0 95))"),
+        ("GeoJSON", "Polygon", json.dumps([[[0, 95], [1, 95], [1, 96], [0, 95]]])),
+        ("WKT", "Point", "POINT (200 0)"),
+        ("GeoJSON", "Point", json.dumps([0, -91])),
+    ],
+)
+def test_coordinates_outside_wgs84_are_a_bad_request(
+    coordinates_format, geometry_type, coordinates
+):
+    # A polygon beyond the poles is Shapely-valid but has no geodesic area: it
+    # was uploaded with a null area and then validated as VALID
+    response = client.post(
+        "/farms/parse",
+        json=[_upload_row(coordinates_format, coordinates, geometry_type)],
+    )
+    assert response.status_code == 400, response.text
+    assert "latitude" in response.text or "longitude" in response.text
+
+
 def _parse_farm(coordinates_format, coordinates, geometry_type="Polygon"):
     response = client.post(
         "/farms/parse",

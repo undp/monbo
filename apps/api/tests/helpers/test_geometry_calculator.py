@@ -64,3 +64,9 @@ def test_invalid_and_empty_polygons():
     bowtie = Polygon([(0, 0), (0.001, 0.001), (0.001, 0), (0, 0.001)])
     assert area(bowtie) == -1
     assert area(Polygon()) == 0
+
+
+def test_a_polygon_beyond_the_poles_has_no_area():
+    # Shapely accepts it, but there is no such place on the ellipsoid: pyproj
+    # gives NaN, which must not reach a response as a null area
+    assert area(box(0, 95, 1, 96)) == -1

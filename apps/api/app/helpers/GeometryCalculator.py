@@ -1,3 +1,4 @@
+import math
 from typing import Final, Tuple, Union
 
 from pyproj import Geod
@@ -62,8 +63,8 @@ class GeometryCalculator:
 
         Returns:
             float: The area in square meters, rounded to 2 decimal places. -1 for an
-                invalid polygon and 0 for an empty one, which the validation and the
-                analysis rely on.
+                invalid polygon, or one whose area isn't a finite number, and 0 for
+                an empty one, which the validation and the analysis rely on.
         """
         if not polygon.is_valid:
             return -1
@@ -76,4 +77,10 @@ class GeometryCalculator:
         parts = polygon.geoms if isinstance(polygon, MultiPolygon) else [polygon]
         oriented = MultiPolygon([orient(part, sign=1.0) for part in parts])
         area, _ = GeometryCalculator.GEOD.geometry_area_perimeter(oriented)
+        if not math.isfinite(area):
+            # Shapely accepts coordinates that aren't on the ellipsoid (a latitude
+            # beyond the poles); pyproj gives NaN for them. Uploads reject them,
+            # but a NaN must never reach a response as a null area
+            logger.warning(f"Non-finite area for polygon with bounds {polygon.bounds}")
+            return -1
         return round(abs(area), 2)
