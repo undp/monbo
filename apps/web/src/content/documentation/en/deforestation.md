@@ -44,6 +44,8 @@ A farm shows **no result (N/A)** on a layer, instead of 0%, when it can't be mea
 
 A farm with no result doesn't affect the other farms' results.
 
+On the analysis map, for now, a farm with no result is listed in the **Def. Free** tab, with N/A instead of a percentage. It hasn't been measured: it is not a deforestation-free result.
+
 ### The limit of the method
 
 The precision stops at the pixel. When a layer marks a pixel with loss, the whole pixel is taken as lost forest. The calculation splits each pixel exactly between the farm and its surroundings, but it can't know where in the pixel the loss happened. That precision depends on each layer's resolution, not on the calculation.

@@ -44,6 +44,8 @@ Una finca aparece **sin resultado (N/D)** en una capa, en lugar de 0%, cuando no
 
 Una finca sin resultado no afecta los resultados de las demás.
 
+En el mapa del análisis, por ahora, una finca sin resultado aparece en la pestaña **Libre Def.**, con N/D en lugar de un porcentaje. No se pudo medir: no es un resultado libre de deforestación.
+
 ### El límite del método
 
 La precisión llega hasta el píxel. Cuando una capa marca un píxel con pérdida, todo el píxel se considera bosque perdido. El cálculo reparte cada píxel exactamente entre la finca y su entorno, pero no puede saber en qué parte del píxel ocurrió la pérdida. Esa precisión depende de la resolución de cada capa, no del cálculo.
