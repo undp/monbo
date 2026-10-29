@@ -46,7 +46,7 @@ So a 1 ha farm lying entirely inside a 200 ha farm has a 100% overlap, not 0.5%.
 - Two farms that only share an edge or a corner don't overlap, because they share no area.
 - A farm lying inside another farm's hole doesn't overlap it.
 - A farm with several parts is compared through all of them. Its total area is the sum of its parts.
-- A farm uploaded as a point is compared as a circle with its declared area (see [Farm area](#area)).
+- A farm uploaded as a point is compared as a circle built from its declared area, approximately (see [Farm area](#area)).
 
 If a farm overlaps several others, one overlap is reported for each pair.
 

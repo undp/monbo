@@ -46,7 +46,7 @@ Así, una finca de 1 ha que está completamente dentro de una de 200 ha tiene un
 - Dos fincas que solo comparten un borde o una esquina no se traslapan, porque no comparten superficie.
 - Una finca que está dentro del hueco de otra no se traslapa con ella.
 - Si una finca tiene varias partes, se compara con todas ellas. Su superficie total es la suma de sus partes.
-- Una finca cargada como punto se compara como un círculo con la superficie declarada (ver [Superficie de las fincas](#area)).
+- Una finca cargada como punto se compara como un círculo construido a partir de la superficie declarada, de forma aproximada (ver [Superficie de las fincas](#area)).
 
 Si una finca se traslapa con varias, se informa un traslape por cada par.
 

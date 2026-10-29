@@ -17,6 +17,8 @@ An invalid polygon (see [Polygon validation](#validation)) has no well-defined a
 
 A farm uploaded as a point has no boundary, so Monbo uses the **area declared** in the template, in hectares. If the template doesn't give one, **1 ha** is assumed.
 
-To look for overlaps and to measure deforestation, the point is treated as a **circle** centred on that location, with that area. For example, a 1 ha point is analysed as a circle with a radius of about 56 m.
+To look for overlaps and to measure deforestation, the point is treated as a **circle** centred on that location, whose radius comes from that area. For example, a 1 ha point gets a radius of about 56 m.
+
+The circle's area is an **approximation** of the declared one. The circle is drawn in degrees of latitude and longitude, and a degree of longitude covers less ground the farther you are from the equator. So the circle is narrower east-west and covers somewhat less land than declared: about 2% less at 10° latitude, and about 16% less at 33°. The tables and the report still show the declared area.
 
 [Technical detail of the area calculation](https://github.com/undp/monbo/blob/dev/docs/polygon_area_calculation.md)

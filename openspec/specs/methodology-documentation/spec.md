@@ -44,7 +44,7 @@ The polygon validation section SHALL explain, in plain language:
   - it is reported only when it is above the overlap threshold;
   - it is graded HIGH above 80%, and MEDIUM otherwise;
   - farms that only share an edge or a vertex don't overlap, and neither does a farm inside another's hole;
-  - a farm given as a point takes part as a circle with its declared area.
+  - a farm given as a point takes part as a circle built from its declared area, approximately.
 - **The result:** a farm with any of these problems is marked as not valid.
 
 #### Scenario: Overlap rule stated
@@ -63,7 +63,7 @@ The farm area section SHALL explain that:
 
 - a farm's area is measured on the Earth's ellipsoid (WGS84), with no map projection, and is shown in hectares;
 - a hole's area is subtracted, and the areas of a farm's several parts are added;
-- a farm given as a point has the area declared for it, taken as a circle centred on the point;
+- a farm given as a point has the area declared for it, and is analysed as a circle centred on the point whose radius comes from that area; the circle is drawn in degrees, so it covers somewhat less ground than declared away from the equator;
 - this area is the one shown in the app and the one overlaps are measured against, and it decides whether a farm can be analysed for deforestation;
 - the deforestation percentage does not divide by this area: its numerator and denominator are both measured on the map layer, in the layer's coordinates.
 
@@ -75,7 +75,7 @@ The farm area section SHALL explain that:
 #### Scenario: Farm given as a point
 
 - **WHEN** a user reads the area section
-- **THEN** it states that a point farm is treated as a circle with its declared area
+- **THEN** it states that a point farm is treated as a circle built from its declared area, and that the circle's area is an approximation
 
 ### Requirement: The deforestation section explains the percentage
 
