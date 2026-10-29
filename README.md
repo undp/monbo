@@ -77,7 +77,9 @@ Each document follows Markdown format for consistency and readability.
 
 Start with [`docs/architecture.md`](docs/architecture.md): the Azure infrastructure and how its resources interact, how the API reads the layers' rasters, and how each country administers its own layers.
 
-How the deforestation percentage of each farm is calculated is in [`docs/deforestation_calculation.md`](docs/deforestation_calculation.md).
+How the deforestation percentage of each farm is calculated is in [`docs/deforestation_calculation.md`](docs/deforestation_calculation.md), and how a farm's area is measured in [`docs/polygon_area_calculation.md`](docs/polygon_area_calculation.md).
+
+The app explains these methods to its users on its documentation page (`/documentation`, the book button in the header). Its text lives in `apps/web/src/content/documentation/`: when a calculation or a validation changes, update it too (see the [frontend README](apps/web/README.md#documentation-page)).
 
 ### Tools
 

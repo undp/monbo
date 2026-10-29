@@ -12,6 +12,7 @@ apps/web/
 │   ├── app/        # Next.js app router pages
 │   ├── components/ # Reusable React components
 │   ├── config/     # Configuration files
+│   ├── content/    # Markdown of the documentation page, per language
 │   ├── context/    # React context providers
 │   ├── hooks/      # Custom React hooks
 │   ├── interfaces/ # Aliases of the generated API types, plus frontend-only types
@@ -169,6 +170,14 @@ Each JSON file corresponds to a specific page or feature:
 - `polygonValidation.json`: Translations for polygon validation module
 
 If you want to add a new language, please follow the instructions in the [New Language Documentation](docs/new_language.md) file.
+
+### Documentation page
+
+`/documentation` (the book button in the header) explains to the app's users how farms are validated, how their area is measured and how deforestation is calculated. Its text is Markdown, one file per section and language, in `src/content/documentation/<locale>/` (`validation.md`, `area.md`, `deforestation.md`). The page reads them on the server and renders them with `react-markdown`. Each file is one section of the page, and its name is the section's anchor (`/documentation#area`).
+
+- **Thresholds.** The text never states the thresholds: it writes `{{overlapThreshold}}` and `{{deforestationThreshold}}`, which the page replaces with the values loaded from `GET /config` (`src/utils/documentation.ts`). A test checks that both languages have the same sections and use the same known placeholders.
+- **Keeping it in step.** The technical explanations are in `docs/` (`deforestation_calculation.md`, `polygon_area_calculation.md`) and in the API's README. When a calculation or a validation changes, update the page's Markdown in both languages along with them.
+- **A new language** needs its own folder under `src/content/documentation/`.
 
 ## Development Guidelines
 

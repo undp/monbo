@@ -42,15 +42,22 @@ const getDecimalPlacesForThreshold = (threshold: number): number =>
   Math.max(DEFAULT_DECIMAL_PLACES, getThresholdDecimalPlaces(threshold));
 
 /**
+ * A threshold as a percentage with its own decimals, e.g. "0,5%" in Spanish.
+ * @param {number} threshold - A threshold, in percent (0-100)
+ */
+export const formatThreshold = (threshold: number, language: string): string =>
+  formatPercentage(
+    threshold / 100,
+    getThresholdDecimalPlaces(threshold),
+    language
+  );
+
+/**
  * The label of a value at or below a threshold, e.g. "< 0,5%" in Spanish.
  * @param {number} threshold - A threshold, in percent (0-100)
  */
 const formattedBelowThreshold = (threshold: number, language: string): string =>
-  `< ${formatPercentage(
-    threshold / 100,
-    getThresholdDecimalPlaces(threshold),
-    language
-  )}`;
+  `< ${formatThreshold(threshold, language)}`;
 
 // Computed per call: the thresholds come from GET /config at startup.
 const deforestationDecimalPlaces = () =>

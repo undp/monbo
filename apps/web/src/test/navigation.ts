@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 // Stand-in for `next/navigation`, installed by setup.ts for every test. The router's
-// methods are spies; the search params and route params are set per test.
+// methods are spies; the pathname, search params and route params are set per test.
 
 export const router = {
   push: vi.fn(),
@@ -12,8 +12,14 @@ export const router = {
   prefetch: vi.fn(),
 };
 
+let pathname = "/";
 let searchParams = new URLSearchParams();
 let params: Record<string, string> = {};
+
+/** The pathname `usePathname` returns from now on. */
+export const setPathname = (next: string) => {
+  pathname = next;
+};
 
 /** The search params `useSearchParams` returns from now on. */
 export const setSearchParams = (init: Record<string, string>) => {
@@ -26,6 +32,7 @@ export const setParams = (next: Record<string, string>) => {
 };
 
 export const resetNavigation = () => {
+  pathname = "/";
   searchParams = new URLSearchParams();
   params = {};
 };
@@ -34,5 +41,5 @@ export const navigationMock = {
   useRouter: () => router,
   useSearchParams: () => searchParams,
   useParams: () => params,
-  usePathname: () => "/",
+  usePathname: () => pathname,
 };

@@ -62,6 +62,8 @@ The libraries used for this module are:
 
 - [Shapely](https://shapely.readthedocs.io/en/stable/)
 
+The web explains these checks to its users on its documentation page (`/documentation#validation`), from `apps/web/src/content/documentation/{es,en}/validation.md`: update it whenever a check changes.
+
 ### 2. Deforestation Analysis
 
 This module is responsible for analyzing the deforestation of the polygons and points of interest.
@@ -89,7 +91,7 @@ with the following considerations:
 - The pixels the polygon overlaps are found using [rasterio's mask](https://rasterio.readthedocs.io/en/latest/api/rasterio.mask.html) method, with `all_touched=True` so that the pixels it only grazes are included.
 - Each loss pixel counts by the part of it inside the polygon, not in full: a pixel the polygon only grazes adds that sliver. So the percentage is never above 100%, and a polygon smaller than a pixel gets the share of it on loss.
 - Both areas are measured in the raster's CRS, with each pixel's square taken from the raster's transform (the layer's `pixel_size` doesn't enter it). In a projected CRS they are exact; in EPSG:4326 the ratio of two areas a few hundred metres across is the same as on the ground.
-- Whether a farm can be measured at all is decided by its geodesic area (`GeometryCalculator`, an Albers equal-area projection): an empty, invalid or zero-area polygon has no percentage (`null`), as does one outside the raster.
+- Whether a farm can be measured at all is decided by its geodesic area on the WGS84 ellipsoid (`GeometryCalculator`, see [`docs/polygon_area_calculation.md`](../../docs/polygon_area_calculation.md)): an empty, invalid or zero-area polygon has no percentage (`null`), as does one outside the raster.
 
 So, if a 10-hectare polygon lies on 20 whole loss pixels of 900 m² and on half of 4 more, the deforestation percentage would be (20 + 2) × 900 m² / 100,000 m² = 19.8%.
 
