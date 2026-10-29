@@ -1,6 +1,8 @@
 ## Validación de polígonos
 
-Antes de analizar la deforestación, Monbo revisa que cada finca tenga una geometría correcta y que no se traslape con otra. Una finca con cualquiera de los problemas de esta sección queda marcada como **no válida**. Puedes revisarla en el mapa, corregirla en tu archivo o incluirla igual mediante la validación manual.
+El módulo de validación de polígonos revisa que cada finca tenga una geometría correcta y que no se traslape con otra. Una finca con cualquiera de los problemas de esta sección queda marcada como **no válida**. Puedes revisarla en el mapa, corregirla en tu archivo o incluirla igual mediante la validación manual.
+
+Esta validación es un **paso aparte y opcional**. Si cargas tu archivo directamente en el módulo de análisis de deforestación, no se ejecuta: las fincas no se comparan entre sí, así que un resultado de deforestación por sí solo no muestra que no se traslapen. Una finca con geometría inválida igual aparece ahí sin resultado (N/D).
 
 ### Qué geometrías se aceptan
 

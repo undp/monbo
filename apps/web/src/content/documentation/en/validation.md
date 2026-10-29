@@ -1,6 +1,8 @@
 ## Polygon validation
 
-Before analysing deforestation, Monbo checks that each farm has a correct geometry and doesn't overlap another farm. A farm with any of the problems in this section is marked as **not valid**. You can review it on the map, fix it in your file, or include it anyway through manual validation.
+The polygon validation module checks that each farm has a correct geometry and doesn't overlap another farm. A farm with any of the problems in this section is marked as **not valid**. You can review it on the map, fix it in your file, or include it anyway through manual validation.
+
+This validation is a **separate, optional step**. If you upload your file directly in the deforestation analysis module, it doesn't run: the farms aren't compared with each other, so a deforestation result alone doesn't show that they don't overlap. A farm with an invalid geometry still gets no result (N/A) there.
 
 ### Accepted geometries
 

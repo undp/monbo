@@ -46,6 +46,7 @@ The polygon validation section SHALL explain, in plain language:
   - farms that only share an edge or a vertex don't overlap, and neither does a farm inside another's hole;
   - a farm given as a point takes part as a circle built from its declared area, approximately.
 - **The result:** a farm with any of these problems is marked as not valid.
+- **An optional step:** the validation is a separate module; farms uploaded directly in the deforestation analysis are not checked for overlaps, so a deforestation result does not show that they don't overlap.
 
 #### Scenario: Overlap rule stated
 
