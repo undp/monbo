@@ -1,6 +1,6 @@
 ## Farm area
 
-Each farm's area is used throughout the app. It is the area in hectares you see in the tables and the report. It is also used to calculate overlaps and the deforestation percentage.
+Each farm's area is the area in hectares you see in the tables and the report. Overlaps are measured with it, and it decides whether a farm can be analysed for deforestation. The deforestation percentage itself doesn't divide by this area: it compares two areas measured on the map layer (see [Deforestation calculation](#deforestation)).
 
 ### Polygons
 

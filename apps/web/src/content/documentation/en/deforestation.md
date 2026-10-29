@@ -14,6 +14,8 @@ deforestation = farm area on pixels with loss / farm area
 
 Each pixel with loss **counts only by the part of it inside the farm**. If the farm's boundary covers a third of a pixel with loss, that pixel adds a third of its area, not the whole pixel. So the percentage never exceeds 100%, and a pixel the farm barely touches at its edge doesn't make it look deforested.
 
+Both areas are measured on the layer itself, in its own coordinates, not with the area in hectares shown in the tables. At a farm's size, the ratio between them is the same as on the ground.
+
 If the farm has holes, loss inside a hole doesn't count. If it has several parts, the loss in all of them is added up and divided by their total area (see [Farm area](#area)). Each farm gets a single percentage per layer.
 
 ### An example

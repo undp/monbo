@@ -14,6 +14,8 @@ deforestación = superficie de la finca sobre píxeles con pérdida / superficie
 
 Cada píxel con pérdida **cuenta solo por la parte que queda dentro de la finca**. Si el borde de la finca cubre un tercio de un píxel con pérdida, ese píxel suma un tercio de su superficie, no el píxel entero. Así, el porcentaje nunca supera 100%, y un píxel que la finca apenas roza en su borde no la hace aparecer como deforestada.
 
+Las dos superficies se miden sobre la propia capa, en sus coordenadas, no con la superficie en hectáreas que muestran las tablas. Al tamaño de una finca, la proporción entre ellas es la misma que sobre el terreno.
+
 Si la finca tiene huecos, la pérdida dentro de un hueco no cuenta. Si tiene varias partes, se suma la pérdida de todas y se divide por su superficie total (ver [Superficie de las fincas](#area)). Cada finca recibe un solo porcentaje por capa.
 
 ### Un ejemplo

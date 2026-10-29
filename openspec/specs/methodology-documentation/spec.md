@@ -64,7 +64,8 @@ The farm area section SHALL explain that:
 - a farm's area is measured on the Earth's ellipsoid (WGS84), with no map projection, and is shown in hectares;
 - a hole's area is subtracted, and the areas of a farm's several parts are added;
 - a farm given as a point has the area declared for it, taken as a circle centred on the point;
-- this area is the one shown in the app, and the one overlaps and the deforestation percentage are measured against.
+- this area is the one shown in the app and the one overlaps are measured against, and it decides whether a farm can be analysed for deforestation;
+- the deforestation percentage does not divide by this area: its numerator and denominator are both measured on the map layer, in the layer's coordinates.
 
 #### Scenario: Holes and parts
 
@@ -80,7 +81,7 @@ The farm area section SHALL explain that:
 
 The deforestation section SHALL explain:
 
-- **The percentage:** the share of the farm's area that lies on the layer's loss pixels, written as a plain-text formula.
+- **The percentage:** the share of the farm's area that lies on the layer's loss pixels, written as a plain-text formula, with both areas measured on the layer rather than with the area shown in the app.
 - **Partial pixels:** a pixel the farm covers only in part counts by that part alone.
 - **A worked example:** a 1 ha farm on 30 m pixels, with two loss pixels inside it and a third on its edge, giving 21%.
 - **The threshold:** a farm is flagged when its percentage is above the deforestation threshold.

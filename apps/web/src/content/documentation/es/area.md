@@ -1,6 +1,6 @@
 ## Superficie de las fincas
 
-La superficie de cada finca se usa en toda la aplicación. Es la que ves en hectáreas en las tablas y el reporte. También se usa para calcular los traslapes y el porcentaje de deforestación.
+La superficie de cada finca es la que ves en hectáreas en las tablas y el reporte. Con ella se miden los traslapes, y decide si una finca se puede analizar por deforestación. El porcentaje de deforestación en sí no divide por esta superficie: compara dos superficies medidas sobre la capa de mapa (ver [Cálculo de la deforestación](#deforestation)).
 
 ### Polígonos
 
