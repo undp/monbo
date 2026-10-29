@@ -4,6 +4,8 @@ For each farm and layer, `POST /deforestation_analysis/analize` returns a **rati
 
 The code is `get_loss_area_fraction` in `apps/api/app/modules/deforestation_analysis/helpers.py`, called once per farm and layer by the router.
 
+The user-facing explanation is the web's documentation page (`/documentation#deforestation`). Its text is in `apps/web/src/content/documentation/{es,en}/deforestation.md`: update it whenever this calculation changes.
+
 ## The formula
 
 ```

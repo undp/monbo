@@ -4,12 +4,18 @@
     "home": "Home",
     "validation": "Polygon Validation",
     "deforestation": "Deforestation Analysis",
-    "report": "Report Generation"
+    "report": "Report Generation",
+    "documentation": "Documentation"
   },
   "language": {
     "select": "Language",
     "es": "Spanish",
     "en": "English"
+  },
+  "documentation": {
+    "title": "Documentation",
+    "subtitle": "How Monbo validates polygons, measures farm areas and calculates deforestation.",
+    "contents": "On this page"
   },
   "cancel": "Cancel",
   "close": "Close",

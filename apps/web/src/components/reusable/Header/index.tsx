@@ -5,6 +5,7 @@ import Link from "next/link";
 import React, { Suspense } from "react";
 import { HeaderButton } from "./HeaderButton";
 import { HeaderNavigation } from "./HeaderNavigation";
+import { DocumentationButton } from "./DocumentationButton";
 
 import { LanguageMenu } from "../LanguageMenu";
 import { CountryMenu } from "../CountryMenu";
@@ -65,6 +66,7 @@ export const Header = async ({ locale }: HeaderProps) => {
                 </HeaderButton>
                 <CountryMenu />
               </HeaderNavigation>
+              <DocumentationButton />
               <Suspense>
                 <LanguageMenu />
               </Suspense>

@@ -4,12 +4,18 @@
     "home": "Inicio",
     "validation": "Validación polígonos",
     "deforestation": "Análisis deforestación",
-    "report": "Generación reporte"
+    "report": "Generación reporte",
+    "documentation": "Documentación"
   },
   "language": {
     "select": "Idioma",
     "es": "Español",
     "en": "Inglés"
+  },
+  "documentation": {
+    "title": "Documentación",
+    "subtitle": "Cómo Monbo valida los polígonos, mide la superficie de las fincas y calcula la deforestación.",
+    "contents": "En esta página"
   },
   "cancel": "Cancelar",
   "close": "Cerrar",
