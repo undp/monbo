@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -465,7 +465,7 @@ wheels = [
 
 [[package]]
 name = "earthengine-api"
-version = "1.7.46"
+version = "1.7.49"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-python-client" },
@@ -475,9 +475,9 @@ dependencies = [
     { name = "httplib2" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/45/c3cf13f1e0823cd29ddec5d29499308e1d6ca2777910b37e6be84677f9f7/earthengine_api-1.7.46.tar.gz", hash = "sha256:3c1bd347c9966d491f37ad92feccfd3a7151a5236bea6ee9edd5f1b0af21e3b9", size = 434918, upload-time = "2026-09-29T00:47:40.554Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a1/1654d586e94a7b58535f5a225f2a4c1d3bd060b7b0df824895f1ddef848a/earthengine_api-1.7.49.tar.gz", hash = "sha256:a6a34dd80ca422aa3752ad9496690fb8c3a08310a3674356b39def25562a0a65", size = 437664, upload-time = "2026-10-19T21:47:18.98Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/dc/7db42041f91162186de50d4f05e7a38663c67470856f392c21577e5a70db/earthengine_api-1.7.46-py3-none-any.whl", hash = "sha256:2fd68df82d1932a246da021619375ca44a89108b10c56e4db08e0347f0554db3", size = 482073, upload-time = "2026-09-29T00:47:38.532Z" },
+    { url = "https://files.pythonhosted.org/packages/89/30/9674680b014c4bfcc8592bdc764c6e0d4b4f040a62d4932d5d9275a8ff5b/earthengine_api-1.7.49-py3-none-any.whl", hash = "sha256:da11e004b240533729f045d936f17e5da54b62a4cd57ea59f9c48e4f8ffd4d69", size = 484765, upload-time = "2026-10-19T21:47:17.233Z" },
 ]
 
 [[package]]
@@ -1836,11 +1836,11 @@ wheels = [
 
 [[package]]
 name = "tenacity"
-version = "9.1.4"
+version = "9.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/82/9e/497c1c8ebe5a5b5d1d4a7511aea22c0bb1a97e3170d98abdef0e1b34265a/tenacity-9.2.1.tar.gz", hash = "sha256:a606b5c808d0cded4a359d5b9932d867ff2a6a6b64d37350260fd01bbdf83839", size = 58261, upload-time = "2026-10-07T12:13:01.633Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/26/1ff2b0721ac66a3ec5b1402b333110b352ab0a8724052ac279a7b82d40c4/tenacity-9.2.1-py3-none-any.whl", hash = "sha256:9e56f17539296baab7beabb08b92f6ee3d7be92d8be72d763360677c2ad6580e", size = 32310, upload-time = "2026-10-07T12:13:00.102Z" },
 ]
 
 [[package]]
@@ -1921,10 +1921,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "earthengine-api", specifier = "==1.7.46" },
+    { name = "earthengine-api", specifier = "==1.7.49" },
     { name = "gdal", specifier = ">=3.6.0" },
     { name = "geemap", specifier = "==0.38.9" },
-    { name = "tenacity", specifier = "==9.1.4" },
+    { name = "tenacity", specifier = "==9.2.1" },
 ]
 
 [[package]]
