@@ -42,6 +42,16 @@ For each requested layer and each farm, `POST /deforestation_analysis/analize` S
 - **WHEN** the GFW ratio of farm F0041 of the 500-farm reference upload is computed (2.73 ha, with 31 loss pixels touching it)
 - **THEN** it is the share of its area on loss, about 0.667, and not 1
 
+#### Scenario: The validation farm on real data
+
+- **WHEN** the GFW ratio of farm `F-VALIDACION` is computed: a rectangle whose edges run along the centres of a 5 × 4 block of GFW pixels, where 2 loss pixels lie whole inside it, 1 is cut in half by its edge and 2 are corners cut in four
+- **THEN** its ratio is (2 + 0.5 + 0.25 + 0.25) / 12 = 0.25
+
+#### Scenario: Against an independent reference
+
+- **WHEN** random polygons are analysed on random loss rasters, in EPSG:4326 and in a UTM CRS
+- **THEN** each ratio equals, within 1e-6, the area of the union of the loss pixels intersected with the polygon divided by the polygon's area, both measured in an equal-area projection
+
 ### Requirement: No ratio for farms that can't be measured
 
 The ratio SHALL be `None`, and never negative, when the farm's polygon is invalid (for example, it intersects itself or has fewer than 3 distinct vertices). It SHALL also be `None` when the polygon is empty or has no area, when the farm lies entirely outside the layer's raster, when its geometry can't be built, and when the layer's raster can't be opened. A farm that can't be measured SHALL NOT affect the other farms' results.
@@ -89,4 +99,28 @@ For a farm with holes or several parts, the deforestation ratio SHALL be the los
 
 - **WHEN** one part of a farm lies inside a layer's raster and the other lies outside it
 - **THEN** the ratio uses the loss of the part inside, over the area of both parts
+
+### Requirement: The map draws loss pixels where they are
+
+The API's deforestation tiles SHALL paint each tile pixel from the value of the source pixel under that tile pixel's centre, resampled once, from the raster (or one of its overviews) onto the tile's own grid in EPSG:3857. A loss pixel's edges SHALL be drawn where the raster puts them, within one tile pixel. At zooms where an overview's pixel is still finer than a tile pixel, the tile MAY be read from that overview.
+
+#### Scenario: A high-zoom tile
+
+- **WHEN** a tile is requested at a zoom where one source pixel spans several tile pixels, over a raster in EPSG:4326 or in a UTM CRS
+- **THEN** every tile pixel shows the value of the source pixel under its centre
+
+#### Scenario: The validation farm on the map
+
+- **WHEN** the map shows farm `F-VALIDACION` over GFW
+- **THEN** its edges cut the corner loss pixels in four and the edge loss pixel in half, as the ratio counts them
+
+#### Scenario: A low-zoom tile of a raster with overviews
+
+- **WHEN** a tile is requested at a zoom where the raster's overviews are finer than a tile pixel
+- **THEN** it is read from the coarsest such overview, and it takes no longer than reading it through a Web Mercator VRT of the whole raster
+
+#### Scenario: Outside the raster
+
+- **WHEN** a tile doesn't overlap the raster
+- **THEN** the API returns an empty, transparent tile
 
