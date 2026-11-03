@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel
 
-from app.models.farms import FarmData, InputFarmData
+from app.models.farms import FarmData, ImportedFile, ImportIssue, InputFarmData
 
+from . import geo_import
 from .helpers import generate_farms
 from .validations import parse_farms_validation, validate_locale
 
@@ -61,3 +63,48 @@ def parse_farms(
     farm_data = generate_farms(preprocessed_farms)
 
     return farm_data
+
+
+class ImportErrorResponse(BaseModel):
+    """Body of a rejected import: the problem with the whole file."""
+
+    detail: ImportIssue
+
+
+@router.post(
+    "/import",
+    response_model=ImportedFile,
+    responses={
+        400: {"model": ImportErrorResponse},
+        413: {"model": ImportErrorResponse},
+    },
+)
+def import_farms(file: UploadFile = File(...)) -> ImportedFile:
+    """
+    Reads the farms of a geo file: GeoJSON (`.geojson`, `.json`), KML, KMZ or a
+    zipped Shapefile (`.zip`, every `.shp` inside is read, so points and polygons can
+    come as two Shapefiles).
+
+    The answer has the file's `format` and its features. Each feature comes back with
+    its 1-based position, its attributes (JSON values; dates as ISO strings) and its
+    geometry as WKT in EPSG:4326 (`geometryType`, `farmCoordinates`), ready for
+    `POST /farms/parse` with `coordinatesFormat: "WKT"`. Polygons keep their holes, and
+    a MultiPolygon of several parts is one farm (one of one part is that Polygon). A
+    feature that is no polygon or point comes back with `errors` instead of a
+    geometry. In a KML or KMZ, `id` is the placemark's ID attribute (from its
+    ExtendedData), never its XML `id`.
+
+    A problem with the whole file (unsupported type, unreadable, larger than
+    the limit, a Shapefile without `.prj`, no features...) is a 400 (413 when too
+    large) whose `detail` has a stable `code`, `params` and an English `message`.
+    """
+    # Sync on purpose: GDAL blocks, so FastAPI runs this in its threadpool.
+    content = file.file.read(geo_import.MAX_UPLOAD_BYTES + 1)
+    try:
+        if len(content) > geo_import.MAX_UPLOAD_BYTES:
+            raise geo_import.file_too_large()
+        return geo_import.import_geo_file(file.filename or "", content)
+    except geo_import.GeoImportError as exc:
+        raise HTTPException(
+            status_code=exc.status_code, detail=exc.as_issue().model_dump()
+        ) from exc

@@ -82,5 +82,149 @@
     "loading": "Cargando la configuración…",
     "error": "No se pudo cargar la configuración desde el servidor. Revisa tu conexión e inténtalo de nuevo.",
     "retry": "Reintentar"
+  },
+  "geoFile": {
+    "featureLabel": "elemento {{position}}",
+    "featureLabelWithId": "elemento {{position}} (ID {{id}})",
+    "mandatoryAttributeMissing": "Falta dato obligatorio ({{attribute}}) en el {{feature}}",
+    "issues": {
+      "unsupported_format": "Tipo de archivo no soportado ({{extension}}). Sube la plantilla Excel, un GeoJSON, KML, KMZ o un Shapefile en .zip",
+      "empty_file": "El archivo está vacío",
+      "file_too_large": "El archivo pesa más de {{maxMb}} MB",
+      "archive_too_large": "El archivo comprimido ocupa más de {{maxMb}} MB al descomprimirlo",
+      "no_shapefile": "El .zip no contiene ningún Shapefile (.shp)",
+      "missing_prj": "Al Shapefile {{layer}} le falta su archivo .prj, que indica el sistema de coordenadas. Inclúyelo en el .zip",
+      "unreadable_file": "No se pudo leer el archivo. Revisa que sea un GeoJSON, KML, KMZ o Shapefile válido",
+      "no_features": "El archivo no tiene elementos",
+      "empty_geometry": "No hay geometría en el {{feature}}",
+      "unsupported_geometry": "Hay un {{geometryType}} en el {{feature}}: una finca debe ser un polígono o un punto"
+    },
+    "help": {
+      "title": "Nombres de atributos aceptados",
+      "intro": "Cada elemento del archivo es una finca: su geometría (polígono o punto) se toma del archivo y sus datos, de estos atributos. Da igual si están en mayúsculas o minúsculas. Si tu archivo no trae los datos, adjúntale el Excel de producción y se unen por ID.",
+      "field": "Dato",
+      "geoFile": "GeoJSON / KML / KMZ",
+      "shapefile": "Shapefile (.zip)",
+      "mandatory": "* Obligatorio",
+      "notes": "También se aceptan los encabezados de la plantilla Excel y los nombres EUDR (ProducerName, Area), así que un GeoJSON descargado de Monbo se puede volver a cargar tal cual. En KML/KMZ, si no hay id se usa el nombre del elemento. El Shapefile va en un .zip con su .prj y puede traer polígonos y puntos en dos Shapefiles.",
+      "fields": {
+        "id": "ID de la finca",
+        "producerName": "Nombre productor",
+        "productionDate": "Fecha producción",
+        "productionQuantity": "Cantidad producción",
+        "productionQuantityUnit": "Unidad cantidad producción",
+        "cropType": "Tipo de cultivo",
+        "area": "Superficie en hectáreas (puntos)",
+        "region": "Región",
+        "association": "Asociación",
+        "country": "País (código ISO; debe ser el país seleccionado)"
+      }
+    }
+  },
+  "geoFileJoinErrors": {
+    "featureWithoutId": "El {{feature}} no tiene ID",
+    "duplicateGeoId": "El ID {{id}} se repite en el archivo geográfico",
+    "duplicateExcelId": "El ID {{id}} se repite en el Excel (filas {{rows}})",
+    "rowWithoutFeature": "La fila {{row}} del Excel (ID {{id}}) no tiene geometría en el archivo geográfico",
+    "featureWithoutRow": "El {{feature}} no tiene fila en el Excel"
+  },
+  "farmsUpload": {
+    "dropzoneActive": "Suelta los archivos aquí",
+    "dropzoneButton": "Click para cargar",
+    "dropzoneText": "o arrastra y suelta tus archivos aquí",
+    "addManually": "Agregar manualmente",
+    "listTitle": "Fincas a cargar",
+    "farmCount_one": "{{count}} finca",
+    "farmCount_other": "{{count}} fincas",
+    "reading": "Leyendo…",
+    "errorCount_one": "{{count}} error: no se puede cargar",
+    "errorCount_other": "{{count}} errores: no se puede cargar",
+    "showErrors": "Ver errores",
+    "attachExcel": "Adjuntar Excel de producción",
+    "replaceExcel": "Cambiar Excel",
+    "joinedWith": "Datos del Excel {{name}}, unidos por ID",
+    "removeExcel": "Quitar Excel",
+    "remove": "Quitar",
+    "edit": "Editar",
+    "manualFarm": "Finca agregada manualmente",
+    "manualFarmWithId": "Finca {{id}} (agregada manualmente)",
+    "excelWithoutCoordinates": "Este Excel no tiene coordenadas. Si tus polígonos están en un archivo geográfico, súbelos junto a este Excel en la opción 3; si no, completa sus columnas de coordenadas.",
+    "geoFileRequestFailed": "Ocurrió un error al leer el archivo geográfico",
+    "duplicateIdAcrossSources": "El ID {{id}} está en más de una fuente ({{sources}}): quita o corrige una de ellas.",
+    "submitCount": "{{label}} ({{count}})",
+    "cards": {
+      "excel": {
+        "title": "Plantilla Excel",
+        "when": "Tienes las coordenadas de cada finca como texto (WKT o GeoJSON).",
+        "steps": {
+          "1": "Descarga la plantilla",
+          "2": "Llena una fila por finca, con sus coordenadas",
+          "3": "Súbela aquí"
+        },
+        "drop": "Sube tu Excel",
+        "extensions": ".xlsx · .xls",
+        "wrongType": "Aquí va la plantilla Excel. Los archivos geográficos (GeoJSON, KML, KMZ, Shapefile) van en la opción 2 o en la 3."
+      },
+      "geoData": {
+        "title": "Archivo geográfico con datos",
+        "when": "Tus fincas están en un GeoJSON, KML/KMZ o Shapefile cuyos atributos traen productor, fecha, cantidad, unidad y cultivo.",
+        "steps": {
+          "1": "Revisa que los atributos tengan los nombres aceptados",
+          "2": "Sube el archivo (el Shapefile, en un .zip con su .prj)"
+        },
+        "drop": "Sube tu archivo",
+        "extensions": ".geojson · .kml · .kmz · .zip",
+        "fieldsHelp": "Nombres aceptados",
+        "wrongType": "Aquí va un archivo geográfico. La plantilla Excel va en la opción 1, o en la 3 junto a su archivo geográfico."
+      },
+      "geoExcel": {
+        "title": "Archivo geográfico + Excel",
+        "when": "Tus polígonos están en Google Earth o un SIG, y los datos de producción en un Excel. Se unen por el ID de cada finca.",
+        "steps": {
+          "1": "Nombra cada polígono con el ID de su finca (en Google Earth, su nombre)",
+          "2": "Llena la plantilla de esta opción con los mismos IDs",
+          "3": "Sube los dos archivos"
+        },
+        "geoDrop": "Polígonos",
+        "geoExtensions": ".kmz · .kml · .geojson · .zip",
+        "excelDrop": "Excel de producción",
+        "excelExtensions": ".xlsx · .xls",
+        "waitingExcel": "Falta el Excel de producción para agregarlos a la lista",
+        "waitingGeo": "Falta el archivo de polígonos para agregarlos a la lista",
+        "wrongGeoType": "Aquí va el archivo de polígonos (GeoJSON, KML, KMZ o Shapefile). El Excel va al lado.",
+        "wrongExcelType": "Aquí va el Excel de producción. El archivo de polígonos va al lado."
+      },
+      "manual": {
+        "title": "Dibujar en el mapa",
+        "when": "Tus fincas no están en un archivo, o son pocas.",
+        "steps": {
+          "1": "Ubica la finca en el mapa",
+          "2": "Dibuja su borde o marca un punto",
+          "3": "Llena sus datos"
+        }
+      },
+      "template": "Plantilla",
+      "example": "Ejemplo",
+      "exampleGeojson": "Ejemplo GeoJSON",
+      "exampleShapefile": "Ejemplo Shapefile",
+      "exampleKml": "Ejemplo KML",
+      "exampleExcel": "Ejemplo Excel"
+    },
+    "problems": {
+      "missingData_one": "Faltan datos en 1 elemento ({{fields}}). Adjunta el Excel de producción con su ID, o agrega esos atributos al archivo.",
+      "missingData_other": "Faltan datos en {{count}} elementos ({{fields}}). Adjunta el Excel de producción con sus IDs, o agrega esos atributos al archivo.",
+      "unmatchedIds_one": "1 ID no cruza entre el archivo y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila.",
+      "unmatchedIds_other": "{{count}} IDs no cruzan entre el archivo y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+    },
+    "summary": {
+      "polygons_one": "{{count}} polígono",
+      "polygons_other": "{{count}} polígonos",
+      "points_one": "{{count}} punto",
+      "points_other": "{{count}} puntos",
+      "and": "y",
+      "sourcesWithProblems_one": "1 fuente con problemas",
+      "sourcesWithProblems_other": "{{count}} fuentes con problemas"
+    },
+    "empty": "Aún no hay fincas: usa una de las opciones de arriba."
   }
 }

@@ -8,26 +8,16 @@
     "recalculatingText": "A map layer changed. Recalculating the analysis…",
     "analysisUpdated": "The analysis was recalculated with the updated map layer.",
     "title": "Upload Polygons or Points",
-    "templateStep": {
-      "stepTitle": "Step 1: Download the Template",
-      "title": "Template for Uploading Polygons and/or Points",
-      "description": "Fill out the table with all the corresponding information for a polygon or point to perform the deforestation analysis. Columns marked with an asterisk are required.",
-      "buttonText": "Download"
-    },
     "mapSelectionStep": {
-      "stepTitle": "Step 3: Select the map layers for the analysis",
+      "stepTitle": "Step 1: Select the map layers for the analysis",
       "noMapsAvailable": "No layers available for {{country}}",
       "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again."
     },
     "uploadStep": {
-      "stepTitle": "Step 3: Upload the Template",
-      "inactiveDragzoneCallToAction": "Upload your file",
-      "activeDragzoneCallToAction": "Drop the file here",
-      "dragzoneButtonText": "Click to upload",
-      "dragzoneText": "or drag and drop your file here",
-      "allowedExtensions": ".xlsx or .xls",
+      "stepTitle": "Step 2: Add your farms",
       "loadedFarms": "You already loaded {{count}} polygons and/or points. Choose the layers and analyze them, or upload another file.",
-      "analyzeLoadedFarms": "Analyze"
+      "analyzeLoadedFarms": "Analyze",
+      "submit": "Analyze deforestation"
     }
   },
   "deforestationFreeShortText": "Def. Free",

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Example farms (option 3)</name>
+    <Placemark>
+      <name>E3-001</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-84.16,10.045,0 -84.1602,10.0439,0 -84.1591,10.0431,0 -84.1579,10.044,0 -84.1583,10.0453,0 -84.16,10.045,0</coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>E3-002</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-84.156,10.045,0 -84.1563,10.0443,0 -84.1557,10.0434,0 -84.1545,10.0433,0 -84.1541,10.0443,0 -84.1547,10.0452,0 -84.156,10.045,0</coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>E3-003</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-84.152,10.045,0 -84.1519,10.044,0 -84.1508,10.0437,0 -84.1497,10.0441,0 -84.1496,10.0451,0 -84.152,10.045,0</coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>E3-004</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-84.148,10.045,0 -84.1481,10.0444,0 -84.1474,10.0436,0 -84.1462,10.0438,0 -84.146,10.0452,0 -84.1471,10.0455,0 -84.148,10.045,0</coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>E3-005</name>
+      <Point><coordinates>-84.143,10.044,0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>

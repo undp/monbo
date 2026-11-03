@@ -8,6 +8,7 @@ const NAMESPACES = [
   "deforestationAnalysis",
   "reportGeneration",
   "admin",
+  "manualFarm",
 ];
 
 export type TestLocale = "es" | "en";

@@ -1,0 +1,75 @@
+{
+  "addTitle": "Agregar finca manualmente",
+  "editTitle": "Editar finca",
+  "close": "Cerrar",
+  "geometry": {
+    "label": "Dibujar",
+    "polygon": "Polígono",
+    "point": "Punto"
+  },
+  "instructions": {
+    "polygon": "Haz clic en el mapa para marcar cada vértice. Termina con «Cerrar polígono» o con un clic en el primer vértice.",
+    "polygonClosed": "Arrastra un vértice para moverlo o el punto medio de un borde para agregar uno. Para borrar un vértice, haz clic derecho sobre él, o selecciónalo y usa «Borrar vértice».",
+    "point": "Haz clic en el mapa para ubicar la finca. El círculo tiene la superficie indicada y puedes arrastrarlo."
+  },
+  "howTo": {
+    "button": "¿Cómo dibujar?",
+    "title": "Cómo dibujar la finca",
+    "alt": "Animación: se hace clic en el mapa satelital para marcar cada vértice de la finca, luego en «Cerrar polígono», y se arrastra un vértice para ajustar el borde.",
+    "steps": {
+      "1": "Escribe la latitud y longitud de la finca y presiona «Ir», o mueve el mapa hasta ella.",
+      "2": "Haz clic en el mapa para marcar cada vértice del borde de la finca.",
+      "3": "Presiona «Cerrar polígono», o haz clic en el primer vértice.",
+      "4": "Para ajustar el borde, arrastra un vértice; para borrarlo, haz clic derecho sobre él."
+    }
+  },
+  "actions": {
+    "finish": "Cerrar polígono",
+    "deleteVertex": "Borrar vértice",
+    "startOver": "Empezar de nuevo",
+    "go": "Ir",
+    "addDocument": "Agregar documento",
+    "removeDocument": "Quitar documento",
+    "cancel": "Cancelar",
+    "add": "Agregar",
+    "save": "Guardar"
+  },
+  "goTo": {
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "invalid": "Usa una latitud entre -90 y 90 y una longitud entre -180 y 180."
+  },
+  "drawingErrors": {
+    "crossing": "Ese vértice haría que los bordes del polígono se crucen.",
+    "minVertices": "El polígono necesita al menos 3 vértices.",
+    "cannotClose": "Al cerrarlo, los bordes del polígono se cruzarían. Mueve o borra un vértice."
+  },
+  "notEditable": {
+    "format": "Esta finca no tiene coordenadas GeoJSON: dibújala de nuevo para cambiar su geometría.",
+    "shape": "Esta finca tiene huecos o varias partes, que no se pueden dibujar aquí: dibújala de nuevo para cambiar su geometría.",
+    "invalid": "No se pudo leer la geometría de esta finca: dibújala de nuevo."
+  },
+  "missingGeometry": "Dibuja el polígono o ubica el punto para agregar la finca.",
+  "fields": {
+    "mandatoryTitle": "Datos de la finca",
+    "optionalTitle": "Opcionales",
+    "id": "ID",
+    "producerName": "Nombre productor",
+    "productionDate": "Fecha producción",
+    "productionQuantity": "Cantidad producción",
+    "productionQuantityUnit": "Unidad cantidad producción",
+    "cropType": "Tipo de cultivo",
+    "area": "Superficie [hectáreas]",
+    "region": "Región",
+    "association": "Asociación",
+    "documents": "Documentos",
+    "documentName": "Nombre documento {{number}}",
+    "documentUrl": "Enlace documento {{number}}"
+  },
+  "fieldErrors": {
+    "required": "Dato obligatorio",
+    "number": "Escribe un número, por ejemplo 1.200,5",
+    "positive": "Debe ser mayor que 0",
+    "url": "Escribe un enlace que empiece con http:// o https://"
+  }
+}

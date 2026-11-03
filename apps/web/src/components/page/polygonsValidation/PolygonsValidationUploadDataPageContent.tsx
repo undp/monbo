@@ -17,18 +17,14 @@ import {
 } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { notifyUploadErrors } from "@/utils/uploadErrors";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
-import { DownloadTemplateStep } from "@/components/page/uploadData/DownloadTemplateStep";
-import { UploadFileStep } from "@/components/page/uploadData/UploadFileStep";
+import { FarmsUploadStep } from "@/components/page/uploadData/FarmsUploadStep";
+import { useUploadSources } from "@/components/page/uploadData/useUploadSources";
 import { useTranslation } from "react-i18next";
 import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
-import {
-  getUploadFileTemplatePath,
-  loadExcelFileFarmsData,
-} from "@/utils/excel";
+import { FarmRow } from "@/interfaces/FarmRow";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -130,27 +126,14 @@ export function PolygonsValidationUploadDataPageContent() {
     performValidationAnalysis(farmsData);
   }, [farmsData, performValidationAnalysis]);
 
-  const onFileDropped = useCallback(
-    async (acceptedFiles: File[]) => {
+  const upload = useUploadSources(selectedCountry);
+
+  const onUpload = useCallback(
+    (rows: FarmRow[]) => {
       setLoading(true);
-
-      const file = acceptedFiles[0];
-      const { data, errorMessages } = await loadExcelFileFarmsData(
-        file,
-        t,
-        i18n.language,
-        selectedCountry
-      );
-
-      if (errorMessages.length > 0) {
-        notifyUploadErrors(openSnackbar, errorMessages, t);
-        setLoading(false);
-        return;
-      } else {
-        performFarmsGeneration(data);
-      }
+      performFarmsGeneration(rows);
     },
-    [performFarmsGeneration, openSnackbar, t, i18n.language, selectedCountry]
+    [performFarmsGeneration]
   );
 
   if (loading)
@@ -161,42 +144,14 @@ export function PolygonsValidationUploadDataPageContent() {
   return (
     <UploadPageContent title={t("polygonValidation:uploadDataPage:title")}>
       <TextHeaderStepContainer
-        title={t("polygonValidation:uploadDataPage:templateStep:stepTitle")}
-      >
-        <DownloadTemplateStep
-          title={t("polygonValidation:uploadDataPage:templateStep:title")}
-          description={t(
-            "polygonValidation:uploadDataPage:templateStep:description"
-          )}
-          buttonText={t(
-            "polygonValidation:uploadDataPage:templateStep:buttonText"
-          )}
-          fileUrl={getUploadFileTemplatePath(i18n.language)}
-        />
-      </TextHeaderStepContainer>
-      <TextHeaderStepContainer
         title={t("polygonValidation:uploadDataPage:uploadStep:stepTitle")}
         sx={{ flexGrow: 1 }}
       >
-        <UploadFileStep
-          texts={{
-            inactiveDragzoneCallToAction: t(
-              "polygonValidation:uploadDataPage:uploadStep:inactiveDragzoneCallToAction"
-            ),
-            activeDragzoneCallToAction: t(
-              "polygonValidation:uploadDataPage:uploadStep:activeDragzoneCallToAction"
-            ),
-            buttonText: t(
-              "polygonValidation:uploadDataPage:uploadStep:dragzoneButtonText"
-            ),
-            text: t("polygonValidation:uploadDataPage:uploadStep:dragzoneText"),
-          }}
-          fileAccept={{
-            "application/vnd.ms-excel": [".xls"],
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-              [".xlsx"],
-          }}
-          onDrop={onFileDropped}
+        <FarmsUploadStep
+          upload={upload}
+          country={selectedCountry}
+          submitLabel={t("polygonValidation:uploadDataPage:uploadStep:submit")}
+          onSubmit={onUpload}
         />
       </TextHeaderStepContainer>
     </UploadPageContent>
