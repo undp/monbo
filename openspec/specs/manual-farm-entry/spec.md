@@ -23,7 +23,7 @@ Pressing "Add" SHALL validate the fields as the template's rows are validated, a
 
 ### Requirement: The farm is drawn on the map
 
-The map SHALL let the user draw either one polygon, vertex by vertex, or one point. A point farm SHALL also need its area in hectares. Once drawn, the user SHALL be able to move a vertex, delete one, and start over. A polygon whose edges cross SHALL NOT be accepted. The map SHALL open centred on the selected country, and the user SHALL be able to move it to a latitude and longitude typed in. "Add" SHALL be disabled until there is a polygon or a point.
+The map SHALL let the user draw either one polygon, vertex by vertex, or one point. A point farm SHALL also need its area in hectares. Once drawn, the user SHALL be able to move a vertex, delete one, and start over. A polygon whose edges cross SHALL NOT be accepted. The map SHALL open centred on the selected country, and the user SHALL be able to move it to a latitude and longitude typed in. The user SHALL also be able to add a vertex, or place the point, at a latitude and longitude typed in, with "Add point"; a typed vertex SHALL follow the same rules as a clicked one. "Add" SHALL be disabled until there is a polygon or a point.
 
 #### Scenario: A point farm
 
@@ -35,10 +35,29 @@ The map SHALL let the user draw either one polygon, vertex by vertex, or one poi
 - **WHEN** the user types a latitude and longitude
 - **THEN** the map moves there, so the farm can be drawn over the satellite image
 
+#### Scenario: A vertex at known coordinates
+
+- **WHEN** the user types a latitude and longitude and presses "Add point" while drawing a polygon
+- **THEN** a vertex is added there, the map moves to it, and the fields empty for the next one
+
 #### Scenario: Crossing edges
 
 - **WHEN** the user draws a vertex that makes the polygon's edges cross
 - **THEN** the vertex is not accepted
+
+### Requirement: The modal lists the drawing's coordinates
+
+Below the map, the modal SHALL list the latitude and longitude of each of the polygon's vertices, numbered in drawing order, or of the point's centre, and SHALL update the list as the drawing changes. Once the polygon is closed, choosing a vertex in the list SHALL select it on the map, as a click on the vertex does.
+
+#### Scenario: Reading the vertices
+
+- **WHEN** the user clicks on the map to add a vertex, or drags one
+- **THEN** the list shows that vertex's latitude and longitude
+
+#### Scenario: Selecting a vertex from the list
+
+- **WHEN** the polygon is closed and the user chooses its second vertex in the list
+- **THEN** the vertex is selected on the map, and "Delete vertex" deletes it
 
 ### Requirement: The modal shows how to draw
 

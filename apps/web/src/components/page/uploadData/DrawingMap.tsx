@@ -38,8 +38,8 @@ export interface DrawingMapProps {
   selectedVertex: number | null;
   // Where the map opens; the world when null
   initialBounds: google.maps.LatLngBoundsLiteral | null;
-  // Pans and zooms there whenever `key` changes
-  focus: { center: Coordinates; key: number } | null;
+  // Pans there whenever `key` changes, and zooms in unless `keepZoom`
+  focus: { center: Coordinates; key: number; keepZoom?: boolean } | null;
   onMapClick: (position: Coordinates) => void;
   onVertexClick: (index: number) => void;
   onVertexRightClick: (index: number) => void;
@@ -125,7 +125,7 @@ const DrawingLayer: React.FC<Omit<DrawingMapProps, "initialBounds">> = (
 
   useEffect(() => {
     if (!map || !focus) return;
-    map.setZoom(FOCUS_ZOOM);
+    if (!focus.keepZoom) map.setZoom(FOCUS_ZOOM);
     map.panTo(focus.center);
   }, [map, focus]);
 

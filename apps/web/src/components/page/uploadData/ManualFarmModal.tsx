@@ -12,6 +12,12 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -23,6 +29,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { Coordinates } from "@/interfaces/Map";
 import {
@@ -40,7 +47,7 @@ import {
   NotEditableReason,
 } from "@/utils/drawing";
 import { getCountryBounds } from "@/utils/countryBounds";
-import { DrawingMap, PathEdit } from "./DrawingMap";
+import { DrawingMap, DrawingMapProps, PathEdit } from "./DrawingMap";
 import {
   emptyValues,
   FieldErrors,
@@ -146,10 +153,7 @@ const ManualFarmModalContent: React.FC<
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [rowErrors, setRowErrors] = useState<string[]>([]);
   const [goTo, setGoTo] = useState({ lat: "", lng: "", invalid: false });
-  const [focus, setFocus] = useState<{
-    center: Coordinates;
-    key: number;
-  } | null>(null);
+  const [focus, setFocus] = useState<DrawingMapProps["focus"]>(null);
 
   const area = parseLocaleNumber(values.area.trim(), language);
   const radius = areaToRadius(
@@ -203,18 +207,20 @@ const ManualFarmModalContent: React.FC<
     }
   };
 
+  // Whether the click placed the point or added a vertex
   const onMapClick = (position: Coordinates) => {
     if (mode === "point") {
       updateDrawing({ type: "point", center: position });
-      return;
+      return true;
     }
     if (polygon?.closed) {
       setSelectedVertex(null);
-      return;
+      return false;
     }
     const vertices = addVertex(polygon?.vertices ?? [], position);
     if (vertices) updateDrawing({ type: "polygon", vertices, closed: false });
     else setDrawingError("crossing");
+    return !!vertices;
   };
 
   const onVertexClick = (index: number) => {
@@ -247,7 +253,8 @@ const ManualFarmModalContent: React.FC<
     startOver();
   };
 
-  const onGo = () => {
+  // The typed latitude and longitude, or null after marking them invalid
+  const typedPosition = (): Coordinates | null => {
     const lat = parseCoordinate(goTo.lat);
     const lng = parseCoordinate(goTo.lng);
     if (
@@ -257,10 +264,25 @@ const ManualFarmModalContent: React.FC<
       Math.abs(lng) > 180
     ) {
       setGoTo((current) => ({ ...current, invalid: true }));
-      return;
+      return null;
     }
     setGoTo((current) => ({ ...current, invalid: false }));
-    setFocus({ center: { lat, lng }, key: Date.now() });
+    return { lat, lng };
+  };
+
+  const onGo = () => {
+    const center = typedPosition();
+    if (center) setFocus({ center, key: Date.now() });
+  };
+
+  // A vertex, or the point, at known coordinates: added as a click there would be.
+  // The fields empty for the next vertex, unless it was rejected.
+  const onAddTyped = () => {
+    const position = typedPosition();
+    if (!position || !onMapClick(position)) return;
+    // The first one zooms in on the farm; the next ones keep the user's zoom
+    setFocus({ center: position, key: Date.now(), keepZoom: !!drawing });
+    setGoTo({ lat: "", lng: "", invalid: false });
   };
 
   const setField = (field: TextFieldName, value: string) => {
@@ -502,11 +524,31 @@ const ManualFarmModalContent: React.FC<
               <Button type="submit" variant="outlined" sx={{ height: 40 }}>
                 {t("manualFarm:actions:go")}
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={<AddLocationAltOutlinedIcon />}
+                onClick={onAddTyped}
+                disabled={!!polygon?.closed}
+                sx={{ height: 40, whiteSpace: "nowrap", flexShrink: 0 }}
+              >
+                {t("manualFarm:actions:addPoint")}
+              </Button>
             </Box>
             {goTo.invalid && (
               <Typography variant="caption" color="error">
                 {t("manualFarm:goTo:invalid")}
               </Typography>
+            )}
+            {drawing && (
+              <DrawingCoordinates
+                drawing={drawing}
+                selectedVertex={selectedVertex}
+                onSelectVertex={(index) =>
+                  setSelectedVertex((current) =>
+                    current === index ? null : index
+                  )
+                }
+              />
             )}
           </Box>
 
@@ -678,6 +720,81 @@ const HowToDraw: React.FC<{ open: boolean; onClose: () => void }> = ({
         </Box>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Decimal places shown for a vertex (about 10 cm)
+const SHOWN_COORDINATE_DECIMALS = 6;
+
+/** The latitude and longitude of the polygon's vertices, or of the point, as they
+ * are drawn. Once the polygon is closed, a row selects its vertex on the map. */
+const DrawingCoordinates: React.FC<{
+  drawing: Drawing;
+  selectedVertex: number | null;
+  onSelectVertex: (index: number) => void;
+}> = ({ drawing, selectedVertex, onSelectVertex }) => {
+  const { t } = useTranslation();
+  const vertices =
+    drawing.type === "polygon" ? drawing.vertices : [drawing.center];
+  const selectable = drawing.type === "polygon" && drawing.closed;
+  const title =
+    drawing.type === "polygon"
+      ? t("manualFarm:coordinates:polygonTitle", { count: vertices.length })
+      : t("manualFarm:coordinates:pointTitle");
+
+  return (
+    <Box component="section" aria-label={title}>
+      <Typography variant="subtitle2">{title}</Typography>
+      {selectable && (
+        <Typography variant="caption" color="text.secondary">
+          {t("manualFarm:coordinates:selectHint")}
+        </Typography>
+      )}
+      <TableContainer
+        sx={{
+          maxHeight: 200,
+          marginTop: 0.5,
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 1,
+        }}
+      >
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              {drawing.type === "polygon" && (
+                <TableCell sx={{ width: 56 }}>
+                  {t("manualFarm:coordinates:number")}
+                </TableCell>
+              )}
+              <TableCell>{t("manualFarm:goTo:latitude")}</TableCell>
+              <TableCell>{t("manualFarm:goTo:longitude")}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {vertices.map((vertex, index) => (
+              <TableRow
+                key={index}
+                hover={selectable}
+                selected={selectable && selectedVertex === index}
+                onClick={selectable ? () => onSelectVertex(index) : undefined}
+                sx={selectable ? { cursor: "pointer" } : undefined}
+              >
+                {drawing.type === "polygon" && (
+                  <TableCell>{index + 1}</TableCell>
+                )}
+                <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {vertex.lat.toFixed(SHOWN_COORDINATE_DECIMALS)}
+                </TableCell>
+                <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {vertex.lng.toFixed(SHOWN_COORDINATE_DECIMALS)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 };
 

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { createTestI18n } from "@/test/i18n";
@@ -178,6 +178,61 @@ describe("ManualFarmModal", () => {
     });
   });
 
+  it("lists the vertices' coordinates as they are drawn", async () => {
+    await renderModal();
+    const list = () =>
+      within(screen.getByRole("region", { name: /^Vértices del polígono/ }));
+
+    act(() => map().onMapClick(square[0]));
+    act(() => map().onMapClick(square[1]));
+    expect(
+      screen.getByRole("heading", { name: "Vértices del polígono (2)" })
+    ).toBeTruthy();
+    const rows = list().getAllByRole("row").slice(1);
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "1-33.000000-70.000000",
+      "2-33.000000-69.990000",
+    ]);
+
+    act(() => map().onMapClick(square[2]));
+    act(() => map().onMapClick(square[3]));
+    act(() => map().onVertexClick(0));
+    act(() =>
+      map().onPathEdit({ kind: "move", index: 2, position: p(-69.98, -32.98) })
+    );
+    expect(list().getAllByRole("row")[3].textContent).toBe(
+      "3-32.980000-69.980000"
+    );
+  });
+
+  it("selects a closed polygon's vertex from its row", async () => {
+    await renderModal();
+    drawSquare();
+    const rows = within(
+      screen.getByRole("region", { name: /^Vértices del polígono/ })
+    ).getAllByRole("row");
+
+    fireEvent.click(rows[2]);
+    expect(map().selectedVertex).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Borrar vértice" }));
+    expect(map().drawing).toMatchObject({
+      vertices: [square[0], square[2], square[3]],
+    });
+  });
+
+  it("shows a point's coordinates", async () => {
+    await renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "Punto" }));
+    act(() => map().onMapClick(p(-84.0023, 9.8783)));
+
+    const rows = within(
+      screen.getByRole("region", { name: "Centro del punto" })
+    ).getAllByRole("row");
+    expect(rows.slice(1).map((row) => row.textContent)).toEqual([
+      "9.878300-84.002300",
+    ]);
+  });
+
   it("adds a point with its area, and draws the circle of that area", async () => {
     const { onSave } = await renderModal();
     fireEvent.click(screen.getByRole("button", { name: "Punto" }));
@@ -308,6 +363,64 @@ describe("ManualFarmModal", () => {
       "/images/manual-farm-drawing-es.gif"
     );
     expect(screen.getByText(/Presiona «Cerrar polígono»/)).toBeTruthy();
+  });
+
+  it("adds vertices at typed coordinates", async () => {
+    const { onSave } = await renderModal();
+    const addPoint = () =>
+      fireEvent.click(screen.getByRole("button", { name: "Agregar punto" }));
+    const typePosition = ({ lat, lng }: { lat: number; lng: number }) => {
+      type(/^Latitud/, String(lat).replace(".", ","));
+      type(/^Longitud/, String(lng));
+    };
+
+    typePosition(square[0]);
+    addPoint();
+    // The first one zooms in on it, and the fields empty for the next one
+    expect(map().focus).toMatchObject({ center: square[0], keepZoom: false });
+    expect(field(/^Latitud/).value).toBe("");
+
+    square.slice(1).forEach((vertex) => {
+      typePosition(vertex);
+      addPoint();
+    });
+    expect(map().focus).toMatchObject({ center: square[3], keepZoom: true });
+    expect(map().drawing).toMatchObject({ vertices: square, closed: false });
+
+    // One that crosses an edge is rejected, and stays typed to fix it
+    typePosition(p(-69.995, -33.01));
+    addPoint();
+    expect(screen.getByText(/bordes del polígono se crucen/)).toBeTruthy();
+    expect(field(/^Longitud/).value).toBe("-69.995");
+    expect(map().drawing).toMatchObject({ vertices: square });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar polígono" }));
+    expect(
+      screen.getByRole("button", { name: "Agregar punto" })
+    ).toHaveProperty("disabled", true);
+    fillMandatoryFields();
+    fireEvent.click(addButton());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      farmCoordinates: squareCoordinates,
+    });
+  });
+
+  it("places a point at typed coordinates", async () => {
+    await renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "Punto" }));
+    type(/^Latitud/, "9,8783");
+    type(/^Longitud/, "-84.0023");
+    fireEvent.click(screen.getByRole("button", { name: "Agregar punto" }));
+    expect(map().drawing).toEqual({
+      type: "point",
+      center: p(-84.0023, 9.8783),
+    });
+
+    type(/^Latitud/, "95");
+    type(/^Longitud/, "-84");
+    fireEvent.click(screen.getByRole("button", { name: "Agregar punto" }));
+    expect(screen.getByText(/latitud entre -90 y 90/)).toBeTruthy();
+    expect(map().drawing).toMatchObject({ center: p(-84.0023, 9.8783) });
   });
 
   it("goes to typed coordinates", async () => {

@@ -8,9 +8,9 @@
     "point": "Point"
   },
   "instructions": {
-    "polygon": "Click on the map to mark each vertex. Finish with \"Close polygon\" or by clicking the first vertex.",
+    "polygon": "Click on the map to mark each vertex, or type its latitude and longitude and press \"Add point\". Finish with \"Close polygon\" or by clicking the first vertex.",
     "polygonClosed": "Drag a vertex to move it, or an edge's midpoint to add one. To delete a vertex, right-click it, or select it and use \"Delete vertex\".",
-    "point": "Click on the map to place the farm. The circle has the area you enter, and you can drag it."
+    "point": "Click on the map to place the farm, or type its latitude and longitude and press \"Add point\". The circle has the area you enter, and you can drag it."
   },
   "howTo": {
     "button": "How to draw?",
@@ -18,7 +18,7 @@
     "alt": "Animation: clicks on the satellite map mark each of the farm's vertices, then \"Close polygon\" closes it, and a vertex is dragged to adjust the edge.",
     "steps": {
       "1": "Type the farm's latitude and longitude and press “Go”, or move the map to it.",
-      "2": "Click on the map to place each vertex of the farm's boundary.",
+      "2": "Click on the map to place each vertex of the farm's boundary. If you know their coordinates, type them and press “Add point”.",
       "3": "Press “Close polygon”, or click on the first vertex.",
       "4": "To adjust the boundary, drag a vertex; to delete it, right-click it."
     }
@@ -28,6 +28,7 @@
     "deleteVertex": "Delete vertex",
     "startOver": "Start over",
     "go": "Go",
+    "addPoint": "Add point",
     "addDocument": "Add document",
     "removeDocument": "Remove document",
     "cancel": "Cancel",
@@ -38,6 +39,12 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "invalid": "Use a latitude between -90 and 90 and a longitude between -180 and 180."
+  },
+  "coordinates": {
+    "polygonTitle": "Polygon vertices ({{count}})",
+    "pointTitle": "Point's center",
+    "number": "No.",
+    "selectHint": "Click a row to select that vertex."
   },
   "drawingErrors": {
     "crossing": "That vertex would make the polygon's edges cross.",
