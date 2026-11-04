@@ -131,7 +131,7 @@ Names SHALL be matched ignoring case and surrounding spaces. In a KML or KMZ wit
 
 ### Requirement: An Excel can be joined to a geo file by ID
 
-For a listed geo file, the step SHALL offer a second drop zone to attach the production Excel (the template, with its coordinate columns empty or ignored). With an Excel attached, each farm's geometry SHALL come from the geo file, and its data from the Excel row with the same ID, compared as trimmed text (`1` and `"1"` match). The Excel's ID column SHALL then be mandatory. These SHALL be errors:
+For a listed geo file, the step SHALL offer a second drop zone to attach the production Excel (the template, with its coordinate columns empty or ignored). With an Excel attached, each farm's geometry SHALL come from the geo file, and its data from the Excel row with the same ID, compared as trimmed text (`1` and `"1"` match). The Excel's ID column SHALL then be mandatory. The geo file's country attribute, under any of the names option 2 accepts, SHALL be checked against the selected country as in option 2. These SHALL be errors:
 - a feature without an ID;
 - duplicate IDs on either side;
 - an Excel row without a feature;
@@ -146,6 +146,11 @@ For a listed geo file, the step SHALL offer a second drop zone to attach the pro
 
 - **WHEN** the Excel has a row F-050 and the KMZ a placemark F-005
 - **THEN** both are reported: the row without a polygon, and the polygon without a row
+
+#### Scenario: A Shapefile's PAIS names another country
+
+- **WHEN** a Shapefile whose features carry `PAIS = CO` is joined to its Excel while Costa Rica is selected
+- **THEN** the source is rejected with the other-country error, as a GeoJSON with `ProducerCountry = CO` would be
 
 ### Requirement: Upload errors name their source
 

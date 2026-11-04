@@ -226,19 +226,23 @@ describe("joinRowsWithGeoFeatures", () => {
     expect(result.errorMessages).toEqual(["elemento 1 (ID F-1): Something new"]);
   });
 
-  it("rejects features whose producer country isn't the selected one", async () => {
-    const result = await join(
-      [row("F-1"), row("F-2")],
-      [
-        feature(1, { id: "F-1", ProducerCountry: "CR" }),
-        feature(2, { id: "F-2", ProducerCountry: "co" }),
-      ],
-      "en"
-    );
+  // The country attribute under every name option 2 accepts (geoAttributeMappings)
+  it.each(["ProducerCountry", "PAIS", "país", "country"])(
+    "rejects features whose %s isn't the selected country",
+    async (attribute) => {
+      const result = await join(
+        [row("F-1"), row("F-2")],
+        [
+          feature(1, { id: "F-1", [attribute]: "CR" }),
+          feature(2, { id: "F-2", [attribute]: "co" }),
+        ],
+        "en"
+      );
 
-    expect(result.data).toEqual([]);
-    expect(result.errorMessages).toEqual([
-      "This file has farms in Colombia. Monbo analyzes one country at a time: upload only the farms in Costa Rica, or choose another country.",
-    ]);
-  });
+      expect(result.data).toEqual([]);
+      expect(result.errorMessages).toEqual([
+        "This file has farms in Colombia. Monbo analyzes one country at a time: upload only the farms in Costa Rica, or choose another country.",
+      ]);
+    }
+  );
 });

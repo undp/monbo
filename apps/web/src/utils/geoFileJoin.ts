@@ -5,6 +5,7 @@ import {
   AS_TEXT,
   featureIssues,
   featureLabel,
+  geoFeatureCountry,
   geoFeatureId,
   normalizeFarmId,
   otherCountryError,
@@ -18,13 +19,12 @@ import {
 // The template has 3 header rows: its first farm is in row 4 (as in validateData).
 const FIRST_DATA_ROW = 4;
 
-const producerCountries = (features: ImportedFeature[]) =>
-  features.flatMap((feature) =>
-    Object.entries(feature.properties)
-      .filter(([key]) => key.toLowerCase() === "producercountry")
-      .map(([, value]) => normalizeFarmId(value))
-      .filter((code): code is string => !!code)
-  );
+/** The countries the features declare, under any accepted name, as option 2 reads
+ * them. */
+const declaredCountries = (features: ImportedFeature[]) =>
+  features
+    .map((feature) => geoFeatureCountry(feature.properties))
+    .filter((code): code is string => !!code);
 
 /** IDs that appear more than once, each with the indexes where it appears. */
 const duplicates = (ids: (string | null)[]) => {
@@ -70,7 +70,7 @@ export const joinRowsWithGeoFeatures = ({
   const errorMessages = featureIssues(t, geoFile);
 
   const countryError = otherCountryError(
-    producerCountries(features),
+    declaredCountries(features),
     t,
     language,
     selectedCountry

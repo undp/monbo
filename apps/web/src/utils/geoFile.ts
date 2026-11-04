@@ -169,6 +169,17 @@ const readAttribute = (properties: CleanProperties, names: string[]) => {
   return null;
 };
 
+/** The country a feature declares, under any of the accepted names (the EUDR
+ * GeoJSON's `ProducerCountry`, a Shapefile's `PAIS`, the template's headers).
+ * Only checked against the selected country, never used as the farm's country. */
+export const geoFeatureCountry = (properties: Properties): string | null => {
+  const country = readAttribute(
+    cleanProperties(properties),
+    geoAttributeAcceptedNames("country")
+  );
+  return typeof country === "string" ? country : null;
+};
+
 // The ID is read by geoFeatureId (with the KML name), the country only checked
 const DATA_KEYS = (Object.keys(geoAttributeMappings) as GeoAttributeKey[]).filter(
   (key) => key !== "id" && key !== "country"
@@ -216,8 +227,8 @@ export const geoFeaturesToFarmRows = (
     // Monbo's GeoJSON download writes "Area": "0" for every farm
     if (row.area === 0 || row.area === "0") row.area = null;
 
-    const country = readAttribute(properties, geoAttributeAcceptedNames("country"));
-    if (typeof country === "string") countries.push(country);
+    const country = geoFeatureCountry(feature.properties);
+    if (country) countries.push(country);
 
     const label = featureLabel(t, feature, id);
     const missingHere = DATA_KEYS.filter(
