@@ -19,7 +19,7 @@ When an uploaded farms file has validation errors, in "Polygon validation" or in
 
 ### Requirement: The upload is a list of farms from several sources
 
-The upload step of "Polygon validation" and "Deforestation analysis" SHALL build one list of farms from any mix of sources: Excel files, geo files (each one with or without an Excel joined to it), and farms added manually. The list SHALL show each source with its number of farms, and each manual farm on its own. The user SHALL be able to remove any source or manual farm. The processing SHALL start only when the user presses the step's button: all the listed farms are then sent together, in list order, as one upload. The button SHALL be disabled while the list is empty.
+The upload step of "Polygon validation" and "Deforestation analysis" SHALL build one list of farms from any mix of sources: Excel files, geo files (each one with or without an Excel joined to it), and farms added manually. The list SHALL show each source with its number of farms, and each manual farm on its own. The user SHALL be able to remove any source or manual farm. The processing SHALL start only when the user presses the step's button: all the listed farms are then sent together, in list order, as one upload. The button SHALL be disabled while the list is empty. A file's farms are checked against the country selected when it is read; if the user changes the country while the list has files, the step SHALL read them again against the new country, so a file with farms in another country stops being uploadable. Manual farms SHALL stay as they are.
 
 #### Scenario: A file and two drawn farms
 
@@ -40,6 +40,11 @@ The upload step of "Polygon validation" and "Deforestation analysis" SHALL build
 
 - **WHEN** two sources contain a farm with the same ID
 - **THEN** the upload is rejected with an error naming the ID and both sources
+
+#### Scenario: The country changes after a file is listed
+
+- **WHEN** the user drops a GeoJSON whose farms declare Colombia while Colombia is selected, then picks Costa Rica in the header
+- **THEN** the file is listed with the other-country error and the button is disabled, until the user removes it or goes back to Colombia
 
 ### Requirement: Each way to upload has its own card
 

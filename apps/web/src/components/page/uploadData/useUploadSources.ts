@@ -1,4 +1,4 @@
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { FarmRow } from "@/interfaces/FarmRow";
@@ -13,6 +13,7 @@ import {
   readExcelSource,
   readGeoFileWithExcel,
   readGeoSource,
+  rereadSources,
   sourceErrors,
   sourceLabel,
 } from "@/utils/uploadSources";
@@ -97,6 +98,40 @@ export const useUploadSources = (selectedCountry: string | null) => {
   };
 
   const detach = (source: GeoSource) => replace(detachExcel(source));
+
+  // The files' country checks were made against the country selected when they
+  // were dropped. When the user changes it in the header, the listed files are
+  // read again against the new one, so a file with farms in another country
+  // stops being uploadable. The list is read from a ref: the effect must not
+  // run on every change of the list.
+  const sourcesRef = useRef(sources);
+  useEffect(() => {
+    sourcesRef.current = sources;
+  }, [sources]);
+  const previousCountry = useRef(selectedCountry);
+  const rereadRun = useRef(0);
+  useEffect(() => {
+    if (previousCountry.current === selectedCountry) return;
+    previousCountry.current = selectedCountry;
+    const listed = sourcesRef.current;
+    if (listed.length === 0) return;
+    const run = ++rereadRun.current;
+    setReading((count) => count + 1);
+    rereadSources(listed, { t, language: i18n.language, selectedCountry })
+      .then((reread) => {
+        // A later country change supersedes this one
+        if (run !== rereadRun.current) return;
+        setSources((current) =>
+          current.map(
+            (item) => reread.find((source) => source.key === item.key) ?? item
+          )
+        );
+        reread.forEach((source) => {
+          if (!isMissingData(source)) notifyErrors(source);
+        });
+      })
+      .finally(() => setReading((count) => count - 1));
+  }, [selectedCountry, t, i18n.language, notifyErrors]);
 
   const remove = (source: UploadSource) =>
     setSources((current) => current.filter((item) => item.key !== source.key));

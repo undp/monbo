@@ -16,6 +16,7 @@ import {
   newSourceKey,
   readFileSource,
   readGeoFileWithExcel,
+  rereadSources,
   sourceErrors,
   sourceProblem,
   sourceRows,
@@ -91,10 +92,10 @@ const manual = (id: string | null): ManualSource => ({
   },
 });
 
-const context = async () => ({
+const context = async (selectedCountry = "CR") => ({
   ...(await createTestI18n("es")),
   language: "es",
-  selectedCountry: "CR",
+  selectedCountry,
 });
 
 beforeEach(() => {
@@ -358,5 +359,61 @@ describe("uploadSummary", () => {
     expect(
       uploadSummaryText({ farms: 5, polygons: 5, points: 0, sourcesWithProblems: 0 }, ctx.t)
     ).toBe("5 fincas: 5 polígonos");
+  });
+});
+
+describe("rereadSources", () => {
+  const OTHER_COUNTRY =
+    "Este archivo tiene fincas en Colombia. Monbo analiza un país a la vez: sube solo las fincas de Costa Rica, o elige otro país.";
+
+  it("checks a geo file's country against the new selected country", async () => {
+    const source = await readFileSource(
+      geoFile("fincas.geojson", {
+        format: "geojson",
+        features: [feature(1, { id: "F-1", ProducerCountry: "CO", ...COMPLETE })],
+      }),
+      await context("CO")
+    );
+    expect(isUploadable(source)).toBe(true);
+
+    const [inCostaRica] = await rereadSources([source], await context("CR"));
+    expect(inCostaRica.key).toBe(source.key);
+    expect(isUploadable(inCostaRica)).toBe(false);
+    expect(sourceErrors(inCostaRica)).toEqual([OTHER_COUNTRY]);
+    // Without calling the API again
+    expect(importGeoFile).toHaveBeenCalledTimes(1);
+
+    const [backInColombia] = await rereadSources([inCostaRica], await context("CO"));
+    expect(isUploadable(backInColombia)).toBe(true);
+  });
+
+  it("checks a joined geo file's country again, keeping its Excel", async () => {
+    const source = await readGeoFileWithExcel(
+      geoFile("poligonos.kmz", {
+        format: "kmz",
+        features: [feature(1, { Name: "F-1", PAIS: "CO" })],
+      }),
+      excel([templateRow("F-1", [null, null, null])]),
+      await context("CO")
+    );
+    expect(isUploadable(source)).toBe(true);
+
+    const [reread] = await rereadSources([source], await context("CR"));
+    expect(isUploadable(reread)).toBe(false);
+    expect(sourceErrors(reread)).toEqual([OTHER_COUNTRY]);
+    expect(canAttachExcel(reread) && reread.excel?.name).toBe("datos.xlsx");
+  });
+
+  it("keeps manual farms and rejected files as they are", async () => {
+    vi.mocked(importGeoFile).mockRejectedValueOnce(new Error("down"));
+    const rejected = await readFileSource(
+      toFile(new Uint8Array([1]), "fincas.zip"),
+      await context("CO")
+    );
+    const drawn = manual("F-9");
+
+    const reread = await rereadSources([rejected, drawn], await context("CR"));
+    expect(reread).toEqual([rejected, drawn]);
+    expect(importGeoFile).toHaveBeenCalledTimes(1);
   });
 });

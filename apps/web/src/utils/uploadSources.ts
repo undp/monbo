@@ -30,6 +30,8 @@ interface SourceBase {
 export interface ExcelSource extends SourceBase {
   kind: "excel";
   name: string;
+  /** Kept to read it again when the selected country changes */
+  file: File;
   rows: FarmRow[];
   errorMessages: string[];
   /** No row has coordinates: it belongs with a geo file (option 3) */
@@ -39,6 +41,7 @@ export interface ExcelSource extends SourceBase {
 export interface GeoSource extends SourceBase {
   kind: "geo";
   name: string;
+  file: File;
   /** The features as /farms/import read them; null when the file was rejected */
   geoFile: ImportedFile | null;
   /** Without an Excel, the farms read from the features' attributes */
@@ -48,6 +51,7 @@ export interface GeoSource extends SourceBase {
   /** An Excel joined by ID: then the farms' data comes from it */
   excel: {
     name: string;
+    file: File;
     rows: FarmRow[];
     errorMessages: string[];
     unmatchedIds: number;
@@ -89,6 +93,7 @@ export const readExcelSource = async (
     kind: "excel",
     key: newSourceKey(),
     name: file.name,
+    file,
     rows: data,
     errorMessages: hasNoCoordinates
       ? [t("common:farmsUpload:excelWithoutCoordinates")]
@@ -106,6 +111,7 @@ export const readGeoSource = async (
     kind: "geo",
     key: newSourceKey(),
     name: file.name,
+    file,
     geoFile: null,
     attributeRows: [],
     attributeErrors: [],
@@ -123,16 +129,28 @@ export const readGeoSource = async (
     ];
     return source;
   }
+  return withAttributeRows(source, { t, language, selectedCountry });
+};
+
+/** The source's farms read from its features' attributes, against the context's
+ * selected country. */
+const withAttributeRows = (
+  source: GeoSource,
+  { t, language, selectedCountry }: ReadContext
+): GeoSource => {
+  if (!source.geoFile) return source;
   const { rows, errorMessages, missing } = geoFeaturesToFarmRows(
     source.geoFile,
     t,
     language,
     selectedCountry
   );
-  source.attributeRows = rows;
-  source.attributeErrors = errorMessages;
-  source.attributeMissing = missing;
-  return source;
+  return {
+    ...source,
+    attributeRows: rows,
+    attributeErrors: errorMessages,
+    attributeMissing: missing,
+  };
 };
 
 /** The source as a file dropped on the step: an Excel or a geo file. */
@@ -159,7 +177,7 @@ export const attachExcel = async (
   if (errorMessages.length > 0) {
     return {
       ...source,
-      excel: { name: file.name, rows: [], errorMessages, unmatchedIds: 0 },
+      excel: { name: file.name, file, rows: [], errorMessages, unmatchedIds: 0 },
     };
   }
   const joined = joinRowsWithGeoFeatures({
@@ -173,6 +191,7 @@ export const attachExcel = async (
     ...source,
     excel: {
       name: file.name,
+      file,
       rows: joined.rows,
       errorMessages: joined.errorMessages,
       unmatchedIds: joined.unmatchedIds,
@@ -194,6 +213,38 @@ export const detachExcel = (source: GeoSource): GeoSource => ({
   ...source,
   excel: null,
 });
+
+/**
+ * The sources read again against the context's selected country, keeping their
+ * keys: a file whose farms are in another country stops being uploadable when the
+ * user changes the country after dropping it. Manual farms, and files the API
+ * rejected, stay as they are; a geo file isn't sent to the API again, its
+ * features are kept.
+ */
+export const rereadSources = (
+  sources: UploadSource[],
+  context: ReadContext
+): Promise<UploadSource[]> =>
+  Promise.all(
+    sources.map(async (source): Promise<UploadSource> => {
+      switch (source.kind) {
+        case "manual":
+          return source;
+        case "excel":
+          return {
+            ...(await readExcelSource(source.file, context)),
+            key: source.key,
+          };
+        case "geo": {
+          if (!source.geoFile) return source;
+          const fromAttributes = withAttributeRows(source, context);
+          return source.excel
+            ? attachExcel(fromAttributes, source.excel.file, context)
+            : fromAttributes;
+        }
+      }
+    })
+  );
 
 /** The farms the source contributes, when it can be uploaded. */
 export const sourceRows = (source: UploadSource): FarmRow[] => {
