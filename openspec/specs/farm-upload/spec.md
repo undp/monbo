@@ -46,6 +46,11 @@ The upload step of "Polygon validation" and "Deforestation analysis" SHALL build
 - **WHEN** the user drops a GeoJSON whose farms declare Colombia while Colombia is selected, then picks Costa Rica in the header
 - **THEN** the file is listed with the other-country error and the button is disabled, until the user removes it or goes back to Colombia
 
+#### Scenario: The country changes while a file is being read
+
+- **WHEN** the user drops that GeoJSON, or attaches an Excel to a geo file, and picks Costa Rica before the read finishes
+- **THEN** the source is listed checked against Costa Rica, with the other-country error
+
 ### Requirement: Each way to upload has its own card
 
 The step SHALL show the four ways to add farms side by side, as cards, in this order:

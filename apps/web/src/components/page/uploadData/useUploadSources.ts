@@ -30,6 +30,11 @@ export const useUploadSources = (selectedCountry: string | null) => {
   const { t, i18n } = useTranslation();
 
   const context = { t, language: i18n.language, selectedCountry };
+  // The context as it is now, for a read that ends after a render changed it
+  const contextRef = useRef(context);
+  useEffect(() => {
+    contextRef.current = context;
+  });
 
   /** Shows why a source can't be uploaded, naming it. */
   const notifyErrors = useCallback(
@@ -49,6 +54,22 @@ export const useUploadSources = (selectedCountry: string | null) => {
     []
   );
 
+  /**
+   * The source read against the country selected now. The user can change the
+   * country while a file is being read: the source would be listed validated for
+   * the old country, and the recheck on a country change (below) only sees the
+   * listed sources. So a source read for another country is read again.
+   */
+  const settled = async (source: UploadSource, readFor: string | null) => {
+    let current = source;
+    let country = readFor;
+    while (country !== contextRef.current.selectedCountry) {
+      country = contextRef.current.selectedCountry;
+      [current] = await rereadSources([current], contextRef.current);
+    }
+    return current;
+  };
+
   /** Reads each file as a source and adds it, unless `keep` says no. */
   const addSources = async (
     files: File[],
@@ -58,7 +79,7 @@ export const useUploadSources = (selectedCountry: string | null) => {
     setReading((count) => count + files.length);
     for (const file of files) {
       try {
-        const source = await read(file);
+        const source = await settled(await read(file), context.selectedCountry);
         if (keep(source)) setSources((current) => [...current, source]);
         // A geo file missing the farms' data waits for its Excel: the list says
         // so and how, and its errors are one click away
@@ -89,7 +110,10 @@ export const useUploadSources = (selectedCountry: string | null) => {
   const attach = async (source: GeoSource, file: File) => {
     setReading((count) => count + 1);
     try {
-      const joined = await attachExcel(source, file, context);
+      const joined = await settled(
+        await attachExcel(source, file, context),
+        context.selectedCountry
+      );
       replace(joined);
       notifyErrors(joined);
     } finally {
