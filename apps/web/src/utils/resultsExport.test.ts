@@ -240,6 +240,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     expect(await upload(await validationSheets(locale), locale)).toEqual({
       data: UPLOADED,
       errorMessages: [],
+      rowsWithCoordinates: UPLOADED.length,
     });
   });
 
@@ -247,6 +248,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     expect(await upload(await deforestationSheets(locale), locale)).toEqual({
       data: UPLOADED,
       errorMessages: [],
+      rowsWithCoordinates: UPLOADED.length,
     });
   });
 

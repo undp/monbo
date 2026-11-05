@@ -14,18 +14,18 @@ interface UploadExamples {
 
 const FILES: Record<"es" | "en", UploadExamples> = {
   es: {
-    excel: "opcion-1-plantilla-con-coordenadas.xlsx",
-    geojson: "opcion-2-fincas.geojson",
-    shapefile: "opcion-2-fincas-shapefile.zip",
-    kml: "opcion-3-poligonos.kml",
-    geoExcel: "opcion-3-datos-produccion.xlsx",
+    excel: "ejemplo-fincas-con-coordenadas.xlsx",
+    geojson: "ejemplo-fincas-con-datos.geojson",
+    shapefile: "ejemplo-fincas-con-datos-shapefile.zip",
+    kml: "ejemplo-fincas-por-id.kml",
+    geoExcel: "ejemplo-datos-produccion-por-id.xlsx",
   },
   en: {
-    excel: "option-1-template-with-coordinates.xlsx",
-    geojson: "option-2-farms.geojson",
-    shapefile: "option-2-farms-shapefile.zip",
-    kml: "option-3-polygons.kml",
-    geoExcel: "option-3-production-data.xlsx",
+    excel: "example-farms-with-coordinates.xlsx",
+    geojson: "example-farms-with-data.geojson",
+    shapefile: "example-farms-with-data-shapefile.zip",
+    kml: "example-farms-by-id.kml",
+    geoExcel: "example-production-data-by-id.xlsx",
   },
 };
 

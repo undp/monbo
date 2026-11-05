@@ -157,14 +157,16 @@ const withAttributeRows = (
 export const readFileSource = (file: File, context: ReadContext) =>
   isGeoFile(file) ? readGeoSource(file, context) : readExcelSource(file, context);
 
-/** A geo source with the production Excel joined to its features by ID. */
+/** A geo source with the production Excel joined to its features by ID. An Excel
+ * with coordinates is rejected: it wouldn't be clear whether the farms are placed
+ * by the geo file or by the Excel. */
 export const attachExcel = async (
   source: GeoSource,
   file: File,
   { t, language, selectedCountry }: ReadContext
 ): Promise<GeoSource> => {
   if (!source.geoFile) return source;
-  const { data, errorMessages } = await loadExcelFileFarmsData(
+  const { data, errorMessages, rowsWithCoordinates } = await loadExcelFileFarmsData(
     file,
     t,
     language,
@@ -174,10 +176,24 @@ export const attachExcel = async (
       ignoredColumns: COORDINATE_COLUMNS,
     }
   );
-  if (errorMessages.length > 0) {
+  const rejection =
+    rowsWithCoordinates > 0
+      ? [
+          t("common:farmsUpload:excelWithCoordinates", {
+            count: rowsWithCoordinates,
+          }),
+        ]
+      : errorMessages;
+  if (rejection.length > 0) {
     return {
       ...source,
-      excel: { name: file.name, file, rows: [], errorMessages, unmatchedIds: 0 },
+      excel: {
+        name: file.name,
+        file,
+        rows: [],
+        errorMessages: rejection,
+        unmatchedIds: 0,
+      },
     };
   }
   const joined = joinRowsWithGeoFeatures({

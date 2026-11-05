@@ -57,7 +57,11 @@ const load = async (file: File, locale: TestLocale) => {
 describe.each(LOCALES)("the %s upload template", (locale) => {
   it("parses empty: the example row is not a farm", async () => {
     const file = toFile(templateBytes(locale), `template-${locale}.xlsx`);
-    expect(await load(file, locale)).toEqual({ data: [], errorMessages: [] });
+    expect(await load(file, locale)).toEqual({
+      data: [],
+      errorMessages: [],
+      rowsWithCoordinates: 0,
+    });
   });
 
   it("maps every column of a filled row", async () => {

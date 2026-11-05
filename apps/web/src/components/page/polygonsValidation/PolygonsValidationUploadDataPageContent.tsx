@@ -145,6 +145,7 @@ export function PolygonsValidationUploadDataPageContent() {
     <UploadPageContent title={t("polygonValidation:uploadDataPage:title")}>
       <TextHeaderStepContainer
         title={t("polygonValidation:uploadDataPage:uploadStep:stepTitle")}
+        subtitle={t("common:farmsUpload:intro")}
         sx={{ flexGrow: 1 }}
       >
         <FarmsUploadStep

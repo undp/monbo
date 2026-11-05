@@ -323,6 +323,10 @@ describe.each(LOCALES)("the %s option 3 template", (locale) => {
       }
     );
 
-    expect(result).toEqual({ data: [], errorMessages: [] });
+    expect(result).toEqual({
+      data: [],
+      errorMessages: [],
+      rowsWithCoordinates: 0,
+    });
   });
 });

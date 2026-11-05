@@ -163,7 +163,7 @@ and the examples, and the tests upload every example. The list lives in the page
 |---|---|
 | **Excel template** | `loadExcelFileFarmsData`: coordinates as WKT or GeoJSON in a cell |
 | **Geo file** (GeoJSON, KML, KMZ, zipped Shapefile) | `POST /farms/import` reads it, then `geoFeaturesToFarmRows` reads each feature's attributes by fixed names (`geoAttributeMappings`: EUDR, Monbo's own GeoJSON download, short Shapefile names, the template's headers) |
-| **Geo file + Excel** | The Excel, read without its coordinate columns, joined to the features by ID (`joinRowsWithGeoFeatures`); a KML placemark's name is its ID when it has none |
+| **Geo file + Excel** | The Excel, joined to the features by ID (`joinRowsWithGeoFeatures`); an Excel with coordinates is rejected, so a farm is never placed twice; a KML placemark's name is its ID when it has none |
 | **Manual farm** | Drawn in `ManualFarmModal` on Google Maps, with our own drawing tool (Google's Drawing Library is gone), and its fields filled in |
 
 `utils/uploadSources.ts` keeps each source's rows and errors. It sends every row

@@ -36,18 +36,18 @@ pytestmark = pytest.mark.skipif(
 
 FILES = {
     "es": {
-        "option1": "opcion-1-plantilla-con-coordenadas.xlsx",
-        "geojson": "opcion-2-fincas.geojson",
-        "shapefile": "opcion-2-fincas-shapefile.zip",
-        "kml": "opcion-3-poligonos.kml",
-        "option3": "opcion-3-datos-produccion.xlsx",
+        "option1": "ejemplo-fincas-con-coordenadas.xlsx",
+        "geojson": "ejemplo-fincas-con-datos.geojson",
+        "shapefile": "ejemplo-fincas-con-datos-shapefile.zip",
+        "kml": "ejemplo-fincas-por-id.kml",
+        "option3": "ejemplo-datos-produccion-por-id.xlsx",
     },
     "en": {
-        "option1": "option-1-template-with-coordinates.xlsx",
-        "geojson": "option-2-farms.geojson",
-        "shapefile": "option-2-farms-shapefile.zip",
-        "kml": "option-3-polygons.kml",
-        "option3": "option-3-production-data.xlsx",
+        "option1": "example-farms-with-coordinates.xlsx",
+        "geojson": "example-farms-with-data.geojson",
+        "shapefile": "example-farms-with-data-shapefile.zip",
+        "kml": "example-farms-by-id.kml",
+        "option3": "example-production-data-by-id.xlsx",
     },
 }
 LANGUAGES = list(FILES)

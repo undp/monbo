@@ -129,6 +129,7 @@
     "featureWithoutRow": "El {{feature}} no tiene fila en el Excel"
   },
   "farmsUpload": {
+    "intro": "Puedes usar cualquiera de estas opciones, la que calce mejor con tus datos. Puedes combinarlas: todas las fincas se suman a la lista de abajo.",
     "dropzoneActive": "Suelta los archivos aquí",
     "dropzoneButton": "Click para cargar",
     "dropzoneText": "o arrastra y suelta tus archivos aquí",
@@ -148,7 +149,9 @@
     "edit": "Editar",
     "manualFarm": "Finca agregada manualmente",
     "manualFarmWithId": "Finca {{id}} (agregada manualmente)",
-    "excelWithoutCoordinates": "Este Excel no tiene coordenadas. Si tus polígonos están en un archivo geográfico, súbelos junto a este Excel en la opción 3; si no, completa sus columnas de coordenadas.",
+    "excelWithoutCoordinates": "Este Excel no tiene coordenadas. Si tus fincas están en un archivo geográfico, súbelo junto a este Excel en «Archivo geográfico + Excel»; si no, completa sus columnas de coordenadas.",
+    "excelWithCoordinates_one": "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
+    "excelWithCoordinates_other": "Este Excel tiene coordenadas en {{count}} filas. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
     "geoFileRequestFailed": "Ocurrió un error al leer el archivo geográfico",
     "duplicateIdAcrossSources": "El ID {{id}} está en más de una fuente ({{sources}}): quita o corrige una de ellas.",
     "submitCount": "{{label}} ({{count}})",
@@ -163,36 +166,36 @@
         },
         "drop": "Sube tu Excel",
         "extensions": ".xlsx · .xls",
-        "wrongType": "Aquí va la plantilla Excel. Los archivos geográficos (GeoJSON, KML, KMZ, Shapefile) van en la opción 2 o en la 3."
+        "wrongType": "Aquí va la plantilla Excel. Los archivos geográficos (GeoJSON, KML, KMZ, Shapefile) van en «Archivo geográfico con datos» o en «Archivo geográfico + Excel»."
       },
       "geoData": {
         "title": "Archivo geográfico con datos",
-        "when": "Tus fincas están en un GeoJSON, KML/KMZ o Shapefile cuyos atributos traen productor, fecha, cantidad, unidad y cultivo.",
+        "when": "Tus fincas están en un archivo geográfico (GeoJSON, KML/KMZ o Shapefile) que trae sus datos: productor, fecha, cantidad, unidad y cultivo.",
         "steps": {
-          "1": "Revisa que los atributos tengan los nombres aceptados",
-          "2": "Sube el archivo (el Shapefile, en un .zip con su .prj)"
+          "1": "Revisa que los atributos de las fincas tengan los nombres aceptados",
+          "2": "Sube el archivo geográfico (el Shapefile, en un .zip con su .prj)"
         },
-        "drop": "Sube tu archivo",
+        "drop": "Sube tu archivo geográfico",
         "extensions": ".geojson · .kml · .kmz · .zip",
         "fieldsHelp": "Nombres aceptados",
-        "wrongType": "Aquí va un archivo geográfico. La plantilla Excel va en la opción 1, o en la 3 junto a su archivo geográfico."
+        "wrongType": "Aquí va un archivo geográfico. La plantilla Excel va en «Plantilla Excel», o en «Archivo geográfico + Excel» junto a su archivo geográfico."
       },
       "geoExcel": {
         "title": "Archivo geográfico + Excel",
-        "when": "Tus polígonos están en Google Earth o un SIG, y los datos de producción en un Excel. Se unen por el ID de cada finca.",
+        "when": "Tus fincas están en un archivo geográfico (GeoJSON, KML/KMZ o Shapefile), por ejemplo de Google Earth, y sus datos en un Excel. Se unen por el ID de cada finca.",
         "steps": {
-          "1": "Nombra cada polígono con el ID de su finca (en Google Earth, su nombre)",
+          "1": "Pon a cada finca del archivo geográfico su ID (en Google Earth, como su nombre)",
           "2": "Llena la plantilla de esta opción con los mismos IDs",
-          "3": "Sube los dos archivos"
+          "3": "Sube el archivo geográfico y el Excel"
         },
-        "geoDrop": "Polígonos",
-        "geoExtensions": ".kmz · .kml · .geojson · .zip",
+        "geoDrop": "Archivo geográfico",
+        "geoExtensions": ".geojson · .kml · .kmz · .zip",
         "excelDrop": "Excel de producción",
         "excelExtensions": ".xlsx · .xls",
-        "waitingExcel": "Falta el Excel de producción para agregarlos a la lista",
-        "waitingGeo": "Falta el archivo de polígonos para agregarlos a la lista",
-        "wrongGeoType": "Aquí va el archivo de polígonos (GeoJSON, KML, KMZ o Shapefile). El Excel va al lado.",
-        "wrongExcelType": "Aquí va el Excel de producción. El archivo de polígonos va al lado."
+        "waitingExcel": "Falta el Excel de producción para agregar las fincas a la lista",
+        "waitingGeo": "Falta el archivo geográfico para agregar las fincas a la lista",
+        "wrongGeoType": "Aquí va el archivo geográfico (GeoJSON, KML, KMZ o Shapefile). El Excel de producción va al lado.",
+        "wrongExcelType": "Aquí va el Excel de producción. El archivo geográfico va al lado."
       },
       "manual": {
         "title": "Dibujar en el mapa",
@@ -213,8 +216,8 @@
     "problems": {
       "missingData_one": "Faltan datos en 1 elemento ({{fields}}). Adjunta el Excel de producción con su ID, o agrega esos atributos al archivo.",
       "missingData_other": "Faltan datos en {{count}} elementos ({{fields}}). Adjunta el Excel de producción con sus IDs, o agrega esos atributos al archivo.",
-      "unmatchedIds_one": "1 ID no cruza entre el archivo y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila.",
-      "unmatchedIds_other": "{{count}} IDs no cruzan entre el archivo y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+      "unmatchedIds_one": "1 ID no cruza entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila.",
+      "unmatchedIds_other": "{{count}} IDs no cruzan entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
     },
     "summary": {
       "polygons_one": "{{count}} polígono",

@@ -124,7 +124,7 @@ describe("readFileSource", () => {
     );
 
     expect(sourceErrors(source)).toEqual([
-      "Este Excel no tiene coordenadas. Si tus polígonos están en un archivo geográfico, súbelos junto a este Excel en la opción 3; si no, completa sus columnas de coordenadas.",
+      "Este Excel no tiene coordenadas. Si tus fincas están en un archivo geográfico, súbelo junto a este Excel en «Archivo geográfico + Excel»; si no, completa sus columnas de coordenadas.",
     ]);
     expect(isUploadable(source)).toBe(false);
   });
@@ -182,7 +182,7 @@ describe("readFileSource", () => {
 });
 
 describe("attachExcel", () => {
-  it("joins the Excel to the geo file by ID, ignoring its coordinates", async () => {
+  it("joins the Excel to the geo file by ID, with its coordinate columns empty", async () => {
     const ctx = await context();
     const source = await readFileSource(
       geoFile("poligonos.kmz", {
@@ -196,7 +196,7 @@ describe("attachExcel", () => {
     const joined = await attachExcel(
       source,
       excel([
-        templateRow("F-2", ["WKT", "Point", "POINT (0 0)"]),
+        templateRow("F-2", [null, "Point", null]),
         templateRow("F-1", [null, null, null]),
       ]),
       ctx
@@ -204,11 +204,36 @@ describe("attachExcel", () => {
 
     expect(sourceErrors(joined)).toEqual([]);
     expect(sourceRows(joined)).toMatchObject([
-      { id: "F-2", coordinatesFormat: "WKT", farmCoordinates: POLYGON_WKT },
+      { id: "F-2", geometryType: "Polygon", farmCoordinates: POLYGON_WKT },
       { id: "F-1", farmCoordinates: POLYGON_WKT },
     ]);
     // Removing the Excel goes back to the attributes, which lack the data
     expect(isUploadable(detachExcel(joined))).toBe(false);
+  });
+
+  it("rejects an Excel with coordinates: the geo file places the farms", async () => {
+    const ctx = await context();
+    const drop = () =>
+      readGeoFileWithExcel(
+        geoFile("poligonos.kmz", {
+          format: "kmz",
+          features: [feature(1, { Name: "F-1" }), feature(2, { Name: "F-2" })],
+        }),
+        excel([
+          templateRow("F-1", ["WKT", "Polygon", POLYGON_WKT]),
+          templateRow("F-2", [null, null, null]),
+        ]),
+        ctx
+      );
+
+    const source = await drop();
+    expect(sourceErrors(source)).toEqual([
+      "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
+    ]);
+    expect(sourceRows(source)).toEqual([]);
+    expect(isUploadable(source)).toBe(false);
+    // The geo file stays listed: its Excel can be removed and another attached
+    expect(canAttachExcel(source)).toBe(true);
   });
 
   it("reports the IDs that don't match", async () => {
@@ -323,7 +348,7 @@ describe("sourceProblem", () => {
     );
 
     expect(sourceProblem(source, ctx.t)).toBe(
-      "2 IDs no cruzan entre el archivo y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+      "2 IDs no cruzan entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
     );
   });
 

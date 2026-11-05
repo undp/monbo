@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Example farms (option 3)</name>
+    <name>Fincas de ejemplo (unidas por ID al Excel)</name>
     <Placemark>
       <name>E3-001</name>
       <Polygon><outerBoundaryIs><LinearRing><coordinates>-84.16,10.045,0 -84.1602,10.0439,0 -84.1591,10.0431,0 -84.1579,10.044,0 -84.1583,10.0453,0 -84.16,10.045,0</coordinates></LinearRing></outerBoundaryIs></Polygon>

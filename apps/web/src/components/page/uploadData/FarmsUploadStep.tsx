@@ -154,7 +154,6 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         }}
       >
         <OptionCard
-          number={1}
           card="excel"
           steps={3}
           links={[
@@ -178,7 +177,6 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         </OptionCard>
 
         <OptionCard
-          number={2}
           card="geoData"
           steps={2}
           links={[
@@ -206,7 +204,6 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         </OptionCard>
 
         <OptionCard
-          number={3}
           card="geoExcel"
           steps={3}
           links={[
@@ -246,7 +243,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
           )}
         </OptionCard>
 
-        <OptionCard number={4} card="manual" steps={3} links={[]}>
+        <OptionCard card="manual" steps={3} links={[]}>
           <Button
             variant="outlined"
             startIcon={<AddLocationAltOutlinedIcon />}
@@ -343,7 +340,6 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
 };
 
 interface OptionCardProps {
-  number: number;
   card: "excel" | "geoData" | "geoExcel" | "manual";
   /** How many steps its copy has */
   steps: number;
@@ -354,7 +350,6 @@ interface OptionCardProps {
 
 /** One way to upload: when to use it, its steps, its downloads and its control. */
 const OptionCard: React.FC<OptionCardProps> = ({
-  number,
   card,
   steps,
   links,
@@ -366,7 +361,7 @@ const OptionCard: React.FC<OptionCardProps> = ({
   return (
     <Box
       component="section"
-      aria-labelledby={`upload-option-${number}`}
+      aria-labelledby={`upload-option-${card}`}
       sx={{
         border: "1px solid #e4e7ec",
         borderRadius: 2,
@@ -377,26 +372,9 @@ const OptionCard: React.FC<OptionCardProps> = ({
         backgroundColor: "#fff",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Box
-          sx={{
-            width: 28,
-            height: 28,
-            borderRadius: 1.5,
-            backgroundColor: "primary.main",
-            color: "#fff",
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          {number}
-        </Box>
-        <Text variant="body1" bold id={`upload-option-${number}`}>
-          {t(`${key}:title`)}
-        </Text>
-      </Box>
+      <Text variant="body1" bold id={`upload-option-${card}`}>
+        {t(`${key}:title`)}
+      </Text>
       <Text variant="body2" color="secondary">
         {t(`${key}:when`)}
       </Text>

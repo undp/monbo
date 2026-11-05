@@ -61,24 +61,24 @@ DATE_FORMAT = {"es": 'dd"/"mm"/"yyyy', "en": 'yyyy"-"mm"-"dd'}
 
 NAMES = {
     "es": {
-        "option1": "opcion-1-plantilla-con-coordenadas.xlsx",
-        "geojson": "opcion-2-fincas.geojson",
-        "shapefile": "opcion-2-fincas-shapefile.zip",
+        "option1": "ejemplo-fincas-con-coordenadas.xlsx",
+        "geojson": "ejemplo-fincas-con-datos.geojson",
+        "shapefile": "ejemplo-fincas-con-datos-shapefile.zip",
         "shapefile_polygons": "fincas_poligonos",
         "shapefile_points": "fincas_puntos",
-        "kml": "opcion-3-poligonos.kml",
-        "kml_document": "Fincas de ejemplo (opción 3)",
-        "option3": "opcion-3-datos-produccion.xlsx",
+        "kml": "ejemplo-fincas-por-id.kml",
+        "kml_document": "Fincas de ejemplo (unidas por ID al Excel)",
+        "option3": "ejemplo-datos-produccion-por-id.xlsx",
     },
     "en": {
-        "option1": "option-1-template-with-coordinates.xlsx",
-        "geojson": "option-2-farms.geojson",
-        "shapefile": "option-2-farms-shapefile.zip",
+        "option1": "example-farms-with-coordinates.xlsx",
+        "geojson": "example-farms-with-data.geojson",
+        "shapefile": "example-farms-with-data-shapefile.zip",
         "shapefile_polygons": "farms_polygons",
         "shapefile_points": "farms_points",
-        "kml": "option-3-polygons.kml",
-        "kml_document": "Example farms (option 3)",
-        "option3": "option-3-production-data.xlsx",
+        "kml": "example-farms-by-id.kml",
+        "kml_document": "Example farms (joined by ID to the Excel)",
+        "option3": "example-production-data-by-id.xlsx",
     },
 }
 

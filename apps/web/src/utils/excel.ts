@@ -913,6 +913,8 @@ type MappedData = Record<string, unknown> & {
 interface LoadExcelFileReturn {
   data: MappedData[];
   errorMessages: string[];
+  /** Rows with their coordinates filled in, even when the column is ignored */
+  rowsWithCoordinates: number;
 }
 
 interface LoadExcelFileOptions {
@@ -935,6 +937,7 @@ interface LoadExcelFileOptions {
  * @returns {Promise<LoadExcelFileReturn>} Object containing:
  *   - data: Array of processed farm records with consolidated document data
  *   - errorMessages: Array of validation error messages
+ *   - rowsWithCoordinates: How many rows have their coordinates filled in
  *
  * @remarks
  * This function:
@@ -980,6 +983,7 @@ export const loadExcelFileFarmsData = async (
     if (internalKey) headerToKeyMap[incomingHeader] = internalKey;
   });
 
+  let rowsWithCoordinates = 0;
   // Remapping data based on header keywords
   const mappedData: MappedData[] = data.map((row) => {
     const newRow: MappedData = {
@@ -1009,6 +1013,7 @@ export const loadExcelFileFarmsData = async (
       newRow.id = newRow.id.toString();
     }
 
+    if (newRow.farmCoordinates) rowsWithCoordinates++;
     ignoredColumns.forEach((column) => delete newRow[column]);
 
     // Convert productionDate to ISO string if it's a Date
@@ -1068,6 +1073,7 @@ export const loadExcelFileFarmsData = async (
           country: selectedCountry ? name(selectedCountry) : "",
         }),
       ],
+      rowsWithCoordinates,
     };
   }
 
@@ -1082,6 +1088,7 @@ export const loadExcelFileFarmsData = async (
   return {
     data: mappedData,
     errorMessages,
+    rowsWithCoordinates,
   };
 };
 

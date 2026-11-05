@@ -36,7 +36,7 @@ const duplicates = (ids: (string | null)[]) => {
 };
 
 interface JoinParams {
-  /** The Excel rows, read without their coordinate columns. */
+  /** The Excel rows, without coordinates: the geo file places the farms. */
   rows: FarmRow[];
   geoFile: ImportedFile;
   t: TFunction;

@@ -290,6 +290,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       </TextHeaderStepContainer>
       <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
+        subtitle={t("common:farmsUpload:intro")}
         sx={{
           flexGrow: 1,
           opacity: selectedMapsForDeforestation.length === 0 ? 0.4 : 1,

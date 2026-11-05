@@ -59,13 +59,20 @@ The step SHALL show the four ways to add farms side by side, as cards, in this o
 3. a geo file plus an Excel joined by ID;
 4. drawing on the map.
 
+The cards SHALL NOT be numbered, since they are alternatives and not steps; a line under the step's title SHALL say that any of them can be used, and combined. Cards 2 and 3 SHALL name their input the same way ("geo file", holding farms) and list the geo file extensions in the same order.
+
 Each card SHALL say when to use it and what it needs, list how to upload in at most 3 steps, and hold its own upload control:
 - card 1: a drop zone for Excel files;
 - card 2: a drop zone for geo files (GeoJSON, KML, KMZ, a Shapefile as a `.zip`);
 - card 3: one drop zone for the geo file and one for its Excel;
 - card 4: the "Add manually" button.
 
-A drop zone SHALL reject a file of another kind with a message naming the card that takes it. The Excel template SHALL be downloadable from cards 1 and 3, so the module's page no longer has a separate "download the template" step. An Excel without coordinates dropped on card 1 SHALL be rejected with a message pointing to card 3. All the cards SHALL add to the same list.
+A drop zone SHALL reject a file of another kind with a message naming, by its title, the card that takes it. The Excel template SHALL be downloadable from cards 1 and 3, so the module's page no longer has a separate "download the template" step. An Excel without coordinates dropped on card 1 SHALL be rejected with a message pointing to card 3. All the cards SHALL add to the same list.
+
+#### Scenario: The options read as alternatives
+
+- **WHEN** the user opens the upload step
+- **THEN** a line under the title says any of the options can be used, and the cards show their titles without numbers
 
 #### Scenario: Excel with coordinates
 
@@ -158,7 +165,8 @@ Names SHALL be matched ignoring case and surrounding spaces. In a KML or KMZ wit
 
 ### Requirement: An Excel can be joined to a geo file by ID
 
-For a listed geo file, the step SHALL offer a second drop zone to attach the production Excel (the template, with its coordinate columns empty or ignored). With an Excel attached, each farm's geometry SHALL come from the geo file, and its data from the Excel row with the same ID, compared as trimmed text (`1` and `"1"` match). The Excel's ID column SHALL then be mandatory. The geo file's country attribute, under any of the names option 2 accepts, SHALL be checked against the selected country as in option 2. These SHALL be errors:
+For a listed geo file, the step SHALL offer a second drop zone to attach the production Excel (the option 3 template, or the main one with its coordinate cells empty). With an Excel attached, each farm's geometry SHALL come from the geo file, and its data from the Excel row with the same ID, compared as trimmed text (`1` and `"1"` match). The Excel's ID column SHALL then be mandatory. The geo file's country attribute, under any of the names option 2 accepts, SHALL be checked against the selected country as in option 2. These SHALL be errors:
+- an Excel row with coordinates: the Excel SHALL be rejected, since it wouldn't be clear whether the farms are placed by the geo file or by the Excel, and the message SHALL say to use the option 3 template or delete the coordinates, or to upload the Excel alone in the Excel template card if its coordinates are the right ones;
 - a feature without an ID;
 - duplicate IDs on either side;
 - an Excel row without a feature;
@@ -168,6 +176,11 @@ For a listed geo file, the step SHALL offer a second drop zone to attach the pro
 
 - **WHEN** the user drops a KMZ whose placemark names are the farm IDs, and attaches the production Excel
 - **THEN** every farm is listed with the KMZ's geometry and the Excel's data
+
+#### Scenario: An Excel with coordinates
+
+- **WHEN** the user joins to a KMZ an Excel whose rows have their coordinates filled in
+- **THEN** the Excel is rejected with a message saying the farms are placed by the geo file, and the KMZ stays listed so another Excel can be attached
 
 #### Scenario: An ID that doesn't match
 
