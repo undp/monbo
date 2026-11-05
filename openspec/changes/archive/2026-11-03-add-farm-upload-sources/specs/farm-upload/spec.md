@@ -2,7 +2,7 @@
 
 ### Requirement: The upload is a list of farms from several sources
 
-The upload step of "Polygon validation" and "Deforestation analysis" SHALL build one list of farms from any mix of sources: Excel files, geo files (each one with or without an Excel joined to it), and farms added manually. The list SHALL show each source with its number of farms, and each manual farm on its own. The user SHALL be able to remove any source or manual farm. The processing SHALL start only when the user presses the step's button: all the listed farms are then sent together, in list order, as one upload. The button SHALL be disabled while the list is empty. A file's farms are checked against the country selected when it is read; if the user changes the country while the list has files, the step SHALL read them again against the new country, so a file with farms in another country stops being uploadable. Manual farms SHALL stay as they are.
+The upload step of "Polygon validation" and "Deforestation analysis" SHALL build one list of farms from any mix of sources: Excel files, geo files (each one with or without an Excel joined to it), and farms added manually. The list SHALL show each source with its number of farms, and each manual farm on its own. The user SHALL be able to remove any source or manual farm. The processing SHALL start only when the user presses the step's button: all the listed farms are then sent together, in list order, as one upload. The button SHALL be disabled while the list is empty. A file's farms are checked against the country selected when it is read; if the user changes the country while the list has files, the step SHALL read them again against the new country, so a file with farms in another country stops being uploadable. Manual farms SHALL stay as they are. A source the user edits while the files are being read again (an Excel detached, a manual farm saved or removed) SHALL keep the edit, and an edited file SHALL still be checked against the new country before the list can be uploaded.
 
 #### Scenario: A file and two drawn farms
 
@@ -33,6 +33,11 @@ The upload step of "Polygon validation" and "Deforestation analysis" SHALL build
 
 - **WHEN** the user drops that GeoJSON, or attaches an Excel to a geo file, and picks Costa Rica before the read finishes
 - **THEN** the source is listed checked against Costa Rica, with the other-country error
+
+#### Scenario: An Excel removed while the files are being read again
+
+- **WHEN** the user picks Costa Rica with a Colombian geo file and its Excel listed, and removes the Excel while the list is being read again
+- **THEN** the geo file stays without its Excel, checked against Costa Rica, and a manual farm saved meanwhile keeps its new data
 
 ### Requirement: Each way to upload has its own card
 

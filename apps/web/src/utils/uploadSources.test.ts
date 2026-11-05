@@ -12,6 +12,7 @@ import {
   canAttachExcel,
   collectUpload,
   detachExcel,
+  isReadForCountry,
   isUploadable,
   newSourceKey,
   readFileSource,
@@ -403,6 +404,8 @@ describe("rereadSources", () => {
 
     const [inCostaRica] = await rereadSources([source], await context("CR"));
     expect(inCostaRica.key).toBe(source.key);
+    expect(isReadForCountry(source, "CR")).toBe(false);
+    expect(isReadForCountry(inCostaRica, "CR")).toBe(true);
     expect(isUploadable(inCostaRica)).toBe(false);
     expect(sourceErrors(inCostaRica)).toEqual([OTHER_COUNTRY]);
     // Without calling the API again
@@ -438,7 +441,8 @@ describe("rereadSources", () => {
     const drawn = manual("F-9");
 
     const reread = await rereadSources([rejected, drawn], await context("CR"));
-    expect(reread).toEqual([rejected, drawn]);
+    // The rejected file is only marked as checked for the new country
+    expect(reread).toEqual([{ ...rejected, readFor: "CR" }, drawn]);
     expect(importGeoFile).toHaveBeenCalledTimes(1);
   });
 });

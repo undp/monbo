@@ -7,9 +7,11 @@ import { deferred } from "@/test/deferred";
 import { readPublicFile, toFile } from "@/test/files";
 import { renderHookWithData } from "@/test/renderWithData";
 import { getUploadFileTemplatePath } from "@/utils/excel";
+import type { FarmRow } from "@/interfaces/FarmRow";
 import {
   canAttachExcel,
   isUploadable,
+  rereadSources,
   sourceErrors,
 } from "@/utils/uploadSources";
 import { useUploadSources } from "./useUploadSources";
@@ -18,6 +20,38 @@ vi.mock("@/api/farms", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/farms")>()),
   importGeoFile: vi.fn(),
 }));
+
+// rereadSources is spied so a test can hold the country change's re-read open
+vi.mock("@/utils/uploadSources", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/utils/uploadSources")>();
+  return { ...actual, rereadSources: vi.fn(actual.rereadSources) };
+});
+const { rereadSources: actualRereadSources } = await vi.importActual<
+  typeof import("@/utils/uploadSources")
+>("@/utils/uploadSources");
+
+/** Holds the next re-read until the test releases it. */
+const holdNextReread = () => {
+  const gate = deferred<void>();
+  vi.mocked(rereadSources).mockImplementationOnce(async (sources, context) => {
+    await gate.promise;
+    return actualRereadSources(sources, context);
+  });
+  return gate;
+};
+
+const MANUAL_ROW: FarmRow = {
+  id: "F-9",
+  producerName: "José Mora",
+  productionDate: "2025-03-15",
+  productionQuantity: 300,
+  productionQuantityUnit: "kg",
+  cropType: "Cacao",
+  coordinatesFormat: "GeoJSON",
+  geometryType: "Polygon",
+  farmCoordinates: "[[[-84.37,10.14],[-84.36,10.14],[-84.36,10.15],[-84.37,10.14]]]",
+  documents: [],
+};
 
 // A GeoJSON whose farm declares Colombia, as /farms/import reads it
 const COLOMBIAN_FARM: ImportedFile = {
@@ -157,5 +191,58 @@ describe("useUploadSources", () => {
     expect(canAttachExcel(joined) && joined.excel?.name).toBe("datos.xlsx");
     expect(isUploadable(joined)).toBe(false);
     expect(sourceErrors(joined)).toEqual([OTHER_COUNTRY]);
+  });
+
+  it("keeps an Excel detached while its geo file is being read again", async () => {
+    vi.mocked(importGeoFile).mockResolvedValue(COLOMBIAN_PLACEMARK);
+    const { result, rerender } = await renderUpload("CO");
+    await act(() =>
+      result.current.addGeoFileWithExcel(
+        toFile(new Uint8Array([1]), "poligonos.kmz"),
+        productionExcel()
+      )
+    );
+    const [joined] = result.current.sources;
+    if (!canAttachExcel(joined)) throw new Error("expected a geo source");
+    expect(isUploadable(joined)).toBe(true);
+
+    // The user removes the Excel while the file is being read again for CR
+    const gate = holdNextReread();
+    rerender({ selectedCountry: "CR" });
+    expect(result.current.reading).toBe(true);
+    act(() => result.current.detach(joined));
+    await act(async () => gate.resolve());
+    await waitFor(() => expect(result.current.reading).toBe(false));
+
+    const [source] = result.current.sources;
+    expect(result.current.sources).toHaveLength(1);
+    expect(canAttachExcel(source) && source.excel).toBeNull();
+    // Without its Excel, and checked against Costa Rica
+    expect(isUploadable(source)).toBe(false);
+    expect(sourceErrors(source)).toEqual([OTHER_COUNTRY]);
+  });
+
+  it("keeps a manual farm saved while the files are being read again", async () => {
+    vi.mocked(importGeoFile).mockResolvedValue(COLOMBIAN_FARM);
+    const { result, rerender } = await renderUpload("CO");
+    await act(() =>
+      result.current.addGeoFiles([toFile(new Uint8Array([1]), "fincas.geojson")])
+    );
+    act(() => result.current.saveManual(MANUAL_ROW));
+    const manualKey = result.current.sources[1].key;
+
+    const gate = holdNextReread();
+    rerender({ selectedCountry: "CR" });
+    act(() =>
+      result.current.saveManual({ ...MANUAL_ROW, id: "F-9 bis" }, manualKey)
+    );
+    await act(async () => gate.resolve());
+    await waitFor(() => expect(result.current.reading).toBe(false));
+
+    expect(result.current.sources[1]).toMatchObject({
+      kind: "manual",
+      row: { id: "F-9 bis" },
+    });
+    expect(sourceErrors(result.current.sources[0])).toEqual([OTHER_COUNTRY]);
   });
 });

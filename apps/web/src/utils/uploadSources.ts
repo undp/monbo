@@ -32,6 +32,9 @@ export interface ExcelSource extends SourceBase {
   name: string;
   /** Kept to read it again when the selected country changes */
   file: File;
+  /** The country the file's farms were checked against: the one selected when it
+   * was read. The step reads the file again when it isn't the selected one. */
+  readFor: string | null;
   rows: FarmRow[];
   errorMessages: string[];
   /** No row has coordinates: it belongs with a geo file (option 3) */
@@ -42,6 +45,7 @@ export interface GeoSource extends SourceBase {
   kind: "geo";
   name: string;
   file: File;
+  readFor: string | null;
   /** The features as /farms/import read them; null when the file was rejected */
   geoFile: ImportedFile | null;
   /** Without an Excel, the farms read from the features' attributes */
@@ -94,6 +98,7 @@ export const readExcelSource = async (
     key: newSourceKey(),
     name: file.name,
     file,
+    readFor: selectedCountry,
     rows: data,
     errorMessages: hasNoCoordinates
       ? [t("common:farmsUpload:excelWithoutCoordinates")]
@@ -112,6 +117,7 @@ export const readGeoSource = async (
     key: newSourceKey(),
     name: file.name,
     file,
+    readFor: selectedCountry,
     geoFile: null,
     attributeRows: [],
     attributeErrors: [],
@@ -147,6 +153,7 @@ const withAttributeRows = (
   );
   return {
     ...source,
+    readFor: selectedCountry,
     attributeRows: rows,
     attributeErrors: errorMessages,
     attributeMissing: missing,
@@ -187,6 +194,7 @@ export const attachExcel = async (
   if (rejection.length > 0) {
     return {
       ...source,
+      readFor: selectedCountry,
       excel: {
         name: file.name,
         file,
@@ -205,6 +213,7 @@ export const attachExcel = async (
   });
   return {
     ...source,
+    readFor: selectedCountry,
     excel: {
       name: file.name,
       file,
@@ -252,7 +261,9 @@ export const rereadSources = (
             key: source.key,
           };
         case "geo": {
-          if (!source.geoFile) return source;
+          // A rejected file stays rejected whatever the country
+          if (!source.geoFile)
+            return { ...source, readFor: context.selectedCountry };
           const fromAttributes = withAttributeRows(source, context);
           return source.excel
             ? attachExcel(fromAttributes, source.excel.file, context)
@@ -289,6 +300,13 @@ export const sourceErrors = (source: UploadSource): string[] => {
 /** A geo file read by the API: an Excel can be joined to it. */
 export const canAttachExcel = (source: UploadSource): source is GeoSource =>
   source.kind === "geo" && source.geoFile !== null;
+
+/** Whether the source's farms were checked against the selected country. A manual
+ * farm has no file to check. */
+export const isReadForCountry = (
+  source: UploadSource,
+  selectedCountry: string | null
+) => source.kind === "manual" || source.readFor === selectedCountry;
 
 export const isUploadable = (source: UploadSource) =>
   sourceErrors(source).length === 0 && sourceRows(source).length > 0;

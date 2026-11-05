@@ -9,6 +9,7 @@ import {
   attachExcel,
   detachExcel,
   isMissingData,
+  isReadForCountry,
   newSourceKey,
   readExcelSource,
   readGeoFileWithExcel,
@@ -123,39 +124,45 @@ export const useUploadSources = (selectedCountry: string | null) => {
 
   const detach = (source: GeoSource) => replace(detachExcel(source));
 
-  // The files' country checks were made against the country selected when they
-  // were dropped. When the user changes it in the header, the listed files are
-  // read again against the new one, so a file with farms in another country
-  // stops being uploadable. The list is read from a ref: the effect must not
-  // run on every change of the list.
-  const sourcesRef = useRef(sources);
+  // A file's farms are checked against the country selected when it is read
+  // (`readFor`). When the user changes the country in the header, every listed
+  // file read for another one is read again, so a file with farms in another
+  // country stops being uploadable. A source the user edits meanwhile (an Excel
+  // detached, a manual farm saved) keeps its edit: a result only replaces the
+  // very version that was read, and an edited file still read for another
+  // country is read again on the next run.
+  const rereading = useRef(new Set<string>());
   useEffect(() => {
-    sourcesRef.current = sources;
-  }, [sources]);
-  const previousCountry = useRef(selectedCountry);
-  const rereadRun = useRef(0);
-  useEffect(() => {
-    if (previousCountry.current === selectedCountry) return;
-    previousCountry.current = selectedCountry;
-    const listed = sourcesRef.current;
-    if (listed.length === 0) return;
-    const run = ++rereadRun.current;
+    const stale = sources.filter(
+      (source) =>
+        !isReadForCountry(source, selectedCountry) &&
+        !rereading.current.has(source.key)
+    );
+    if (stale.length === 0) return;
+    stale.forEach((source) => rereading.current.add(source.key));
     setReading((count) => count + 1);
-    rereadSources(listed, { t, language: i18n.language, selectedCountry })
+    const done = () => {
+      stale.forEach((source) => rereading.current.delete(source.key));
+      setReading((count) => count - 1);
+    };
+    rereadSources(stale, { t, language: i18n.language, selectedCountry })
       .then((reread) => {
-        // A later country change supersedes this one
-        if (run !== rereadRun.current) return;
+        done();
         setSources((current) =>
-          current.map(
-            (item) => reread.find((source) => source.key === item.key) ?? item
-          )
+          current.map((item) => {
+            const index = stale.indexOf(item);
+            return index === -1 ? item : reread[index];
+          })
         );
         reread.forEach((source) => {
           if (!isMissingData(source)) notifyErrors(source);
         });
       })
-      .finally(() => setReading((count) => count - 1));
-  }, [selectedCountry, t, i18n.language, notifyErrors]);
+      .catch((error) => {
+        console.error(error);
+        done();
+      });
+  }, [sources, selectedCountry, t, i18n.language, notifyErrors]);
 
   const remove = (source: UploadSource) =>
     setSources((current) => current.filter((item) => item.key !== source.key));
@@ -172,7 +179,10 @@ export const useUploadSources = (selectedCountry: string | null) => {
 
   return {
     sources,
-    reading: reading > 0,
+    // Also while a file is still to be read again for the selected country
+    reading:
+      reading > 0 ||
+      sources.some((source) => !isReadForCountry(source, selectedCountry)),
     addExcelFiles,
     addGeoFiles,
     addGeoFileWithExcel,
