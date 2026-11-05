@@ -50,7 +50,7 @@ import {
   uploadSummaryText,
 } from "@/utils/uploadSources";
 import { GeoFileFieldsHelp } from "./GeoFileFieldsHelp";
-import { ManualFarmModal } from "./ManualFarmModal";
+import { ManualFarmModal } from "./manualFarm/ManualFarmModal";
 import { UploadSourcesState } from "./useUploadSources";
 
 const EXCEL_EXTENSIONS = Object.values(EXCEL_ACCEPT).flat().join(",");

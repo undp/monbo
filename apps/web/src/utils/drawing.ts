@@ -323,6 +323,12 @@ export const drawingProblem = (parts: Part[]): DrawingProblem | null => {
   return null;
 };
 
+/** Whether two references point to the same ring. */
+export const sameRing = (a: RingRef, b: RingRef): boolean =>
+  a === "open" || b === "open"
+    ? a === b
+    : a.part === b.part && a.hole === b.hole;
+
 /** The closed ring a reference points to, or null. */
 export const ringAt = (drawing: PolygonDrawing, ref: RingRef): Ring | null => {
   if (ref === "open") return drawing.open?.vertices ?? null;
