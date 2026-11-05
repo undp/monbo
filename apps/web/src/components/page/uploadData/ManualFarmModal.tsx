@@ -721,7 +721,11 @@ const ManualFarmModalContent: React.FC<
             color="text.secondary"
             sx={{ mr: "auto" }}
           >
-            {t("manualFarm:missingGeometry")}
+            {t(
+              polygon?.open && polygon.parts.length
+                ? `manualFarm:openRing:${polygon.open.kind}`
+                : "manualFarm:missingGeometry"
+            )}
           </Typography>
         )}
         <Button onClick={onCancel}>{t("manualFarm:actions:cancel")}</Button>

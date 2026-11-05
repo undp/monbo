@@ -23,7 +23,7 @@ Pressing "Add" SHALL validate the fields as the template's rows are validated, a
 
 ### Requirement: The farm is drawn on the map
 
-The map SHALL let the user draw either a polygon farm, vertex by vertex, or one point. A polygon farm MAY have holes and several parts. A point farm SHALL also need its area in hectares. Once drawn, the user SHALL be able to move a vertex, delete one, and start over. A ring whose edges cross SHALL NOT be accepted. The map SHALL open centred on the selected country, and the user SHALL be able to move it to a latitude and longitude typed in. The user SHALL also be able to add a vertex to the ring being drawn, or place the point, at a latitude and longitude typed in, with "Add point"; a typed vertex SHALL follow the same rules as a clicked one. "Add" SHALL be disabled until there is a polygon with no ring left open, or a point.
+The map SHALL let the user draw either a polygon farm, vertex by vertex, or one point. A polygon farm MAY have holes and several parts. A point farm SHALL also need its area in hectares. Once drawn, the user SHALL be able to move a vertex, delete one, and start over. A ring whose edges cross SHALL NOT be accepted. The map SHALL open centred on the selected country, and the user SHALL be able to move it to a latitude and longitude typed in. The user SHALL also be able to add a vertex to the ring being drawn, or place the point, at a latitude and longitude typed in, with "Add point"; a typed vertex SHALL follow the same rules as a clicked one. "Add" SHALL be disabled until there is a polygon with no ring left open, or a point; a ring started with "Add hole" or "Add part" counts as left open until it is closed or discarded, even with no vertex yet.
 
 #### Scenario: A point farm
 
@@ -47,8 +47,8 @@ The map SHALL let the user draw either a polygon farm, vertex by vertex, or one 
 
 #### Scenario: A ring left open
 
-- **WHEN** the user presses "Add hole", marks two vertices and doesn't close the ring
-- **THEN** "Add" stays disabled until the ring is closed or the drawing starts over
+- **WHEN** the user presses "Add hole", marks two vertices and doesn't close the ring, or presses it and marks none
+- **THEN** "Add" stays disabled until the ring is closed or discarded, or the drawing starts over
 
 ### Requirement: The modal lists the drawing's coordinates
 

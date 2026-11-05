@@ -484,8 +484,9 @@ describe("drawingToGeometryFields", () => {
         drawn(addOpenVertex(startRing(farm, "hole"), p(0.5, 0.5)))
       )
     ).toBeNull();
-    // An empty hole started and not drawn doesn't count
-    expect(drawingToGeometryFields(startRing(farm, "hole"))).not.toBeNull();
+    // A hole started and not drawn is a ring being drawn: discard it to add
+    expect(drawingToGeometryFields(startRing(farm, "hole"))).toBeNull();
+    expect(drawingToGeometryFields(startRing(farm, "part"))).toBeNull();
     expect(
       drawingToGeometryFields(
         polygon({ exterior: [p(0, 0), p(1, 1), p(1, 0), p(0, 1)], holes: [] })

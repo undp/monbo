@@ -76,6 +76,7 @@
     "invalid": "This farm's geometry couldn't be read: draw it again."
   },
   "missingGeometry": "Draw the polygon or place the point to add the farm.",
+  "openRing": {"part": "Close or discard the part to add the farm.", "hole": "Close or discard the hole to add the farm."},
   "fields": {
     "mandatoryTitle": "Farm data",
     "optionalTitle": "Optional",

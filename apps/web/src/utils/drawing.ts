@@ -584,7 +584,7 @@ export const drawingVertices = (drawing: Drawing): Coordinates[] =>
  * A finished drawing as the row's geometry fields, in the template's GeoJSON
  * format: a Polygon's rings (the exterior, then its holes) for one part, a
  * MultiPolygon for several, `[lng, lat]` for a point. Null while a ring is being
- * drawn, or for parts that break a rule.
+ * drawn (started, even without a vertex), or for parts that break a rule.
  */
 export const drawingToGeometryFields = (
   drawing: Drawing
@@ -596,7 +596,9 @@ export const drawingToGeometryFields = (
       farmCoordinates: JSON.stringify(toPosition(drawing.center)),
     };
   }
-  if (drawing.open?.vertices.length || !drawing.parts.length) return null;
+  // A ring started with "Add hole" or "Add part" is being drawn, even with no
+  // vertex yet: the user closes or discards it
+  if (drawing.open || !drawing.parts.length) return null;
   if (drawingProblem(drawing.parts)) return null;
   const polygons = drawing.parts.map(({ exterior, holes }) =>
     [exterior, ...holes].map(closeRing)

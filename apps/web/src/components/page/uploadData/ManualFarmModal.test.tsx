@@ -451,10 +451,14 @@ describe("ManualFarmModal", () => {
   it("adds a farm of two parts as a MultiPolygon", async () => {
     const { onSave } = await renderModal();
     drawSquare();
-    press("Agregar parte");
     expect(addButton()).toHaveProperty("disabled", false);
+    press("Agregar parte");
+    // A ring started holds the farm back, even before its first vertex
+    expect(addButton()).toHaveProperty("disabled", true);
+    expect(
+      screen.getByText("Cierra o descarta la parte para agregar la finca.")
+    ).toBeTruthy();
     BESIDE.forEach((vertex) => act(() => map().onMapClick(vertex)));
-    // A ring being drawn holds the farm back
     expect(addButton()).toHaveProperty("disabled", true);
     act(() => map().onVertexClick({ ring: "open", index: 0 }));
 

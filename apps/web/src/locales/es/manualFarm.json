@@ -76,6 +76,7 @@
     "invalid": "No se pudo leer la geometría de esta finca: dibújala de nuevo."
   },
   "missingGeometry": "Dibuja el polígono o ubica el punto para agregar la finca.",
+  "openRing": {"part": "Cierra o descarta la parte para agregar la finca.", "hole": "Cierra o descarta el hueco para agregar la finca."},
   "fields": {
     "mandatoryTitle": "Datos de la finca",
     "optionalTitle": "Opcionales",
