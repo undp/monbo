@@ -9,18 +9,22 @@
   },
   "instructions": {
     "polygon": "Click on the map to mark each vertex, or type its latitude and longitude and press \"Add point\". Finish with \"Close polygon\" or by clicking the first vertex.",
-    "polygonClosed": "Drag a vertex to move it, or an edge's midpoint to add one. To delete a vertex, right-click it, or select it and use \"Delete vertex\".",
-    "point": "Click on the map to place the farm, or type its latitude and longitude and press \"Add point\". The circle has the area you enter, and you can drag it."
+    "polygonClosed": "Drag a vertex to move it, or an edge's midpoint to add one. To delete a vertex, right-click it, or select it and use \"Delete vertex\". Use \"Add part\" for another plot of the farm and \"Add hole\" to leave an area out.",
+    "point": "Click on the map to place the farm, or type its latitude and longitude and press \"Add point\". The circle has the area you enter, and you can drag it.",
+    "newPart": "Draw the new part away from the others, or inside a hole: click each vertex and finish with \"Close polygon\".",
+    "newHole": "Draw the hole inside a part, without touching its border: click each vertex and finish with \"Close polygon\"."
   },
   "howTo": {
     "button": "How to draw?",
     "title": "How to draw the farm",
-    "alt": "Animation: clicks on the satellite map mark each of the farm's vertices, then \"Close polygon\" closes it, and a vertex is dragged to adjust the edge.",
+    "alt": "Animation: clicks on the satellite map mark each of the farm's vertices, then \"Close polygon\" closes it, and a vertex is dragged to adjust the edge. Then a hole is added inside the farm, and a second part beside it.",
     "steps": {
       "1": "Type the farm's latitude and longitude and press “Go”, or move the map to it.",
       "2": "Click on the map to place each vertex of the farm's boundary. If you know their coordinates, type them and press “Add point”.",
       "3": "Press “Close polygon”, or click on the first vertex.",
-      "4": "To adjust the boundary, drag a vertex; to delete it, right-click it."
+      "4": "To adjust the boundary, drag a vertex; to delete it, right-click it.",
+      "5": "To leave an area out (a house, a river), press “Add hole” and draw it inside the farm, without touching its border.",
+      "6": "If the farm has another plot, press “Add part” and draw it apart."
     }
   },
   "actions": {
@@ -33,7 +37,15 @@
     "removeDocument": "Remove document",
     "cancel": "Cancel",
     "add": "Add",
-    "save": "Save"
+    "save": "Save",
+    "addPart": "Add part",
+    "addHole": "Add hole",
+    "deletePart": "Delete part",
+    "deleteHole": "Delete hole",
+    "discard": {
+      "part": "Discard part",
+      "hole": "Discard hole"
+    }
   },
   "goTo": {
     "latitude": "Latitude",
@@ -41,19 +53,26 @@
     "invalid": "Use a latitude between -90 and 90 and a longitude between -180 and 180."
   },
   "coordinates": {
-    "polygonTitle": "Polygon vertices ({{count}})",
+    "polygonTitle": "Farm vertices ({{count}})",
     "pointTitle": "Point's center",
     "number": "No.",
-    "selectHint": "Click a row to select that vertex."
+    "selectHint": "Click a row to select that vertex.",
+    "part": "Part {{number}}",
+    "hole": "Part {{part}} · Hole {{number}}",
+    "newHole": "New hole"
   },
   "drawingErrors": {
     "crossing": "That vertex would make the polygon's edges cross.",
     "minVertices": "The polygon needs at least 3 vertices.",
-    "cannotClose": "Closing it would make the polygon's edges cross. Move or delete a vertex."
+    "cannotClose": "Closing it would make the polygon's edges cross. Move or delete a vertex.",
+    "ringsTouch": "Borders can't touch or cross: each hole must lie inside its part without touching the border, and each part apart from the others.",
+    "holeOutside": "The hole must lie inside a part of the farm, without touching its border.",
+    "holeInHole": "A hole can't lie inside another hole. For a plot inside a hole, use \"Add part\".",
+    "partOverlaps": "A part can't lie on another one. It can lie inside a hole.",
+    "lastPart": "The farm needs at least one part. To start again, use \"Start over\"."
   },
   "notEditable": {
     "format": "This farm has no GeoJSON coordinates: draw it again to change its geometry.",
-    "shape": "This farm has holes or several parts, which can't be drawn here: draw it again to change its geometry.",
     "invalid": "This farm's geometry couldn't be read: draw it again."
   },
   "missingGeometry": "Draw the polygon or place the point to add the farm.",

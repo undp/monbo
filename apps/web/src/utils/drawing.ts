@@ -3,21 +3,56 @@ import { FarmRow } from "@/interfaces/FarmRow";
 
 /**
  * The geometry rules of the manual farm modal's drawing tool. The modal only wires
- * Google Maps events to these functions: a vertex added, moved, inserted (a midpoint
- * dragged) or deleted is accepted only if the path stays simple (no crossing edges).
+ * Google Maps events to these functions. A polygon farm is made of parts, each with
+ * an exterior ring and holes; one more ring can be open, being drawn. An edit (a
+ * vertex added, moved, inserted or deleted, a ring closed or deleted) is accepted
+ * only if every ring stays simple and the rings keep the API's rules: no two of
+ * them touch, holes lie inside their part, and parts lie apart or inside a hole.
  *
  * Vertices are `{ lat, lng }`, as Google Maps gives them. Edges are compared in
  * degrees, which is fine at a farm's scale.
  */
 
+// A ring's vertices, without its first one repeated at the end
+export type Ring = Coordinates[];
+export type Part = { exterior: Ring; holes: Ring[] };
+export type OpenRing = { kind: "part" | "hole"; vertices: Ring };
 export type PolygonDrawing = {
   type: "polygon";
-  vertices: Coordinates[];
-  // While drawing, the path is open; "Finish" closes it
-  closed: boolean;
+  // Closed rings only, oriented as Google Maps needs them (see orientRing)
+  parts: Part[];
+  // The ring being drawn: "Close polygon" moves it into `parts`
+  open: OpenRing | null;
 };
 export type PointDrawing = { type: "point"; center: Coordinates };
 export type Drawing = PolygonDrawing | PointDrawing;
+
+// A closed ring: a part's exterior (hole null), or one of its holes. "open" is the
+// ring being drawn.
+export type RingRef = { part: number; hole: number | null } | "open";
+
+// Why an edit isn't accepted
+export type DrawingProblem =
+  // A ring's edges cross
+  | "crossing"
+  // A closed ring needs 3 vertices
+  | "minVertices"
+  // Closing the open ring would make its edges cross
+  | "cannotClose"
+  // Two rings touch or cross
+  | "ringsTouch"
+  // A hole isn't inside any part
+  | "holeOutside"
+  // A hole is inside another hole
+  | "holeInHole"
+  // A part is inside another one, and not in one of its holes
+  | "partOverlaps"
+  // The farm keeps at least one part
+  | "lastPart";
+
+export type DrawingEdit =
+  | { ok: true; drawing: PolygonDrawing }
+  | { ok: false; problem: DrawingProblem };
 
 export const MIN_POLYGON_VERTICES = 3;
 
@@ -192,10 +227,364 @@ type GeometryFields = Pick<
   "coordinatesFormat" | "geometryType" | "farmCoordinates"
 >;
 
+// --- Rings of a drawing ---------------------------------------------------------
+
+/** Twice the ring's signed area in degrees²: positive when counter-clockwise. */
+const signedArea = (ring: Ring) =>
+  ring.reduce((sum, a, i) => {
+    const b = ring[(i + 1) % ring.length];
+    return sum + (a.lng * b.lat - b.lng * a.lat);
+  }, 0);
+
+/**
+ * The ring wound as Google Maps needs it to show a hole empty: an exterior
+ * counter-clockwise, a hole clockwise. A reversed ring keeps its first vertex
+ * first, so the vertex the user started with stays number 1.
+ */
+export const orientRing = (ring: Ring, hole: boolean): Ring => {
+  const counterClockwise = signedArea(ring) > 0;
+  if (counterClockwise !== hole) return ring;
+  return [ring[0], ...ring.slice(1).reverse()];
+};
+
+const orientParts = (parts: Part[]): Part[] =>
+  parts.map(({ exterior, holes }) => ({
+    exterior: orientRing(exterior, false),
+    holes: holes.map((hole) => orientRing(hole, true)),
+  }));
+
+/** Whether a point lies inside a ring (ray casting; a point on its edge may go
+ * either way, which the rules never need: rings don't touch). */
+export const pointInRing = (point: Coordinates, ring: Ring): boolean => {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i];
+    const b = ring[j];
+    if (
+      a.lat > point.lat !== b.lat > point.lat &&
+      point.lng <
+        ((b.lng - a.lng) * (point.lat - a.lat)) / (b.lat - a.lat) + a.lng
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+};
+
+/** Whether any edge of one path shares a point with any edge of another. */
+const pathsTouch = (
+  a: Ring,
+  aClosed: boolean,
+  b: Ring,
+  bClosed: boolean
+): boolean =>
+  edges(a, aClosed).some(([p, q]) =>
+    edges(b, bClosed).some(([r, s]) => segmentsIntersect(p, q, r, s))
+  );
+
+const closedRings = (parts: Part[]): Ring[] =>
+  parts.flatMap(({ exterior, holes }) => [exterior, ...holes]);
+
+/**
+ * The first rule the parts break, or null. With no two rings touching, one vertex
+ * of a ring tells whether the whole ring lies inside another.
+ */
+export const drawingProblem = (parts: Part[]): DrawingProblem | null => {
+  const rings = closedRings(parts);
+  if (rings.some((ring) => ring.length < MIN_POLYGON_VERTICES)) {
+    return "minVertices";
+  }
+  if (rings.some((ring) => pathCrosses(ring, true))) return "crossing";
+  for (let i = 0; i < rings.length; i++) {
+    for (let j = i + 1; j < rings.length; j++) {
+      if (pathsTouch(rings[i], true, rings[j], true)) return "ringsTouch";
+    }
+  }
+  for (const { exterior, holes } of parts) {
+    for (const [i, hole] of holes.entries()) {
+      if (!pointInRing(hole[0], exterior)) return "holeOutside";
+      if (holes.some((other, j) => j !== i && pointInRing(hole[0], other))) {
+        return "holeInHole";
+      }
+    }
+  }
+  for (const [i, part] of parts.entries()) {
+    for (const [j, other] of parts.entries()) {
+      if (i === j) continue;
+      const vertex = part.exterior[0];
+      if (
+        pointInRing(vertex, other.exterior) &&
+        !other.holes.some((hole) => pointInRing(vertex, hole))
+      ) {
+        return "partOverlaps";
+      }
+    }
+  }
+  return null;
+};
+
+/** The closed ring a reference points to, or null. */
+export const ringAt = (drawing: PolygonDrawing, ref: RingRef): Ring | null => {
+  if (ref === "open") return drawing.open?.vertices ?? null;
+  const part = drawing.parts[ref.part];
+  if (!part) return null;
+  return ref.hole === null ? part.exterior : (part.holes[ref.hole] ?? null);
+};
+
+const withRing = (parts: Part[], ref: Exclude<RingRef, "open">, ring: Ring) =>
+  parts.map((part, i) =>
+    i !== ref.part
+      ? part
+      : ref.hole === null
+        ? { ...part, exterior: ring }
+        : {
+            ...part,
+            holes: part.holes.map((hole, j) => (j === ref.hole ? ring : hole)),
+          }
+  );
+
+// Whether a point lies on the farm: inside a part, and not in one of its holes
+const onFarm = (point: Coordinates, parts: Part[]) =>
+  parts.some(
+    ({ exterior, holes }) =>
+      pointInRing(point, exterior) &&
+      !holes.some((hole) => pointInRing(point, hole))
+  );
+
+/**
+ * Where a vertex of the open ring may go, from the first one: a hole's on the
+ * farm, a new part's off it (in a hole is fine: an island).
+ */
+const placementProblem = (
+  parts: Part[],
+  kind: OpenRing["kind"],
+  vertex: Coordinates
+): DrawingProblem | null => {
+  if (kind === "hole" && !onFarm(vertex, parts)) {
+    return parts.some(({ exterior }) => pointInRing(vertex, exterior))
+      ? "holeInHole"
+      : "holeOutside";
+  }
+  if (kind === "part" && onFarm(vertex, parts)) return "partOverlaps";
+  return null;
+};
+
+/** The open ring's problem: where its vertices lie, and the closed rings it may
+ * not touch. */
+const openRingProblem = (
+  parts: Part[],
+  { kind, vertices }: OpenRing
+): DrawingProblem | null => {
+  if (pathCrosses(vertices, false)) return "crossing";
+  for (const vertex of vertices) {
+    const problem = placementProblem(parts, kind, vertex);
+    if (problem) return problem;
+  }
+  // A lone first vertex is a segment of no length: it may still lie on a border
+  const path = vertices.length === 1 ? [vertices[0], vertices[0]] : vertices;
+  return closedRings(parts).some((ring) => pathsTouch(path, false, ring, true))
+    ? "ringsTouch"
+    : null;
+};
+
+const accepted = (drawing: PolygonDrawing): DrawingEdit => ({
+  ok: true,
+  drawing,
+});
+const rejected = (problem: DrawingProblem): DrawingEdit => ({
+  ok: false,
+  problem,
+});
+
+/** A new polygon drawing: its first part's exterior, open, from one vertex. */
+export const startDrawing = (vertex: Coordinates): PolygonDrawing => ({
+  type: "polygon",
+  parts: [],
+  open: { kind: "part", vertices: [vertex] },
+});
+
+/** Starts drawing another part, or a hole: once the farm has a part. */
+export const startRing = (
+  drawing: PolygonDrawing,
+  kind: OpenRing["kind"]
+): PolygonDrawing =>
+  drawing.parts.length && !drawing.open
+    ? { ...drawing, open: { kind, vertices: [] } }
+    : drawing;
+
+/** The open ring discarded; null when the farm has no part left. */
+export const discardOpenRing = (
+  drawing: PolygonDrawing
+): PolygonDrawing | null =>
+  drawing.parts.length ? { ...drawing, open: null } : null;
+
+/** One more vertex at the open ring's end. */
+export const addOpenVertex = (
+  drawing: PolygonDrawing,
+  vertex: Coordinates
+): DrawingEdit => {
+  if (!drawing.open) return rejected("crossing");
+  const vertices = [...drawing.open.vertices, vertex];
+  const problem = openRingProblem(drawing.parts, { ...drawing.open, vertices });
+  return problem
+    ? rejected(problem)
+    : accepted({ ...drawing, open: { ...drawing.open, vertices } });
+};
+
+/**
+ * The open ring closed: an exterior becomes a new part, and a hole goes to the
+ * part it lies in (the innermost one, for a hole drawn on an island).
+ */
+export const closeOpenRing = (drawing: PolygonDrawing): DrawingEdit => {
+  const open = drawing.open;
+  if (!open || open.vertices.length < MIN_POLYGON_VERTICES) {
+    return rejected("minVertices");
+  }
+  if (!canClose(open.vertices)) return rejected("cannotClose");
+  if (
+    closedRings(drawing.parts).some((ring) =>
+      pathsTouch(open.vertices, true, ring, true)
+    )
+  ) {
+    return rejected("ringsTouch");
+  }
+
+  let parts: Part[];
+  if (open.kind === "part") {
+    parts = [...drawing.parts, { exterior: open.vertices, holes: [] }];
+  } else {
+    const vertex = open.vertices[0];
+    const inExterior = drawing.parts.filter(({ exterior }) =>
+      pointInRing(vertex, exterior)
+    );
+    const owner = drawing.parts.findIndex(
+      ({ exterior, holes }) =>
+        pointInRing(vertex, exterior) &&
+        !holes.some((hole) => pointInRing(vertex, hole))
+    );
+    if (owner < 0) {
+      return rejected(inExterior.length ? "holeInHole" : "holeOutside");
+    }
+    parts = drawing.parts.map((part, i) =>
+      i === owner ? { ...part, holes: [...part.holes, open.vertices] } : part
+    );
+  }
+  const problem = drawingProblem(parts);
+  return problem
+    ? rejected(problem)
+    : accepted({ type: "polygon", parts: orientParts(parts), open: null });
+};
+
+// A closed ring replaced by an edited one, checked against the whole drawing
+const editClosedRing = (
+  drawing: PolygonDrawing,
+  ref: Exclude<RingRef, "open">,
+  ring: Ring
+): DrawingEdit => {
+  if (pathCrosses(ring, true)) return rejected("crossing");
+  const parts = withRing(drawing.parts, ref, ring);
+  const problem = drawingProblem(parts);
+  // An edit can turn a ring around (a vertex dragged across the opposite edge)
+  return problem
+    ? rejected(problem)
+    : accepted({ ...drawing, parts: orientParts(parts) });
+};
+
+const editOpenRing = (drawing: PolygonDrawing, vertices: Ring): DrawingEdit => {
+  if (!drawing.open) return rejected("crossing");
+  const problem = openRingProblem(drawing.parts, { ...drawing.open, vertices });
+  return problem
+    ? rejected(problem)
+    : accepted({ ...drawing, open: { ...drawing.open, vertices } });
+};
+
+/** A vertex of any ring moved. */
+export const moveRingVertex = (
+  drawing: PolygonDrawing,
+  ref: RingRef,
+  index: number,
+  vertex: Coordinates
+): DrawingEdit => {
+  const ring = ringAt(drawing, ref);
+  if (!ring || index < 0 || index >= ring.length) return rejected("crossing");
+  const moved = ring.map((v, i) => (i === index ? vertex : v));
+  return ref === "open"
+    ? editOpenRing(drawing, moved)
+    : editClosedRing(drawing, ref, moved);
+};
+
+/** A vertex inserted in any ring (Google Maps' midpoint handles). */
+export const insertRingVertex = (
+  drawing: PolygonDrawing,
+  ref: RingRef,
+  index: number,
+  vertex: Coordinates
+): DrawingEdit => {
+  const ring = ringAt(drawing, ref);
+  if (!ring || index < 0 || index > ring.length) return rejected("crossing");
+  const inserted = [...ring.slice(0, index), vertex, ...ring.slice(index)];
+  return ref === "open"
+    ? editOpenRing(drawing, inserted)
+    : editClosedRing(drawing, ref, inserted);
+};
+
+/**
+ * A vertex of any ring deleted. A closed ring keeps at least 3 vertices: the
+ * ring itself goes with deleteRing. The open ring can lose all of them, and an
+ * empty first ring leaves no drawing (null).
+ */
+export const deleteRingVertex = (
+  drawing: PolygonDrawing,
+  ref: RingRef,
+  index: number
+): DrawingEdit | { ok: true; drawing: null } => {
+  const ring = ringAt(drawing, ref);
+  if (!ring || index < 0 || index >= ring.length) return rejected("crossing");
+  const remaining = ring.filter((_, i) => i !== index);
+  if (ref === "open") {
+    if (remaining.length === 0 && !drawing.parts.length) {
+      return { ok: true, drawing: null };
+    }
+    return editOpenRing(drawing, remaining);
+  }
+  if (remaining.length < MIN_POLYGON_VERTICES) return rejected("minVertices");
+  return editClosedRing(drawing, ref, remaining);
+};
+
+/** A closed ring deleted: a hole, or a part with its holes. The last part stays. */
+export const deleteRing = (
+  drawing: PolygonDrawing,
+  ref: Exclude<RingRef, "open">
+): DrawingEdit => {
+  let parts: Part[];
+  if (ref.hole === null) {
+    if (drawing.parts.length <= 1) return rejected("lastPart");
+    parts = drawing.parts.filter((_, i) => i !== ref.part);
+  } else {
+    parts = drawing.parts.map((part, i) =>
+      i === ref.part
+        ? { ...part, holes: part.holes.filter((_, j) => j !== ref.hole) }
+        : part
+    );
+  }
+  // Without its hole, an island would lie on the part around it
+  const problem = drawingProblem(parts);
+  return problem ? rejected(problem) : accepted({ ...drawing, parts });
+};
+
+/** Every vertex of the drawing, closed rings first. */
+export const drawingVertices = (drawing: Drawing): Coordinates[] =>
+  drawing.type === "point"
+    ? [drawing.center]
+    : [...closedRings(drawing.parts), drawing.open?.vertices ?? []].flat();
+
+// --- The row's geometry ------------------------------------------------------------
+
 /**
  * A finished drawing as the row's geometry fields, in the template's GeoJSON
- * format: `[[ring]]` for a polygon, `[lng, lat]` for a point. Null for a polygon
- * that isn't closed or whose edges cross.
+ * format: a Polygon's rings (the exterior, then its holes) for one part, a
+ * MultiPolygon for several, `[lng, lat]` for a point. Null while a ring is being
+ * drawn, or for parts that break a rule.
  */
 export const drawingToGeometryFields = (
   drawing: Drawing
@@ -207,21 +596,29 @@ export const drawingToGeometryFields = (
       farmCoordinates: JSON.stringify(toPosition(drawing.center)),
     };
   }
-  if (!drawing.closed || !canClose(drawing.vertices)) return null;
-  return {
-    coordinatesFormat: "GeoJSON",
-    geometryType: "Polygon",
-    farmCoordinates: JSON.stringify([closeRing(drawing.vertices)]),
-  };
+  if (drawing.open?.vertices.length || !drawing.parts.length) return null;
+  if (drawingProblem(drawing.parts)) return null;
+  const polygons = drawing.parts.map(({ exterior, holes }) =>
+    [exterior, ...holes].map(closeRing)
+  );
+  return polygons.length === 1
+    ? {
+        coordinatesFormat: "GeoJSON",
+        geometryType: "Polygon",
+        farmCoordinates: JSON.stringify(polygons[0]),
+      }
+    : {
+        coordinatesFormat: "GeoJSON",
+        geometryType: "MultiPolygon",
+        farmCoordinates: JSON.stringify(polygons),
+      };
 };
 
 /** Why a listed row's geometry can't be loaded in the drawing tool. */
 export type NotEditableReason =
   // WKT, or no format
   | "format"
-  // A MultiPolygon, or a polygon with holes: the tool draws one ring
-  | "shape"
-  // The coordinates don't parse, or the ring crosses itself
+  // The coordinates don't parse, or the rings break a rule
   | "invalid";
 
 export type RowDrawing =
@@ -241,9 +638,27 @@ const toCoordinates = ([lng, lat]: [number, number]): Coordinates => ({
   lng,
 });
 
+// A GeoJSON ring as a drawing's ring, without its repeated last position
+const toRing = (value: unknown): Ring | null => {
+  if (!Array.isArray(value) || !value.every(isPosition)) return null;
+  const ring = value.map(toCoordinates);
+  if (ring.length > 1 && samePoint(ring[0], ring[ring.length - 1])) ring.pop();
+  return ring;
+};
+
+// A GeoJSON Polygon's rings as a part
+const toPart = (value: unknown): Part | null => {
+  if (!Array.isArray(value) || !value.length) return null;
+  const rings = value.map(toRing);
+  if (rings.some((ring) => ring === null)) return null;
+  const [exterior, ...holes] = rings as Ring[];
+  return { exterior, holes };
+};
+
 /**
- * A listed row's geometry as a finished drawing, for edit mode. Only GeoJSON
- * Points and single-ring Polygons (what this tool produces) are editable.
+ * A listed row's geometry as a finished drawing, for edit mode: a GeoJSON Point,
+ * Polygon (with its holes) or MultiPolygon. The geometry type isn't trusted for
+ * polygons, as the API doesn't: the nesting tells a MultiPolygon.
  */
 export const farmRowToDrawing = (row: FarmRow): RowDrawing => {
   if (row.coordinatesFormat !== "GeoJSON" || !row.farmCoordinates) {
@@ -268,29 +683,24 @@ export const farmRowToDrawing = (row: FarmRow): RowDrawing => {
   if (row.geometryType !== "Polygon" && row.geometryType !== "MultiPolygon") {
     return { editable: false, reason: "invalid" };
   }
-  // A Polygon's rings; "MultiPolygon" rows may hold a Polygon's coordinates too
   if (!Array.isArray(coordinates) || !Array.isArray(coordinates[0])) {
     return { editable: false, reason: "invalid" };
   }
-  if (Array.isArray(coordinates[0][0]?.[0])) {
-    return { editable: false, reason: "shape" };
+  const multi = Array.isArray(coordinates[0][0]?.[0]);
+  const parts = (multi ? coordinates : [coordinates]).map(toPart);
+  if (!parts.length || parts.some((part) => part === null)) {
+    return { editable: false, reason: "invalid" };
   }
-  if (coordinates.length !== 1) return { editable: false, reason: "shape" };
-
-  const ring = coordinates[0] as unknown[];
-  if (!ring.every(isPosition)) return { editable: false, reason: "invalid" };
-  const vertices = ring.map(toCoordinates);
-  // The ring is closed: drop its repeated first position
-  if (
-    vertices.length > 1 &&
-    samePoint(vertices[0], vertices[vertices.length - 1])
-  ) {
-    vertices.pop();
+  if (drawingProblem(parts as Part[])) {
+    return { editable: false, reason: "invalid" };
   }
-  if (!canClose(vertices)) return { editable: false, reason: "invalid" };
   return {
     editable: true,
-    drawing: { type: "polygon", vertices, closed: true },
+    drawing: {
+      type: "polygon",
+      parts: orientParts(parts as Part[]),
+      open: null,
+    },
   };
 };
 
@@ -300,7 +710,7 @@ export const drawingBounds = (
   // A point's radius in meters, to fit its circle
   pointRadius = 0
 ): google.maps.LatLngBoundsLiteral | null => {
-  const points = drawing.type === "point" ? [drawing.center] : drawing.vertices;
+  const points = drawingVertices(drawing);
   if (!points.length) return null;
   const radius = drawing.type === "point" ? pointRadius : 0;
   const lats = points.map((p) => p.lat);

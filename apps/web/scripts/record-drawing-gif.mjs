@@ -1,6 +1,7 @@
 // Records public/images/manual-farm-drawing-{es,en}.gif, the "How to draw" animation
 // of the manual farm modal: clicks on the satellite map add the vertices, "Close
-// polygon" closes it, and a vertex is dragged. It drives the real modal with
+// polygon" closes it, and a vertex is dragged; then "Add hole" draws a hole inside
+// the farm, and "Add part" a second plot beside it. It drives the real modal with
 // Playwright, saves a screenshot of the map and its buttons per frame, and
 // record-drawing-gif.py assembles them with Pillow (with a drawn cursor: headless
 // screenshots have none). Re-run it when the modal's look changes.
@@ -46,6 +47,19 @@ const VERTICES = [
 ];
 // The vertex dragged once the polygon is closed, and where to
 const DRAG = { vertex: 2, to: [92, 52] };
+// A hole inside the polygon, and a second part beside it
+const HOLE = [
+  [-90, -50],
+  [-10, -55],
+  [0, 10],
+  [-80, 20],
+];
+const PART = [
+  [160, -80],
+  [300, -70],
+  [310, 40],
+  [170, 50],
+];
 const VIEWPORT = { width: 1440, height: 900 };
 // Frame timing, in milliseconds
 const STEP = 80;
@@ -139,12 +153,25 @@ const record = async (browser, language, framesDir) => {
     await click("crosshair", 450);
   }
 
-  const finish = await dialog
-    .getByRole("button", { name: actions.finish, exact: true })
-    .boundingBox();
-  await moveTo([finish.x + finish.width / 2, finish.y + finish.height / 2], "arrow");
-  await frame({ kind: "arrow", duration: 300 });
-  await click("arrow", 900);
+  // A toolbar button pressed with the arrow
+  const press = async (name, hold) => {
+    const box = await dialog
+      .getByRole("button", { name, exact: true })
+      .boundingBox();
+    await moveTo([box.x + box.width / 2, box.y + box.height / 2], "arrow");
+    await frame({ kind: "arrow", duration: 300 });
+    await click("arrow", hold);
+  };
+  // A ring clicked vertex by vertex, then closed
+  const drawRing = async (vertices) => {
+    for (const vertex of vertices) {
+      await moveTo(onMap(vertex), "crosshair");
+      await click("crosshair", 450);
+    }
+    await press(actions.finish, 1100);
+  };
+
+  await press(actions.finish, 900);
 
   await moveTo(onMap(VERTICES[DRAG.vertex]), "arrow");
   await frame({ kind: "arrow", duration: 300 });
@@ -152,9 +179,14 @@ const record = async (browser, language, framesDir) => {
   await moveTo(onMap(DRAG.to), "arrow", { pressed: true });
   await page.mouse.up();
   await page.waitForTimeout(300);
-  await frame({ kind: "arrow", duration: 400 });
-  await moveTo(onMap([150, 140]), "crosshair");
-  await frame({ duration: 2200 });
+  await frame({ kind: "arrow", duration: 900 });
+
+  await press(actions.addHole, 500);
+  await drawRing(HOLE);
+  await press(actions.addPart, 500);
+  await drawRing(PART);
+  await moveTo(onMap([120, 160]), "crosshair");
+  await frame({ duration: 2500 });
 
   await context.close();
   return frames;

@@ -33,21 +33,30 @@ import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlin
 import { FarmRow } from "@/interfaces/FarmRow";
 import { Coordinates } from "@/interfaces/Map";
 import {
-  addVertex,
+  addOpenVertex,
   areaToRadius,
-  canClose,
-  deleteVertex,
+  closeOpenRing,
+  deleteRing,
+  deleteRingVertex,
+  discardOpenRing,
   Drawing,
   drawingBounds,
+  DrawingEdit,
+  DrawingProblem,
   drawingToGeometryFields,
   farmRowToDrawing,
-  insertVertex,
+  insertRingVertex,
   MIN_POLYGON_VERTICES,
-  moveVertex,
+  moveRingVertex,
   NotEditableReason,
+  OpenRing,
+  PolygonDrawing,
+  RingRef,
+  startDrawing,
+  startRing,
 } from "@/utils/drawing";
 import { getCountryBounds } from "@/utils/countryBounds";
-import { DrawingMap, DrawingMapProps, PathEdit } from "./DrawingMap";
+import { DrawingMap, DrawingMapProps, PathEdit, VertexRef } from "./DrawingMap";
 import {
   emptyValues,
   FieldErrors,
@@ -76,15 +85,13 @@ interface ManualFarmModalProps {
 // valid area
 const DEFAULT_POINT_AREA_HECTARES = 1;
 
-type DrawingError = "crossing" | "minVertices" | "cannotClose";
-
 // The size of the "How to draw" GIFs (public/images/manual-farm-drawing-*.gif),
 // recorded from this modal's map at its own size by scripts/record-drawing-gif.mjs
-const HOW_TO_GIF = { width: 768, height: 499 };
+const HOW_TO_GIF = { width: 768, height: 542 };
 
 /**
- * Adds a farm by drawing it on a satellite map (a polygon or a point with its area)
- * and filling in the template's fields. The values live only while the modal is
+ * Adds a farm by drawing it on a satellite map (a polygon, with holes and several
+ * parts, or a point with its area) and filling in the template's fields. The values live only while the modal is
  * open: its content mounts on open.
  */
 export const ManualFarmModal: React.FC<ManualFarmModalProps> = ({
@@ -146,8 +153,8 @@ const ManualFarmModalContent: React.FC<
     initial.drawing?.type ?? "polygon"
   );
   const [drawing, setDrawing] = useState<Drawing | null>(initial.drawing);
-  const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
-  const [drawingError, setDrawingError] = useState<DrawingError | null>(null);
+  const [selectedVertex, setSelectedVertex] = useState<VertexRef | null>(null);
+  const [drawingError, setDrawingError] = useState<DrawingProblem | null>(null);
   // "How to draw?" opens a larger animation on demand
   const [howToOpen, setHowToOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -170,12 +177,20 @@ const ManualFarmModalContent: React.FC<
   const polygon = drawing?.type === "polygon" ? drawing : null;
   const hasGeometry = !!drawing && !!drawingToGeometryFields(drawing);
 
-  const updateDrawing = (
-    next: Drawing | null,
-    error: DrawingError | null = null
-  ) => {
+  const updateDrawing = (next: Drawing | null) => {
     setDrawing(next);
-    setDrawingError(error);
+    setDrawingError(null);
+  };
+
+  // An edit of the polygon: applied, or its problem shown. Whether it applied.
+  const apply = (edit: DrawingEdit | { ok: true; drawing: null }) => {
+    if (!edit.ok) {
+      setDrawingError(edit.problem);
+      return false;
+    }
+    setSelectedVertex(null);
+    updateDrawing(edit.drawing);
+    return true;
   };
 
   const startOver = () => {
@@ -184,26 +199,26 @@ const ManualFarmModalContent: React.FC<
   };
 
   const finish = () => {
-    if (!polygon || polygon.closed) return;
-    if (polygon.vertices.length < MIN_POLYGON_VERTICES) {
-      setDrawingError("minVertices");
-    } else if (!canClose(polygon.vertices)) {
-      setDrawingError("cannotClose");
-    } else {
-      updateDrawing({ ...polygon, closed: true });
-    }
+    if (polygon?.open) apply(closeOpenRing(polygon));
   };
 
-  const removeVertex = (index: number) => {
+  const removeVertex = ({ ring, index }: VertexRef) => {
+    if (polygon) apply(deleteRingVertex(polygon, ring, index));
+  };
+
+  const addRing = (kind: OpenRing["kind"]) => {
     if (!polygon) return;
-    const vertices = deleteVertex(polygon.vertices, index, polygon.closed);
     setSelectedVertex(null);
-    if (!vertices) {
-      const tooFew =
-        polygon.closed && polygon.vertices.length <= MIN_POLYGON_VERTICES;
-      setDrawingError(tooFew ? "minVertices" : "crossing");
-    } else {
-      updateDrawing(vertices.length ? { ...polygon, vertices } : null);
+    updateDrawing(startRing(polygon, kind));
+  };
+
+  const discardRing = () => {
+    if (polygon) updateDrawing(discardOpenRing(polygon));
+  };
+
+  const removeSelectedRing = () => {
+    if (polygon && selectedVertex && selectedVertex.ring !== "open") {
+      apply(deleteRing(polygon, selectedVertex.ring));
     }
   };
 
@@ -213,38 +228,37 @@ const ManualFarmModalContent: React.FC<
       updateDrawing({ type: "point", center: position });
       return true;
     }
-    if (polygon?.closed) {
+    if (!polygon) {
+      updateDrawing(startDrawing(position));
+      return true;
+    }
+    if (!polygon.open) {
       setSelectedVertex(null);
       return false;
     }
-    const vertices = addVertex(polygon?.vertices ?? [], position);
-    if (vertices) updateDrawing({ type: "polygon", vertices, closed: false });
-    else setDrawingError("crossing");
-    return !!vertices;
+    return apply(addOpenVertex(polygon, position));
   };
 
-  const onVertexClick = (index: number) => {
+  const onVertexClick = ({ ring, index }: VertexRef) => {
     if (!polygon) return;
-    if (!polygon.closed) {
+    if (ring === "open") {
       if (index === 0) finish();
       return;
     }
-    setSelectedVertex((current) => (current === index ? null : index));
+    setSelectedVertex((current) =>
+      current && sameRing(current.ring, ring) && current.index === index
+        ? null
+        : { ring, index }
+    );
   };
 
-  const onPathEdit = ({ kind, index, position }: PathEdit) => {
+  const onPathEdit = ({ ring, kind, index, position }: PathEdit) => {
     if (!polygon) return false;
-    const edited =
+    return apply(
       kind === "move"
-        ? moveVertex(polygon.vertices, index, position, polygon.closed)
-        : insertVertex(polygon.vertices, index, position, polygon.closed);
-    if (!edited) {
-      setDrawingError("crossing");
-      return false;
-    }
-    setSelectedVertex(null);
-    updateDrawing({ ...polygon, vertices: edited });
-    return true;
+        ? moveRingVertex(polygon, ring, index, position)
+        : insertRingVertex(polygon, ring, index, position)
+    );
   };
 
   const changeMode = (next: Drawing["type"] | null) => {
@@ -347,9 +361,13 @@ const ManualFarmModalContent: React.FC<
   const instructions =
     mode === "point"
       ? t("manualFarm:instructions:point")
-      : polygon?.closed
-        ? t("manualFarm:instructions:polygonClosed")
-        : t("manualFarm:instructions:polygon");
+      : !polygon || (polygon.open && !polygon.parts.length)
+        ? t("manualFarm:instructions:polygon")
+        : polygon.open
+          ? t(`manualFarm:instructions:${polygon.open.kind === "hole" ? "newHole" : "newPart"}`)
+          : t("manualFarm:instructions:polygonClosed");
+  const selectedRing =
+    selectedVertex && selectedVertex.ring !== "open" ? selectedVertex.ring : null;
 
   return (
     <>
@@ -389,12 +407,13 @@ const ManualFarmModalContent: React.FC<
               minWidth: 0,
             }}
           >
+            {/* Two rows from the start, so the map doesn't move as the actions change */}
             <Box
               sx={{
                 display: "flex",
-                flexWrap: "wrap",
                 gap: 1,
                 alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
               <ToggleButtonGroup
@@ -411,38 +430,81 @@ const ManualFarmModalContent: React.FC<
                   {t("manualFarm:geometry:point")}
                 </ToggleButton>
               </ToggleButtonGroup>
-              {polygon && !polygon.closed && (
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={finish}
-                  disabled={polygon.vertices.length < MIN_POLYGON_VERTICES}
-                >
-                  {t("manualFarm:actions:finish")}
-                </Button>
-              )}
-              {polygon?.closed && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() =>
-                    selectedVertex !== null && removeVertex(selectedVertex)
-                  }
-                  disabled={selectedVertex === null}
-                >
-                  {t("manualFarm:actions:deleteVertex")}
-                </Button>
-              )}
-              <Button size="small" onClick={startOver} disabled={!drawing}>
-                {t("manualFarm:actions:startOver")}
-              </Button>
               <Button
                 size="small"
                 startIcon={<InfoOutlinedIcon />}
                 onClick={() => setHowToOpen(true)}
-                sx={{ marginLeft: "auto", textTransform: "none" }}
+                sx={{ textTransform: "none" }}
               >
                 {t("manualFarm:howTo:button")}
+              </Button>
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+                alignItems: "center",
+                minHeight: 31,
+              }}
+            >
+              {polygon?.open && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={finish}
+                  disabled={polygon.open.vertices.length < MIN_POLYGON_VERTICES}
+                >
+                  {t("manualFarm:actions:finish")}
+                </Button>
+              )}
+              {polygon?.open && polygon.parts.length > 0 && (
+                <Button size="small" onClick={discardRing}>
+                  {t(`manualFarm:actions:discard:${polygon.open.kind}`)}
+                </Button>
+              )}
+              {polygon && !polygon.open && (
+                <>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => addRing("part")}
+                  >
+                    {t("manualFarm:actions:addPart")}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => addRing("hole")}
+                  >
+                    {t("manualFarm:actions:addHole")}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => selectedVertex && removeVertex(selectedVertex)}
+                    disabled={!selectedVertex}
+                  >
+                    {t("manualFarm:actions:deleteVertex")}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={removeSelectedRing}
+                    disabled={!selectedRing}
+                  >
+                    {t(
+                      selectedRing?.hole !== null && selectedRing
+                        ? "manualFarm:actions:deleteHole"
+                        : "manualFarm:actions:deletePart"
+                    )}
+                  </Button>
+                </>
+              )}
+              <Button size="small" onClick={startOver} disabled={!drawing}>
+                {t("manualFarm:actions:startOver")}
               </Button>
             </Box>
             <Box
@@ -528,7 +590,7 @@ const ManualFarmModalContent: React.FC<
                 variant="outlined"
                 startIcon={<AddLocationAltOutlinedIcon />}
                 onClick={onAddTyped}
-                disabled={!!polygon?.closed}
+                disabled={!!polygon && !polygon.open}
                 sx={{ height: 40, whiteSpace: "nowrap", flexShrink: 0 }}
               >
                 {t("manualFarm:actions:addPoint")}
@@ -543,11 +605,7 @@ const ManualFarmModalContent: React.FC<
               <DrawingCoordinates
                 drawing={drawing}
                 selectedVertex={selectedVertex}
-                onSelectVertex={(index) =>
-                  setSelectedVertex((current) =>
-                    current === index ? null : index
-                  )
-                }
+                onSelectVertex={onVertexClick}
               />
             )}
           </Box>
@@ -712,7 +770,7 @@ const HowToDraw: React.FC<{ open: boolean; onClose: () => void }> = ({
           }}
         />
         <Box component="ol" sx={{ marginBottom: 0, paddingLeft: 2.5 }}>
-          {(["1", "2", "3", "4"] as const).map((step) => (
+          {(["1", "2", "3", "4", "5", "6"] as const).map((step) => (
             <Typography component="li" variant="body2" key={step}>
               {t(`manualFarm:howTo:steps:${step}`)}
             </Typography>
@@ -726,21 +784,73 @@ const HowToDraw: React.FC<{ open: boolean; onClose: () => void }> = ({
 // Decimal places shown for a vertex (about 10 cm)
 const SHOWN_COORDINATE_DECIMALS = 6;
 
-/** The latitude and longitude of the polygon's vertices, or of the point, as they
- * are drawn. Once the polygon is closed, a row selects its vertex on the map. */
+interface CoordinateGroup {
+  title: string;
+  ring: RingRef;
+  vertices: Coordinates[];
+}
+
+// The polygon's rings, as the table lists them: each part's exterior and holes,
+// then the ring being drawn
+const coordinateGroups = (
+  drawing: PolygonDrawing,
+  t: ReturnType<typeof useTranslation>["t"]
+): CoordinateGroup[] => [
+  ...drawing.parts.flatMap(({ exterior, holes }, part) => [
+    {
+      title: t("manualFarm:coordinates:part", { number: part + 1 }),
+      ring: { part, hole: null },
+      vertices: exterior,
+    },
+    ...holes.map((vertices, hole) => ({
+      title: t("manualFarm:coordinates:hole", {
+        part: part + 1,
+        number: hole + 1,
+      }),
+      ring: { part, hole },
+      vertices,
+    })),
+  ]),
+  ...(drawing.open?.vertices.length
+    ? [
+        {
+          title:
+            drawing.open.kind === "part"
+              ? t("manualFarm:coordinates:part", {
+                  number: drawing.parts.length + 1,
+                })
+              : t("manualFarm:coordinates:newHole"),
+          ring: "open" as const,
+          vertices: drawing.open.vertices,
+        },
+      ]
+    : []),
+];
+
+/** The latitude and longitude of the farm's vertices, grouped by ring, or of the
+ * point, as they are drawn. With no ring being drawn, a row selects its vertex on
+ * the map. */
 const DrawingCoordinates: React.FC<{
   drawing: Drawing;
-  selectedVertex: number | null;
-  onSelectVertex: (index: number) => void;
+  selectedVertex: VertexRef | null;
+  onSelectVertex: (vertex: VertexRef) => void;
 }> = ({ drawing, selectedVertex, onSelectVertex }) => {
   const { t } = useTranslation();
-  const vertices =
-    drawing.type === "polygon" ? drawing.vertices : [drawing.center];
-  const selectable = drawing.type === "polygon" && drawing.closed;
+  const groups =
+    drawing.type === "polygon"
+      ? coordinateGroups(drawing, t)
+      : [{ title: "", ring: "open" as const, vertices: [drawing.center] }];
+  const selectable = drawing.type === "polygon" && !drawing.open;
+  const count = groups.reduce((sum, group) => sum + group.vertices.length, 0);
   const title =
     drawing.type === "polygon"
-      ? t("manualFarm:coordinates:polygonTitle", { count: vertices.length })
+      ? t("manualFarm:coordinates:polygonTitle", { count })
       : t("manualFarm:coordinates:pointTitle");
+  const isSelected = (ring: RingRef, index: number) =>
+    !!selectedVertex &&
+    sameRing(selectedVertex.ring, ring) &&
+    selectedVertex.index === index;
+  const numberCell = { width: 56 };
 
   return (
     <Box component="section" aria-label={title}>
@@ -763,7 +873,7 @@ const DrawingCoordinates: React.FC<{
           <TableHead>
             <TableRow>
               {drawing.type === "polygon" && (
-                <TableCell sx={{ width: 56 }}>
+                <TableCell sx={numberCell}>
                   {t("manualFarm:coordinates:number")}
                 </TableCell>
               )}
@@ -771,32 +881,53 @@ const DrawingCoordinates: React.FC<{
               <TableCell>{t("manualFarm:goTo:longitude")}</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {vertices.map((vertex, index) => (
-              <TableRow
-                key={index}
-                hover={selectable}
-                selected={selectable && selectedVertex === index}
-                onClick={selectable ? () => onSelectVertex(index) : undefined}
-                sx={selectable ? { cursor: "pointer" } : undefined}
-              >
-                {drawing.type === "polygon" && (
-                  <TableCell>{index + 1}</TableCell>
-                )}
-                <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {vertex.lat.toFixed(SHOWN_COORDINATE_DECIMALS)}
-                </TableCell>
-                <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {vertex.lng.toFixed(SHOWN_COORDINATE_DECIMALS)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+          {groups.map(({ title: groupTitle, ring, vertices }) => (
+            <TableBody key={groupTitle || "point"}>
+              {drawing.type === "polygon" && (
+                <TableRow>
+                  <TableCell
+                    component="th"
+                    scope="rowgroup"
+                    colSpan={3}
+                    sx={{ fontWeight: 600, backgroundColor: "grey.50" }}
+                  >
+                    {groupTitle}
+                  </TableCell>
+                </TableRow>
+              )}
+              {vertices.map((vertex, index) => (
+                <TableRow
+                  key={index}
+                  hover={selectable}
+                  selected={selectable && isSelected(ring, index)}
+                  onClick={
+                    selectable ? () => onSelectVertex({ ring, index }) : undefined
+                  }
+                  sx={selectable ? { cursor: "pointer" } : undefined}
+                >
+                  {drawing.type === "polygon" && (
+                    <TableCell>{index + 1}</TableCell>
+                  )}
+                  <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {vertex.lat.toFixed(SHOWN_COORDINATE_DECIMALS)}
+                  </TableCell>
+                  <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {vertex.lng.toFixed(SHOWN_COORDINATE_DECIMALS)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          ))}
         </Table>
       </TableContainer>
     </Box>
   );
 };
+
+const sameRing = (a: RingRef, b: RingRef) =>
+  a === "open" || b === "open"
+    ? a === b
+    : a.part === b.part && a.hole === b.hole;
 
 const withoutError = (errors: FieldErrors, field: FieldName): FieldErrors =>
   Object.fromEntries(

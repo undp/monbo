@@ -10,11 +10,12 @@ import {
 } from "@vis.gl/react-google-maps";
 import { GCP_MAPS_PLATFORM_API_KEY } from "@/config/env";
 import { Coordinates } from "@/interfaces/Map";
-import { Drawing } from "@/utils/drawing";
+import { Drawing, ringAt, RingRef } from "@/utils/drawing";
 
 // The manual farm modal's map: it draws the farm with Maps JavaScript API overlays
-// (Google's Drawing Library is gone) and reports the user's clicks and edits. The
-// modal owns the drawing and validates every edit with utils/drawing.ts.
+// (Google's Drawing Library is gone) and reports the user's clicks and edits, with
+// the ring they touched. The modal owns the drawing and validates every edit with
+// utils/drawing.ts.
 
 const COLOR = "#FFD54F";
 // A point is placed closer than this zoom: the map zooms in on it
@@ -23,10 +24,12 @@ const POINT_ZOOM = 16;
 const FOCUS_ZOOM = 17;
 const WORLD = { center: { lat: 0, lng: 0 }, zoom: 2 };
 
-export type PathEdit = {
+// A vertex of a ring
+export type VertexRef = { ring: RingRef; index: number };
+
+export type PathEdit = VertexRef & {
   // A vertex dragged, or a midpoint handle dragged out into a new vertex
   kind: "move" | "insert";
-  index: number;
   position: Coordinates;
 };
 
@@ -35,14 +38,14 @@ export interface DrawingMapProps {
   drawing: Drawing | null;
   // A point farm's circle, in meters
   radius: number;
-  selectedVertex: number | null;
+  selectedVertex: VertexRef | null;
   // Where the map opens; the world when null
   initialBounds: google.maps.LatLngBoundsLiteral | null;
   // Pans there whenever `key` changes, and zooms in unless `keepZoom`
   focus: { center: Coordinates; key: number; keepZoom?: boolean } | null;
   onMapClick: (position: Coordinates) => void;
-  onVertexClick: (index: number) => void;
-  onVertexRightClick: (index: number) => void;
+  onVertexClick: (vertex: VertexRef) => void;
+  onVertexRightClick: (vertex: VertexRef) => void;
   // Whether the edit is accepted: a rejected one is undone on the map
   onPathEdit: (edit: PathEdit) => boolean;
   onPointMove: (center: Coordinates) => void;
@@ -130,47 +133,84 @@ const DrawingLayer: React.FC<Omit<DrawingMapProps, "initialBounds">> = (
   }, [map, focus]);
 
   useEffect(() => {
-    if (!map || drawing?.type !== "polygon" || !drawing.vertices.length) return;
-    const style = { strokeColor: COLOR, strokeWeight: 2, editable: true, map };
-    const overlay = drawing.closed
-      ? new google.maps.Polygon({
-          ...style,
-          paths: [drawing.vertices],
-          fillColor: COLOR,
-          fillOpacity: 0.2,
-        })
-      : new google.maps.Polyline({ ...style, path: drawing.vertices });
-    const path = overlay.getPath();
+    if (!map || drawing?.type !== "polygon") return;
+    // While a ring is being drawn, the closed parts let clicks through to the map,
+    // where they add its vertices (a hole is drawn inside a part)
+    const editable = !drawing.open;
+    const style = { strokeColor: COLOR, strokeWeight: 2, map };
+    const overlays: (google.maps.Polygon | google.maps.Polyline)[] = [];
+    const listeners: google.maps.MapsEventListener[] = [];
 
-    const edit = (kind: PathEdit["kind"], index: number) => {
-      const position = toLiteral(path.getAt(index));
-      if (!latest.current.onPathEdit({ kind, index, position })) {
-        setRevision((value) => value + 1);
-      }
-    };
-    const listeners = [
-      overlay.addListener("click", (event: google.maps.PolyMouseEvent) => {
-        if (event.vertex !== undefined) {
-          latest.current.onVertexClick(event.vertex);
-        } else if (!drawing.closed && event.latLng) {
-          // A click on the line being drawn adds a vertex, as one on the map does
-          latest.current.onMapClick(toLiteral(event.latLng));
+    const watch = (
+      overlay: google.maps.Polygon | google.maps.Polyline,
+      paths: google.maps.MVCArray<google.maps.LatLng>[],
+      ringOf: (path: number) => RingRef
+    ) => {
+      overlays.push(overlay);
+      const edit = (path: number, kind: PathEdit["kind"], index: number) => {
+        const position = toLiteral(paths[path].getAt(index));
+        const ring = ringOf(path);
+        if (!latest.current.onPathEdit({ ring, kind, index, position })) {
+          setRevision((value) => value + 1);
         }
-      }),
-      overlay.addListener(
-        "contextmenu",
-        (event: google.maps.PolyMouseEvent) => {
+      };
+      listeners.push(
+        overlay.addListener("click", (event: google.maps.PolyMouseEvent) => {
+          const ring = ringOf(event.path ?? 0);
           if (event.vertex !== undefined) {
-            latest.current.onVertexRightClick(event.vertex);
+            latest.current.onVertexClick({ ring, index: event.vertex });
+          } else if (ring === "open" && event.latLng) {
+            // A click on the line being drawn adds a vertex, as one on the map does
+            latest.current.onMapClick(toLiteral(event.latLng));
           }
-        }
-      ),
-      path.addListener("set_at", (index: number) => edit("move", index)),
-      path.addListener("insert_at", (index: number) => edit("insert", index)),
-    ];
+        }),
+        overlay.addListener(
+          "contextmenu",
+          (event: google.maps.PolyMouseEvent) => {
+            if (event.vertex !== undefined) {
+              latest.current.onVertexRightClick({
+                ring: ringOf(event.path ?? 0),
+                index: event.vertex,
+              });
+            }
+          }
+        ),
+        ...paths.flatMap((path, i) => [
+          path.addListener("set_at", (index: number) => edit(i, "move", index)),
+          path.addListener("insert_at", (index: number) =>
+            edit(i, "insert", index)
+          ),
+        ])
+      );
+    };
+
+    // Each part, with its holes as its other paths
+    drawing.parts.forEach(({ exterior, holes }, part) => {
+      const polygon = new google.maps.Polygon({
+        ...style,
+        paths: [exterior, ...holes],
+        fillColor: COLOR,
+        fillOpacity: 0.2,
+        editable,
+        clickable: editable,
+      });
+      watch(polygon, polygon.getPaths().getArray(), (path) => ({
+        part,
+        hole: path === 0 ? null : path - 1,
+      }));
+    });
+    if (drawing.open?.vertices.length) {
+      const line = new google.maps.Polyline({
+        ...style,
+        path: drawing.open.vertices,
+        editable: true,
+      });
+      watch(line, [line.getPath()], () => "open");
+    }
+
     return () => {
       listeners.forEach((listener) => listener.remove());
-      overlay.setMap(null);
+      overlays.forEach((overlay) => overlay.setMap(null));
     };
   }, [map, drawing, revision]);
 
@@ -204,8 +244,8 @@ const DrawingLayer: React.FC<Omit<DrawingMapProps, "initialBounds">> = (
   }, [map, center, radius]);
 
   const selected =
-    drawing?.type === "polygon" && selectedVertex !== null
-      ? drawing.vertices[selectedVertex]
+    drawing?.type === "polygon" && selectedVertex
+      ? ringAt(drawing, selectedVertex.ring)?.[selectedVertex.index]
       : undefined;
 
   return (

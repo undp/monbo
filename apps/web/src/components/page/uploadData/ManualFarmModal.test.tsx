@@ -69,11 +69,39 @@ const fillMandatoryFields = () => {
   type(/^Tipo de cultivo/, "Café");
 };
 
-const drawSquare = () => {
-  square.forEach((vertex) => act(() => map().onMapClick(vertex)));
-  // A click on the first vertex closes the polygon
-  act(() => map().onVertexClick(0));
+// The farm's first part, closed; and one still being drawn
+const closed = (...exteriors: (typeof square)[]) => ({
+  type: "polygon",
+  parts: exteriors.map((exterior) => ({ exterior, holes: [] })),
+  open: null,
+});
+const opened = (vertices: typeof square) => ({
+  type: "polygon",
+  parts: [],
+  open: { kind: "part", vertices },
+});
+const EXTERIOR = { part: 0, hole: null };
+
+// Clicks the ring's vertices, then the first one, which closes it
+const drawRing = (ring: typeof square) => {
+  ring.forEach((vertex) => act(() => map().onMapClick(vertex)));
+  act(() => map().onVertexClick({ ring: "open", index: 0 }));
 };
+const drawSquare = () => drawRing(square);
+
+const rect = (west: number, south: number, east: number, north: number) => [
+  p(west, south),
+  p(east, south),
+  p(east, north),
+  p(west, north),
+];
+// Inside the square, beside it, and inside the hole
+const HOLE = rect(-69.997, -32.997, -69.993, -32.993);
+const BESIDE = rect(-69.98, -33, -69.97, -32.99);
+const ISLAND = rect(-69.996, -32.996, -69.994, -32.994);
+
+const press = (name: string) =>
+  fireEvent.click(screen.getByRole("button", { name }));
 
 const addButton = () => screen.getByRole("button", { name: "Agregar" });
 
@@ -88,11 +116,7 @@ describe("ManualFarmModal", () => {
     expect(addButton()).toHaveProperty("disabled", true);
 
     drawSquare();
-    expect(map().drawing).toEqual({
-      type: "polygon",
-      vertices: square,
-      closed: true,
-    });
+    expect(map().drawing).toEqual(closed(square));
     expect(addButton()).toHaveProperty("disabled", false);
 
     fillMandatoryFields();
@@ -127,11 +151,7 @@ describe("ManualFarmModal", () => {
     expect(
       screen.getByText(/haría que los bordes del polígono se crucen/)
     ).toBeTruthy();
-    expect(map().drawing).toEqual({
-      type: "polygon",
-      vertices: square.slice(0, 3),
-      closed: false,
-    });
+    expect(map().drawing).toEqual(opened(square.slice(0, 3)));
   });
 
   it("undoes a dragged vertex that would cross, and keeps one that doesn't", async () => {
@@ -141,66 +161,71 @@ describe("ManualFarmModal", () => {
     let accepted = true;
     act(() => {
       accepted = map().onPathEdit({
+        ring: EXTERIOR,
         kind: "move",
         index: 2,
         position: p(-69.995, -33.01),
       });
     });
     expect(accepted).toBe(false);
-    expect(map().drawing).toMatchObject({ vertices: square });
+    expect(map().drawing).toEqual(closed(square));
 
     act(() => {
       accepted = map().onPathEdit({
+        ring: EXTERIOR,
         kind: "move",
         index: 2,
         position: p(-69.98, -32.98),
       });
     });
     expect(accepted).toBe(true);
-    expect(map().drawing).toMatchObject({
-      vertices: [square[0], square[1], p(-69.98, -32.98), square[3]],
-    });
+    expect(map().drawing).toEqual(
+      closed([square[0], square[1], p(-69.98, -32.98), square[3]])
+    );
   });
 
   it("deletes a vertex on right-click, keeping at least 3", async () => {
     await renderModal();
     drawSquare();
 
-    act(() => map().onVertexRightClick(1));
-    expect(map().drawing).toMatchObject({
-      vertices: [square[0], square[2], square[3]],
-    });
+    act(() => map().onVertexRightClick({ ring: EXTERIOR, index: 1 }));
+    expect(map().drawing).toEqual(closed([square[0], square[2], square[3]]));
 
-    act(() => map().onVertexRightClick(0));
+    act(() => map().onVertexRightClick({ ring: EXTERIOR, index: 0 }));
     expect(screen.getByText(/necesita al menos 3 vértices/)).toBeTruthy();
-    expect(map().drawing).toMatchObject({
-      vertices: [square[0], square[2], square[3]],
-    });
+    expect(map().drawing).toEqual(closed([square[0], square[2], square[3]]));
   });
 
   it("lists the vertices' coordinates as they are drawn", async () => {
     await renderModal();
     const list = () =>
-      within(screen.getByRole("region", { name: /^Vértices del polígono/ }));
+      within(screen.getByRole("region", { name: /^Vértices de la finca/ }));
 
     act(() => map().onMapClick(square[0]));
     act(() => map().onMapClick(square[1]));
     expect(
-      screen.getByRole("heading", { name: "Vértices del polígono (2)" })
+      screen.getByRole("heading", { name: "Vértices de la finca (2)" })
     ).toBeTruthy();
     const rows = list().getAllByRole("row").slice(1);
     expect(rows.map((row) => row.textContent)).toEqual([
+      "Parte 1",
       "1-33.000000-70.000000",
       "2-33.000000-69.990000",
     ]);
 
     act(() => map().onMapClick(square[2]));
     act(() => map().onMapClick(square[3]));
-    act(() => map().onVertexClick(0));
+    act(() => map().onVertexClick({ ring: "open", index: 0 }));
     act(() =>
-      map().onPathEdit({ kind: "move", index: 2, position: p(-69.98, -32.98) })
+      map().onPathEdit({
+        ring: EXTERIOR,
+        kind: "move",
+        index: 2,
+        position: p(-69.98, -32.98),
+      })
     );
-    expect(list().getAllByRole("row")[3].textContent).toBe(
+    // The header, "Parte 1", then the vertices
+    expect(list().getAllByRole("row")[4].textContent).toBe(
       "3-32.980000-69.980000"
     );
   });
@@ -209,15 +234,14 @@ describe("ManualFarmModal", () => {
     await renderModal();
     drawSquare();
     const rows = within(
-      screen.getByRole("region", { name: /^Vértices del polígono/ })
+      screen.getByRole("region", { name: /^Vértices de la finca/ })
     ).getAllByRole("row");
 
-    fireEvent.click(rows[2]);
-    expect(map().selectedVertex).toBe(1);
+    // The header, "Parte 1", then its second vertex
+    fireEvent.click(rows[3]);
+    expect(map().selectedVertex).toEqual({ ring: EXTERIOR, index: 1 });
     fireEvent.click(screen.getByRole("button", { name: "Borrar vértice" }));
-    expect(map().drawing).toMatchObject({
-      vertices: [square[0], square[2], square[3]],
-    });
+    expect(map().drawing).toEqual(closed([square[0], square[2], square[3]]));
   });
 
   it("shows a point's coordinates", async () => {
@@ -313,16 +337,17 @@ describe("ManualFarmModal", () => {
     expect(field(/^Enlace documento 1/).value).toBe(
       "https://example.org/t.pdf"
     );
-    expect(map().drawing).toEqual({
-      type: "polygon",
-      vertices: square,
-      closed: true,
-    });
+    expect(map().drawing).toEqual(closed(square));
     // The map opens on the farm, not on the country
     expect(map().initialBounds).toMatchObject({ west: -70, east: -69.99 });
 
     act(() => {
-      map().onPathEdit({ kind: "move", index: 2, position: p(-69.98, -32.98) });
+      map().onPathEdit({
+        ring: EXTERIOR,
+        kind: "move",
+        index: 2,
+        position: p(-69.98, -32.98),
+      });
     });
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
 
@@ -385,14 +410,14 @@ describe("ManualFarmModal", () => {
       addPoint();
     });
     expect(map().focus).toMatchObject({ center: square[3], keepZoom: true });
-    expect(map().drawing).toMatchObject({ vertices: square, closed: false });
+    expect(map().drawing).toEqual(opened(square));
 
     // One that crosses an edge is rejected, and stays typed to fix it
     typePosition(p(-69.995, -33.01));
     addPoint();
     expect(screen.getByText(/bordes del polígono se crucen/)).toBeTruthy();
     expect(field(/^Longitud/).value).toBe("-69.995");
-    expect(map().drawing).toMatchObject({ vertices: square });
+    expect(map().drawing).toEqual(opened(square));
 
     fireEvent.click(screen.getByRole("button", { name: "Cerrar polígono" }));
     expect(
@@ -421,6 +446,179 @@ describe("ManualFarmModal", () => {
     fireEvent.click(screen.getByRole("button", { name: "Agregar punto" }));
     expect(screen.getByText(/latitud entre -90 y 90/)).toBeTruthy();
     expect(map().drawing).toMatchObject({ center: p(-84.0023, 9.8783) });
+  });
+
+  it("adds a farm of two parts as a MultiPolygon", async () => {
+    const { onSave } = await renderModal();
+    drawSquare();
+    press("Agregar parte");
+    expect(addButton()).toHaveProperty("disabled", false);
+    BESIDE.forEach((vertex) => act(() => map().onMapClick(vertex)));
+    // A ring being drawn holds the farm back
+    expect(addButton()).toHaveProperty("disabled", true);
+    act(() => map().onVertexClick({ ring: "open", index: 0 }));
+
+    expect(map().drawing).toEqual(closed(square, BESIDE));
+    fillMandatoryFields();
+    fireEvent.click(addButton());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      geometryType: "MultiPolygon",
+      farmCoordinates:
+        "[[[[-70,-33],[-69.99,-33],[-69.99,-32.99],[-70,-32.99],[-70,-33]]]," +
+        "[[[-69.98,-33],[-69.97,-33],[-69.97,-32.99],[-69.98,-32.99],[-69.98,-33]]]]",
+    });
+  });
+
+  it("adds a hole inside the farm, wound against its exterior", async () => {
+    const { onSave } = await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    drawRing(HOLE);
+
+    fillMandatoryFields();
+    fireEvent.click(addButton());
+    const { geometryType, farmCoordinates } = onSave.mock.calls[0][0];
+    expect(geometryType).toBe("Polygon");
+    // The hole keeps its first vertex and turns clockwise
+    expect(JSON.parse(farmCoordinates)[1]).toEqual([
+      [-69.997, -32.997],
+      [-69.997, -32.993],
+      [-69.993, -32.993],
+      [-69.993, -32.997],
+      [-69.997, -32.997],
+    ]);
+  });
+
+  it("rejects a hole's vertex off the farm, from the first one", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    act(() => map().onMapClick(p(-70.005, -32.995)));
+
+    expect(
+      screen.getByText("El hueco debe quedar dentro de una parte de la finca, sin tocar su borde.")
+    ).toBeTruthy();
+    expect(map().drawing).toMatchObject({ open: { kind: "hole", vertices: [] } });
+  });
+
+  it("rejects a new part's vertex on the farm, also when typed", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar parte");
+    type(/^Latitud/, "-32,995");
+    type(/^Longitud/, "-69.995");
+    press("Agregar punto");
+
+    expect(
+      screen.getByText("Una parte no puede quedar encima de otra. Sí puede quedar dentro de un hueco.")
+    ).toBeTruthy();
+    expect(map().drawing).toMatchObject({ open: { kind: "part", vertices: [] } });
+    // It stays typed, to fix it
+    expect(field(/^Longitud/).value).toBe("-69.995");
+  });
+
+  it("accepts a part inside a hole", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    drawRing(HOLE);
+    press("Agregar parte");
+    drawRing(ISLAND);
+
+    expect(map().drawing).toMatchObject({
+      parts: [{ holes: [expect.any(Array)] }, { exterior: ISLAND, holes: [] }],
+      open: null,
+    });
+  });
+
+  it("lists each ring's vertices under its name", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    drawRing(HOLE);
+    press("Agregar parte");
+    drawRing(BESIDE);
+
+    const headers = within(
+      screen.getByRole("region", { name: "Vértices de la finca (12)" })
+    ).getAllByRole("rowheader");
+    expect(headers.map((header) => header.textContent)).toEqual([
+      "Parte 1",
+      "Parte 1 · Hueco 1",
+      "Parte 2",
+    ]);
+  });
+
+  it("deletes a hole and a part, but keeps the last part", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    drawRing(HOLE);
+    press("Agregar parte");
+    drawRing(BESIDE);
+
+    act(() => map().onVertexClick({ ring: { part: 0, hole: 0 }, index: 0 }));
+    press("Borrar hueco");
+    expect(map().drawing).toEqual(closed(square, BESIDE));
+
+    act(() => map().onVertexClick({ ring: { part: 1, hole: null }, index: 0 }));
+    press("Borrar parte");
+    expect(map().drawing).toEqual(closed(square));
+
+    act(() => map().onVertexClick({ ring: EXTERIOR, index: 0 }));
+    press("Borrar parte");
+    expect(screen.getByText(/necesita al menos una parte/)).toBeTruthy();
+    expect(map().drawing).toEqual(closed(square));
+  });
+
+  it("discards the ring being drawn", async () => {
+    await renderModal();
+    drawSquare();
+    press("Agregar hueco");
+    act(() => map().onMapClick(HOLE[0]));
+    expect(addButton()).toHaveProperty("disabled", true);
+
+    press("Descartar hueco");
+    expect(map().drawing).toEqual(closed(square));
+    expect(addButton()).toHaveProperty("disabled", false);
+  });
+
+  it("edits a listed farm with a hole and two parts", async () => {
+    const { onSave } = await renderModal({
+      initialRow: {
+        producerName: "Juana Pérez",
+        productionDate: new Date(2024, 4, 1).toISOString(),
+        productionQuantity: 10,
+        productionQuantityUnit: "kg",
+        cropType: "Café",
+        coordinatesFormat: "GeoJSON",
+        geometryType: "MultiPolygon",
+        farmCoordinates: JSON.stringify([
+          [square, [...HOLE].reverse()].map((ring) =>
+            [...ring, ring[0]].map(({ lng, lat }) => [lng, lat])
+          ),
+          [[...BESIDE, BESIDE[0]].map(({ lng, lat }) => [lng, lat])],
+        ]),
+        documents: [],
+      },
+    });
+
+    expect(screen.queryByText(/no se pueden dibujar aquí/)).toBeNull();
+    expect(map().drawing).toMatchObject({
+      parts: [{ exterior: square, holes: [expect.any(Array)] }, { exterior: BESIDE }],
+    });
+    act(() => {
+      map().onPathEdit({
+        ring: { part: 1, hole: null },
+        kind: "move",
+        index: 2,
+        position: p(-69.96, -32.98),
+      });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(JSON.parse(onSave.mock.calls[0][0].farmCoordinates)[1][0][2]).toEqual(
+      [-69.96, -32.98]
+    );
   });
 
   it("goes to typed coordinates", async () => {
@@ -454,7 +652,7 @@ describe("validateManualFarm", () => {
     const i18n = await createTestI18n("es");
     const result = validateManualFarm({
       values: emptyValues(),
-      drawing: { type: "polygon", vertices: square, closed: false },
+      drawing: { type: "polygon", parts: [], open: { kind: "part", vertices: square } },
       t: i18n.t,
       language: "es",
     });

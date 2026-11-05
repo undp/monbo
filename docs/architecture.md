@@ -164,7 +164,7 @@ and the examples, and the tests upload every example. The list lives in the page
 | **Excel template** | `loadExcelFileFarmsData`: coordinates as WKT or GeoJSON in a cell |
 | **Geo file** (GeoJSON, KML, KMZ, zipped Shapefile) | `POST /farms/import` reads it, then `geoFeaturesToFarmRows` reads each feature's attributes by fixed names (`geoAttributeMappings`: EUDR, Monbo's own GeoJSON download, short Shapefile names, the template's headers) |
 | **Geo file + Excel** | The Excel, joined to the features by ID (`joinRowsWithGeoFeatures`); an Excel with coordinates is rejected, so a farm is never placed twice; a KML placemark's name is its ID when it has none |
-| **Manual farm** | Drawn in `ManualFarmModal` on Google Maps, with our own drawing tool (Google's Drawing Library is gone), and its fields filled in |
+| **Manual farm** | Drawn in `ManualFarmModal` on Google Maps, with our own drawing tool (Google's Drawing Library is gone), and its fields filled in. It can have holes and several parts: `utils/drawing.ts` checks every edit against the API's rules (no ring touches another, holes inside their part, parts apart or inside a hole) and orients the rings as it closes them |
 
 `utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
 together, in list order, and rejects an ID found in two sources, naming both.
@@ -196,7 +196,8 @@ an `exterior` ring and its `holes`:
   doesn't overlap it).
 - **Rings are oriented by the API**: exteriors counter-clockwise, holes clockwise.
   Google Maps only draws a hole empty when it winds opposite to its exterior, so the
-  web draws the rings as they come.
+  web draws the rings as they come. The manual entry's drawing tool orients the
+  rings it draws the same way.
 - **`center`** is the farm's centroid when it lies inside the farm, and otherwise a
   point Shapely guarantees inside it (a hole over the centroid, or parts apart).
 
