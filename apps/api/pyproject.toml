@@ -13,7 +13,7 @@ dependencies = [
     "rasterio==1.5.2",
     "colorlog==6.12.0",
     "mercantile==1.2.1",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
     "python-dotenv==1.2.4",
     "pycountry==26.2.16",
 ]
