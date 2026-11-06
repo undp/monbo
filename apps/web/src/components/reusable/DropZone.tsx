@@ -16,8 +16,16 @@ interface DropZoneProps {
     activeDragzoneCallToAction: string;
     buttonText: string;
     text: string;
+    // The accepted formats, under the call to action. Excel's by default.
+    allowedExtensions?: string;
   };
   disabled?: boolean;
+  // Several files at once (each one is handled on its own)
+  multiple?: boolean;
+  // Shown instead of the generic "invalid file type", e.g. to say where it goes
+  invalidTypeMessage?: string;
+  // Smaller text, for a drop zone inside a card
+  compact?: boolean;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -25,6 +33,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
   accept,
   texts,
   disabled,
+  multiple = false,
+  invalidTypeMessage,
+  compact = false,
 }) => {
   const { openSnackbar } = useContext(SnackbarContext);
   const { t } = useTranslation();
@@ -37,7 +48,10 @@ export const DropZone: React.FC<DropZoneProps> = ({
           "code"
         ).forEach((e) => {
           openSnackbar({
-            message: t(`common:fileErrors:${e.code}`),
+            message:
+              e.code === "file-invalid-type" && invalidTypeMessage
+                ? invalidTypeMessage
+                : t(`common:fileErrors:${e.code}`),
             type: "error",
           });
         });
@@ -46,13 +60,13 @@ export const DropZone: React.FC<DropZoneProps> = ({
 
       onDrop(acceptedFiles);
     },
-    [onDrop, openSnackbar, t]
+    [onDrop, openSnackbar, t, invalidTypeMessage]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleOnDrop,
     accept,
-    multiple: false,
+    multiple,
     disabled,
   });
 
@@ -66,28 +80,40 @@ export const DropZone: React.FC<DropZoneProps> = ({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: compact ? 1.5 : undefined,
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
-          gap: 1,
+          gap: compact ? 0.5 : 1,
         }}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
-          <Text variant="h3" textAlign="center" bold boldWeight={600}>
+          <Text
+            variant={compact ? "body1" : "h3"}
+            textAlign="center"
+            bold
+            boldWeight={600}
+          >
             {texts.activeDragzoneCallToAction}
           </Text>
         ) : (
           <>
-            <Text variant="h3" textAlign="center" bold boldWeight={600}>
+            <Text
+              variant={compact ? "body1" : "h3"}
+              textAlign="center"
+              bold
+              boldWeight={600}
+            >
               {texts.inactiveDragzoneCallToAction}
             </Text>
-            <Text variant="body1" textAlign="center">
+            <Text variant={compact ? "body2" : "body1"} textAlign="center">
               <Text
-                variant="body1"
+                variant={compact ? "body2" : "body1"}
                 component="span"
                 sx={{
                   color: "primary.main",
@@ -100,7 +126,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               {texts.text}
             </Text>
             <Text color="secondary" variant="body2" textAlign="center">
-              .xlsx {t("_or")} .xls
+              {texts.allowedExtensions ?? `.xlsx ${t("_or")} .xls`}
             </Text>
           </>
         )}

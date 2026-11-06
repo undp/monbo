@@ -17,10 +17,9 @@ import {
 } from "@/context/DataContext";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { notifyUploadErrors } from "@/utils/uploadErrors";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
-import { DownloadTemplateStep } from "@/components/page/uploadData/DownloadTemplateStep";
-import { UploadFileStep } from "@/components/page/uploadData/UploadFileStep";
+import { FarmsUploadStep } from "@/components/page/uploadData/FarmsUploadStep";
+import { useUploadSources } from "@/components/page/uploadData/useUploadSources";
 import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
@@ -29,10 +28,7 @@ import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
 import { MessageBox } from "@/components/reusable/MessageBox";
 import { Box, Button } from "@mui/material";
 import { getCountryName } from "@/utils/countries";
-import {
-  getUploadFileTemplatePath,
-  loadExcelFileFarmsData,
-} from "@/utils/excel";
+import { FarmRow } from "@/interfaces/FarmRow";
 
 export function DeforestationAnalysisUploadDataPageContent() {
   // const [file, setFile] = useState<File | null>(null);
@@ -246,36 +242,16 @@ export function DeforestationAnalysisUploadDataPageContent() {
     performDeforestationAnalysis,
   ]);
 
-  const onFileDropped = useCallback(
-    async (acceptedFiles: File[]) => {
-      // A new file is a new analysis, not a recalculation of an outdated one.
+  const upload = useUploadSources(selectedCountry);
+
+  const onUpload = useCallback(
+    (rows: FarmRow[]) => {
+      // A new upload is a new analysis, not a recalculation of an outdated one.
       setAnalysisOutdated(false);
       setLoading(true);
-
-      const file = acceptedFiles[0];
-      const { data, errorMessages } = await loadExcelFileFarmsData(
-        file,
-        t,
-        i18n.language,
-        selectedCountry
-      );
-
-      if (errorMessages.length > 0) {
-        notifyUploadErrors(openSnackbar, errorMessages, t);
-        setLoading(false);
-        return;
-      } else {
-        performFarmsGeneration(data);
-      }
+      performFarmsGeneration(rows);
     },
-    [
-      openSnackbar,
-      t,
-      performFarmsGeneration,
-      setAnalysisOutdated,
-      i18n.language,
-      selectedCountry,
-    ]
+    [performFarmsGeneration, setAnalysisOutdated]
   );
 
   if (loading && selectedMapsForDeforestation.length > 0)
@@ -291,20 +267,6 @@ export function DeforestationAnalysisUploadDataPageContent() {
 
   return (
     <UploadPageContent title={t("deforestationAnalysis:uploadDataPage:title")}>
-      <TextHeaderStepContainer
-        title={t("deforestationAnalysis:uploadDataPage:templateStep:stepTitle")}
-      >
-        <DownloadTemplateStep
-          title={t("deforestationAnalysis:uploadDataPage:templateStep:title")}
-          description={t(
-            "deforestationAnalysis:uploadDataPage:templateStep:description"
-          )}
-          buttonText={t(
-            "deforestationAnalysis:uploadDataPage:templateStep:buttonText"
-          )}
-          fileUrl={getUploadFileTemplatePath(i18n.language)} // TODO: Change to deforestation analysis template
-        />
-      </TextHeaderStepContainer>
       <TextHeaderStepContainer
         title={t(
           "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
@@ -328,32 +290,17 @@ export function DeforestationAnalysisUploadDataPageContent() {
       </TextHeaderStepContainer>
       <TextHeaderStepContainer
         title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
+        subtitle={t("common:farmsUpload:intro")}
         sx={{
           flexGrow: 1,
           opacity: selectedMapsForDeforestation.length === 0 ? 0.4 : 1,
         }}
       >
-        <UploadFileStep
-          texts={{
-            inactiveDragzoneCallToAction: t(
-              "deforestationAnalysis:uploadDataPage:uploadStep:inactiveDragzoneCallToAction"
-            ),
-            activeDragzoneCallToAction: t(
-              "deforestationAnalysis:uploadDataPage:uploadStep:activeDragzoneCallToAction"
-            ),
-            buttonText: t(
-              "deforestationAnalysis:uploadDataPage:uploadStep:dragzoneButtonText"
-            ),
-            text: t(
-              "deforestationAnalysis:uploadDataPage:uploadStep:dragzoneText"
-            ),
-          }}
-          fileAccept={{
-            "application/vnd.ms-excel": [".xls"],
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-              [".xlsx"],
-          }}
-          onDrop={onFileDropped}
+        <FarmsUploadStep
+          upload={upload}
+          country={selectedCountry}
+          submitLabel={t("deforestationAnalysis:uploadDataPage:uploadStep:submit")}
+          onSubmit={onUpload}
           disabled={selectedMapsForDeforestation.length === 0}
         />
         {farmsData && (

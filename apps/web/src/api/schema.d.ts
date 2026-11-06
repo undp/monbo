@@ -280,6 +280,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/farms/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Farms
+         * @description Reads the farms of a geo file: GeoJSON (`.geojson`, `.json`), KML, KMZ or a
+         *     zipped Shapefile (`.zip`, every `.shp` inside is read, so points and polygons can
+         *     come as two Shapefiles).
+         *
+         *     The answer has the file's `format` and its features. Each feature comes back with
+         *     its 1-based position, its attributes (JSON values; dates as ISO strings) and its
+         *     geometry as WKT in EPSG:4326 (`geometryType`, `farmCoordinates`), ready for
+         *     `POST /farms/parse` with `coordinatesFormat: "WKT"`. Polygons keep their holes, and
+         *     a MultiPolygon of several parts is one farm (one of one part is that Polygon). A
+         *     feature that is no polygon or point comes back with `errors` instead of a
+         *     geometry. In a KML or KMZ, `id` is the placemark's ID attribute (from its
+         *     ExtendedData), never its XML `id`.
+         *
+         *     A problem with the whole file (unsupported type, unreadable, larger than
+         *     the limit, a Shapefile without `.prj`, no features...) is a 400 (413 when too
+         *     large) whose `detail` has a stable `code`, `params` and an English `message`.
+         */
+        post: operations["import_farms_farms_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/farms/parse": {
         parameters: {
             query?: never;
@@ -540,6 +575,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Body_import_farms_farms_import_post */
+        Body_import_farms_farms_import_post: {
+            /** File */
+            file: string;
+        };
         /** ConfigData */
         ConfigData: {
             /** Deforestationthresholdpercentage */
@@ -659,6 +699,68 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * ImportErrorResponse
+         * @description Body of a rejected import: the problem with the whole file.
+         */
+        ImportErrorResponse: {
+            detail: components["schemas"]["ImportIssue"];
+        };
+        /**
+         * ImportIssue
+         * @description A problem with an imported geo file or one of its features. The web
+         *     translates it by `code` (with `params`); `message` is the English fallback.
+         */
+        ImportIssue: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ImportedFeature
+         * @description One feature of an imported geo file, with its geometry as WKT so it can be
+         *     sent unchanged to `/farms/parse`. Geometry fields are null when the feature has
+         *     errors.
+         */
+        ImportedFeature: {
+            /** Errors */
+            errors: components["schemas"]["ImportIssue"][];
+            /**
+             * Farmcoordinates
+             * @description The geometry as WKT, in EPSG:4326
+             */
+            farmCoordinates: string | null;
+            /** Geometrytype */
+            geometryType: ("Point" | "Polygon" | "MultiPolygon") | null;
+            /**
+             * Position
+             * @description 1-based position of the feature in the file
+             */
+            position: number;
+            /** Properties */
+            properties: {
+                [key: string]: string | number | boolean | null;
+            };
+        };
+        /**
+         * ImportedFile
+         * @description An imported geo file: its format and its features, in file order.
+         */
+        ImportedFile: {
+            /** Features */
+            features: components["schemas"]["ImportedFeature"][];
+            /**
+             * Format
+             * @description In a KML or KMZ, a placemark's name is the farm's ID when it has no ID attribute
+             * @enum {string}
+             */
+            format: "geojson" | "kml" | "kmz" | "shapefile";
         };
         /**
          * IngestionJob
@@ -1466,6 +1568,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_farms_farms_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_farms_farms_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportedFile"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportErrorResponse"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportErrorResponse"];
                 };
             };
             /** @description Validation Error */

@@ -23,6 +23,11 @@ export const FARMS_PARSER_URL =
   process.env.NEXT_PUBLIC_FARMS_PARSER_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/farms/parse`;
 
+// Reads a geo file (GeoJSON, KML, KMZ, zipped Shapefile) into features.
+export const FARMS_IMPORT_URL =
+  process.env.NEXT_PUBLIC_FARMS_IMPORT_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/farms/import`;
+
 export const POLYGON_VALIDATION_URL =
   process.env.NEXT_PUBLIC_POLYGON_VALIDATION_URL ||
   `${

@@ -327,6 +327,20 @@
         "title": "BaseMapData",
         "type": "object"
       },
+      "Body_import_farms_farms_import_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_farms_farms_import_post",
+        "type": "object"
+      },
       "ConfigData": {
         "properties": {
           "deforestationThresholdPercentage": {
@@ -673,6 +687,150 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportErrorResponse": {
+        "description": "Body of a rejected import: the problem with the whole file.",
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/ImportIssue"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ImportErrorResponse",
+        "type": "object"
+      },
+      "ImportIssue": {
+        "description": "A problem with an imported geo file or one of its features. The web\ntranslates it by `code` (with `params`); `message` is the English fallback.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "params"
+        ],
+        "title": "ImportIssue",
+        "type": "object"
+      },
+      "ImportedFeature": {
+        "description": "One feature of an imported geo file, with its geometry as WKT so it can be\nsent unchanged to `/farms/parse`. Geometry fields are null when the feature has\nerrors.",
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ImportIssue"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "farmCoordinates": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The geometry as WKT, in EPSG:4326",
+            "title": "Farmcoordinates"
+          },
+          "geometryType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Point",
+                  "Polygon",
+                  "MultiPolygon"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geometrytype"
+          },
+          "position": {
+            "description": "1-based position of the feature in the file",
+            "title": "Position",
+            "type": "integer"
+          },
+          "properties": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Properties",
+            "type": "object"
+          }
+        },
+        "required": [
+          "position",
+          "properties",
+          "geometryType",
+          "farmCoordinates",
+          "errors"
+        ],
+        "title": "ImportedFeature",
+        "type": "object"
+      },
+      "ImportedFile": {
+        "description": "An imported geo file: its format and its features, in file order.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "format": {
+            "description": "In a KML or KMZ, a placemark's name is the farm's ID when it has no ID attribute",
+            "enum": [
+              "geojson",
+              "kml",
+              "kmz",
+              "shapefile"
+            ],
+            "title": "Format",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "features"
+        ],
+        "title": "ImportedFile",
         "type": "object"
       },
       "IngestionJob": {
@@ -2480,6 +2638,68 @@
           }
         },
         "summary": "Download Geojson"
+      }
+    },
+    "/farms/import": {
+      "post": {
+        "description": "Reads the farms of a geo file: GeoJSON (`.geojson`, `.json`), KML, KMZ or a\nzipped Shapefile (`.zip`, every `.shp` inside is read, so points and polygons can\ncome as two Shapefiles).\n\nThe answer has the file's `format` and its features. Each feature comes back with\nits 1-based position, its attributes (JSON values; dates as ISO strings) and its\ngeometry as WKT in EPSG:4326 (`geometryType`, `farmCoordinates`), ready for\n`POST /farms/parse` with `coordinatesFormat: \"WKT\"`. Polygons keep their holes, and\na MultiPolygon of several parts is one farm (one of one part is that Polygon). A\nfeature that is no polygon or point comes back with `errors` instead of a\ngeometry. In a KML or KMZ, `id` is the placemark's ID attribute (from its\nExtendedData), never its XML `id`.\n\nA problem with the whole file (unsupported type, unreadable, larger than\nthe limit, a Shapefile without `.prj`, no features...) is a 400 (413 when too\nlarge) whose `detail` has a stable `code`, `params` and an English `message`.",
+        "operationId": "import_farms_farms_import_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_farms_farms_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportedFile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Farms",
+        "tags": [
+          "Farms Module"
+        ]
       }
     },
     "/farms/parse": {

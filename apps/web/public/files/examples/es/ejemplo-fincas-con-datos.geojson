@@ -1,0 +1,214 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "E2-001",
+        "ProducerName": "Ana Lucía Mora",
+        "productionDate": "2025-02-14",
+        "productionQuantity": 1850,
+        "productionQuantityUnit": "kg",
+        "cropType": "Café",
+        "Area": null,
+        "region": "Alajuela",
+        "association": "Cooperativa Cafetalera Tierra de Sabores"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -84.39,
+              10.095
+            ],
+            [
+              -84.3902,
+              10.0939
+            ],
+            [
+              -84.3891,
+              10.0931
+            ],
+            [
+              -84.3879,
+              10.094
+            ],
+            [
+              -84.3883,
+              10.0953
+            ],
+            [
+              -84.39,
+              10.095
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "E2-002",
+        "ProducerName": "José Pablo Quesada",
+        "productionDate": "2025-03-03",
+        "productionQuantity": 2400,
+        "productionQuantityUnit": "kg",
+        "cropType": "Café",
+        "Area": null,
+        "region": "Alajuela",
+        "association": "Cooperativa Cafetalera Tierra de Sabores"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -84.386,
+              10.095
+            ],
+            [
+              -84.3863,
+              10.0943
+            ],
+            [
+              -84.3857,
+              10.0934
+            ],
+            [
+              -84.3845,
+              10.0933
+            ],
+            [
+              -84.3841,
+              10.0943
+            ],
+            [
+              -84.3847,
+              10.0952
+            ],
+            [
+              -84.386,
+              10.095
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "E2-003",
+        "ProducerName": "María Fernanda Solís",
+        "productionDate": "2025-03-21",
+        "productionQuantity": 960.5,
+        "productionQuantityUnit": "kg",
+        "cropType": "Café",
+        "Area": null,
+        "region": "Alajuela",
+        "association": null
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -84.382,
+              10.095
+            ],
+            [
+              -84.3819,
+              10.094
+            ],
+            [
+              -84.3808,
+              10.0937
+            ],
+            [
+              -84.3797,
+              10.0941
+            ],
+            [
+              -84.3796,
+              10.0951
+            ],
+            [
+              -84.382,
+              10.095
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "E2-004",
+        "ProducerName": "Luis Diego Arias",
+        "productionDate": "2025-04-08",
+        "productionQuantity": 3100,
+        "productionQuantityUnit": "kg",
+        "cropType": "Café",
+        "Area": null,
+        "region": "Alajuela",
+        "association": "Cooperativa Cafetalera Tierra de Sabores"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -84.378,
+              10.095
+            ],
+            [
+              -84.3781,
+              10.0944
+            ],
+            [
+              -84.3774,
+              10.0936
+            ],
+            [
+              -84.3762,
+              10.0938
+            ],
+            [
+              -84.376,
+              10.0952
+            ],
+            [
+              -84.3771,
+              10.0955
+            ],
+            [
+              -84.378,
+              10.095
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "E2-005",
+        "ProducerName": "Rosa Elena Jiménez",
+        "productionDate": "2025-04-25",
+        "productionQuantity": 720,
+        "productionQuantityUnit": "kg",
+        "cropType": "Café",
+        "Area": 2.5,
+        "region": "Alajuela",
+        "association": null
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.373,
+          10.094
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "addTitle": "Agregar finca manualmente",
+  "editTitle": "Editar finca",
+  "close": "Cerrar",
+  "geometry": {
+    "label": "Dibujar",
+    "polygon": "Polígono",
+    "point": "Punto"
+  },
+  "instructions": {
+    "polygon": "Haz clic en el mapa para marcar cada vértice, o escribe su latitud y longitud y presiona «Agregar punto». Termina con «Cerrar polígono» o con un clic en el primer vértice.",
+    "polygonClosed": "Arrastra un vértice para moverlo o el punto medio de un borde para agregar uno. Para borrar un vértice, haz clic derecho sobre él, o selecciónalo y usa «Borrar vértice». Usa «Agregar parte» para otro lote de la finca y «Agregar hueco» para dejar fuera una zona.",
+    "point": "Haz clic en el mapa para ubicar la finca, o escribe su latitud y longitud y presiona «Agregar punto». El círculo tiene la superficie indicada y puedes arrastrarlo.",
+    "newPart": "Dibuja la nueva parte fuera de las otras, o dentro de un hueco: haz clic en cada vértice y termina con «Cerrar polígono».",
+    "newHole": "Dibuja el hueco dentro de una parte, sin tocar su borde: haz clic en cada vértice y termina con «Cerrar polígono»."
+  },
+  "howTo": {
+    "button": "¿Cómo dibujar?",
+    "title": "Cómo dibujar la finca",
+    "alt": "Animación: se hace clic en el mapa satelital para marcar cada vértice de la finca, luego en «Cerrar polígono», y se arrastra un vértice para ajustar el borde. Después se agrega un hueco dentro de la finca y una segunda parte al lado.",
+    "steps": {
+      "1": "Escribe la latitud y longitud de la finca y presiona «Ir», o mueve el mapa hasta ella.",
+      "2": "Haz clic en el mapa para marcar cada vértice del borde de la finca. Si conoces sus coordenadas, escríbelas y presiona «Agregar punto».",
+      "3": "Presiona «Cerrar polígono», o haz clic en el primer vértice.",
+      "4": "Para ajustar el borde, arrastra un vértice; para borrarlo, haz clic derecho sobre él.",
+      "5": "Para dejar fuera una zona (una casa, un río), presiona «Agregar hueco» y dibújala dentro de la finca, sin tocar su borde.",
+      "6": "Si la finca tiene otro lote, presiona «Agregar parte» y dibújalo aparte."
+    }
+  },
+  "actions": {
+    "finish": "Cerrar polígono",
+    "deleteVertex": "Borrar vértice",
+    "startOver": "Empezar de nuevo",
+    "go": "Ir",
+    "addPoint": "Agregar punto",
+    "addDocument": "Agregar documento",
+    "removeDocument": "Quitar documento",
+    "cancel": "Cancelar",
+    "add": "Agregar",
+    "save": "Guardar",
+    "addPart": "Agregar parte",
+    "addHole": "Agregar hueco",
+    "deletePart": "Borrar parte",
+    "deleteHole": "Borrar hueco",
+    "discard": {
+      "part": "Descartar parte",
+      "hole": "Descartar hueco"
+    }
+  },
+  "goTo": {
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "invalid": "Usa una latitud entre -90 y 90 y una longitud entre -180 y 180."
+  },
+  "coordinates": {
+    "polygonTitle": "Vértices de la finca ({{count}})",
+    "pointTitle": "Centro del punto",
+    "number": "N°",
+    "selectHint": "Haz clic en una fila para seleccionar ese vértice.",
+    "part": "Parte {{number}}",
+    "hole": "Parte {{part}} · Hueco {{number}}",
+    "newHole": "Hueco nuevo"
+  },
+  "drawingErrors": {
+    "crossing": "Ese vértice haría que los bordes del polígono se crucen.",
+    "minVertices": "El polígono necesita al menos 3 vértices.",
+    "cannotClose": "Al cerrarlo, los bordes del polígono se cruzarían. Mueve o borra un vértice.",
+    "ringsTouch": "Los bordes no pueden tocarse ni cruzarse: cada hueco debe quedar dentro de su parte sin tocar el borde, y cada parte separada de las otras.",
+    "holeOutside": "El hueco debe quedar dentro de una parte de la finca, sin tocar su borde.",
+    "holeInHole": "Un hueco no puede quedar dentro de otro hueco. Para un lote dentro de un hueco, usa «Agregar parte».",
+    "partOverlaps": "Una parte no puede quedar encima de otra. Sí puede quedar dentro de un hueco.",
+    "lastPart": "La finca necesita al menos una parte. Para empezar de nuevo, usa «Empezar de nuevo»."
+  },
+  "notEditable": {
+    "format": "Esta finca no tiene coordenadas GeoJSON: dibújala de nuevo para cambiar su geometría.",
+    "invalid": "No se pudo leer la geometría de esta finca: dibújala de nuevo."
+  },
+  "missingGeometry": "Dibuja el polígono o ubica el punto para agregar la finca.",
+  "openRing": {"part": "Cierra o descarta la parte para agregar la finca.", "hole": "Cierra o descarta el hueco para agregar la finca."},
+  "fields": {
+    "mandatoryTitle": "Datos de la finca",
+    "optionalTitle": "Opcionales",
+    "id": "ID",
+    "producerName": "Nombre productor",
+    "productionDate": "Fecha producción",
+    "productionQuantity": "Cantidad producción",
+    "productionQuantityUnit": "Unidad cantidad producción",
+    "cropType": "Tipo de cultivo",
+    "area": "Superficie [hectáreas]",
+    "region": "Región",
+    "association": "Asociación",
+    "documents": "Documentos",
+    "documentName": "Nombre documento {{number}}",
+    "documentUrl": "Enlace documento {{number}}"
+  },
+  "fieldErrors": {
+    "required": "Dato obligatorio",
+    "number": "Escribe un número, por ejemplo 1.200,5",
+    "positive": "Debe ser mayor que 0",
+    "url": "Escribe un enlace que empiece con http:// o https://"
+  }
+}

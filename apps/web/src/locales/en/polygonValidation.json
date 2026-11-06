@@ -37,19 +37,9 @@
   "uploadDataPage": {
     "loadingText": "Loading the data",
     "title": "Upload Polygons or Points",
-    "templateStep": {
-      "stepTitle": "Step 1: Download the Template",
-      "title": "Template for Uploading Polygons and/or Points",
-      "description": "Fill out the table with all the necessary information for a polygon or point to validate polygons. Columns marked with an asterisk are required for validation.",
-      "buttonText": "Download"
-    },
     "uploadStep": {
-      "stepTitle": "Step 2: Upload the Template",
-      "inactiveDragzoneCallToAction": "Upload your file",
-      "activeDragzoneCallToAction": "Drop the file here",
-      "dragzoneButtonText": "Click to upload",
-      "dragzoneText": "or drag and drop your file here",
-      "allowedExtensions": ".xlsx or .xls"
+      "stepTitle": "Add your farms",
+      "submit": "Validate polygons"
     }
   },
   "overlapModal": {
