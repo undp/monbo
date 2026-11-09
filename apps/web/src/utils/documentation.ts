@@ -8,6 +8,7 @@ import { formatThreshold } from "./numbers";
 // language under src/content/documentation/<locale>/. The section ids are the
 // page's anchors, the same in every language.
 export const DOCUMENTATION_SECTIONS = [
+  "upload",
   "validation",
   "area",
   "deforestation",
