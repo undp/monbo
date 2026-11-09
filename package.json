@@ -12,11 +12,6 @@
     "contracts": "uv run --directory apps/api python -m app.openapi && pnpm --dir apps/web generate:api-types"
   },
   "devDependencies": {
-    "concurrently": "10.0.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "concurrently>shell-quote": "^1.11.0"
-    }
+    "concurrently": "10.0.6"
   }
 }

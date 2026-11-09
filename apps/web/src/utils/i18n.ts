@@ -9,6 +9,7 @@ import esPolygonValidation from "@/locales/es/polygonValidation.json";
 import esDeforestationAnalysis from "@/locales/es/deforestationAnalysis.json";
 import esReportGeneration from "@/locales/es/reportGeneration.json";
 import esAdmin from "@/locales/es/admin.json";
+import esManualFarm from "@/locales/es/manualFarm.json";
 
 import enCommon from "@/locales/en/common.json";
 import enHome from "@/locales/en/home.json";
@@ -16,6 +17,7 @@ import enPolygonValidation from "@/locales/en/polygonValidation.json";
 import enDeforestationAnalysis from "@/locales/en/deforestationAnalysis.json";
 import enReportGeneration from "@/locales/en/reportGeneration.json";
 import enAdmin from "@/locales/en/admin.json";
+import enManualFarm from "@/locales/en/manualFarm.json";
 
 const localeAssets: Record<string, unknown> = {
   "es-common": esCommon,
@@ -24,12 +26,14 @@ const localeAssets: Record<string, unknown> = {
   "es-deforestationAnalysis": esDeforestationAnalysis,
   "es-reportGeneration": esReportGeneration,
   "es-admin": esAdmin,
+  "es-manualFarm": esManualFarm,
   "en-common": enCommon,
   "en-home": enHome,
   "en-polygonValidation": enPolygonValidation,
   "en-deforestationAnalysis": enDeforestationAnalysis,
   "en-reportGeneration": enReportGeneration,
   "en-admin": enAdmin,
+  "en-manualFarm": enManualFarm,
 };
 
 /**

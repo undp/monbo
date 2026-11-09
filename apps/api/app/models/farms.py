@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from shapely.geometry import MultiPolygon, Point, Polygon
@@ -101,3 +101,42 @@ class FarmPolygonDetailDataWithPolygon(FarmPolygonDetailData):
     polygon: Polygon | MultiPolygon
 
     model_config = {"arbitrary_types_allowed": True}
+
+
+class ImportIssue(BaseModel):
+    """A problem with an imported geo file or one of its features. The web
+    translates it by `code` (with `params`); `message` is the English fallback."""
+
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+    code: str
+    message: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImportedFeature(BaseModel):
+    """One feature of an imported geo file, with its geometry as WKT so it can be
+    sent unchanged to `/farms/parse`. Geometry fields are null when the feature has
+    errors."""
+
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+    position: int = Field(description="1-based position of the feature in the file")
+    properties: dict[str, str | int | float | bool | None]
+    geometryType: Literal["Point", "Polygon", "MultiPolygon"] | None = None
+    farmCoordinates: str | None = Field(
+        default=None, description="The geometry as WKT, in EPSG:4326"
+    )
+    errors: list[ImportIssue] = Field(default_factory=list)
+
+
+class ImportedFile(BaseModel):
+    """An imported geo file: its format and its features, in file order."""
+
+    format: Literal["geojson", "kml", "kmz", "shapefile"] = Field(
+        description="In a KML or KMZ, a placemark's name is the farm's ID when it has "
+        "no ID attribute"
+    )
+    features: list[ImportedFeature]

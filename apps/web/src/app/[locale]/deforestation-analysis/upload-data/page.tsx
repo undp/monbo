@@ -3,7 +3,7 @@ import { DeforestationAnalysisUploadDataPageContent } from "@/components/page/de
 import { BasePageProps } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 
-const namespaces = ["common", "deforestationAnalysis"];
+const namespaces = ["common", "deforestationAnalysis", "manualFarm"];
 
 export default async function UploadDataPage({ params }: BasePageProps) {
   const { locale } = await params;

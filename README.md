@@ -167,7 +167,6 @@ Things worth knowing about the coverage:
   1. `apps/api/Dockerfile.dev`
   2. `apps/api/Dockerfile.prod`
   3. `.github/workflows/ci.yml` (the `astral-sh/setup-uv` `version:` input, in the `api` job)
-- **The root's `pnpm.overrides` is a manual check.** `"concurrently>shell-quote": "^1.11.0"`: `concurrently` 10.0.5 pins `shell-quote` to exactly 1.9.0, which has a critical advisory (GHSA-pqg4-j6r4-53mv). **Remove it** when a `concurrently` release allows `shell-quote >= 1.11.0`.
 - **The frontend's `xlsx` and its own override are outside Dependabot's reach.** `xlsx` comes from SheetJS's CDN, because npm has no fixed version. See [`apps/web/README.md`](apps/web/README.md#outside-dependabots-reach).
 
 Workflow actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. Dependabot understands that form — it bumps the SHA and rewrites the comment — so SHA pinning and automated updates are not in tension.

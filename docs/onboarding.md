@@ -57,7 +57,13 @@ The Azure resources, how the API reads the rasters and how the per-country admin
 The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`apps/web/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
 **Module 1 — Validation**
-1. The user downloads an Excel template (`public/files/m1-upload-file-template-{en,es}.xlsx`) and uploads their file. The frontend reads it with `exceljs`/`xlsx` and validates required columns (producer, production, coordinates, crop type, etc.). The file has **no country column**: every row gets the selected country before it is sent (an old template's country column must be empty or match it; a file with farms in another country is rejected).
+1. The upload step (`components/page/uploadData/`, shared by modules 1 and 2) offers four ways to bring the farms, one card each, and builds **one list of sources** from any mix of them (`useUploadSources` + `utils/uploadSources.ts`):
+   - **Excel template** (`public/files/m1-upload-file-template-{en,es}.xlsx`), with each farm's coordinates in a cell. The frontend reads it with `exceljs`/`xlsx` and validates the required columns (`utils/excel.ts`).
+   - **Geo file with data** (GeoJSON, KML, KMZ or zipped Shapefile): the browser sends the file to **`POST /farms/import`** (`modules/farms/geo_import.py`, GDAL through pyogrio), which answers each feature's attributes and its geometry as WKT in EPSG:4326, holes and MultiPolygons kept. The farms' data is read from fixed attribute names (`utils/geoFile.ts`).
+   - **Geo file + Excel**: the same import, joined by farm ID to the production Excel, which has its own template without coordinate columns (`utils/geoFileJoin.ts`).
+   - **Drawing on the map**: a modal with our own drawing tool on Google Maps (`components/page/uploadData/manualFarm/`, with the rules in `utils/drawing.ts`).
+
+   Nothing is sent on drop: the list shows each source with its farms and problems, and the upload starts when the user presses the step's button. No source carries a country: every row gets the selected country before it is sent (an old template's country column, or a geo file's `ProducerCountry`/`PAIS`, must match it, and the listed files are checked again if the country changes).
 2. The frontend sends the rows to **`POST /farms/parse?locale=`**. The backend parses coordinates (supports **WKT and GeoJSON**, `Point` and `Polygon`), interprets numbers according to the locale, auto-generates missing IDs, and — a non-obvious detail — **converts points into circles**: it uses the declared `area` as the radius, and if there is no area it uses a **default of 1 hectare**. It returns `FarmData` with the polygon already normalized.
 3. The frontend stores the result (`setFarmsData`) and fires **`POST /polygons_validation/validate`** (sending only `{id, type, details}`). The backend rebuilds the polygons with **Shapely**, detects overlaps and invalid geometries, and marks each farm `VALID` / `NOT_VALID`.
 
@@ -146,7 +152,7 @@ monbo/
 ```
 main.py                    # FastAPI bootstrap: CORS, router registration, endpoints /, /health, /health/live, /download-geojson
 modules/                   # One package per module, each with router.py + helpers.py + models.py
-├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware)
+├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware); POST /farms/import — reads a geo file (GeoJSON, KML, KMZ, zipped Shapefile) into features with WKT geometries
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
 ├── deforestation_analysis/#   POST /analize, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
 ├── maps/                  #   GET /maps (?country=) and GET /countries — the published layers and their countries
@@ -271,7 +277,7 @@ pnpm dev                            # → next dev --turbo  (http://localhost:30
 
 ### 4.4 Open the app
 
-Go to **`http://localhost:3000`**. You should see the landing page with the Colombia, Costa Rica and Ecuador cards; pick one and continue to reach the 3 module cards. To exercise the full flow, download the Excel template from module 1, fill in a couple of farms, and upload it.
+Go to **`http://localhost:3000`**. You should see the landing page with the Colombia, Costa Rica and Ecuador cards; pick one and continue to reach the 3 module cards. To exercise the full flow, download the Excel template or one of the example files from module 1's upload step, list it, and press the step's button.
 
 > If the map area in module 2/3 is blank, your `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` is missing or invalid. If module 2 errors out computing deforestation, you probably skipped `git lfs pull` (4.1).
 
