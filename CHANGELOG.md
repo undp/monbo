@@ -82,6 +82,9 @@
 - Update vulnerable transitive dependencies (`brace-expansion`, `tmp`, `yaml`, `@babel/runtime`, `mdast-util-to-hast`, `source-map-js`, `@humanfs/node`), and override `uuid` (under `exceljs`) and `shell-quote` (under the root's `concurrently`), whose parents pin vulnerable versions
 - Stop logging the Google Maps API key and request signature: the satellite image's debug line logged the full request URL, and an HTTP error from Google logged its message, which contains that URL. Both now log only the request's parameters or the status code
 - Turn on secret scanning with push protection and CodeQL code scanning for the repository (`docs/branch_protection.md`)
+- Update Next.js to 16.4.5, fixing two unauthenticated remote code execution advisories and a Server Actions denial of service, and `undici` (under `jsdom`, tests only) to 8.12.4
+- Update the API's Pillow to 13.0.0, fixing its image decoder advisories (the API's rendered images are unchanged), and `certifi`, `dnspython` and `black` to their patched versions. The previous `certifi` trusted emSign root certificates whose intermediate keys were compromised
+- Update the vulnerable transitive dependencies of the GFW/TMF update script (`pillow`, `certifi`, `pyasn1`, `tornado`, `msgpack`)
 
 ### Other
 
