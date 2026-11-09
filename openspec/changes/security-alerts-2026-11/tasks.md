@@ -14,6 +14,7 @@
 - [x] 2.3 If the rebase or CI fails, apply D1's fallback: `@dependabot recreate` first, then our own PR with `next`/`eslint-config-next` 16.4.x and an `undici` refresh
   - Not needed: the rebase succeeded and CI is green
 - [ ] 2.4 Merge #98 once CI is green (ask first). Check that the `dev` deploy succeeds, then do a manual pass on the deployed site: upload the regression farms file, run the analysis, download the report (R1)
+  - Squash-merged as bc89270 with the user's confirmation. The `dev` deploy succeeded, and the 11 `next` and `undici` alerts closed on their own (147 → 136). The manual pass on the deployed site is still pending
 
 ## 3. API: one PR for its alerts (D2, D3)
 
@@ -26,10 +27,11 @@
 - [x] 3.4 D3 spot check: generate a deforestation image for a regression farm before and after the upgrade. It opens with the same size and no visible difference
   - `/generate-image` without the satellite background, on the regression fixture layers, for F01, F02, F04 (point) and F08 on layers 0 and 1. The 8 JPEGs are byte-identical under Pillow 12.3.0 and 13.0.0. The satellite path (Google Static Maps) wasn't run. Pillow 13 has cp313 `manylinux_2_28` x86_64 and aarch64 wheels, so `uv sync --no-build` in `python:3.13-slim` still installs a wheel
 - [x] 3.5 `CHANGELOG.md` → Unreleased → Security: Next.js 16.4.5 (#98), Pillow 13, certifi, dnspython, black, the gfw-tmf lock refresh, and the `minimatch` dismissal
-- [ ] 3.6 Commit and open a PR into `dev` (ask first). The description:
+- [x] 3.6 Commit and open a PR into `dev` (ask first). The description:
   - lists the alerts it closes;
   - names #84 and #91 as superseded;
   - states that none of Pillow 13's breaking changes apply to the API's calls (the `python-dependency-toolchain` requirement)
+  - #100, rebased onto bc89270. CI green (`Test and static checks`, CodeQL)
 - [ ] 3.7 After the merge: close #84 and #91 with a comment naming the PR (ask first). Check that the `dev` deploy succeeds
 
 ## 4. GFW/TMF script: lockfile refresh (D4)
@@ -38,7 +40,8 @@
   - Worktree branch `BlancaMunizaga/gfw-tmf-security-lock`: `certifi` 2026.10.23, `msgpack` 1.2.4, `pillow` 13.0.0, `pyasn1` 0.6.5, `tornado` 6.6
 - [x] 4.2 Run `uv lock --check`. Review the diff: only those packages move (plus what they require), and `pyproject.toml` is unchanged
   - `uv lock --check` passes. Only those five `version` lines change; the rest of the diff is their new wheel entries
-- [ ] 4.3 Commit and open a PR into `dev` (ask first). It names #83, #89, #90, #92 and #93 as superseded, and recommends a bounded run of the script to the next operator
+- [x] 4.3 Commit and open a PR into `dev` (ask first). It names #83, #89, #90, #92 and #93 as superseded, and recommends a bounded run of the script to the next operator
+  - #101, rebased onto bc89270. CI has nothing to run for `tools/` (only `Detect changes` and CodeQL, both green)
 - [ ] 4.4 After the merge, close the five superseded PRs with a comment naming the PR (ask first)
 
 ## 5. Remaining alerts
