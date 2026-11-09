@@ -249,7 +249,7 @@ def test_get_tile(tmp_path):
     tile = asyncio.run(get_tile(str(path), inside.z, inside.x, inside.y))
 
     assert tile.size == (256, 256) and tile.mode == "RGBA"
-    assert set(tile.getdata()) == {(255, 0, 0, 255)}  # loss is red, opaque
+    assert set(tile.get_flattened_data()) == {(255, 0, 0, 255)}  # loss is red, opaque
     outside = mercantile.tile(10, 10, 18)
     empty = asyncio.run(get_tile(str(path), outside.z, outside.x, outside.y))
     assert empty == create_empty_tile()

@@ -1,24 +1,27 @@
 ## Superficie de las fincas
 
-La superficie de cada finca es la que ves en hectáreas en las tablas y el reporte. Con ella se miden los traslapes, y decide si una finca se puede analizar por deforestación. El porcentaje de deforestación en sí no divide por esta superficie: compara dos superficies medidas sobre la capa de mapa (ver [Cálculo de la deforestación](#deforestation)).
+:::summary
+- La superficie de un polígono se **calcula** a partir de sus coordenadas, sobre la forma real de la Tierra.
+- Un punto usa la **superficie declarada**.
+- Es la superficie en hectáreas de las tablas y del reporte, y con ella se miden los traslapes.
+:::
 
-### Polígonos
+### ¿Cómo se calcula la superficie de un polígono?
 
-Monbo **calcula** la superficie de cada polígono a partir de sus coordenadas. La superficie declarada en la plantilla no se usa para los polígonos.
+A partir de sus coordenadas, no de la superficie declarada. Se mide sobre el **elipsoide terrestre** (WGS84, el modelo de la Tierra del GPS), sin pasar por un mapa plano, que deformaría las superficies según la zona. El cálculo suma, por cada lado del borde, la superficie entre ese lado y el ecuador: la misma idea que la fórmula de Gauss (ver [Cálculo de la deforestación](#deforestation)), sobre la Tierra curva.
 
-- La superficie se mide sobre el **elipsoide terrestre** (WGS84, el modelo de la Tierra que usa el GPS), sin pasar por una proyección de mapa. Un mapa plano deforma las superficies según la zona, mientras que el elipsoide da la superficie real del terreno en cualquier lugar, incluso en una finca que cruza la línea del ecuador.
-- Se **restan los huecos**. Una finca de 10 ha con una laguna de 1 ha en su interior mide 9 ha.
-- Se **suman las partes**. Una finca con dos partes separadas, de 9 ha y 5 ha, mide 14 ha.
-- El orden en que se escribieron los puntos (en el sentido del reloj o al revés) no cambia el resultado.
+Se **restan los huecos** y se **suman las partes**: una finca de 10 ha con una laguna de 1 ha mide 9 ha.
 
-Un polígono inválido (ver [Validación de polígonos](#validation)) no tiene una superficie bien definida. Por eso no recibe un porcentaje de deforestación.
+### ¿Y la superficie de un punto?
 
-### Puntos
+Usa la **superficie declarada** (ver [Carga de las fincas](#upload)). Para traslapes y deforestación se trata como un **círculo** con esa superficie: un punto de 1 ha recibe un radio de unos 56 m.
 
-Una finca cargada como punto no tiene borde, así que Monbo usa la **superficie declarada** en la plantilla, en hectáreas. Si la plantilla no la indica, se asume **1 ha**.
-
-Para buscar traslapes y medir la deforestación, el punto se trata como un **círculo** centrado en esa ubicación, cuyo radio sale de esa superficie. Por ejemplo, un punto de 1 ha recibe un radio de unos 56 m.
-
-La superficie del círculo es una **aproximación** de la declarada. El círculo se dibuja en grados de latitud y longitud, y un grado de longitud cubre menos terreno mientras más lejos se está del ecuador. Por eso el círculo queda más angosto de este a oeste y cubre algo menos de terreno que el declarado: cerca de 2% menos a 10° de latitud, y cerca de 16% menos a 33°. Las tablas y el reporte siguen mostrando la superficie declarada.
+:::details[Más detalle: polígonos inválidos, el círculo de un punto y el porcentaje de deforestación]
+- Un polígono inválido (ver [Validación de polígonos](#validation)) no tiene superficie, así que no recibe un porcentaje de deforestación.
+- Las tablas y el reporte muestran la superficie declarada del punto, no la del círculo.
+- El orden en que se escribieron los puntos del borde (en el sentido del reloj o al revés) no cambia el resultado.
+- El círculo de un punto es una **aproximación** de la superficie declarada. Se dibuja en grados de latitud y longitud, y un grado de longitud cubre menos terreno mientras más lejos se está del ecuador. Por eso el círculo queda más angosto de este a oeste y cubre algo menos de terreno que el declarado: 1,5% menos a 10° de latitud y 13% menos a 30°.
+- El porcentaje de deforestación no divide por esta superficie. Compara dos superficies medidas sobre la propia capa de mapa (ver [Cálculo de la deforestación](#deforestation)). Esta superficie solo decide si la finca se puede analizar.
+:::
 
 [Detalle técnico del cálculo de superficie (en inglés)](https://github.com/undp/monbo/blob/dev/docs/polygon_area_calculation.md)

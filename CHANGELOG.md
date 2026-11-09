@@ -22,6 +22,7 @@
 
 ### Changed
 
+- The documentation page is shorter and adds a first section, "Farm upload" (`/documentation#upload`): the four ways to upload farms and when to use each, the accepted formats and geometries, and where a point farm's area comes from. Each section starts with an "In short" box and keeps worked computations and edge cases in collapsible "More detail" blocks. The deforestation section explains that both areas of the percentage are measured with Gauss's area formula (the shoelace formula), with diagrams and the 300 m² piece of its example worked out. The area section says that the hectares are measured on the ellipsoid, not with that formula. The web adds `remark-directive` for the summary and details blocks
 - The frontend's API types are generated from the API's OpenAPI instead of written by hand. The API commits its contract as `apps/api/openapi.json` (admin routes included), the frontend generates `src/api/schema.d.ts` from it with `openapi-typescript`, and `pnpm contracts` regenerates both; CI fails when either is stale. The contract now matches the responses: the ingestion job routes declare their models, a farm's `polygon` and the polygon validation's inconsistencies are unions discriminated by `type` (including the `empty_polygon` kind the frontend didn't know), and fields every response includes are required. The JSON the API returns doesn't change
 - The overlap and deforestation thresholds are configured only on the API (`OVERLAP_THRESHOLD_PERCENTAGE`, new `DEFORESTATION_THRESHOLD_PERCENTAGE`) and published at the new `GET /config`; the frontend loads them at startup instead of reading its own `NEXT_PUBLIC_OVERLAP_THRESHOLD_PERCENTAGE` / `NEXT_PUBLIC_DEFORESTATION_THRESHOLD_PERCENTAGE`, which are removed
 - In Azure, the API reads its layers from an Azure Files share mounted at `/mnt/maps`, in its own resource group with a delete lock, share soft delete and daily backups. `azure/deploy.sh storage` creates it, and the API app is rendered by `azure/render_api_app.py` instead of `azure/monbo-api-app.yml`
@@ -81,6 +82,9 @@
 - Update vulnerable transitive dependencies (`brace-expansion`, `tmp`, `yaml`, `@babel/runtime`, `mdast-util-to-hast`, `source-map-js`, `@humanfs/node`), and override `uuid` (under `exceljs`) and `shell-quote` (under the root's `concurrently`), whose parents pin vulnerable versions
 - Stop logging the Google Maps API key and request signature: the satellite image's debug line logged the full request URL, and an HTTP error from Google logged its message, which contains that URL. Both now log only the request's parameters or the status code
 - Turn on secret scanning with push protection and CodeQL code scanning for the repository (`docs/branch_protection.md`)
+- Update Next.js to 16.4.5, fixing two unauthenticated remote code execution advisories and a Server Actions denial of service, and `undici` (under `jsdom`, tests only) to 8.12.4
+- Update the API's Pillow to 13.0.0, fixing its image decoder advisories (the API's rendered images are unchanged), and `certifi`, `dnspython` and `black` to their patched versions. The previous `certifi` trusted emSign root certificates whose intermediate keys were compromised
+- Update the vulnerable transitive dependencies of the GFW/TMF update script (`pillow`, `certifi`, `pyasn1`, `tornado`, `msgpack`)
 
 ### Other
 

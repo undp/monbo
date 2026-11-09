@@ -1,55 +1,83 @@
 ## Cálculo de la deforestación
 
-Para cada finca y cada capa de mapa elegida, Monbo calcula **qué porcentaje de la superficie de la finca está sobre zonas donde se perdió bosque**.
+:::summary
+- Para cada finca y capa de mapa, Monbo calcula **qué porcentaje de la finca está sobre zonas con pérdida de bosque**.
+- Un píxel que la finca cubre solo en parte cuenta solo por esa parte.
+- Una finca **sobre {{deforestationThreshold}}** se muestra con deforestación en esa capa.
+:::
 
-### Las capas de mapas
+### ¿Qué es una capa de mapa?
 
-Una capa de mapa divide el territorio en una cuadrícula de **píxeles**: cuadrados de 30 × 30 m en la mayoría de las capas (10 × 10 m en algunas, como las de Costa Rica). La capa marca cada píxel donde se perdió bosque entre su año base y su año de comparación. La fuente, la resolución y las fechas de cada capa están en **Detalles de mapas**, en el módulo de análisis de deforestación.
+Una cuadrícula de **píxeles** de 30 × 30 m (10 × 10 m en algunas capas) que marca dónde se perdió bosque entre dos años. Sus fuentes y fechas están en **Detalles de mapas**.
 
-### El porcentaje
+### ¿Cómo se calcula el porcentaje?
 
 ```
 deforestación = superficie de la finca sobre píxeles con pérdida / superficie de la finca
 ```
 
-Cada píxel con pérdida **cuenta solo por la parte que queda dentro de la finca**. Si el borde de la finca cubre un tercio de un píxel con pérdida, ese píxel suma un tercio de su superficie, no el píxel entero. Así, el porcentaje nunca supera 100%, y un píxel que la finca apenas roza en su borde no la hace aparecer como deforestada.
+Cada píxel con pérdida **cuenta solo por la parte que queda dentro de la finca**. Así, un píxel que la finca apenas roza no la hace aparecer como deforestada.
 
-Las dos superficies se miden sobre la propia capa, en sus coordenadas, no con la superficie en hectáreas que muestran las tablas. Al tamaño de una finca, la proporción entre ellas es la misma que sobre el terreno.
+Por ejemplo, una finca de 1 ha (10.000 m²) sobre píxeles de 30 m (900 m²) cubre entera 2 píxeles con pérdida, y su borde deja dentro 300 m² de un tercero:
 
-Si la finca tiene huecos, la pérdida dentro de un hueco no cuenta. Si tiene varias partes, se suma la pérdida de todas y se divide por su superficie total (ver [Superficie de las fincas](#area)). Cada finca recibe un solo porcentaje por capa.
-
-### Un ejemplo
-
-Una finca de 1 ha (10.000 m²), sobre una capa de píxeles de 30 m (900 m² cada uno):
-
-- cubre por completo 2 píxeles con pérdida: 2 × 900 = 1.800 m²;
-- su borde cruza un tercer píxel con pérdida y deja dentro de la finca 300 m² de él.
+![Un píxel con pérdida de 900 m² cortado por el borde de la finca: dentro de la finca quedan 300 m²](/images/documentation/loss_pixel_partial.svg)
 
 ```
-deforestación = (1.800 + 300) / 10.000 = 21%
+deforestación = (2 × 900 + 300) / 10.000 = 21%
 ```
 
-### El umbral
+Sobre {{deforestationThreshold}}, la finca se muestra con deforestación en esa capa; con {{deforestationThreshold}} o menos, como **libre de deforestación**.
 
-Una finca cuyo porcentaje es **mayor que {{deforestationThreshold}}** se muestra con deforestación en esa capa. Si su porcentaje es igual o menor, se muestra como **libre de deforestación**. Este umbral lo define cada instalación de Monbo.
+### ¿Cómo se mide cada superficie?
 
-### Fincas sin resultado
+Cada trozo de píxel dentro de la finca, y la finca misma, es un polígono definido por sus esquinas. Su superficie se calcula con la **fórmula del área de Gauss** (o del cordón de zapato):
 
-Una finca aparece **sin resultado (N/D)** en una capa, en lugar de 0%, cuando no se puede medir:
+```
+A = ½ · | Σ (xᵢ · yᵢ₊₁ − xᵢ₊₁ · yᵢ) |
+```
+
+Se recorren las esquinas en orden. Cada lado forma un triángulo con el origen (0, 0), que suma si el lado avanza en un sentido y resta si vuelve en el otro. Lo que queda fuera del polígono se suma y se resta, así que se anula: solo queda la superficie de adentro. Por eso sirve para cualquier forma, como el trozo irregular de un píxel cortado.
+
+![El trozo de 300 m² dividido en los triángulos que forman sus lados con el origen: 75 m² y 225 m²](/images/documentation/gauss_area_formula.svg)
+
+### ¿Por qué aparece N/D?
+
+Una finca queda **sin resultado (N/D)**, en lugar de 0%, cuando no se puede medir:
 
 - su polígono es inválido o está vacío (ver [Validación de polígonos](#validation));
 - su superficie es 0;
 - está completamente fuera de la zona que cubre la capa;
 - la capa no se pudo leer en ese momento.
 
-Una finca sin resultado no afecta los resultados de las demás.
+En el mapa del análisis aparece, por ahora, en la pestaña **Libre Def.** con N/D. No es un resultado libre de deforestación: no se pudo medir.
 
-En el mapa del análisis, por ahora, una finca sin resultado aparece en la pestaña **Libre Def.**, con N/D en lugar de un porcentaje. No se pudo medir: no es un resultado libre de deforestación.
+:::details[Más detalle: la fórmula de Gauss paso a paso]
+El trozo de 300 m² del ejemplo tiene sus esquinas en (0, 0), (30, 0), (30, 5) y (0, 15), en metros. Cada lado aporta un término:
 
-### El límite del método
+```
+lado                xᵢ · yᵢ₊₁ − xᵢ₊₁ · yᵢ
+(0, 0)  → (30, 0)    0 · 0  − 30 · 0  =   0
+(30, 0) → (30, 5)   30 · 5  − 30 · 0  = 150
+(30, 5) → (0, 15)   30 · 15 −  0 · 5  = 450
+(0, 15) → (0, 0)     0 · 0  −  0 · 15 =   0
+                                 suma = 600
 
-La precisión llega hasta el píxel. Cuando una capa marca un píxel con pérdida, todo el píxel se considera bosque perdido. El cálculo reparte cada píxel exactamente entre la finca y su entorno, pero no puede saber en qué parte del píxel ocurrió la pérdida. Esa precisión depende de la resolución de cada capa, no del cálculo.
+A = ½ · 600 = 300 m²
+```
 
-Cada capa usa además su propia definición de bosque y sus propias fechas. Por eso, una misma finca puede tener porcentajes distintos en capas distintas.
+Los dos lados que pasan por el origen no forman triángulo y suman 0. Los otros dos dan los triángulos del dibujo: ½ · 150 = 75 m² y ½ · 450 = 225 m². La superficie de la finca se calcula igual, un contorno cerrado a la vez: la fórmula da la superficie del borde exterior de cada parte y la de cada hueco, los huecos se restan de su parte y las partes se suman. Una finca de 10 ha con un hueco de 1 ha mide 9 ha.
+:::
+
+:::details[Más detalle: el límite del método]
+La precisión llega hasta el píxel. Si una capa marca un píxel con pérdida, todo el píxel cuenta como bosque perdido: el cálculo reparte cada píxel exactamente entre la finca y su entorno, pero no puede saber en qué parte del píxel ocurrió la pérdida. Esa precisión depende de la resolución de cada capa, no del cálculo.
+
+Cada capa tiene además su propia definición de bosque y sus propias fechas, así que una misma finca puede tener porcentajes distintos en capas distintas.
+:::
+
+:::details[Más detalle: huecos, varias partes y coordenadas de la capa]
+- Si la finca tiene huecos, la pérdida dentro de un hueco no cuenta. Si tiene varias partes, se suma la pérdida de todas y se divide por su superficie total. Cada finca recibe un solo porcentaje por capa.
+- Una finca sin resultado no afecta los resultados de las demás.
+- Las dos superficies se miden sobre la propia capa, en sus coordenadas, no con las hectáreas de las tablas (ver [Superficie de las fincas](#area)). Algunas capas están en metros y otras en grados de latitud y longitud. En grados, un grado de longitud cubre menos terreno lejos del ecuador, pero al tamaño de una finca esa deformación afecta por igual a las dos superficies del porcentaje, así que se cancela al dividir. La proporción es la misma que sobre el terreno.
+:::
 
 [Detalle técnico del cálculo de deforestación (en inglés)](https://github.com/undp/monbo/blob/dev/docs/deforestation_calculation.md)

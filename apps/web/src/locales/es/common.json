@@ -14,8 +14,9 @@
   },
   "documentation": {
     "title": "Documentación",
-    "subtitle": "Cómo Monbo valida los polígonos, mide la superficie de las fincas y calcula la deforestación.",
-    "contents": "En esta página"
+    "subtitle": "Cómo cargar las fincas, cómo Monbo valida los polígonos, mide la superficie de las fincas y calcula la deforestación.",
+    "contents": "En esta página",
+    "summary": "En resumen"
   },
   "cancel": "Cancelar",
   "close": "Cerrar",

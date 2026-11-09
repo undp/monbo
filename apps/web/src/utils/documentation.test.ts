@@ -1,3 +1,7 @@
+import type { Root, RootContent } from "mdast";
+import remarkDirective from "remark-directive";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
@@ -8,6 +12,7 @@ import {
   sectionTitle,
 } from "./documentation";
 import { readDocumentation } from "./documentationContent";
+import { DOCUMENTATION_BLOCKS } from "./remarkDocumentationBlocks";
 
 const TEXT =
   "Overlap above {{overlapThreshold}}; deforestation above {{deforestationThreshold}}.";
@@ -81,6 +86,10 @@ describe("sectionTitle", () => {
 });
 
 describe("documentation content", () => {
+  it("has the upload, validation, area and deforestation sections, in that order", () => {
+    expect(DOCUMENTATION_SECTIONS).toEqual(["upload", "validation", "area", "deforestation"]);
+  });
+
   it("has the same sections in both languages, none empty", async () => {
     for (const locale of ["es", "en"]) {
       const content = await readDocumentation(locale);
@@ -110,5 +119,68 @@ describe("documentation content", () => {
 
     expect(findPlaceholders(es.validation)).toContain("overlapThreshold");
     expect(findPlaceholders(es.deforestation)).toContain("deforestationThreshold");
+  });
+});
+
+type ContainerDirective = Extract<RootContent, { type: "containerDirective" }>;
+
+/** Every container directive of a Markdown text, nested ones included. */
+const containerDirectives = (markdown: string) => {
+  const found: ContainerDirective[] = [];
+  const visit = (node: Root | RootContent) => {
+    if (node.type === "containerDirective") found.push(node);
+    if ("children" in node) node.children.forEach(visit);
+  };
+  const tree = unified().use(remarkParse).use(remarkDirective).parse(markdown);
+  visit(tree);
+  return { tree, found };
+};
+
+const label = (directive: ContainerDirective) => {
+  const [first] = directive.children;
+  return first?.type === "paragraph" && first.data?.directiveLabel
+    ? first.children.map((child) => ("value" in child ? child.value : "")).join("")
+    : "";
+};
+
+describe("documentation blocks", () => {
+  it("uses only the summary and details blocks", async () => {
+    for (const locale of ["es", "en"]) {
+      const content = await readDocumentation(locale);
+      for (const section of DOCUMENTATION_SECTIONS) {
+        for (const directive of containerDirectives(content[section]).found) {
+          expect(DOCUMENTATION_BLOCKS, `${locale}/${section}`).toContain(directive.name);
+        }
+      }
+    }
+  });
+
+  it("starts each section with one summary, right below its heading", async () => {
+    for (const locale of ["es", "en"]) {
+      const content = await readDocumentation(locale);
+      for (const section of DOCUMENTATION_SECTIONS) {
+        const { tree, found } = containerDirectives(content[section]);
+        const [heading, summary] = tree.children;
+        expect(heading.type === "heading" && heading.depth, `${locale}/${section}`).toBe(2);
+        expect(summary.type === "containerDirective" && summary.name).toBe("summary");
+        expect(found.filter(({ name }) => name === "summary")).toHaveLength(1);
+      }
+    }
+  });
+
+  it("has the same labelled details blocks in both languages", async () => {
+    const es = await readDocumentation("es");
+    const en = await readDocumentation("en");
+
+    for (const section of DOCUMENTATION_SECTIONS) {
+      const details = (markdown: string) =>
+        containerDirectives(markdown).found.filter(({ name }) => name === "details");
+      const esDetails = details(es[section]);
+      const enDetails = details(en[section]);
+      expect(enDetails.length, section).toBe(esDetails.length);
+      for (const directive of [...esDetails, ...enDetails]) {
+        expect(label(directive).trim(), section).not.toBe("");
+      }
+    }
   });
 });
