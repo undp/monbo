@@ -65,7 +65,7 @@ lado                xᵢ · yᵢ₊₁ − xᵢ₊₁ · yᵢ
 A = ½ · 600 = 300 m²
 ```
 
-Los dos lados que pasan por el origen no forman triángulo y suman 0. Los otros dos dan los triángulos del dibujo: ½ · 150 = 75 m² y ½ · 450 = 225 m². La superficie de la finca se calcula igual, con todas sus esquinas.
+Los dos lados que pasan por el origen no forman triángulo y suman 0. Los otros dos dan los triángulos del dibujo: ½ · 150 = 75 m² y ½ · 450 = 225 m². La superficie de la finca se calcula igual, un contorno cerrado a la vez: la fórmula da la superficie del borde exterior de cada parte y la de cada hueco, los huecos se restan de su parte y las partes se suman. Una finca de 10 ha con un hueco de 1 ha mide 9 ha.
 :::
 
 :::details[Más detalle: el límite del método]

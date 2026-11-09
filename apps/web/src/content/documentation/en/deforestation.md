@@ -65,7 +65,7 @@ edge                xᵢ · yᵢ₊₁ − xᵢ₊₁ · yᵢ
 A = ½ · 600 = 300 m²
 ```
 
-The two edges through the origin form no triangle and add 0. The other two give the triangles in the drawing: ½ · 150 = 75 m² and ½ · 450 = 225 m². The farm's area is calculated the same way, with all its corners.
+The two edges through the origin form no triangle and add 0. The other two give the triangles in the drawing: ½ · 150 = 75 m² and ½ · 450 = 225 m². The farm's area is calculated the same way, one closed outline at a time: the formula gives the area of each part's outer boundary and of each hole, the holes are subtracted from their part and the parts are added up. A 10 ha farm with a 1 ha hole measures 9 ha.
 :::
 
 :::details[More detail: the limit of the method]
