@@ -14,8 +14,9 @@
   },
   "documentation": {
     "title": "Documentation",
-    "subtitle": "How Monbo validates polygons, measures farm areas and calculates deforestation.",
-    "contents": "On this page"
+    "subtitle": "How to upload farms, and how Monbo validates polygons, measures farm areas and calculates deforestation.",
+    "contents": "On this page",
+    "summary": "In short"
   },
   "cancel": "Cancel",
   "close": "Close",
@@ -82,5 +83,152 @@
     "loading": "Loading the settings…",
     "error": "The settings couldn't be loaded from the server. Check your connection and try again.",
     "retry": "Retry"
+  },
+  "geoFile": {
+    "featureLabel": "feature {{position}}",
+    "featureLabelWithId": "feature {{position}} (ID {{id}})",
+    "mandatoryAttributeMissing": "Missing mandatory data ({{attribute}}) in {{feature}}",
+    "issues": {
+      "unsupported_format": "Unsupported file type ({{extension}}). Upload the Excel template, a GeoJSON, KML, KMZ or a zipped Shapefile",
+      "empty_file": "The file is empty",
+      "file_too_large": "The file is larger than {{maxMb}} MB",
+      "archive_too_large": "The compressed file takes more than {{maxMb}} MB once uncompressed",
+      "no_shapefile": "The .zip has no Shapefile (.shp)",
+      "missing_prj": "The Shapefile {{layer}} is missing its .prj file, which gives its coordinate system. Include it in the .zip",
+      "unreadable_file": "The file could not be read. Check that it is a valid GeoJSON, KML, KMZ or Shapefile",
+      "no_features": "The file has no features",
+      "empty_geometry": "There is no geometry in {{feature}}",
+      "unsupported_geometry": "There is a {{geometryType}} in {{feature}}: a farm must be a polygon or a point"
+    },
+    "help": {
+      "title": "Accepted attribute names",
+      "intro": "Each feature in the file is a farm: its geometry (polygon or point) comes from the file and its data from these attributes, in upper or lower case. If your file doesn't carry the data, attach the production Excel to it and they are joined by ID.",
+      "field": "Data",
+      "geoFile": "GeoJSON / KML / KMZ",
+      "shapefile": "Shapefile (.zip)",
+      "mandatory": "* Mandatory",
+      "notes": "The Excel template's headers and the EUDR names (ProducerName, Area) are accepted too, so a GeoJSON downloaded from Monbo can be uploaded again as it is. In KML/KMZ, without an id the placemark's name is used. The Shapefile goes in a .zip with its .prj and can carry polygons and points as two Shapefiles.",
+      "fields": {
+        "id": "Farm ID",
+        "producerName": "Producer name",
+        "productionDate": "Production date",
+        "productionQuantity": "Production quantity",
+        "productionQuantityUnit": "Production measurement unit",
+        "cropType": "Crop type",
+        "area": "Area in hectares (points)",
+        "region": "Region",
+        "association": "Cooperative",
+        "country": "Country (ISO code; must be the selected country)"
+      }
+    }
+  },
+  "geoFileJoinErrors": {
+    "featureWithoutId": "There is no ID in {{feature}}",
+    "duplicateGeoId": "The ID {{id}} appears more than once in the geo file",
+    "duplicateExcelId": "The ID {{id}} appears more than once in the Excel (rows {{rows}})",
+    "rowWithoutFeature": "Row {{row}} of the Excel (ID {{id}}) has no geometry in the geo file",
+    "featureWithoutRow": "There is no row in the Excel for {{feature}}"
+  },
+  "farmsUpload": {
+    "intro": "You can use any of these options, whichever fits your data best. You can combine them: all the farms add up in the list below.",
+    "dropzoneActive": "Drop the files here",
+    "dropzoneButton": "Click to upload",
+    "dropzoneText": "or drag and drop your files here",
+    "addManually": "Add manually",
+    "listTitle": "Farms to upload",
+    "farmCount_one": "{{count}} farm",
+    "farmCount_other": "{{count}} farms",
+    "reading": "Reading…",
+    "errorCount_one": "{{count}} error: can't be uploaded",
+    "errorCount_other": "{{count}} errors: can't be uploaded",
+    "showErrors": "Show errors",
+    "attachExcel": "Attach production Excel",
+    "replaceExcel": "Change Excel",
+    "joinedWith": "Data from the Excel {{name}}, joined by ID",
+    "removeExcel": "Remove Excel",
+    "remove": "Remove",
+    "edit": "Edit",
+    "manualFarm": "Farm added manually",
+    "manualFarmWithId": "Farm {{id}} (added manually)",
+    "excelWithoutCoordinates": "This Excel has no coordinates. If your farms are in a geo file, upload it with this Excel in “Geo file + Excel”; if not, fill in its coordinate columns.",
+    "excelWithCoordinates_one": "This Excel has coordinates in 1 row. With a geo file, each farm is placed by the file: use the “Geo file + Excel” template, which has no coordinates, or delete the Excel's. If the Excel's coordinates are the right ones, upload it alone in “Excel template”.",
+    "excelWithCoordinates_other": "This Excel has coordinates in {{count}} rows. With a geo file, each farm is placed by the file: use the “Geo file + Excel” template, which has no coordinates, or delete the Excel's. If the Excel's coordinates are the right ones, upload it alone in “Excel template”.",
+    "geoFileRequestFailed": "An error occurred while reading the geo file",
+    "duplicateIdAcrossSources": "The ID {{id}} is in more than one source ({{sources}}): remove or fix one of them.",
+    "submitCount": "{{label}} ({{count}})",
+    "cards": {
+      "excel": {
+        "title": "Excel template",
+        "when": "You have each farm's coordinates as text (WKT or GeoJSON).",
+        "steps": {
+          "1": "Download the template",
+          "2": "Fill in one row per farm, with its coordinates",
+          "3": "Upload it here"
+        },
+        "drop": "Upload your Excel",
+        "extensions": ".xlsx · .xls",
+        "wrongType": "This is for the Excel template. Geo files (GeoJSON, KML, KMZ, Shapefile) go in “Geo file with data” or in “Geo file + Excel”."
+      },
+      "geoData": {
+        "title": "Geo file with data",
+        "when": "Your farms are in a geo file (GeoJSON, KML/KMZ or Shapefile) that carries their data: producer, date, quantity, unit and crop.",
+        "steps": {
+          "1": "Check that the farms' attributes have the accepted names",
+          "2": "Upload the geo file (a Shapefile, in a .zip with its .prj)"
+        },
+        "drop": "Upload your geo file",
+        "extensions": ".geojson · .kml · .kmz · .zip",
+        "fieldsHelp": "Accepted names",
+        "wrongType": "This is for a geo file. The Excel template goes in “Excel template”, or in “Geo file + Excel” with its geo file."
+      },
+      "geoExcel": {
+        "title": "Geo file + Excel",
+        "when": "Your farms are in a geo file (GeoJSON, KML/KMZ or Shapefile), for example from Google Earth, and their data in an Excel. They are joined by each farm's ID.",
+        "steps": {
+          "1": "Give each farm in the geo file its ID (in Google Earth, as its name)",
+          "2": "Fill in this option's template with the same IDs",
+          "3": "Upload the geo file and the Excel"
+        },
+        "geoDrop": "Geo file",
+        "geoExtensions": ".geojson · .kml · .kmz · .zip",
+        "excelDrop": "Production Excel",
+        "excelExtensions": ".xlsx · .xls",
+        "waitingExcel": "The production Excel is missing to add the farms to the list",
+        "waitingGeo": "The geo file is missing to add the farms to the list",
+        "wrongGeoType": "This is for the geo file (GeoJSON, KML, KMZ or Shapefile). The production Excel goes next to it.",
+        "wrongExcelType": "This is for the production Excel. The geo file goes next to it."
+      },
+      "manual": {
+        "title": "Draw on the map",
+        "when": "Your farms aren't in a file, or there are only a few.",
+        "steps": {
+          "1": "Find the farm on the map",
+          "2": "Draw its boundary or place a point",
+          "3": "Fill in its data"
+        }
+      },
+      "template": "Template",
+      "example": "Example",
+      "exampleGeojson": "GeoJSON example",
+      "exampleShapefile": "Shapefile example",
+      "exampleKml": "KML example",
+      "exampleExcel": "Excel example"
+    },
+    "problems": {
+      "missingData_one": "Data is missing in 1 feature ({{fields}}). Attach the production Excel with its ID, or add those attributes to the file.",
+      "missingData_other": "Data is missing in {{count}} features ({{fields}}). Attach the production Excel with their IDs, or add those attributes to the file.",
+      "unmatchedIds_one": "1 ID doesn't match between the polygons and the Excel: each polygon's ID (in a KML, its name) must be its row's ID.",
+      "unmatchedIds_other": "{{count}} IDs don't match between the polygons and the Excel: each polygon's ID (in a KML, its name) must be its row's ID."
+    },
+    "summary": {
+      "polygons_one": "{{count}} polygon",
+      "polygons_other": "{{count}} polygons",
+      "points_one": "{{count}} point",
+      "points_other": "{{count}} points",
+      "and": "and",
+      "sourcesWithProblems_one": "1 source with problems",
+      "sourcesWithProblems_other": "{{count}} sources with problems"
+    },
+    "empty": "No farms yet: use one of the options above."
   }
 }

@@ -149,6 +149,43 @@ ingestions at once. Don't scale the API out while the admin is enabled.
 | Someone deletes a file on the share | Restore it from a snapshot (vault "Restore"). |
 | Someone deletes the share | Undelete it within 14 days (soft delete). |
 
+## How farms come in
+
+The upload step of "Polygon validation" and "Deforestation analysis" shows one card
+per way to add farms (`FarmsUploadStep`). The cards build one list of farms, and the
+user sends it with the step's button. Templates and example files are in
+`public/files/`. `scripts/generate-upload-examples.py` makes the option 3 template
+and the examples, and the tests upload every example. The list lives in the page
+(`useUploadSources`), so it survives the loading screen. Each source yields the rows
+`/farms/parse` takes (`FarmRow`, the Excel template's keys):
+
+| Source | How its rows are made |
+|---|---|
+| **Excel template** | `loadExcelFileFarmsData`: coordinates as WKT or GeoJSON in a cell |
+| **Geo file** (GeoJSON, KML, KMZ, zipped Shapefile) | `POST /farms/import` reads it, then `geoFeaturesToFarmRows` reads each feature's attributes by fixed names (`geoAttributeMappings`: EUDR, Monbo's own GeoJSON download, short Shapefile names, the template's headers) |
+| **Geo file + Excel** | The Excel, joined to the features by ID (`joinRowsWithGeoFeatures`); an Excel with coordinates is rejected, so a farm is never placed twice; a KML placemark's name is its ID when it has none |
+| **Manual farm** | Drawn in `ManualFarmModal` on Google Maps, with our own drawing tool (Google's Drawing Library is gone), and its fields filled in. It can have holes and several parts: `utils/drawing.ts` checks every edit against the API's rules (no ring touches another, holes inside their part, parts apart or inside a hole) and orients the rings as it closes them |
+
+`utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
+together, in list order, and rejects an ID found in two sources, naming both.
+
+The user-facing explanation of the four ways, the accepted formats and geometries,
+and a point's area is the documentation page (`/documentation#upload`). Its text is
+in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the
+upload changes.
+
+`POST /farms/import` (`app/modules/farms/geo_import.py`) does the following:
+- reads the file with GDAL, without extracting a `.zip` or `.kmz` to disk;
+- reads every `.shp` in a zip and every KML layer;
+- reprojects to EPSG:4326 and drops Z. A Shapefile without `.prj` is rejected;
+- returns `{format, features}`. Each feature has its attributes and its geometry as
+  WKT (Point, Polygon with holes, or MultiPolygon).
+
+Problems come back as `snake_case` codes, which the web translates. The upload is
+limited to 20 MB, or 200 MB uncompressed. In a KML, the placemark's XML `id` (an
+exporting tool's id like `fincas.1`) is dropped, so the farm's ID is its
+ExtendedData `id` or, failing that, its name.
+
 ## A farm's geometry
 
 Nothing is stored, so a farm travels between the web and the API on every call
@@ -164,7 +201,8 @@ an `exterior` ring and its `holes`:
   doesn't overlap it).
 - **Rings are oriented by the API**: exteriors counter-clockwise, holes clockwise.
   Google Maps only draws a hole empty when it winds opposite to its exterior, so the
-  web draws the rings as they come.
+  web draws the rings as they come. The manual entry's drawing tool orients the
+  rings it draws the same way.
 - **`center`** is the farm's centroid when it lies inside the farm, and otherwise a
   point Shapely guarantees inside it (a hole over the centroid, or parts apart).
 

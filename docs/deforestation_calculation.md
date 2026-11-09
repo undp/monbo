@@ -33,6 +33,7 @@ Each loss pixel counts only by the part of it that lies inside the farm. If the 
      ```
 
    - The pieces of every loss pixel are added up. The farm's area is computed with the same formula, in the same CRS, and the sum is divided by it.
+   - The documentation page explains the formula to users, and works it out on the 300 m² piece of the example below, with corners (0, 0), (30, 0), (30, 5) and (0, 15). The farm's hectares are not computed with it (see `docs/polygon_area_calculation.md`).
 
 6. **Keep it in range.** The ratio is clamped to [0, 1], only to absorb floating-point error at the pixels' edges. A pixel can't add more than its part inside the farm, so the ratio can't exceed 1 otherwise.
 

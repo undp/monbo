@@ -636,15 +636,127 @@ export const TEMPLATE_COLUMNS = [
 
 export type TemplateColumn = (typeof TEMPLATE_COLUMNS)[number];
 
-const mandatoryHeaders: string[] = [
+export type GeoAttributeKey =
+  | "id"
+  | "producerName"
+  | "productionDate"
+  | "productionQuantity"
+  | "productionQuantityUnit"
+  | "cropType"
+  | "area"
+  | "region"
+  | "association"
+  | "country";
+
+export interface GeoAttributeNames {
+  // The names shown to users: for GeoJSON/KML/KMZ, and for Shapefiles, whose
+  // field names are at most 10 characters.
+  geoFile: string;
+  shapefile: string;
+  // Other accepted names, e.g. the EUDR GeoJSON's and Monbo's own GeoJSON export's.
+  // The template's es/en headers are accepted too.
+  aliases: string[];
+  mandatory: boolean;
+}
+
+/**
+ * The attributes a geo file's features are read from, like headerKeywordsMappings
+ * for the Excel template's columns. Names are matched ignoring case and surrounding
+ * spaces; when several are present, the first one with a value wins, in this order.
+ * A GeoJSON exported by Monbo (download.ts::getRowCommonDataAsObject) uses these
+ * names, so it can be uploaded again as is.
+ */
+export const geoAttributeMappings: Record<GeoAttributeKey, GeoAttributeNames> = {
+  id: { geoFile: "id", shapefile: "ID", aliases: [], mandatory: false },
+  producerName: {
+    geoFile: "producerName",
+    shapefile: "PRODUCTOR",
+    aliases: ["ProducerName"],
+    mandatory: true,
+  },
+  productionDate: {
+    geoFile: "productionDate",
+    shapefile: "FECHA_PROD",
+    aliases: [],
+    mandatory: true,
+  },
+  productionQuantity: {
+    geoFile: "productionQuantity",
+    shapefile: "CANTIDAD",
+    aliases: ["production"],
+    mandatory: true,
+  },
+  productionQuantityUnit: {
+    geoFile: "productionQuantityUnit",
+    shapefile: "UNIDAD",
+    aliases: [],
+    mandatory: true,
+  },
+  cropType: {
+    geoFile: "cropType",
+    shapefile: "CULTIVO",
+    aliases: [],
+    mandatory: true,
+  },
+  // Hectares. Monbo's GeoJSON export writes Area "0": that counts as missing.
+  area: {
+    geoFile: "area",
+    shapefile: "AREA_HA",
+    aliases: ["Area"],
+    mandatory: false,
+  },
+  region: { geoFile: "region", shapefile: "REGION", aliases: [], mandatory: false },
+  association: {
+    geoFile: "association",
+    shapefile: "ASOCIACION",
+    aliases: [],
+    mandatory: false,
+  },
+  // ISO 3166-1 alpha-2, as the EUDR GeoJSON's ProducerCountry. Only checked against
+  // the selected country, never used as the farm's country.
+  country: {
+    geoFile: "ProducerCountry",
+    shapefile: "PAIS",
+    aliases: [],
+    mandatory: false,
+  },
+};
+
+/** Every accepted name of a geo file attribute, lowercased, in priority order. */
+export const geoAttributeAcceptedNames = (key: GeoAttributeKey): string[] =>
+  uniq(
+    [
+      geoAttributeMappings[key].geoFile,
+      geoAttributeMappings[key].shapefile,
+      ...geoAttributeMappings[key].aliases,
+      ...headerKeywordsMappings[key],
+    ].map((name) => name.trim().toLowerCase())
+  );
+
+// The columns that place a farm. A geo file's geometry replaces them.
+export const COORDINATE_COLUMNS = [
+  "coordinatesFormat",
+  "geometryType",
+  "farmCoordinates",
+];
+
+/** Mandatory attributes of an Excel that carries the farms' coordinates. */
+export const EXCEL_MANDATORY_HEADERS: string[] = [
   "producerName",
   "productionDate",
   "productionQuantity",
   "productionQuantityUnit",
-  "coordinatesFormat",
-  "geometryType",
-  "farmCoordinates",
+  ...COORDINATE_COLUMNS,
   "cropType",
+];
+
+/** Mandatory attributes of an Excel whose farms are placed by a polygons file:
+ * the coordinates come from the file, and the ID joins each row to its polygon. */
+export const GEO_FILE_EXCEL_MANDATORY_HEADERS: string[] = [
+  "id",
+  ...EXCEL_MANDATORY_HEADERS.filter(
+    (header) => !COORDINATE_COLUMNS.includes(header)
+  ),
 ];
 
 interface ValidateDataParams {
@@ -801,6 +913,16 @@ type MappedData = Record<string, unknown> & {
 interface LoadExcelFileReturn {
   data: MappedData[];
   errorMessages: string[];
+  /** Rows with their coordinates filled in, even when the column is ignored */
+  rowsWithCoordinates: number;
+}
+
+interface LoadExcelFileOptions {
+  /** The attributes every row must have. */
+  mandatoryHeaders?: string[];
+  /** Attributes dropped from every row before validating it, e.g. the coordinate
+   * columns when a polygons file gives the geometry. */
+  ignoredColumns?: string[];
 }
 
 /**
@@ -809,9 +931,13 @@ interface LoadExcelFileReturn {
  * @param {File} file - The Excel file to process
  * @param {TFunction} t - Translation function for error messages
  * @param {string} language - Current language code for translations
+ * @param {string | null} selectedCountry - The analysis country
+ * @param {LoadExcelFileOptions} options - The mandatory attributes (the ones with
+ *   coordinates by default) and the attributes to ignore
  * @returns {Promise<LoadExcelFileReturn>} Object containing:
  *   - data: Array of processed farm records with consolidated document data
  *   - errorMessages: Array of validation error messages
+ *   - rowsWithCoordinates: How many rows have their coordinates filled in
  *
  * @remarks
  * This function:
@@ -839,7 +965,11 @@ export const loadExcelFileFarmsData = async (
   t: TFunction<"translation", undefined>,
   language: string,
   // The analysis country: every farm gets it, so a file can't list another one.
-  selectedCountry: string | null
+  selectedCountry: string | null,
+  {
+    mandatoryHeaders = EXCEL_MANDATORY_HEADERS,
+    ignoredColumns = [],
+  }: LoadExcelFileOptions = {}
 ): Promise<LoadExcelFileReturn> => {
   const excel = await readExcel(file);
   const worksheet = getSheetDataById(excel, 0);
@@ -853,6 +983,7 @@ export const loadExcelFileFarmsData = async (
     if (internalKey) headerToKeyMap[incomingHeader] = internalKey;
   });
 
+  let rowsWithCoordinates = 0;
   // Remapping data based on header keywords
   const mappedData: MappedData[] = data.map((row) => {
     const newRow: MappedData = {
@@ -881,6 +1012,9 @@ export const loadExcelFileFarmsData = async (
     if (typeof newRow.id === "number") {
       newRow.id = newRow.id.toString();
     }
+
+    if (newRow.farmCoordinates) rowsWithCoordinates++;
+    ignoredColumns.forEach((column) => delete newRow[column]);
 
     // Convert productionDate to ISO string if it's a Date
     const dateValue = newRow.productionDate as unknown as Date; // The package returns a Date object automatically
@@ -939,6 +1073,7 @@ export const loadExcelFileFarmsData = async (
           country: selectedCountry ? name(selectedCountry) : "",
         }),
       ],
+      rowsWithCoordinates,
     };
   }
 
@@ -953,6 +1088,7 @@ export const loadExcelFileFarmsData = async (
   return {
     data: mappedData,
     errorMessages,
+    rowsWithCoordinates,
   };
 };
 
@@ -964,3 +1100,8 @@ export const loadExcelFileFarmsData = async (
 export const getUploadFileTemplatePath = (locale: string): string => {
   return `/files/m1-upload-file-template-${locale}.xlsx`;
 };
+
+/** The option 3 template: the main one without the coordinate columns, since a
+ * geo file places the farms, and with a mandatory ID that joins them. */
+export const getGeoUploadTemplatePath = (locale: string): string =>
+  `/files/m1-upload-file-template-geo-${locale}.xlsx`;

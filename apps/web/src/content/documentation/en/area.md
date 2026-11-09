@@ -1,24 +1,27 @@
 ## Farm area
 
-Each farm's area is the area in hectares you see in the tables and the report. Overlaps are measured with it, and it decides whether a farm can be analysed for deforestation. The deforestation percentage itself doesn't divide by this area: it compares two areas measured on the map layer (see [Deforestation calculation](#deforestation)).
+:::summary
+- A polygon's area is **calculated** from its coordinates, on the Earth's real shape.
+- A point uses its **declared area**.
+- It is the area in hectares shown in the tables and the report, and overlaps are measured with it.
+:::
 
-### Polygons
+### How is a polygon's area calculated?
 
-Monbo **calculates** each polygon's area from its coordinates. The area declared in the template isn't used for polygons.
+From its coordinates, not from the declared area. It is measured on the **Earth's ellipsoid** (WGS84, the GPS model of the Earth), without a flat map, which would distort areas depending on the region. The calculation adds, for each edge of the boundary, the area between that edge and the equator: the same idea as Gauss's area formula (see [Deforestation calculation](#deforestation)), on the curved Earth.
 
-- The area is measured on the **Earth's ellipsoid** (WGS84, the model of the Earth GPS uses), with no map projection. A flat map distorts areas depending on the region, while the ellipsoid gives the land's true area anywhere, even for a farm that crosses the equator.
-- **Holes are subtracted.** A 10 ha farm with a 1 ha lagoon inside it measures 9 ha.
-- **Parts are added.** A farm with two separate parts, of 9 ha and 5 ha, measures 14 ha.
-- The order in which the points were written (clockwise or counter-clockwise) doesn't change the result.
+**Holes are subtracted** and **parts are added**: a 10 ha farm with a 1 ha lagoon measures 9 ha.
 
-An invalid polygon (see [Polygon validation](#validation)) has no well-defined area. That is why it gets no deforestation percentage.
+### And a point's area?
 
-### Points
+It uses the **declared area** (see [Farm upload](#upload)). For overlaps and deforestation it is treated as a **circle** with that area: a 1 ha point gets a radius of about 56 m.
 
-A farm uploaded as a point has no boundary, so Monbo uses the **area declared** in the template, in hectares. If the template doesn't give one, **1 ha** is assumed.
-
-To look for overlaps and to measure deforestation, the point is treated as a **circle** centred on that location, whose radius comes from that area. For example, a 1 ha point gets a radius of about 56 m.
-
-The circle's area is an **approximation** of the declared one. The circle is drawn in degrees of latitude and longitude, and a degree of longitude covers less ground the farther you are from the equator. So the circle is narrower east-west and covers somewhat less land than declared: about 2% less at 10° latitude, and about 16% less at 33°. The tables and the report still show the declared area.
+:::details[More detail: invalid polygons, a point's circle and the deforestation percentage]
+- An invalid polygon (see [Polygon validation](#validation)) has no area, so it gets no deforestation percentage.
+- The tables and the report show the point's declared area, not the circle's.
+- The order in which the boundary's points were written (clockwise or counter-clockwise) doesn't change the result.
+- A point's circle is an **approximation** of the declared area. It is drawn in degrees of latitude and longitude, and a degree of longitude covers less ground the farther from the equator. So the circle is narrower from east to west and covers somewhat less ground than declared: 1.5% less at 10° of latitude and 13% less at 30°.
+- The deforestation percentage doesn't divide by this area. It compares two areas measured on the map layer itself (see [Deforestation calculation](#deforestation)). This area only decides whether the farm can be analysed.
+:::
 
 [Technical detail of the area calculation](https://github.com/undp/monbo/blob/dev/docs/polygon_area_calculation.md)

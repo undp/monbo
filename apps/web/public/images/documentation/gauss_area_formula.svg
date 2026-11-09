@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 70 400 230" font-family="Roboto, Arial, sans-serif" font-size="14" fill="#3A3541">
+  <!-- The 300 m² piece of the loss pixel, 8 px per metre, the origin (0, 0) at
+       (80, 260). Each edge forms a triangle with the origin: the edges through the
+       origin give none, the other two give ½ · 150 = 75 and ½ · 450 = 225. -->
+  <rect y="70" width="400" height="230" fill="#FFFFFF"/>
+  <!-- Axes -->
+  <line x1="60" y1="260" x2="360" y2="260" stroke="#9E9E9E" stroke-width="1"/>
+  <line x1="80" y1="280" x2="80" y2="100" stroke="#9E9E9E" stroke-width="1"/>
+  <text x="366" y="264">x</text>
+  <text x="76" y="94">y</text>
+  <!-- Triangle of the edge (30, 0) → (30, 5) -->
+  <polygon points="80,260 320,260 320,220" fill="#03689E" fill-opacity="0.35" stroke="#03689E" stroke-width="1.5"/>
+  <!-- Triangle of the edge (30, 5) → (0, 15) -->
+  <polygon points="80,260 320,220 80,140" fill="#2E7D32" fill-opacity="0.3" stroke="#2E7D32" stroke-width="1.5"/>
+  <!-- The piece's outline -->
+  <polygon points="80,260 320,260 320,220 80,140" fill="none" stroke="#3A3541" stroke-width="2.5"/>
+  <g fill="#3A3541">
+    <circle cx="80" cy="260" r="4"/>
+    <circle cx="320" cy="260" r="4"/>
+    <circle cx="320" cy="220" r="4"/>
+    <circle cx="80" cy="140" r="4"/>
+  </g>
+  <text x="74" y="280" text-anchor="end">(0, 0)</text>
+  <text x="320" y="282" text-anchor="middle">(30, 0)</text>
+  <text x="330" y="216">(30, 5)</text>
+  <text x="70" y="136" text-anchor="end">(0, 15)</text>
+  <text x="262" y="250" text-anchor="middle" font-weight="bold" fill="#01466B">75 m²</text>
+  <text x="160" y="205" text-anchor="middle" font-weight="bold" fill="#1B5E20">225 m²</text>
+  <text x="230" y="110" text-anchor="middle" font-size="16">75 + 225 = 300 m²</text>
+</svg>

@@ -37,19 +37,9 @@
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
     "title": "Carga de polígonos o puntos",
-    "templateStep": {
-      "stepTitle": "Paso 1: Descarga la plantilla",
-      "title": "Plantilla para cargar los polígonos y/o puntos",
-      "description": "Completa la tabla con toda la información correspondiente a un polígono o punto para realizar la validación de polígonos. Las columnas marcadas con asterisco son requeridas para efectuar la validación.",
-      "buttonText": "Descargar"
-    },
     "uploadStep": {
-      "stepTitle": "Paso 2: Carga la plantilla",
-      "inactiveDragzoneCallToAction": "Sube tu archivo",
-      "activeDragzoneCallToAction": "Suelta el archivo aquí",
-      "dragzoneButtonText": "Click para cargar",
-      "dragzoneText": "o arrastra y suelta tu archivo aquí",
-      "allowedExtensions": ".xlsx o .xls"
+      "stepTitle": "Agrega tus fincas",
+      "submit": "Validar polígonos"
     }
   },
   "overlapModal": {
