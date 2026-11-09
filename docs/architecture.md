@@ -169,6 +169,11 @@ and the examples, and the tests upload every example. The list lives in the page
 `utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
 together, in list order, and rejects an ID found in two sources, naming both.
 
+The user-facing explanation of the four ways, the accepted formats and geometries,
+and a point's area is the documentation page (`/documentation#upload`). Its text is
+in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the
+upload changes.
+
 `POST /farms/import` (`app/modules/farms/geo_import.py`) does the following:
 - reads the file with GDAL, without extracting a `.zip` or `.kmz` to disk;
 - reads every `.shp` in a zip and every KML layer;
