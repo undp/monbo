@@ -13,10 +13,5 @@
   },
   "devDependencies": {
     "concurrently": "10.0.6"
-  },
-  "pnpm": {
-    "overrides": {
-      "concurrently>shell-quote": "^1.11.0"
-    }
   }
 }
