@@ -52,7 +52,9 @@ variable "state_resource_group_name" {
   default = "monbo-tfstate"
 }
 
+# No default: each environment names its own state account in envs/<env>.tfvars (the
+# same as in envs/<env>.backend.hcl), so a new one can't point at another's state.
 variable "state_storage_account_name" {
-  type    = string
-  default = "monbotfstate"
+  description = "The Terraform state account of this environment (infra/bootstrap.sh)."
+  type        = string
 }

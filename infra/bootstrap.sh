@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 #
-# Create the storage account that holds the Terraform state. Once per subscription,
-# before the first `terraform init` of any environment.
+# Create the storage account that holds an environment's Terraform state. Once per
+# state account, before the first `terraform init` of the environments that use it.
 #
 # Usage:
 #   ARM_SUBSCRIPTION_ID=<id> ./infra/bootstrap.sh [state-account-name] [location]
+#   ARM_SUBSCRIPTION_ID=<dev id>  ./infra/bootstrap.sh                    # dev: monbotfstate
+#   ARM_SUBSCRIPTION_ID=<prod id> ./infra/bootstrap.sh monboprodtfstate   # prod
 #
 # The subscription comes from ARM_SUBSCRIPTION_ID, like everywhere else (it is kept out
-# of the repository). The account name defaults to monbotfstate.
+# of the repository). The account name defaults to monbotfstate (dev's); each
+# environment names its own in envs/<env>.backend.hcl and envs/<env>.tfvars.
 #
 # The account has shared-key access disabled: Terraform reads and writes the state
 # with the operator's Entra identity (backends use `use_azuread_auth`), so no account
@@ -73,8 +76,6 @@ az storage container show --account-name "$ACCOUNT" -n "$CONTAINER" --auth-mode 
 ok "Container: $CONTAINER"
 
 log "Done"
-if [ "$ACCOUNT" != monbotfstate ] || [ "$RESOURCE_GROUP" != monbo-tfstate ]; then
-  echo "  You used a non-default name: update infra/terraform/{platform,apps}/envs/*.backend.hcl"
-  echo "  (resource_group_name = \"$RESOURCE_GROUP\", storage_account_name = \"$ACCOUNT\") and"
-  echo "  state_storage_account_name in infra/terraform/apps/envs/*.tfvars."
-fi
+echo "  The environment that uses it must name it in infra/terraform/{platform,apps}/envs/<env>.backend.hcl"
+echo "  (resource_group_name = \"$RESOURCE_GROUP\", storage_account_name = \"$ACCOUNT\") and"
+echo "  state_storage_account_name in infra/terraform/{platform,apps}/envs/<env>.tfvars."

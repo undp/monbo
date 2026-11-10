@@ -3,3 +3,6 @@
 env      = "dev"
 location = "eastus2"
 # unique_suffix = ""  # only if monbodevdata / monbodevacr are ever taken
+
+# Where this environment's Terraform state lives (as in envs/dev.backend.hcl).
+state_storage_account_name = "monbotfstate"

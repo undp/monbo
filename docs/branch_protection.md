@@ -169,9 +169,10 @@ the fix is already paid for: `@fontsource/roboto` is a declared dependency that
 nothing imports — a self-hosted copy of the same font sitting unused. Prefer fixing
 that over leaving an admin bypass open.
 
-**Deploys aren't checks.** The `Deploy` workflow runs after a merge into `dev`, never
-on pull requests, so it can't block a merge; a failed deploy rolls back and shows up
-as a failed run on `dev` ([suggested_deployment.md](suggested_deployment.md#continuous-deployment)).
+**Deploys aren't checks.** The `Deploy` workflow runs after a merge into `dev` (deploys
+`dev`) or `main` (deploys `prod`, once `DEPLOY_PROD` is on), never on pull requests, so
+it can't block a merge; a failed deploy rolls back and shows up as a failed run on the
+branch ([suggested_deployment.md](suggested_deployment.md#continuous-deployment)).
 
 ### Draft pull requests don't run CI
 
@@ -203,6 +204,10 @@ describe the latest commit.
 
 Because both branches block direct pushes, every one of these steps is a pull
 request with green checks, including the `main` → `dev` back-merge.
+
+Merging a release or a hotfix into `main` deploys `prod`, once it is set up and the
+repository variable `DEPLOY_PROD` is `true`; the back-merge into `dev` deploys `dev`
+([suggested_deployment.md](suggested_deployment.md#production)).
 
 ## How to apply it
 

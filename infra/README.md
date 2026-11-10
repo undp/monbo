@@ -11,12 +11,13 @@ and what each resource does at runtime is in
 
 There are three parts, each with a different lifecycle:
 
-1. **A place for Terraform's state**, created once per subscription by
-   `bootstrap.sh`.
+1. **A place for Terraform's state**, one storage account per environment
+   (`monbotfstate` for `dev`, `monboprodtfstate` for `prod`, each in its environment's
+   subscription), created once by `bootstrap.sh`.
 2. **Two Terraform stacks per environment**:
    - `platform`: what must last (the layers, their backups, the registry, the logs);
    - `apps`: what can be thrown away and rebuilt (the Container Apps). A rebuild
-     needs a manual `infra/deploy.sh dev`: CI cannot recreate the `AcrPull` role
+     needs a manual `infra/deploy.sh <env>`: CI cannot recreate the `AcrPull` role
      assignment for the new pull identity.
 3. **Scripts that use them**:
    - `deploy.sh` deploys;
@@ -24,19 +25,21 @@ There are three parts, each with a different lifecycle:
 
 ```
 infra/
-├── bootstrap.sh                 ① once per subscription: where the state lives
+├── bootstrap.sh                 ① once per environment: where its state lives
 ├── deploy.sh                    ④ deploy: build → apply apps → verify
 ├── lib.sh                          helpers shared by deploy.sh and layers-ops.sh
 ├── envs/
-│   └── dev.secrets.env.example     secrets template (the real dev.secrets.env is git-ignored)
+│   ├── dev.secrets.env.example     secrets template (the real dev.secrets.env is git-ignored)
+│   └── prod.secrets.env.example    the same for prod
 └── terraform/
     ├── platform/                ② long-lived: data, registry, logs
     │   ├── versions.tf             Terraform/azurerm versions, "the state is in Azure"
     │   ├── variables.tf            what can be configured (env, location, suffix…)
     │   ├── main.tf                 the resources
     │   ├── outputs.tf              what it publishes for the others (names, ids)
-    │   ├── envs/dev.tfvars         dev's values (env = "dev", region)
+    │   ├── envs/dev.tfvars         dev's values (env = "dev", region, state account)
     │   ├── envs/dev.backend.hcl    where dev's state is stored
+    │   ├── envs/prod.*             the same for prod
     │   ├── tests/platform.tftest.hcl   tests without Azure (mocked provider)
     │   └── .terraform.lock.hcl     exact provider version and hashes
     └── apps/                    ③ recreated on every deploy
@@ -47,7 +50,7 @@ infra/
         ├── api.tf                  the API Container App
         ├── web.tf                  the frontend Container App
         ├── outputs.tf              API and web URLs
-        ├── envs/dev.tfvars, envs/dev.backend.hcl
+        ├── envs/dev.*, envs/prod.*
         ├── tests/apps.tftest.hcl
         └── .terraform.lock.hcl
 
@@ -84,6 +87,9 @@ storage account that `bootstrap.sh` creates. That account accepts only Entra ID
 access, with shared keys disabled, and keeps earlier versions of every state.
 
 ## How the pieces interact
+
+The diagram shows `dev`; `prod` is the same with `prod` in every name and its own
+state account, `monboprodtfstate`.
 
 ```
             ┌──────────────── Azure: monbo-tfstate / monbotfstate ────────────────┐
@@ -126,11 +132,13 @@ access, with shared keys disabled, and keeps earlier versions of every state.
 
 ```
 Once:    ARM_SUBSCRIPTION_ID=… infra/bootstrap.sh                → creates monbotfstate
+                                                                   (prod: … bootstrap.sh monboprodtfstate)
 Once:    terraform apply in platform (with envs/dev.tfvars)       → empty share, registry, logs
 Once:    tools/layers-ops/layers-ops.sh dev seed                  → uploads the Git layers to the share
                                                                    (prints 3 passkeys)
 Always:  infra/deploy.sh dev    (on every merge into dev, by .github/workflows/deploy.yml;
-                                 also by hand)
+                                 also by hand; prod: on every merge into main, once
+                                 DEPLOY_PROD is on)
            1. loads infra/envs/dev.secrets.env (subscription + TF_VAR_*)
            2. reads platform's outputs (which registry? which share?)
            3. does the share have countries.json? if not, stops
@@ -164,9 +172,11 @@ and not adopted" below.
 `deploy.sh` never applies `platform`: that plan is read by a person before it runs.
 
 **In CI** (`.github/workflows/deploy.yml`), the same script runs as the managed
-identity `monbo-<env>-deploy`, declared in `platform/deploy.tf`. GitHub's OIDC token is
-exchanged for it, so nothing secret is stored for Azure, and only jobs in the GitHub
-Environment `<env>` (restricted to the `<env>` branch) can obtain it. Terraform grants
+identity `monbo-<env>-deploy`, declared in `platform/deploy.tf`: a push to `dev` deploys
+`dev`, a push to `main` deploys `prod` (when the repository variable `DEPLOY_PROD` is
+`true`). GitHub's OIDC token is exchanged for it, so nothing secret is stored for
+Azure, and only jobs in the GitHub Environment `<env>` (restricted to its branch:
+`dev` → `dev`, `prod` → `main`) can obtain it. Terraform grants
 it Reader on the subscription, AcrPush on the registry and access to the state. An
 Owner grants the rest by hand (Contributor on the apps resource group, Key Operator on
 the layer storage); see
@@ -215,14 +225,17 @@ set `unique_suffix` in `platform/envs/<env>.tfvars`; it changes only those two n
 
 ## Adding an environment
 
-Add the files for the new environment (e.g. `prod`):
+`dev` and `prod` exist. A new environment `<env>` needs:
 
-- `envs/prod.tfvars` and `envs/prod.backend.hcl` in both stacks (state keys
-  `prod/platform.tfstate`, `prod/apps.tfstate`);
-- an `infra/envs/prod.secrets.env`.
+- `envs/<env>.tfvars` and `envs/<env>.backend.hcl` in both stacks (state keys
+  `<env>/platform.tfstate`, `<env>/apps.tfstate`), with `state_storage_account_name`
+  set in both tfvars (it has no default, so no environment points at another's state);
+- an `infra/envs/<env>.secrets.env`.
 
-Then apply `platform`, seed, and deploy, as in
+Then bootstrap its state account, apply `platform`, seed, and deploy, as in
 [suggested_deployment.md](../docs/suggested_deployment.md#creating-an-environment-from-nothing).
+`prod`'s full procedure, including what the Azure access must allow and CI, is in
+[suggested_deployment.md](../docs/suggested_deployment.md#production).
 The code doesn't change, and `dev` is unaffected: each environment has its own
 resource groups and its own state.
 

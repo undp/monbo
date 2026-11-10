@@ -184,3 +184,21 @@ run "api_owns_the_thresholds" {
     error_message = "The API must get both thresholds, which it publishes at GET /config."
   }
 }
+
+run "prod_hides_the_testing_banner" {
+  command = apply
+
+  variables {
+    env                              = "prod"
+    state_storage_account_name       = "monboprodtfstate"
+    show_testing_environment_warning = false
+  }
+
+  assert {
+    condition = contains(
+      [for e in azurerm_container_app.web.template[0].container[0].env : "${e.name}=${e.value == null ? "" : e.value}"],
+      "NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING=false",
+    )
+    error_message = "prod must hide the testing-environment banner."
+  }
+}
