@@ -34,6 +34,7 @@ Monbo is a **monorepo with two independent applications** plus an offline data s
 
 ```
 User ─▶ monbo-front (Next.js)  ──HTTP fetch──▶  monbo-api (FastAPI)  ──reads──▶  layers in MAPS_ROOT
+                                                                     ──appends─▶  usage events in USAGE_DIR
 Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin     ──writes─▶  (Git copy locally,
                                                                                  Azure Files share in Azure)
                                                        ▲
@@ -43,10 +44,10 @@ Admin ─▶ monbo-front /admin    ──HTTP fetch──▶  monbo-api /admin  
 
 Key points for building the right mental model:
 
-- **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The only server-side state is the deforestation layers, which each country's **layers admin** edits (one passkey per country; see §4.8 and `docs/maps.md`).
+- **There is no database and no user accounts.** Analyses are **stateless**: each one runs on demand and **nothing about the user's farms is persisted on the server**. The server-side state is the deforestation layers, which each country's **layers admin** edits (one passkey per country; see §4.8 and `docs/maps.md`), and the anonymous **usage events**: one JSON line per upload, validation and analysis (recorded by the API) and per report requested or downloaded (sent by the browser to the public `POST /events`), appended under `USAGE_DIR` (in Azure, `usage/` on the layers share). An event carries an anonymous per-tab session ID, the country and counts, never farm data; without `USAGE_DIR`, events only go to stdout.
 - **The "session state" lives only in the browser**, in a single React Context (`DataContext`) that wraps the whole app. Important consequence: **if the user refreshes the page, the entire flow is lost** (farms, validations, and results disappear and you are redirected home). Changing the language does keep it: the language is the root layout's `[locale]` segment, so switching it remounts `DataProvider`, and the flow is kept in a module-level `keptState` that the remounted provider picks up. Logic that runs once per mount inside the provider runs again after a language change, so it must not assume a fresh flow.
 - **The backend reads the layers from `MAPS_ROOT`**: by default the Git-tracked `apps/api/app/maps` (rasters in **Git LFS**, flat layout, read-only); in Azure, the per-country layout on an **Azure Files share** (`/mnt/maps`), which the admin writes to. Each country has its own folder and numbers its layers from 0, so analysis, tiles and report images send the country with the layer id.
-- **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token.
+- **CORS is open to any origin** (`allow_origins=["*"]`, no credentials). The admin routes additionally check the `Origin` against `ADMIN_ALLOWED_ORIGIN` and require a session token. Admin routes only reach the session's country, except `GET /admin/usage`, which gives every admin the usage figures of all countries.
 
 The Azure resources, how the API reads the rasters and how the per-country admin works are explained in [`architecture.md`](architecture.md).
 
@@ -157,7 +158,8 @@ modules/                   # One package per module, each with router.py + helpe
 ├── deforestation_analysis/#   POST /analize, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
 ├── maps/                  #   GET /maps (?country=) and GET /countries — the published layers and their countries
 ├── layers/                #   LayersRoot/LayerStore (read/write MAPS_ROOT), raster checks + COG conversion, seed and migration commands
-└── admin/                 #   /admin/* — per-country passkey login, layer CRUD, raster uploads (only when configured); countries CLI
+├── usage/                 #   POST /events (report events from the browser), the middleware that records uploads, validations and analyses, the USAGE_DIR writer and the monthly rollups
+└── admin/                 #   /admin/* — per-country passkey login, layer CRUD, raster uploads (only when configured); GET /admin/usage, every country's usage; countries CLI
 maps/                      # Git-tracked layers: index.json, .tif rasters (Git LFS), bilingual metadata per layer
 models/                    # Shared Pydantic schemas (farms, maps, polygons)
 helpers/GeometryCalculator.py  # Geodesic area computation (WGS84 ellipsoid, pyproj.Geod)
@@ -175,7 +177,7 @@ app/[locale]/              # App Router; the language is a route segment (en/es)
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
 ├── report-generation/     #   Module 3 (+ preview)
-└── admin/                 #   Layers admin (login, layer list, create/edit, raster upload); not linked from the public pages
+└── admin/                 #   Admin: layers (login, layer list, create/edit, raster upload) and usage/ (every country's usage figures); not linked from the public pages
 api/                       # fetch clients to the backend (farms.ts, polygonValidation.ts, deforestationAnalysis.ts)
 context/DataContext.tsx    # Shared state for the ENTIRE flow (in memory)
 components/
@@ -327,3 +329,5 @@ ADMIN_ALLOWED_ORIGIN=http://localhost:3000
 Then open **`http://localhost:3000/admin`** and log in with one country's passkey: the admin only shows that country's layers. Passkeys never go in `.env`; only their hashes, in `.local-maps/countries.json`. To add a country or get a new passkey, use `uv run python -m app.modules.admin.countries add|rotate <CC>` (see `docs/maps.md`). The frontend needs no extra setting (it calls `${NEXT_PUBLIC_API_URL}/admin`). `http://localhost:8000/health` shows which `mapsRoot` the API is using.
 
 To test raster uploads, use a binary GeoTIFF (see the requirements in `docs/maps.md`). To start over, delete `.local-maps` and migrate again.
+
+The **Usage** page (`/admin/usage`, in the admin header) shows every country's figures, whatever the country you logged in with. It needs `USAGE_DIR=.usage` (ignored by Git) in `apps/api/.env`; without it the page says metrics aren't configured. Uploading farms or running an analysis in the public app records events there (see `docs/maps.md` for the folder's layout).
