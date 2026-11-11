@@ -61,13 +61,15 @@ export interface CountrySlice {
   id: string;
   label: string;
   value: number;
-  /** Share of the metric's total, 0-100. */
+  /** Share of the metric's sum over the countries, 0-100. A session that used
+   * several countries is in each one's sessions, so for sessions that sum can be
+   * more than the range's total. */
   percent: number;
   color: string;
 }
 
-/** One donut: each country's share of a metric. Countries with nothing are left
- * out; "Other" goes last. */
+/** One donut: each country's share of a metric, over the sum of the countries.
+ * Countries with nothing are left out; "Other" goes last. */
 export const countryShares = (
   report: UsageReport,
   metric: CountryMetric,

@@ -97,6 +97,16 @@ describe("countryShares", () => {
     expect(countryColors(data).get("PE")).toBeUndefined();
   });
 
+  it("shares sessions over the sum of the countries, where a session in two counts in each", () => {
+    // One session with events in CR and PE: the range has 1 session, the rows 2.
+    const data = { ...report([["CR", block(1)], ["PE", block(1)]]), totals: block(1) };
+    const slices = countryShares(data, "sessions", name, "Other");
+    expect(slices.map(({ id, value, percent }) => ({ id, value, percent }))).toEqual([
+      { id: "CR", value: 1, percent: 50 },
+      { id: "PE", value: 1, percent: 50 },
+    ]);
+  });
+
   it("has no slices without data", () => {
     expect(countryShares(report([["CO", block(0)]]), "analyses", name, "Other")).toEqual([]);
   });

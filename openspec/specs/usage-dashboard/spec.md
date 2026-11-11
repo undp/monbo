@@ -135,7 +135,7 @@ The frontend SHALL provide `/[locale]/admin/usage`, behind the admin login like 
   - deforestation analyses, and the sessions that analyzed;
   - reports requested, and the sessions that requested them;
   - reports downloaded, as one PDF and as a ZIP;
-- **a donut chart per metric with each country's percentage:** sessions, uploads, analyses and reports downloaded. A country SHALL keep the same color in every donut, with one shared legend. Past five named countries, the rest and the unknown country SHALL fold into "Other". Each donut SHALL also list its countries with their count and percentage as text;
+- **a donut chart per metric with each country's percentage:** sessions, uploads, analyses and reports downloaded. A country SHALL keep the same color in every donut, with one shared legend. Past five named countries, the rest and the unknown country SHALL fold into "Other". Each percentage SHALL be of the metric's sum over the country rows: a session with events in several countries counts in each, and the page SHALL say so. Each donut SHALL also list its countries with their count and percentage as text;
 - **a usage funnel:** sessions, sessions that uploaded, that analyzed and that requested a report, each with its percentage of all sessions;
 - **successes and errors by step,** stacked: successful, invalid input and failed, for upload, validation, analysis and report download;
 - **a weekly line chart** of sessions, analyses and reports downloaded;
@@ -152,6 +152,11 @@ The page SHALL say the figures count browser sessions, not people. Report figure
 
 - **WHEN** CR has 3 uploads and PE has 1 in the range
 - **THEN** the uploads donut shows CR at 75 % and PE at 25 %, in the same colors as in the other donuts
+
+#### Scenario: A session in two countries
+
+- **WHEN** the range holds one session, with events in CR and in PE
+- **THEN** the sessions tile shows 1, and the sessions donut shows CR and PE with 1 session each, at 50 %
 
 #### Scenario: Change the range
 

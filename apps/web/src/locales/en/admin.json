@@ -249,7 +249,7 @@
     },
     "shares": {
       "title": "Share by country",
-      "subtitle": "Each country's percentage of the range's total.",
+      "subtitle": "Each country's percentage of the sum of all countries. A session that used several countries counts in each.",
       "sessions": "Sessions",
       "uploads": "Uploads",
       "analyses": "Analyses",

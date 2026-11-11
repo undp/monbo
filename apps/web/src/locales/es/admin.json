@@ -249,7 +249,7 @@
     },
     "shares": {
       "title": "Distribución por país",
-      "subtitle": "Porcentaje de cada país sobre el total del rango.",
+      "subtitle": "Porcentaje de cada país sobre la suma de todos los países. Una sesión que usó varios países cuenta en cada uno.",
       "sessions": "Sesiones",
       "uploads": "Cargas",
       "analyses": "Análisis",
