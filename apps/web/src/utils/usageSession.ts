@@ -4,8 +4,35 @@
 // outlive the tab. The usage figures count these sessions, not people.
 
 const USAGE_SESSION_STORAGE_KEY = "monbo.usageSession";
+// Set while a page holds the tab's session, removed when the page goes away. A tab
+// opened from another one, or duplicated, starts with a copy of its sessionStorage:
+// a page that finds the marker set copied it from a page still open, so it takes a
+// session of its own. A reload finds it removed and keeps the session.
+const USAGE_SESSION_OPEN_KEY = "monbo.usageSession.open";
 
 let inMemoryUsageSession: string | null = null;
+/** The session this page holds. */
+let pageUsageSession: string | null = null;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    if (!pageUsageSession) return;
+    try {
+      sessionStorage.removeItem(USAGE_SESSION_OPEN_KEY);
+    } catch {
+      // Without sessionStorage the session lives in memory.
+    }
+  });
+  // Back from the back-forward cache: the page holds its session again.
+  window.addEventListener("pageshow", () => {
+    if (!pageUsageSession) return;
+    try {
+      sessionStorage.setItem(USAGE_SESSION_OPEN_KEY, "1");
+    } catch {
+      // Without sessionStorage the session lives in memory.
+    }
+  });
+}
 
 /** The page the farms were uploaded from, sent with `/farms/parse`. */
 export type UsageModule = "polygons-validation" | "deforestation-analysis";
@@ -30,10 +57,13 @@ const randomUuid = (): string => {
 export const readUsageSession = (): string => {
   try {
     let session = sessionStorage.getItem(USAGE_SESSION_STORAGE_KEY);
-    if (!session) {
+    if (session && session === pageUsageSession) return session;
+    if (!session || sessionStorage.getItem(USAGE_SESSION_OPEN_KEY)) {
       session = randomUuid();
       sessionStorage.setItem(USAGE_SESSION_STORAGE_KEY, session);
     }
+    sessionStorage.setItem(USAGE_SESSION_OPEN_KEY, "1");
+    pageUsageSession = session;
     return session;
   } catch {
     inMemoryUsageSession ??= randomUuid();
@@ -51,7 +81,9 @@ export const usageHeaders = (
   ...(module ? { "X-Monbo-Module": module } : {}),
 });
 
-/** Forgets the in-memory session. For tests. */
+/** Forgets the in-memory session and the page's hold on the stored one, as a new
+ * page would. For tests. */
 export const resetUsageSessionForTests = () => {
   inMemoryUsageSession = null;
+  pageUsageSession = null;
 };

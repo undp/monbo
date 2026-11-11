@@ -22,6 +22,11 @@ The web SHALL create a random UUID v4 the first time it needs a session ID and S
 - **WHEN** the same user opens Monbo in a second tab and uploads farms there
 - **THEN** that upload's event carries a different session ID
 
+#### Scenario: Tab opened from another tab
+
+- **WHEN** a user opens a Monbo link in a new tab that starts with a copy of the first tab's `sessionStorage`, or duplicates the tab, and uploads farms there
+- **THEN** that upload's event carries a different session ID from the first tab's, and the new tab keeps it across its own reloads
+
 #### Scenario: Country change keeps the session
 
 - **WHEN** a user changes the selected country from CR to PE before an analysis

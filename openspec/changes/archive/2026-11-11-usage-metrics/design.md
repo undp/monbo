@@ -94,7 +94,7 @@ Events are written only when `USAGE_DIR` is set. Production sets it to `/mnt/map
 
 ### 4. An anonymous session ID in `sessionStorage`
 
-The web creates a random UUID (`crypto.randomUUID()`, or `crypto.getRandomValues` outside secure contexts) the first time it needs one. It keeps it in `sessionStorage`, next to the selected country, and reuses it for the life of the tab. It isn't reset when the country changes. The code lives in `utils/usageSession.ts`, not `DataContext`: the `@/api` modules send it, and `DataContext` already imports them.
+The web creates a random UUID (`crypto.randomUUID()`, or `crypto.getRandomValues` outside secure contexts) the first time it needs one. It keeps it in `sessionStorage`, next to the selected country, and reuses it for the life of the tab. It isn't reset when the country changes. A tab opened from another one, or duplicated, starts with a copy of that `sessionStorage`; a marker set while a page holds the ID, and removed on `pagehide`, tells that copy (marker set) from a reload (marker removed), and the copy takes a new ID. The code lives in `utils/usageSession.ts`, not `DataContext`: the `@/api` modules send it, and `DataContext` already imports them.
 
 *Alternative: `localStorage`.* It would count browsers across visits, but a persistent identifier on the device can require consent. It still wouldn't count people: the same person on a laptop and a phone counts twice.
 
