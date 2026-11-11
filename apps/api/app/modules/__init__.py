@@ -6,6 +6,7 @@ from app.modules.deforestation_analysis import (
 from app.modules.farms import module_router as farms_router
 from app.modules.maps import module_router as maps_router
 from app.modules.polygons_validation import module_router as polygons_validation_router
+from app.modules.usage import module_router as usage_router
 
 __all__ = [
     "admin_router",
@@ -14,4 +15,5 @@ __all__ = [
     "farms_router",
     "polygons_validation_router",
     "deforestation_analysis_router",
+    "usage_router",
 ]

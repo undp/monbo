@@ -201,5 +201,89 @@
       "nodata_ignored": "El archivo ya declara nodata {{declared}}; se ignoró el valor {{requested}}.",
       "no_loss_pixels": "El raster no tiene píxeles con pérdida (valor 1)."
     }
+  },
+  "usage": {
+    "title": "Uso de la aplicación",
+    "subtitle": "Cómo se usa Monbo en todos los países. Las cifras cuentan sesiones del navegador, no personas: sin login, la misma persona en dos pestañas cuenta dos veces.",
+    "range": {
+      "label": "Rango",
+      "last30": "Últimos 30 días",
+      "last90": "Últimos 90 días",
+      "thisYear": "Este año",
+      "custom": "Personalizado",
+      "from": "Desde",
+      "to": "Hasta",
+      "invalid": "Elige una fecha de inicio igual o anterior a la de término, con 366 días de diferencia como máximo."
+    },
+    "sources": {
+      "server": "Registrado por el servidor",
+      "browser": "Reportado por el navegador"
+    },
+    "tiles": {
+      "sessions": "Sesiones",
+      "sessionsDetail": "Pestañas del navegador que usaron Monbo",
+      "uploads": "Cargas de fincas",
+      "avgFarms": "{{value}} fincas por carga en promedio",
+      "analyses": "Análisis de deforestación",
+      "analysisSessions": "{{value}} sesiones analizaron",
+      "reportsRequested": "Reportes pedidos",
+      "requestedSessions": "desde {{value}} sesiones",
+      "reportsDownloaded": "Reportes descargados",
+      "downloadedFormats": "{{pdf}} en un PDF · {{zip}} en un ZIP",
+      "trend": "{{label}}, semana a semana"
+    },
+    "funnel": {
+      "title": "Embudo de uso",
+      "subtitle": "Sesiones que llegaron a cada paso del análisis de deforestación, y su porcentaje del total de sesiones.",
+      "sessions": "Sesiones",
+      "uploaded": "Subieron fincas",
+      "analyzed": "Hicieron un análisis",
+      "requestedReport": "Pidieron un reporte"
+    },
+    "outcomes": {
+      "title": "Éxitos y errores por paso",
+      "subtitle": "La carga, la validación y el análisis los registra el servidor; las descargas las reporta el navegador.",
+      "ok": "Exitosos",
+      "invalidInput": "Datos inválidos",
+      "failed": "Fallidos"
+    },
+    "shares": {
+      "title": "Distribución por país",
+      "subtitle": "Porcentaje de cada país sobre el total del rango.",
+      "sessions": "Sesiones",
+      "uploads": "Cargas",
+      "analyses": "Análisis",
+      "reportsDownloaded": "Reportes descargados",
+      "other": "Otros",
+      "none": "Sin datos en este rango."
+    },
+    "steps": {
+      "upload": "Carga",
+      "validation": "Validación",
+      "analysis": "Análisis",
+      "download": "Descarga del reporte"
+    },
+    "countries": {
+      "title": "Detalle por país",
+      "country": "País",
+      "uploads": "Cargas",
+      "avgFarms": "Fincas por carga",
+      "validations": "Validaciones",
+      "analyses": "Análisis",
+      "reportsRequested": "Reportes pedidos",
+      "reportsDownloaded": "Reportes descargados",
+      "okErrors": "{{ok}} ok · {{errors}} errores",
+      "unknown": "País desconocido",
+      "empty": "No hay uso en este rango.",
+      "sources": "Las cargas, validaciones y análisis los registra el servidor. Los reportes los reporta el navegador."
+    },
+    "weekly": {
+      "title": "Tendencia semanal",
+      "sessions": "Sesiones",
+      "analyses": "Análisis",
+      "reportsDownloaded": "Reportes descargados"
+    },
+    "notConfigured": "Las métricas de uso no están configuradas en este servidor.",
+    "loadError": "No se pudieron cargar las cifras de uso."
   }
 }

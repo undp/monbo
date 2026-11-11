@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ from app.modules.deforestation_analysis.helpers import (
 )
 from app.modules.layers.store import is_layer
 from app.modules.maps.helpers import get_country_maps, get_map_by_id, require_country
+from app.modules.usage.tracking import note_usage
 from app.utils.farms import build_farm_geometry
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
@@ -29,7 +30,9 @@ router = APIRouter()
 
 
 @router.post("/analize", response_model=list[MapData])
-def analize(body: AnalizeBody):
+def analize(body: AnalizeBody, request: Request):
+    # The usage event takes the analyzed country, not the X-Monbo-Country header.
+    note_usage(request, country=body.country)
     require_country(body.country)
     maps = get_country_maps(body.country)
 
@@ -87,6 +90,7 @@ def analize(body: AnalizeBody):
                 }
             )
 
+    note_usage(request, farms=len(farms), maps=len(requested_maps))
     return sorted(results, key=lambda x: x["mapId"])
 
 

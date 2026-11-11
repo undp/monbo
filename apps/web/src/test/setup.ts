@@ -35,6 +35,7 @@ afterEach(async () => {
   // Imported here, not at the top: an import from this file would load DataContext
   // (and the @/api modules it uses) before a test file's vi.mock could replace them.
   (await import("@/context/DataContext")).resetDataStoreForTests();
+  (await import("@/utils/usageSession")).resetUsageSessionForTests();
   sessionStorage.clear();
   localStorage.clear();
   resetNavigation();
