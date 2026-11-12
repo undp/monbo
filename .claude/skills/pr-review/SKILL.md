@@ -17,25 +17,9 @@ You are acting as a Staff Software Engineer performing a thorough pull request r
 
 ## Project Context
 
-**Monbo** is a deforestation-analysis and due-diligence-report tool that helps producers, cooperatives, and exporters demonstrate compliance with the **EU Deforestation Regulation (EUDR)**: it validates farm geometries (module 1), measures post-baseline (Dec 2020) forest loss against satellite raster layers (module 2), and assembles a due-diligence PDF/GeoJSON (module 3). Results end up as evidence in regulatory audits, so **a silently wrong deforestation ratio is worse than a crash.**
+Read the repository's `CLAUDE.md` first: `## System map` (what Monbo is, its parts and the invariants that decide what counts as a bug), `## Code conventions`, `## Security` and `## Testing`. They are the single source of the conventions this review checks; this skill does not keep its own copy.
 
-The repository lives in the UNDP GitHub organization but is **not yet run as a public open-source project** — review it as a production codebase maintained by a small team.
-
-It is a monorepo of **two independent apps with no workspace manager** (each keeps its own lockfile; a root `package.json` only orchestrates):
-
-- `apps/api/` — Python 3.13, FastAPI, managed with **uv** (`pyproject.toml` + `uv.lock`). Geospatial core: `shapely`, `rasterio`, `geopandas`, `pyproj`, `mercantile`, `pillow`. Tests with `pytest`.
-- `apps/web/` — Next.js 16 (App Router) + React 19 + TypeScript, MUI 7 + Emotion, `@vis.gl/react-google-maps`, `i18next` (`[locale]` routes, `es` default + `en`), `@react-pdf/renderer`, `exceljs`/`xlsx`, `jszip`. Managed with **pnpm**. Tests with **Vitest** + Testing Library in jsdom (`src/**/*.test.ts(x)`, helpers in `src/test/`; see `apps/web/README.md` → Testing).
-- `tools/update-gfw-tmf/` — offline Google Earth Engine pipeline that regenerates the `.tif` rasters. Never runs at request time.
-- `infra/` — Terraform for the Azure environment (`terraform/platform`, `terraform/apps`) and `deploy.sh`; `tools/layers-ops/` — seed and country commands on the share. `docs/` — project docs (`docs/onboarding.md` is the canonical architecture description). `openspec/` — spec-driven change proposals and specs.
-
-Architectural facts that shape what counts as a bug:
-
-- **Stateless: no database, no authentication, no server-side persistence.** All session state lives in the browser in `DataContext` (`apps/web/src/context/DataContext.tsx`); a refresh drops the flow by design.
-- CORS is fully open (`allow_origins=["*"]`). Every endpoint is effectively public and unauthenticated.
-- Rasters are served from local disk (`apps/api/app/maps/layers/rasters/*.tif`, Git LFS) and catalogued in `apps/api/app/maps/index.json`.
-- Deforestation ratio = `min(1.0, deforested_pixels × pixel_size² / geodesic_polygon_area)`, using `rasterio.mask.mask(..., all_touched=True)` and an Albers Equal Area area in `app/helpers/GeometryCalculator.py`.
-- Per-farm/per-map failures are swallowed by design: `value: null` / area `-1` means "could not be computed".
-- The PDF is assembled entirely on the client; the API only produces images and tiles.
+What matters most for this review: Monbo's results end up as evidence in regulatory audits under the **EU Deforestation Regulation (EUDR)**, so **a silently wrong deforestation ratio is worse than a crash.** Review it as a production codebase maintained by a small team.
 
 Assume you are one of the project's maintainers reviewing this PR before it merges. Your review is advisory — see [Constraints](#constraints).
 
@@ -102,35 +86,12 @@ The bullets below are **recall aids, not a coverage requirement.** Most dimensio
 
 ## 0. Project Conventions — check first
 
-Read `docs/onboarding.md` (architecture and quirks), the relevant module's existing files, and — for map or i18n changes — `docs/maps.md` and `docs/new_language.md`. Follow the conventions the existing code establishes; a deviation is a finding.
+Check the diff against `CLAUDE.md` (`## Code conventions`, `## Security`, `## Testing`) and the docs it links for the touched area (`docs/onboarding.md`, `docs/architecture.md`, `docs/maps.md`, the app READMEs), and against the module's existing files. A deviation is a finding.
 
-**API (`apps/api/app/`)**
+Review-only checks on top of that:
 
-- One package per module under `modules/<name>/` with `router.py` (thin: validation → helpers → response), `helpers.py` (logic), `models.py` (module-local Pydantic models), and optionally `validations.py`. Routers are exported through `modules/__init__.py` and registered in `main.py`. Models shared across modules live in `app/models/`; cross-module utilities in `app/utils/`.
-- Endpoints declare `response_model` and a typed return; input is Pydantic-validated. Invalid user input becomes `HTTPException(status_code=400, detail=...)` (chained with `from exc`), not a 500.
-- JSON fields are **camelCase in the Pydantic models** (`farmId`, `mapId`, `producerId`). The Pydantic models are the contract: `pnpm contracts` exports them to `apps/api/openapi.json` and generates the frontend's `apps/web/src/api/schema.d.ts`, and CI fails when either is stale. A contract change commits the model and both generated files in the same PR. Findings: an API shape written by hand in the web instead of aliasing the generated type; a response field that is always sent but optional in the schema (a default without `json_schema_serialization_defaults_required`); a `type`-dependent shape that isn't a discriminated union.
-- Environment variables are read and validated once in `app/config/env.py`; fixed values go in `app/config/constants.py`. No `os.getenv` scattered through modules.
-- The `analize` spelling in `/deforestation_analysis/analize` (and `AnalizeBody`) is the contract. "Fixing" it on one side only is a breaking change.
-- Error semantics: per-farm/per-map failures return `value: null` (area `-1`) instead of failing the whole request. New code should follow this or justify why not — and must not let a sentinel (`-1`, `None`) leak into arithmetic or a report as if it were a real value.
-
-**Frontend (`apps/web/src/`)**
-
-- Backend calls live in `api/*.ts` fetch clients; endpoint URLs come from `config/env.ts`. Each endpoint has its own `NEXT_PUBLIC_*` variable falling back to `${NEXT_PUBLIC_API_URL}/...`.
-- **Runtime env var plumbing:** production images bake `__NEXT_PUBLIC_X__` placeholders that `entrypoint.sh` replaces at container start. A new `NEXT_PUBLIC_*` variable needs, together: the placeholder fallback in `config/env.ts`, a `sed` line in `entrypoint.sh`, an `env` block in `infra/terraform/apps/web.tf`, and the `.env.*.example` files. A missing piece works in `next dev` and breaks in production.
-- Product settings the frontend needs (the overlap and deforestation thresholds) are owned by the API and published at `GET /config`; the frontend reads them through `src/config/runtime.ts`. A new such setting goes into the API's `/config`, never into a duplicated `NEXT_PUBLIC_*` variable.
-- **All user-facing text goes through i18next.** Every new key exists in both `locales/es/` and `locales/en/` (`es` is the default locale). Hardcoded UI strings, or a key in only one locale, are findings. The Excel templates in `public/files/` exist per locale too.
-- Flow state belongs in `DataContext`; screen-specific components under `components/page/<module>/`, generic ones under `components/reusable/`; hooks one-per-file under `hooks/`; shared types under `interfaces/`.
-
-**Map layers and geospatial data**
-
-- A new or changed layer touches, together: `app/maps/index.json` (unique `id`, `pixel_size` in meters, `baseline`, `compared_against`, ISO 3166-1 alpha-2 `available_countries_codes`), the raster under `layers/rasters/` (**must be a Git LFS pointer**, per `.gitattributes`), and the attribute (`.json`) and consideration (`.md`) metadata in **both** `metadata/*/es/` and `metadata/*/en/`.
-- Changes to the deforestation math, area calculation, reprojection, `all_touched`, or the raster masking path — and upgrades to `numpy`, `rasterio`, `shapely`, `pyproj`, or `geopandas` — are covered by the numeric baseline gate. **Regenerating the baseline fixture** (`tests/numeric_baseline/`) in the same PR is a red flag that needs an explicit justification in the PR description.
-
-**Repo-wide**
-
-- `docs/onboarding.md` states that behavior changes update the relevant section in the same change. A PR that changes documented behavior (endpoints, flow, formula, setup) without updating it is a finding (Low/Medium).
-- Releases are versioned together: root `package.json`, `apps/web/package.json`, and `apps/api/pyproject.toml` carry the same version, and `CHANGELOG.md` gets an entry for user-visible changes.
-- GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. The uv version is a manual bump in three places that must agree: `apps/api/Dockerfile.dev`, `apps/api/Dockerfile.prod`, and `astral-sh/setup-uv` in `.github/workflows/ci.yml`.
+- A PR that changes documented behavior (endpoints, flow, formula, setup, commands, conventions) without updating `docs/onboarding.md` or `CLAUDE.md` in the same PR is a finding (Low/Medium).
+- **Regenerating the numeric baseline fixture** (`tests/numeric_baseline/`) or the regression expectations in the same PR is a red flag that needs an explicit justification in the PR description.
 - If the PR implements an OpenSpec change, the code should match its `tasks.md` and delta specs, and `openspec/specs/` should not be edited by hand outside the archive/sync flow.
 
 ## 1. Correctness
@@ -143,7 +104,7 @@ Read `docs/onboarding.md` (architecture and quirks), the relevant module's exist
 
 ## 2. Security
 
-There is no auth and CORS is open, so treat every endpoint as public and the request body as hostile.
+Public routes have no authentication and CORS is open, so treat every public request body as hostile. The `/admin` routes require a per-country session token (see `CLAUDE.md` → `## Security`): check that new admin routes go through the same session check and stay scoped to the token's country unless their spec says otherwise (`GET /admin/usage` shows every country by design). Usage events (`modules/usage/`) must never carry farm data, file names or IP addresses.
 
 - Path traversal: anything that turns request input (`map_id`, filenames) into a filesystem path.
 - SSRF and outbound calls: document URLs, Google Maps Static API calls in image generation.

@@ -285,6 +285,8 @@ Go to **`http://localhost:3000`**. You should see the landing page with the Colo
 
 ### 4.5 Suggested reading order
 
+Before changing code, read the root `CLAUDE.md`: it lists the conventions, the invariants and the commands CI runs, with links back to these docs.
+
 The backend is smaller and concentrates the product logic; start there:
 
 1. `apps/api/app/main.py` → the endpoint map.
