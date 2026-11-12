@@ -77,6 +77,14 @@ run "api_matches_the_previous_definition" {
   }
 
   assert {
+    condition = contains(
+      [for e in azurerm_container_app.api.template[0].container[0].env : "${e.name}=${e.value == null ? "" : e.value}"],
+      "USAGE_DIR=/mnt/maps/usage",
+    )
+    error_message = "USAGE_DIR must be a folder of the mounted share."
+  }
+
+  assert {
     condition = (
       azurerm_container_app.api.template[0].container[0].startup_probe[0].path == "/health" &&
       azurerm_container_app.api.template[0].container[0].startup_probe[0].failure_count_threshold == 24 &&

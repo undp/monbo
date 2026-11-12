@@ -166,6 +166,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Usage
+         * @description Usage of the whole app, for any admin: every country's figures, whatever the
+         *     session's country. The only admin route not limited to the session's country.
+         *
+         *     `from` and `to` are UTC days, both included; without them, the 30 days ending
+         *     today. A range over 366 days, or with `from` after `to`, gets 422. The `reports`
+         *     figures are reported by the browser; the others are recorded by the server.
+         *     Answers 503 when the server has no `USAGE_DIR`.
+         */
+        get: operations["get_usage_admin_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config": {
         parameters: {
             query?: never;
@@ -274,6 +300,32 @@ export interface paths {
         get: operations["download_geojson_download_geojson_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Event
+         * @description Records a usage event reported by the browser: a click on "Generate report"
+         *     (`report_requested`) or a finished report download (`report_downloaded`, as one
+         *     PDF or as a ZIP of one PDF per farm).
+         *
+         *     Public, with no rate limit, so these figures are labelled "reported by the
+         *     browser" in the admin. The server stamps the time. Bodies over 2048 bytes
+         *     get 413, unknown types and extra fields 422.
+         */
+        post: operations["report_event_events_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -538,6 +590,16 @@ export interface components {
             /** Maps */
             maps: number[];
         };
+        /** AnalysisUsage */
+        AnalysisUsage: {
+            errors: components["schemas"]["ErrorCounts"];
+            /** Farms */
+            farms: number;
+            /** Ok */
+            ok: number;
+            /** Sessions */
+            sessions: number;
+        };
         /** BaseMapData */
         BaseMapData: {
             /** Alias */
@@ -580,6 +642,33 @@ export interface components {
             /** File */
             file: string;
         };
+        /**
+         * BrowserEventBody
+         * @description Body of `POST /events`: one event reported by the browser.
+         */
+        BrowserEventBody: {
+            /** Country */
+            country?: string | null;
+            /** Farms */
+            farms: number;
+            /**
+             * Format
+             * @description `pdf` (one PDF) or `zip` (one PDF per farm). Required for `report_downloaded`, absent otherwise.
+             */
+            format?: ("pdf" | "zip") | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "ok" | "error";
+            /** Session */
+            session?: string | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "report_requested" | "report_downloaded";
+        };
         /** ConfigData */
         ConfigData: {
             /** Deforestationthresholdpercentage */
@@ -599,12 +688,42 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** CountryUsage */
+        CountryUsage: {
+            analysis: components["schemas"]["AnalysisUsage"];
+            /**
+             * Country
+             * @description A country code, or "unknown"
+             */
+            country: string;
+            reports: components["schemas"]["ReportsUsage"];
+            /**
+             * Sessions
+             * @description Distinct sessions with any event
+             */
+            sessions: number;
+            upload: components["schemas"]["UploadUsage"];
+            validation: components["schemas"]["ValidationUsage"];
+        };
         /** Document */
         Document: {
             /** Name */
             name: string;
             /** Url */
             url: string;
+        };
+        /** DownloadedReports */
+        DownloadedReports: {
+            /**
+             * Pdf
+             * @description Downloaded as one PDF
+             */
+            pdf: number;
+            /**
+             * Zip
+             * @description Downloaded as a ZIP of one PDF per farm
+             */
+            zip: number;
         };
         /** EmptyPolygonInconsistency */
         EmptyPolygonInconsistency: {
@@ -625,6 +744,13 @@ export interface components {
         EnabledInput: {
             /** Enabled */
             enabled: boolean;
+        };
+        /** ErrorCounts */
+        ErrorCounts: {
+            /** Invalid Input */
+            invalid_input: number;
+            /** Server Error */
+            server_error: number;
         };
         /** FarmData */
         FarmData: {
@@ -950,6 +1076,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** NotConfiguredResponse */
+        NotConfiguredResponse: {
+            /** Detail */
+            detail: string;
+        };
         /** OverlapData */
         OverlapData: {
             /** Area */
@@ -1054,6 +1185,18 @@ export interface components {
             /** Width */
             width: number;
         };
+        /** ReportsUsage */
+        ReportsUsage: {
+            /** Downloaderrors */
+            downloadErrors: number;
+            downloaded: components["schemas"]["DownloadedReports"];
+            /** Farmsdownloaded */
+            farmsDownloaded: number;
+            /** Requested */
+            requested: number;
+            /** Requestedsessions */
+            requestedSessions: number;
+        };
         /** SessionData */
         SessionData: {
             /** Country */
@@ -1092,6 +1235,72 @@ export interface components {
             /** Updatefrequency */
             updateFrequency: string | null;
         };
+        /** UploadUsage */
+        UploadUsage: {
+            /**
+             * Avgfarmsperupload
+             * @description farms ÷ ok, or null without an ok upload
+             */
+            avgFarmsPerUpload: number | null;
+            errors: components["schemas"]["ErrorCounts"];
+            /** Farms */
+            farms: number;
+            /** Ok */
+            ok: number;
+            /** Points */
+            points: number;
+            /** Polygons */
+            polygons: number;
+            /**
+             * Sessions
+             * @description Distinct sessions with at least one ok upload
+             */
+            sessions: number;
+        };
+        /** UsageBlock */
+        UsageBlock: {
+            analysis: components["schemas"]["AnalysisUsage"];
+            reports: components["schemas"]["ReportsUsage"];
+            /**
+             * Sessions
+             * @description Distinct sessions with any event
+             */
+            sessions: number;
+            upload: components["schemas"]["UploadUsage"];
+            validation: components["schemas"]["ValidationUsage"];
+        };
+        /** UsageReport */
+        UsageReport: {
+            /** Bycountry */
+            byCountry: components["schemas"]["CountryUsage"][];
+            /**
+             * From
+             * Format: date
+             */
+            from: string;
+            sources: components["schemas"]["UsageSources"];
+            /**
+             * To
+             * Format: date
+             */
+            to: string;
+            totals: components["schemas"]["UsageBlock"];
+            /** Weekly */
+            weekly: components["schemas"]["WeekUsage"][];
+        };
+        /** UsageSources */
+        UsageSources: {
+            /**
+             * Browser
+             * @description Figures reported by the browser
+             */
+            browser: string[];
+            /**
+             * Server
+             * @description Figures recorded by the server
+             */
+            server: string[];
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1104,6 +1313,36 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ValidationUsage */
+        ValidationUsage: {
+            errors: components["schemas"]["ErrorCounts"];
+            /** Farms */
+            farms: number;
+            /** Invalidfarms */
+            invalidFarms: number;
+            /** Ok */
+            ok: number;
+            /** Sessions */
+            sessions: number;
+        };
+        /** WeekUsage */
+        WeekUsage: {
+            analysis: components["schemas"]["AnalysisUsage"];
+            reports: components["schemas"]["ReportsUsage"];
+            /**
+             * Sessions
+             * @description Distinct sessions with any event
+             */
+            sessions: number;
+            upload: components["schemas"]["UploadUsage"];
+            validation: components["schemas"]["ValidationUsage"];
+            /**
+             * Weekstart
+             * Format: date
+             * @description The ISO week's Monday (UTC)
+             */
+            weekStart: string;
         };
     };
     responses: never;
@@ -1406,6 +1645,49 @@ export interface operations {
             };
         };
     };
+    get_usage_admin_usage_get: {
+        parameters: {
+            query?: {
+                /** @description First UTC day, included */
+                from?: string | null;
+                /** @description Last UTC day, included */
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotConfiguredResponse"];
+                };
+            };
+        };
+    };
     get_config_config_get: {
         parameters: {
             query?: never;
@@ -1569,6 +1851,37 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_event_events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrowserEventBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

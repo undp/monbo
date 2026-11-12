@@ -74,3 +74,9 @@ ADMIN_MAX_UPLOAD_MB = _positive_int("ADMIN_MAX_UPLOAD_MB", 500)
 
 # Local (container) directory where raster uploads are staged and processed.
 ADMIN_STAGING_DIR = os.getenv("ADMIN_STAGING_DIR") or "/tmp/monbo-staging"
+
+# Folder where usage events are appended, one JSON line each, in
+# `<USAGE_DIR>/<YYYY-MM>/<replica>-<pid>.jsonl`. Unset means events only go to stdout
+# and the admin usage page answers "not configured". In Azure it is a folder of the
+# layers share (/mnt/maps/usage); locally, keep it out of the Git-tracked app/maps.
+USAGE_DIR = os.getenv("USAGE_DIR") or None

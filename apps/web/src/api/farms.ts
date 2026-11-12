@@ -1,17 +1,22 @@
 import { FARMS_IMPORT_URL, FARMS_PARSER_URL } from "@/config/env";
 import { FarmData, ImportedFile, ImportIssue } from "@/interfaces/Farm";
+import { UsageModule, usageHeaders } from "@/utils/usageSession";
 
 // The spreadsheet's rows as read: the API validates them against InputFarmData and
 // reports each problem, so they aren't typed as InputFarmData here.
+// `usage` is the context of the upload's usage event: the selected country and the
+// page that sent it.
 export const generateFarmsData = async (
   data: Record<string, unknown>[],
-  locale?: string
+  locale: string | undefined,
+  usage: { country: string | null; module: UsageModule }
 ): Promise<FarmData[]> => {
   const url = `${FARMS_PARSER_URL}${locale ? `?locale=${locale}` : ""}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...usageHeaders(usage.country, usage.module),
     },
     body: JSON.stringify(data),
   });

@@ -5,7 +5,12 @@
     "validation": "Polygon Validation",
     "deforestation": "Deforestation Analysis",
     "report": "Report Generation",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "admin": {
+      "layers": "Layers",
+      "usage": "Usage",
+      "navigation": "Admin"
+    }
   },
   "language": {
     "select": "Language",

@@ -94,6 +94,13 @@ resource "azurerm_container_app" "api" {
         value = "/mnt/maps"
       }
 
+      # Usage events and their monthly rollups, on the same share (and its daily
+      # backup). A folder name the layers never read as a country (docs/maps.md).
+      env {
+        name  = "USAGE_DIR"
+        value = "/mnt/maps/usage"
+      }
+
       dynamic "env" {
         for_each = local.admin_enabled ? [1] : []
         content {
