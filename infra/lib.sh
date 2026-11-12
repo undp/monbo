@@ -28,7 +28,7 @@ require_cmd() {
 # The environment's files must exist in both stacks before anything runs.
 require_env() {
   local env="$1" stack
-  [ -n "$env" ] || die "Missing the environment name (e.g. test)"
+  [ -n "$env" ] || die "Missing the environment name (dev or prod)"
   for stack in platform apps; do
     [ -f "$TF_ROOT/$stack/envs/$env.tfvars" ] || die "No $stack/envs/$env.tfvars: unknown environment '$env'"
     [ -f "$TF_ROOT/$stack/envs/$env.backend.hcl" ] || die "No $stack/envs/$env.backend.hcl"

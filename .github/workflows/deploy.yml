@@ -1,52 +1,61 @@
 name: Deploy
 
-# Deploys the dev environment when a merge into dev changes what runs there, with
-# infra/deploy.sh: the same script operators run, with its revision checks and its
-# rollback (docs/suggested_deployment.md#continuous-deployment). Not a pull request
-# check: nothing waits on it, so a path filter on the trigger is fine. The platform
-# stack is not deployed from here: it is applied by hand after reading its plan.
+# Deploys an environment when a merge changes what runs there: a push to dev deploys
+# dev, a push to main (a release or a hotfix) deploys prod. It runs infra/deploy.sh: the
+# same script operators run, with its revision checks and its rollback
+# (docs/suggested_deployment.md#continuous-deployment). Not a pull request check:
+# nothing waits on it, so a path filter on the trigger is fine. The platform stack is
+# not deployed from here: it is applied by hand after reading its plan.
+#
+# prod deploys only once the repository variable DEPLOY_PROD is "true"; until then the
+# job is skipped on main (docs/suggested_deployment.md#production).
+#
+# The branch → environment expression is repeated below: `environment` and
+# `concurrency` can't read the `env` context.
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
     paths:
       - "apps/**"
       - "infra/deploy.sh"
       - "infra/lib.sh"
       - "infra/terraform/apps/**"
       - ".github/workflows/deploy.yml"
-  # Manual run from the Actions tab (on dev): build and deploy that commit, or redeploy
-  # images already in the registry.
+  # Manual run from the Actions tab: on dev it deploys dev, on main prod. It builds and
+  # deploys that commit, or redeploys images already in the environment's registry.
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to redeploy without building (empty: build this commit)"
+        description: "Image tag to redeploy without building (empty: build this commit). Deploys the branch's environment: dev → dev, main → prod"
         required: false
         default: ""
 
 permissions: {}
 
-# One deploy at a time, and never cancelled midway (that would leave the apps
-# half-applied); a newer merge waits and deploys afterwards.
-concurrency:
-  group: deploy-dev
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    name: Deploy to dev
+    name: Deploy to ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    # Skipped, not failed, on main until prod exists and DEPLOY_PROD is switched on.
+    if: github.ref_name != 'main' || vars.DEPLOY_PROD == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # The deploy identity's federated credential trusts only jobs in this environment,
-    # and the environment only allows the dev branch.
+    # One deploy per environment at a time, and never cancelled midway (that would
+    # leave the apps half-applied); a newer merge waits and deploys afterwards.
+    concurrency:
+      group: deploy-${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      cancel-in-progress: false
+    # The deploy identity's federated credential trusts only jobs in its environment,
+    # and each environment only allows its branch (dev: dev, prod: main). A manual run
+    # on any other branch maps to dev, whose branch policy refuses it.
     environment:
-      name: dev
+      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       url: ${{ steps.deploy.outputs.web_url }}
     permissions:
       id-token: write
       contents: read
     env:
-      ENV_NAME: dev
+      ENV_NAME: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       # Terraform (provider and azurerm backend) authenticate with GitHub's OIDC token.
       ARM_USE_OIDC: "true"
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

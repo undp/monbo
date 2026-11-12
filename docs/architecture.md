@@ -76,8 +76,9 @@ applied by `infra/deploy.sh` on every deploy). Each environment is a pair of
 `envs/<env>.tfvars` and `envs/<env>.backend.hcl` files per stack; the names below are
 those of `dev` (deployed from the `dev` branch). The storage account and the
 registry can't have hyphens: Azure only allows lowercase letters and digits in those
-globally unique names. The Terraform state lives in a separate storage account
-(`monbo-tfstate`, Entra ID access only, created by `infra/bootstrap.sh`).
+globally unique names. The Terraform state lives in a separate storage account per
+environment (`monbotfstate` for `dev`, `monboprodtfstate` for `prod`, in resource group
+`monbo-tfstate`; Entra ID access only, created by `infra/bootstrap.sh`).
 
 ### Apps: resource group `monbo-dev-apps` (apps stack)
 

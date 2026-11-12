@@ -49,7 +49,8 @@ mock_provider "azurerm" {
 }
 
 variables {
-  env = "dev"
+  env                        = "dev"
+  state_storage_account_name = "monbotfstate"
 }
 
 run "names_follow_the_environment" {
@@ -166,3 +167,41 @@ run "deploy_identity_trusts_only_the_dev_environment" {
   }
 }
 
+# prod is the same code with its own tfvars: its own names, GitHub Environment and state
+# account (envs/prod.tfvars).
+run "prod_is_its_own_environment" {
+  command = apply
+
+  variables {
+    env                        = "prod"
+    state_storage_account_name = "monboprodtfstate"
+  }
+
+  override_data {
+    target = data.azurerm_storage_account.state
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-tfstate/providers/Microsoft.Storage/storageAccounts/monboprodtfstate"
+    }
+  }
+
+  assert {
+    condition = (
+      azurerm_resource_group.data.name == "monbo-prod-data" &&
+      azurerm_resource_group.platform.name == "monbo-prod-platform" &&
+      azurerm_storage_account.data.name == "monboproddata" &&
+      azurerm_container_registry.main.name == "monboprodacr" &&
+      azurerm_user_assigned_identity.deploy.name == "monbo-prod-deploy"
+    )
+    error_message = "prod's resources must be named monbo-prod-*, monboproddata and monboprodacr."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.github.subject == "repo:undp/monbo:environment:prod"
+    error_message = "prod's deploy identity must trust only the prod GitHub Environment."
+  }
+
+  assert {
+    condition     = endswith(azurerm_role_assignment.deploy_state.scope, "/storageAccounts/monboprodtfstate")
+    error_message = "prod's deploy identity must reach only prod's state account."
+  }
+}

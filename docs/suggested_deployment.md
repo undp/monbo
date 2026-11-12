@@ -10,7 +10,8 @@ interact is in [infra/README.md](../infra/README.md); what each resource does is
 | `platform` | The layers: data resource group with a delete lock, storage account and `maps` share, backups. Plus the container registry and the Log Analytics workspace | By hand, after reading its plan. Rarely changes |
 | `apps` | The Container Apps environment, the pull identity, the API and web apps | By `infra/deploy.sh` on every deploy. Can be destroyed: the layers stay |
 
-Each environment (`dev` today, deployed from the `dev` branch) is a pair of files per
+There are two environments: `dev`, deployed from the `dev` branch, and `prod`, deployed
+from `main` once it is set up ([Production](#production)). Each is a pair of files per
 stack: `envs/<env>.tfvars` (settings, no secrets) and `envs/<env>.backend.hcl` (where
 its state lives).
 
@@ -35,14 +36,15 @@ which is why the state account only accepts Entra ID access.
 
 ## Creating an environment from nothing
 
-Once per subscription:
+Once per state account (each environment has its own: `monbotfstate` for `dev`,
+`monboprodtfstate` for `prod`, each in its environment's subscription):
 
-1. **State account.** `ARM_SUBSCRIPTION_ID=<id> ./infra/bootstrap.sh` creates the
-   resource group `monbo-tfstate` with the storage account `monbotfstate` (shared keys
-   disabled, versioning and soft delete), and gives you `Storage Blob Data
-   Contributor` on it. Those names are already in the backend files; if you pass
-   another account name, update `envs/*.backend.hcl` and `state_storage_account_name`
-   in `apps/envs/*.tfvars`. Grant the same role to other operators.
+1. **State account.** `ARM_SUBSCRIPTION_ID=<id> ./infra/bootstrap.sh [account]`
+   creates the resource group `monbo-tfstate` with the storage account (default
+   `monbotfstate`; shared keys disabled, versioning and soft delete), and gives you
+   `Storage Blob Data Contributor` on it. The environment names its account in
+   `envs/<env>.backend.hcl` and in `state_storage_account_name` of
+   `envs/<env>.tfvars`, in both stacks. Grant the same role to other operators.
 
 Then, per environment:
 
@@ -87,9 +89,10 @@ Then, per environment:
      http://localhost:8001 <api-url>
    ```
 
-**Adding an environment** (e.g. `prod`) is new `envs/prod.tfvars` and
-`envs/prod.backend.hcl` files in both stacks (state keys `prod/platform.tfstate`,
-`prod/apps.tfstate`) and an `infra/envs/prod.secrets.env`, then steps 2–4.
+**Adding an environment** is new `envs/<env>.tfvars` and `envs/<env>.backend.hcl`
+files in both stacks (state keys `<env>/platform.tfstate`, `<env>/apps.tfstate`) and
+an `infra/envs/<env>.secrets.env`, then steps 1–4. `prod`'s files already exist; its
+full procedure, including CI, is in [Production](#production).
 
 **Global names.** The storage account and the registry are named `monbo<env>data` and
 `monbo<env>acr`: Azure only allows lowercase letters and digits in them, and they are
@@ -99,45 +102,54 @@ it only changes those two names.
 
 ## Continuous deployment
 
-Merging into `dev` deploys the `dev` environment: `.github/workflows/deploy.yml` runs
-`infra/deploy.sh dev --yes`, with the same revision checks and rollback as a manual
-deploy.
+Merging into `dev` deploys the `dev` environment, and merging into `main` (a release or
+a hotfix) deploys `prod`: `.github/workflows/deploy.yml` runs
+`infra/deploy.sh <env> --yes`, with the same revision checks and rollback as a manual
+deploy. Each environment builds its own images from the pushed commit, in its own
+registry.
 
-| A push to `dev` that changes | Deploys? |
+| A push to `dev` or `main` that changes | Deploys? |
 |---|---|
-| `apps/**`, `infra/deploy.sh`, `infra/lib.sh`, `infra/terraform/apps/**`, `deploy.yml` | Yes |
+| `apps/**`, `infra/deploy.sh`, `infra/lib.sh`, `infra/terraform/apps/**`, `deploy.yml` | Yes: `dev` from `dev`, `prod` from `main` (if `DEPLOY_PROD` is `true`) |
 | Only docs, specs, `infra/terraform/platform/**`, tools | No (`platform` is applied by hand) |
 
-- **One at a time.** Deploys queue up (`concurrency: deploy-dev`) and are never
-  cancelled midway.
+- **`prod` is switched on explicitly.** Runs on `main` deploy only when the repository
+  variable `DEPLOY_PROD` is `true` (*Settings → Secrets and variables → Actions →
+  Variables*). Otherwise the job is skipped, not failed, so releases can go to `main`
+  before production exists. Setting it to anything else turns production deploys off.
+- **One at a time, per environment.** Deploys of an environment queue up
+  (`concurrency: deploy-<env>`) and are never cancelled midway; `dev` and `prod` don't
+  wait for each other.
 - **Failed deploys roll back.** A failed deploy rolls back both apps and fails the run.
   The run's summary says what happened and gives the failed revision's log command.
-- **Manual runs.** *Actions → Deploy → Run workflow* (on `dev`) builds and deploys that
-  commit, or, with a **tag**, redeploys images already in the registry, e.g. to go back
-  to an earlier version.
+- **Manual runs.** *Actions → Deploy → Run workflow* on `dev` deploys `dev`, and on
+  `main` deploys `prod`. It builds and deploys that commit, or, with a **tag**,
+  redeploys images already in that environment's registry, e.g. to go back to an
+  earlier version. On any other branch the environment's branch policy refuses it.
 - **Dependabot merges deploy too.** The usual caveat applies: a deploy interrupts a
   raster upload being processed (see
   [Deploying while the admin is in use](#deploying-while-the-admin-is-in-use)).
 - **Rebuilding the apps stack is manual.** CI can update the existing stack, but its
   identity cannot create the `AcrPull` role assignment on the registry. If the
   stack or pull identity is replaced, an operator with role-assignment permission
-  runs `infra/deploy.sh dev` locally to recreate it.
+  runs `infra/deploy.sh <env>` locally to recreate it.
 
 ### How CI authenticates
 
-GitHub Actions logs in as the managed identity **`monbo-dev-deploy`** (resource group
-`monbo-dev-platform`, declared in the platform stack). There is no secret: its
-federated credential trusts GitHub's OIDC token only for jobs of `undp/monbo` that run
-in the GitHub Environment **`dev`**, and that environment only allows the `dev`
-branch. Pull requests, including forks, can't obtain it.
+GitHub Actions logs in as the environment's managed identity **`monbo-<env>-deploy`**
+(resource group `monbo-<env>-platform`, declared in the platform stack). There is no
+secret: its federated credential trusts GitHub's OIDC token only for jobs of
+`undp/monbo` that run in the GitHub Environment **`<env>`**, and that environment only
+allows its branch (`dev` for `dev`, `main` for `prod`). Pull requests, including
+forks, can't obtain it, and `dev`'s jobs can't obtain `prod`'s.
 
-Its roles:
+Its roles (names for `dev`; `prod`'s replace `dev` with `prod`):
 
 | Role | Scope | Granted by |
 |---|---|---|
-| Reader | the subscription | Terraform (`platform`) |
+| Reader | the environment's subscription | Terraform (`platform`) |
 | AcrPush | `monbodevacr` | Terraform |
-| Storage Blob Data Contributor | `monbotfstate` (Terraform state) | Terraform |
+| Storage Blob Data Contributor | `monbotfstate` (the environment's Terraform state) | Terraform |
 | **Contributor** | **`monbo-dev-apps`** | **By hand, by an unconditional Owner** |
 | **Storage Account Key Operator Service Role** | **`monbodevdata`** | **By hand, by an unconditional Owner** |
 
@@ -148,13 +160,14 @@ without that condition grants them once, after the platform stack has created th
 identity:
 
 ```sh
-az account set --subscription "$ARM_SUBSCRIPTION_ID"
-PRINCIPAL=$(az identity show -g monbo-dev-platform -n monbo-dev-deploy --query principalId -o tsv)
+ENV=dev   # or prod
+az account set --subscription "$ARM_SUBSCRIPTION_ID"   # the environment's subscription
+PRINCIPAL=$(az identity show -g "monbo-$ENV-platform" -n "monbo-$ENV-deploy" --query principalId -o tsv)
 az role assignment create --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal \
-  --role "Contributor" --scope "$(az group show -n monbo-dev-apps --query id -o tsv)"
+  --role "Contributor" --scope "$(az group show -n "monbo-$ENV-apps" --query id -o tsv)"
 az role assignment create --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal \
   --role "Storage Account Key Operator Service Role" \
-  --scope "$(az storage account show -g monbo-dev-data -n monbodevdata --query id -o tsv)"
+  --scope "$(az storage account show -g "monbo-$ENV-data" -n "monbo${ENV}data" --query id -o tsv)"
 # Check: five roles
 az role assignment list --assignee "$PRINCIPAL" --all --query "[].{role:roleDefinitionName, scope:scope}" -o table
 ```
@@ -162,19 +175,21 @@ az role assignment list --assignee "$PRINCIPAL" --all --query "[].{role:roleDefi
 Without them, a deploy fails with an authorization error (on `listKeys` or on the
 apps resource group) before changing any app.
 
-### The GitHub Environment `dev`
+### The GitHub Environments `dev` and `prod`
 
-*Settings → Environments → dev*: deployment branches limited to `dev`, no required
-reviewers (merging is the approval). Its secrets:
+*Settings → Environments → `<env>`*: deployment branches limited to the environment's
+branch (`dev` → `dev`, `prod` → `main`), no required reviewers by default (merging is
+the approval). A required reviewer on `prod` is an option if releases should wait for
+a person before deploying. Each holds its own values for the same secrets:
 
 | Secret | Value |
 |---|---|
-| `AZURE_CLIENT_ID` | `terraform -chdir=infra/terraform/platform output -raw deploy_identity_client_id` |
+| `AZURE_CLIENT_ID` | `terraform -chdir=infra/terraform/platform output -raw deploy_identity_client_id` (initialized with the environment's backend) |
 | `AZURE_TENANT_ID` | `terraform -chdir=infra/terraform/platform output -raw tenant_id` |
-| `ARM_SUBSCRIPTION_ID` | as in `infra/envs/dev.secrets.env` |
-| `TF_VAR_GCP_MAPS_PLATFORM_API_KEY` | as in `infra/envs/dev.secrets.env` |
-| `TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET` | as in `infra/envs/dev.secrets.env` |
-| `TF_VAR_ADMIN_SESSION_SECRET` | as in `infra/envs/dev.secrets.env` (leave unset to keep the admin off) |
+| `ARM_SUBSCRIPTION_ID` | as in `infra/envs/<env>.secrets.env` |
+| `TF_VAR_GCP_MAPS_PLATFORM_API_KEY` | as in `infra/envs/<env>.secrets.env` |
+| `TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET` | as in `infra/envs/<env>.secrets.env` |
+| `TF_VAR_ADMIN_SESSION_SECRET` | as in `infra/envs/<env>.secrets.env` (leave unset to keep the admin off) |
 | `TF_VAR_FRONT_GCP_MAPS_PLATFORM_API_KEY` | optional: a separate browser key |
 
 Rotating a secret means updating it here (and in operators' secrets files), then
@@ -182,15 +197,99 @@ redeploying the current tag with a manual run.
 
 ### Setting it up for an environment
 
-1. Apply the platform stack: it creates the identity, its federated credential and
+1. Create the GitHub Environment with its branch policy, before the federated
+   credential that trusts it exists.
+2. Apply the platform stack: it creates the identity, its federated credential and
    the three Terraform-managed roles.
-2. An unconditional Owner grants the two manual roles (above).
-3. Create the GitHub Environment and its secrets.
-4. Merge, or run the workflow by hand. Check the run's summary and the environment's
+3. An unconditional Owner grants the two manual roles (above).
+4. Add the environment's secrets.
+5. Merge, or run the workflow by hand. Check the run's summary and the environment's
    URL in GitHub.
 
-**Turning it off:** disable the workflow (*Actions → Deploy → Disable workflow*);
-`infra/deploy.sh` keeps working by hand.
+For `prod`, follow [Production](#production), which also sets `DEPLOY_PROD`.
+
+**Turning it off:** set `DEPLOY_PROD` to `false` (prod only), or disable the workflow
+(*Actions → Deploy → Disable workflow*, both environments); `infra/deploy.sh` keeps
+working by hand.
+
+## Production
+
+`prod` runs in its own subscription (UNDP's Azure), possibly in another Entra tenant,
+with its own state account, registry, layers, deploy identity, GitHub Environment and
+secrets. Nothing it uses is shared with `dev`, and nothing account-specific is in the
+repository: the subscription and tenant come from `infra/envs/prod.secrets.env` and the
+GitHub Environment `prod`.
+
+### What the Azure access must allow
+
+Ask for these before the first apply; each one, if missing, stops the procedure below.
+
+- **Subscription scope.** Terraform creates the resource groups (`monbo-tfstate`,
+  `monbo-prod-data`, `monbo-prod-platform`, `monbo-prod-apps`) and gives the deploy
+  identity Reader on the subscription. Access limited to pre-created resource groups
+  needs a change to the stacks.
+- **Creating resources:** Contributor (or Owner) on the subscription, for the
+  operators' accounts in the subscription's tenant.
+- **Assigning roles.** The operators must be able to assign Reader, AcrPush, AcrPull,
+  Storage Blob Data Contributor, Contributor and Storage Account Key Operator Service
+  Role: Owner without an ABAC condition, or Role Based Access Control Administrator
+  limited to those six. Otherwise someone who can must grant the two manual roles
+  (above) and run the first deploy, which creates the pull identity's AcrPull.
+- **Resource providers registered:** `Microsoft.App`, `Microsoft.ContainerRegistry`,
+  `Microsoft.Storage`, `Microsoft.OperationalInsights`, `Microsoft.RecoveryServices`,
+  `Microsoft.ManagedIdentity`.
+- **Azure Policy.** Ask for the assignments that apply. These block Monbo as it is:
+  - storage accounts without shared-key access (the Container Apps environment mounts
+    the share with the account key, and the scripts call `listKeys`);
+  - denying public network access on storage, the registry or Container Apps;
+  - allowed regions (`location` in `platform/envs/prod.tfvars`, `eastus2` by default);
+  - required tags;
+  - blocking federated credentials on managed identities (CI logs in with
+    `repo:undp/monbo:environment:prod`).
+
+### Setting it up
+
+With access granted, `infra/envs/prod.secrets.env` filled in (prod's own Maps keys and
+a new admin secret; never `dev`'s) and `az login` into prod's tenant:
+
+1. **GitHub Environment `prod`**, deployment branches limited to `main`, no secrets yet.
+   It must exist with that policy before step 3 creates the credential that trusts it.
+2. **State account:** `ARM_SUBSCRIPTION_ID=<prod> ./infra/bootstrap.sh monboprodtfstate`.
+3. **Platform:**
+
+   ```sh
+   set -a; source infra/envs/prod.secrets.env; set +a
+   cd infra/terraform/platform
+   terraform init -reconfigure -backend-config=envs/prod.backend.hcl
+   terraform plan -var-file=envs/prod.tfvars -out=prod.tfplan   # read it
+   terraform apply prod.tfplan
+   ```
+
+4. **The two manual roles,** by an Owner allowed to grant them
+   ([How CI authenticates](#how-ci-authenticates), `ENV=prod`).
+5. **Seed:** `tools/layers-ops/layers-ops.sh prod seed`. Put the printed country
+   passkeys in the password manager straight away; they are prod's, not `dev`'s.
+6. **First deploy, by hand:** `./infra/deploy.sh prod`. It creates the pull identity's
+   AcrPull, which CI can't.
+7. **Secrets** of the GitHub Environment `prod` ([table above](#the-github-environments-dev-and-prod)),
+   with the client and tenant ids from step 3's outputs.
+8. **Switch it on:** repository variable `DEPLOY_PROD` = `true`.
+9. **Check:** a manual run of *Deploy* on `main` (or the next release) deploys `prod`
+   and its summary shows `prod`'s URLs.
+
+The first release into `main` after the web check rename needs `main`'s ruleset
+switched to the new check name right before it merges
+([branch_protection.md](branch_protection.md#renaming-a-required-check)).
+
+### Rolling production back, or stopping it
+
+- **To the previous release:** a manual run of *Deploy* on `main` with the previous
+  tag (the commit `prod` served before; the registry `monboprodacr` keeps every
+  tag).
+- **Stopping automatic deploys:** `DEPLOY_PROD` = `false`. `./infra/deploy.sh prod`
+  keeps working by hand.
+- Destroying the `apps` stack loses no data; `platform` keeps its lock and
+  `prevent_destroy` on the layers.
 
 ## Layer storage
 
