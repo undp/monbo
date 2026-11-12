@@ -104,7 +104,7 @@ Review-only checks on top of that:
 
 ## 2. Security
 
-Public routes have no authentication and CORS is open, so treat every public request body as hostile. The `/admin` routes require a per-country session token (see `CLAUDE.md` → `## Security`): check that new admin routes go through the same session check and stay scoped to the token's country.
+Public routes have no authentication and CORS is open, so treat every public request body as hostile. The `/admin` routes require a per-country session token (see `CLAUDE.md` → `## Security`): check that new admin routes go through the same session check and stay scoped to the token's country unless their spec says otherwise (`GET /admin/usage` shows every country by design). Usage events (`modules/usage/`) must never carry farm data, file names or IP addresses.
 
 - Path traversal: anything that turns request input (`map_id`, filenames) into a filesystem path.
 - SSRF and outbound calls: document URLs, Google Maps Static API calls in image generation.

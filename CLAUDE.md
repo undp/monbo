@@ -21,9 +21,12 @@ Read first: `docs/onboarding.md` (flow, setup, gotchas) and `docs/architecture.m
 
 Invariants that decide what counts as a bug:
 
-- **The public flow is stateless.** There is no database. The session state lives in the
-  browser's `DataContext` (`apps/web/src/context/DataContext.tsx`), so a refresh drops the flow
-  by design.
+- **No farm data is kept on the server, and there is no database.** The session state lives in
+  the browser's `DataContext` (`apps/web/src/context/DataContext.tsx`), so a refresh drops the
+  flow by design. The server writes only the layers (through the admin) and anonymous usage
+  events: `modules/usage/` appends one JSON line per step under `USAGE_DIR`. An event carries a
+  per-tab session ID, the country and counts, **never farm data, file names or IPs**. See
+  `docs/maps.md`, "Usage events".
 - **Per-farm and per-map failures are swallowed on purpose.** `value: null` (area `-1`) means
   "could not be computed". The sentinel must never reach arithmetic or a report as a real value.
 - **`analize` is the contract spelling** (`POST /deforestation_analysis/analize`, `AnalizeBody`).
@@ -35,8 +38,9 @@ Invariants that decide what counts as a bug:
   `app/helpers/GeometryCalculator.py`. See `docs/deforestation_calculation.md` and
   `docs/polygon_area_calculation.md`.
 - **The PDF report is built in the browser.** The API only produces images and tiles.
-- **The layers admin (`/admin`) is opt-in.** It needs `ADMIN_SESSION_SECRET` and the
-  per-country layout. See `docs/architecture.md`, "How the per-country admin works".
+- **The admin (`/admin`) is opt-in.** It needs `ADMIN_SESSION_SECRET` and the per-country
+  layout. Its routes reach only the session's country, except `GET /admin/usage`, which shows
+  every country's usage to any admin by design. See `docs/architecture.md`.
 
 ## Commands
 
@@ -89,13 +93,15 @@ CI runs these per app (`.github/workflows/ci.yml`):
   `NEXT_PUBLIC_*` variable that falls back to `${NEXT_PUBLIC_API_URL}/...`.
 - Never write an API shape by hand. `src/api/schema.d.ts` is generated (don't edit it), and
   `interfaces/` re-exports its types under the names the code uses.
-- **A new `NEXT_PUBLIC_*` variable needs four edits together:**
+- **A new `NEXT_PUBLIC_*` variable that production sets at runtime needs four edits together:**
   - the `__NEXT_PUBLIC_X__` placeholder fallback in `config/env.ts`;
   - a line in `entrypoint.sh`;
   - an `env` block in `infra/terraform/apps/web.tf`;
   - the `.env.*.example` files.
 
-  If one is missing it works in `next dev` and breaks in production.
+  If one is missing it works in `next dev` and breaks in production. The per-endpoint
+  `NEXT_PUBLIC_<X>_URL` overrides are build-time only and fall back to `NEXT_PUBLIC_API_URL`,
+  so they need none of this.
 - Product settings owned by the API (the overlap and deforestation thresholds) come from
   `GET /config` through `config/runtime.ts`. Never duplicate them as `NEXT_PUBLIC_*` variables.
 - **All user-facing text goes through i18next**, with every key in both `locales/es/` and
@@ -131,13 +137,16 @@ never renumber or reuse one.
 
 - **Public routes have no authentication.** CORS is open, without credentials. Treat every
   public request body as hostile: path traversal from `map_id` or filenames, oversized uploads
-  or polygons, URLs in documents.
+  or polygons, URLs in documents. `POST /events` is public and has no rate limit: it accepts a
+  closed list of events with a size cap, and its figures are labeled browser-reported because
+  anyone can fake them.
 - **`/admin` requires a per-country session token.**
   - Login is by passkey: only its SHA-256 hash is stored, compared in constant time, and failed
     logins are rate-limited.
   - The token is HMAC-signed with `ADMIN_SESSION_SECRET` (at least 32 bytes) and rechecked
     against `countries.json` on every call.
-  - `ADMIN_ALLOWED_ORIGIN` restricts the admin's origin.
+  - `ADMIN_ALLOWED_ORIGIN` restricts the admin's origin. A new admin route stays scoped to the
+    token's country unless its spec says otherwise, as `GET /admin/usage` does.
   - Passkeys never go in `.env` or in the repo. See `docs/architecture.md` and `docs/maps.md`.
 - **Secrets reach the app only through environment variables.**
   - These are secrets: `GCP_MAPS_PLATFORM_SIGNATURE_SECRET`, `ADMIN_SESSION_SECRET` and
@@ -153,9 +162,8 @@ never renumber or reuse one.
 
 - **API:** pytest under `apps/api/tests/`, where `modules/` mirrors `app/modules/`. Run one file
   with `uv run pytest <path>` from `apps/api`.
-- **Regression suite:** `regression/` checks that the 10 farms in `regression_farms.xlsx` keep
-  their results. Regenerate it with `uv run python -m tests.regression.generate` only when a
-  change is meant to alter results, and review the diff.
+- **Regression suite:** `regression/` pins the results of the 10 farms in `regression_farms.xlsx`.
+  Regenerate (`uv run python -m tests.regression.generate`) only for an intended change.
 - **Numeric baseline:** `tests/test_numeric_baseline.py` guards the deforestation numbers against
   `tests/numeric_baseline/`. Changes to the math, masking, reprojection or area, and upgrades of
   numpy, rasterio, shapely, pyproj or geopandas must keep it green. **Regenerating the baseline
@@ -164,8 +172,8 @@ never renumber or reuse one.
   `src/**/*.test.ts(x)`, with shared helpers in `src/test/`. A test mocks `@/api/*`, never
   `fetch`. Run one file with `pnpm exec vitest run <path>` from `apps/web`. What is covered and
   how the setup resets state is in `apps/web/README.md`, "Testing".
-- Translation parity (`src/locales/locales.test.ts`) fails when a key exists in only one locale.
-- A bug fix comes with a regression test in the layer that broke.
+- Translation parity (`src/locales/locales.test.ts`) fails on a key in only one locale. A bug
+  fix comes with a regression test in the layer that broke.
 
 ## Workflow
 
