@@ -54,7 +54,8 @@ export function PolygonsValidationUploadDataPageContent() {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
           data.map((row) => ({ ...row, country: selectedCountry })),
-          i18n.language
+          i18n.language,
+          { country: selectedCountry, module: "polygons-validation" }
         );
         // Started over or left meanwhile: don't bring the farms back.
         if (!mountedRef.current || readFlowGeneration() !== generation) return;
@@ -82,7 +83,7 @@ export function PolygonsValidationUploadDataPageContent() {
     async (data: FarmData[]) => {
       setLoading(true);
       try {
-        const response = await validatePolygons(data);
+        const response = await validatePolygons(data, selectedCountry);
         setPolygonsValidationResults(response);
         router.push("/polygons-validation");
         openSnackbar({
@@ -113,7 +114,7 @@ export function PolygonsValidationUploadDataPageContent() {
         setLoading(false);
       }
     },
-    [setPolygonsValidationResults, router, openSnackbar, t]
+    [setPolygonsValidationResults, router, openSnackbar, t, selectedCountry]
   );
 
   useEffect(() => {

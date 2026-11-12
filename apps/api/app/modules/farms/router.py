@@ -1,7 +1,8 @@
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel
 
 from app.models.farms import FarmData, ImportedFile, ImportIssue, InputFarmData
+from app.modules.usage.tracking import note_usage
 
 from . import geo_import
 from .helpers import generate_farms
@@ -12,6 +13,7 @@ router = APIRouter()
 
 @router.post("/parse", response_model=list[FarmData])
 def parse_farms(
+    request: Request,
     body: list[InputFarmData],
     locale: str = Query(
         "en", description="Locale for number parsing, e.g., 'en' or 'es'"
@@ -62,6 +64,13 @@ def parse_farms(
     # Process farms
     farm_data = generate_farms(preprocessed_farms)
 
+    polygons = sum(1 for farm in farm_data if farm.polygon.type == "polygon")
+    note_usage(
+        request,
+        farms=len(farm_data),
+        polygons=polygons,
+        points=len(farm_data) - polygons,
+    )
     return farm_data
 
 
