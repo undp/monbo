@@ -235,6 +235,8 @@ git remote set-head origin -a   # origin/HEAD → origin/dev
 
 **Clones from before `apps/`.** The apps used to live in `monbo-api/` and `monbo-front/`, and the GFW/TMF script in `scripts/update-gfw-tmf/`. Git moves the tracked files, but your ignored ones stay in the old folders. Move your `.env` files to `apps/api/` and `apps/web/`, delete the old folders, and reinstall: `uv sync` in `apps/api` and `pnpm install` in `apps/web`. A virtualenv can't be moved, because it records its absolute path.
 
+**Worktrees.** A new `git worktree` (or a Conductor or T3 Code workspace) starts without the git-ignored env files. Once the main checkout has them (4.2, 4.3 and `infra/envs/dev.secrets.env`), run `pnpm setup:worktree` from the worktree: `scripts/setup-worktree.sh` copies `apps/api/.env`, `apps/web/.env.development` and `infra/envs/dev.secrets.env` from the main checkout, keeping files that already exist unless you pass `--force`. Then install dependencies and pull the rasters as usual.
+
 ### 4.2 Backend — terminal 1 (`apps/api`, port 8000)
 
 ```bash
