@@ -230,7 +230,7 @@ def test_copied_layers_resolve_to_their_own_folder(countries):
 
 
 def analysis(body):
-    return TestClient(create_app()).post("/deforestation_analysis/analize", json=body)
+    return TestClient(create_app()).post("/layer_analysis/analyze", json=body)
 
 
 def test_analysis_needs_the_country(countries):
@@ -262,13 +262,13 @@ def test_malformed_country_codes_are_422(countries, country):
     assert analysis({"country": country, "maps": [0], "farms": []}).status_code == 422
     assert client.get(f"/maps?country={country}").status_code == 422
     assert client.get(
-        f"/deforestation_analysis/tiles/{country}/0/dynamic/12/1/1.png"
+        f"/layer_analysis/tiles/{country}/0/dynamic/12/1/1.png"
     ).status_code in (
         404,
         422,
     )  # "" doesn't even match the route
     image = client.post(
-        "/deforestation_analysis/generate-image",
+        "/layer_analysis/generate-image",
         json={"country": country, "mapId": 0, "feature": {}},
     )
     assert image.status_code == 422
@@ -278,12 +278,10 @@ def test_tiles_of_an_unknown_country_or_id_are_404(countries):
     client = TestClient(create_app())
 
     assert (
-        client.get("/deforestation_analysis/tiles/PE/0/dynamic/12/1/1.png").status_code
-        == 404
+        client.get("/layer_analysis/tiles/PE/0/dynamic/12/1/1.png").status_code == 404
     )
     assert (
-        client.get("/deforestation_analysis/tiles/CO/2/dynamic/12/1/1.png").status_code
-        == 404
+        client.get("/layer_analysis/tiles/CO/2/dynamic/12/1/1.png").status_code == 404
     )
 
 

@@ -59,9 +59,9 @@ class RasterDatasetCache:
     `LayerStore.read_index` does): a raster's filename names its version and the
     admin never replaces it in place (see `app.modules.layers.store`), but a seed
     of the share rewrites the same `<stem>-v1.tif` paths, and a cached handle would
-    keep reading the old file while `/analize` reads the new one. A file that
-    changed is closed and reopened. The least recently used rasters are closed
-    beyond `max_entries`.
+    keep reading the old file while `/layer_analysis/analyze` reads the new one. A
+    file that changed is closed and reopened. The least recently used rasters are
+    closed beyond `max_entries`.
     """
 
     def __init__(self, max_entries: int = 16):

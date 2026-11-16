@@ -4,7 +4,7 @@
     uv run python -m tests.regression.parity --mapping ids.json <flat-api> <per-country-api>
 
 Sends the farms of `regression_farms.xlsx` to both APIs (`/farms/parse`,
-`/deforestation_analysis/analize` on every published layer and
+`/layer_analysis/analyze` on every published layer and
 `/polygons_validation/validate`) and exits 0 only if every parsed area,
 deforestation ratio and validation result is identical. Use it before and after a
 storage migration, e.g. the image's layers against the seeded Azure Files share.

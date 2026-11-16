@@ -69,15 +69,15 @@ The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module
 3. The frontend stores the result (`setFarmsData`) and fires **`POST /polygons_validation/validate`** (sending only `{id, type, details}`). The backend rebuilds the polygons with **Shapely**, detects overlaps and invalid geometries, and marks each farm `VALID` / `NOT_VALID`.
 
 **Module 2 — Deforestation analysis**
-4. With the farms + the chosen maps, the frontend calls **`POST /deforestation_analysis/analize`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country). *(The endpoint is spelled `analize`; the frontend contract matches that spelling exactly.)*
+4. With the farms + the chosen maps, the frontend calls **`POST /layer_analysis/analyze`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country).
 5. The backend iterates **per map × per farm** and returns `[{mapId, version, farmResults:[{farmId, value}]}]`, where `version` is the layer's raster version the results were computed on, and `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
-6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
+6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
    If an admin replaces a selected raster or changes its calculation fields while
    the page is open, the browser discards the earlier percentages and recalculates
    them before showing the updated map or report.
 
 **Module 3 — Report**
-7. The user selects farms and maps; in the preview, an image is generated for each farm and map via **`POST /deforestation_analysis/generate-image`** (a 640×420 JPEG, the aspect ratio of the map box on the PDF's farm page, with a red forest-loss overlay and the farm's polygon drawn on top of it, with or without satellite background; the API fetches each farm's satellite image from Google once and caches it for the other maps). The images are fetched once per selection (`ReportProvider`) and shared by the preview and both downloads. The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
+7. The user selects farms and maps; in the preview, an image is generated for each farm and map via **`POST /layer_analysis/generate-image`** (a 640×420 JPEG, the aspect ratio of the map box on the PDF's farm page, with a red forest-loss overlay and the farm's polygon drawn on top of it, with or without satellite background; the API fetches each farm's satellite image from Google once and caches it for the other maps). The images are fetched once per selection (`ReportProvider`) and shared by the preview and both downloads. The frontend sends the analysed `version`; if the layer has a newer raster the API answers 409 and the frontend re-runs the analysis, so a report never mixes two rasters.
 8. **The PDF is assembled 100% on the client** with `@react-pdf/renderer`, in a Web Worker (`src/workers/reportPdf.worker.tsx`) so the page stays responsive: the preview is the worker's blob shown in an `iframe`, and the complete report is pre-rendered so "Download" saves it at once; for multiple reports it is bundled into a ZIP (`jszip`). The backend does **not** generate the PDF; it only provides the images. A GeoJSON export is also available via **`GET /download-geojson`**.
 
 ### 2.3 The heart of the product: the deforestation calculation
@@ -86,7 +86,7 @@ This is the core concept worth understanding clearly.
 
 - **Each "map" is a GeoTIFF raster that acts as a binary mask:** a pixel is `1` if that cell of terrain **lost forest after the baseline year**, and `0`/NoData otherwise. A pixel represents a real square of terrain (30×30 m in most layers, 10×10 m in Costa Rica; see `apps/api/app/maps/index.json`).
 - Those masks are produced by the **offline pipeline** `tools/update-gfw-tmf/run.py` using Google Earth Engine (`data.gt(baseline_year).selfMask()` = "loss year > baseline → 1"). This script **does not run at runtime**; it is only used to regenerate the `.tif` files.
-- **To cross-reference a polygon (vector, lat/lng) with a raster (pixel grid)**, in `deforestation_analysis/helpers.py`:
+- **To cross-reference a polygon (vector, lat/lng) with a raster (pixel grid)**, in `layer_analysis/helpers.py`:
   1. Reproject the polygon to the raster's CRS.
   2. Crop the raster to the polygon's shape with `rasterio.mask.mask(..., all_touched=True)`. *(`all_touched=True` includes any pixel the polygon touches, even partially, so that the next step sees every pixel the farm overlaps.)*
   3. Take the pixels whose value is exactly `1`, and build each one's square from the raster's transform.
@@ -155,7 +155,7 @@ main.py                    # FastAPI bootstrap: CORS, router registration, endpo
 modules/                   # One package per module, each with router.py + helpers.py + models.py
 ├── farms/                 #   POST /farms/parse — parses and normalizes uploaded farms (locale-aware); POST /farms/import — reads a geo file (GeoJSON, KML, KMZ, zipped Shapefile) into features with WKT geometries
 ├── polygons_validation/   #   POST /polygons_validation/validate — overlaps and invalid geometries (Shapely)
-├── deforestation_analysis/#   POST /analize, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
+├── layer_analysis/        #   POST /layer_analysis/analyze, GET /tiles/..., POST /generate-image (rasterio + Pillow)  ← core
 ├── maps/                  #   GET /maps (?country=) and GET /countries — the published layers and their countries
 ├── layers/                #   LayersRoot/LayerStore (read/write MAPS_ROOT), raster checks + COG conversion, seed and migration commands
 ├── usage/                 #   POST /events (report events from the browser), the middleware that records uploads, validations and analyses, the USAGE_DIR writer and the monthly rollups
@@ -178,7 +178,7 @@ app/[locale]/              # App Router; the language is a route segment (en/es)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
 ├── report-generation/     #   Module 3 (+ preview)
 └── admin/                 #   Admin: layers (login, layer list, create/edit, raster upload) and usage/ (every country's usage figures); not linked from the public pages
-api/                       # fetch clients to the backend (farms.ts, polygonValidation.ts, deforestationAnalysis.ts)
+api/                       # fetch clients to the backend (farms.ts, polygonValidation.ts, layerAnalysis.ts)
 context/DataContext.tsx    # Shared state for the ENTIRE flow (in memory)
 components/
 ├── page/<module>/         #   Screen-specific components
@@ -187,7 +187,7 @@ config/env.ts              # Resolves API URLs and feature flags from NEXT_PUBLI
 hooks/ · interfaces/ · locales/{en,es}/ · utils/  # hooks, domain types, i18n dictionaries, utilities
 ```
 
-> 🔎 **Important configuration detail:** in `config/env.ts` **each endpoint has its own environment variable** (`NEXT_PUBLIC_FARMS_PARSER_URL`, `NEXT_PUBLIC_POLYGON_VALIDATION_URL`, `NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL`, …), each falling back to `${NEXT_PUBLIC_API_URL}/...`. In other words, **each module can point to a different backend**. In production, placeholders (`__NEXT_PUBLIC_API_URL__`) are used and replaced at container runtime — it is not pure build-time (see `docs/nextjs_production_start.md`).
+> 🔎 **Important configuration detail:** in `config/env.ts` **each endpoint has its own environment variable** (`NEXT_PUBLIC_FARMS_PARSER_URL`, `NEXT_PUBLIC_POLYGON_VALIDATION_URL`, `NEXT_PUBLIC_LAYER_ANALYSIS_URL`, …), each falling back to `${NEXT_PUBLIC_API_URL}/...`. In other words, **each module can point to a different backend**. In production, placeholders (`__NEXT_PUBLIC_API_URL__`) are used and replaced at container runtime — it is not pure build-time (see `docs/nextjs_production_start.md`).
 
 ---
 
@@ -293,7 +293,7 @@ The backend is smaller and concentrates the product logic; start there:
 
 1. `apps/api/app/main.py` → the endpoint map.
 2. `apps/api/app/maps/index.json` → what a "map"/raster is (pixel_size, baseline, countries).
-3. `deforestation_analysis/router.py` → `helpers.py` → `helpers/GeometryCalculator.py` → **the core** (§2.3).
+3. `layer_analysis/router.py` → `helpers.py` → `helpers/GeometryCalculator.py` → **the core** (§2.3).
 4. `tools/update-gfw-tmf/run.py` → where the rasters come from and why `==1` means deforestation.
 5. Frontend: `context/DataContext.tsx` (the state) → `api/*.ts` (the contracts) → one full screen end to end.
 
@@ -301,8 +301,8 @@ The backend is smaller and concentrates the product logic; start there:
 
 Trace a single farm through the whole pipeline to internalize §2.2 and §2.3 — this touches the core paths without changing any behavior, so it's safe on day one:
 
-1. Run the backend test suite (`pnpm test` in `apps/api`) and read `tests/modules/deforestation_analysis/test_helpers.py` to see the deforestation math exercised in isolation.
-2. From Swagger (`http://localhost:8000/docs`), call `POST /farms/parse` with one farm, then feed its output into `POST /polygons_validation/validate` and `POST /deforestation_analysis/analize`, watching how the payload changes at each step.
+1. Run the backend test suite (`pnpm test` in `apps/api`) and read `tests/modules/layer_analysis/test_helpers.py` to see the deforestation math exercised in isolation.
+2. From Swagger (`http://localhost:8000/docs`), call `POST /farms/parse` with one farm, then feed its output into `POST /polygons_validation/validate` and `POST /layer_analysis/analyze`, watching how the payload changes at each step.
 3. In the frontend, add a log (or breakpoint) in `context/DataContext.tsx` and follow the same farm across the three screens.
 
 ### 4.7 Gotchas (things that surprise newcomers)
@@ -310,7 +310,6 @@ Trace a single farm through the whole pipeline to internalize §2.2 and §2.3 �
 - 🔴 **Deforestation analysis won't work without the Git LFS rasters.** git-lfs is not installed by default: install it, then run `git lfs install` and `git lfs pull` (see 4.0–4.1).
 - 🔄 **Refreshing the browser wipes the whole flow** (state lives only in frontend memory).
 - 🧩 **Each frontend module can point to a different backend** (one env var per endpoint, all falling back to `NEXT_PUBLIC_API_URL`).
-- ✍️ **The analysis endpoint is spelled `analize`** — match that spelling exactly when calling it.
 - 🤫 A `value: null` (or area `-1`) in the results means "could not be computed", not a crash.
 
 ### 4.8 Trying the layers admin locally

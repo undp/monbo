@@ -1,6 +1,6 @@
 import pLimit from "p-limit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { makeFarm, makeMap, makeMapResults } from "@/test/factories";
 import { fetchFarmImages } from "./deforestationImages";
 

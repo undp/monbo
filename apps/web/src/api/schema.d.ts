@@ -235,60 +235,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/deforestation_analysis/analize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Analize */
-        post: operations["analize_deforestation_analysis_analize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deforestation_analysis/generate-image": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate Image */
-        post: operations["generate_image_deforestation_analysis_generate_image_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Serve Tile
-         * @description Serve a tile of a country's layer for the specified z/x/y.
-         */
-        get: operations["serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/download-geojson": {
         parameters: {
             query?: never;
@@ -454,6 +400,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/layer_analysis/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze */
+        post: operations["analyze_layer_analysis_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/layer_analysis/generate-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Image */
+        post: operations["generate_image_layer_analysis_generate_image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Serve Tile
+         * @description Serve a tile of a country's layer for the specified z/x/y.
+         */
+        get: operations["serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/maps": {
         parameters: {
             query?: never;
@@ -581,15 +581,6 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** AnalizeBody */
-        AnalizeBody: {
-            /** Country */
-            country?: string | null;
-            /** Farms */
-            farms: components["schemas"]["FarmPolygonDetailData"][];
-            /** Maps */
-            maps: number[];
-        };
         /** AnalysisUsage */
         AnalysisUsage: {
             errors: components["schemas"]["ErrorCounts"];
@@ -599,6 +590,15 @@ export interface components {
             ok: number;
             /** Sessions */
             sessions: number;
+        };
+        /** AnalyzeBody */
+        AnalyzeBody: {
+            /** Country */
+            country?: string | null;
+            /** Farms */
+            farms: components["schemas"]["FarmPolygonDetailData"][];
+            /** Maps */
+            maps: number[];
         };
         /** BaseMapData */
         BaseMapData: {
@@ -779,8 +779,8 @@ export interface components {
             /** Region */
             region: string | null;
         };
-        /** FarmDeforestation */
-        FarmDeforestation: {
+        /** FarmLayerResult */
+        FarmLayerResult: {
             /** Farmid */
             farmId: string;
             /** Value */
@@ -1047,6 +1047,15 @@ export interface components {
             /** References */
             references?: string[];
         };
+        /** LayerResults */
+        LayerResults: {
+            /** Farmresults */
+            farmResults: components["schemas"]["FarmLayerResult"][];
+            /** Mapid */
+            mapId: number;
+            /** Version */
+            version: number;
+        };
         /** LocalizedAttributes */
         LocalizedAttributes: {
             en: components["schemas"]["LayerAttributes"];
@@ -1066,15 +1075,6 @@ export interface components {
         LoginBody: {
             /** Passkey */
             passkey: string;
-        };
-        /** MapData */
-        MapData: {
-            /** Farmresults */
-            farmResults: components["schemas"]["FarmDeforestation"][];
-            /** Mapid */
-            mapId: number;
-            /** Version */
-            version: number;
         };
         /** NotConfiguredResponse */
         NotConfiguredResponse: {
@@ -1728,110 +1728,6 @@ export interface operations {
             };
         };
     };
-    analize_deforestation_analysis_analize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnalizeBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MapData"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    generate_image_deforestation_analysis_generate_image_post: {
-        parameters: {
-            query?: {
-                /** @description Whether to include satellite imagery as background */
-                include_satelital_background?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateImageBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                country: string;
-                map_id: number;
-                z: number;
-                x: number;
-                y: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     download_geojson_download_geojson_get: {
         parameters: {
             query?: {
@@ -2017,6 +1913,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    analyze_layer_analysis_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerResults"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_image_layer_analysis_generate_image_post: {
+        parameters: {
+            query?: {
+                /** @description Whether to include satellite imagery as background */
+                include_satelital_background?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateImageBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                country: string;
+                map_id: number;
+                z: number;
+                x: number;
+                y: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

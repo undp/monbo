@@ -254,10 +254,10 @@ sequenceDiagram
   B->>A: GET /maps?country=CO&language=es
   A->>S: CO/index.json, CO/metadata/... (cached)
   A-->>B: published layers: id, version, pixel size, names, considerations
-  B->>A: POST /deforestation_analysis/analize {country, maps, farms}
+  B->>A: POST /layer_analysis/analyze {country, maps, farms}
   A->>S: open CO/layers/rasters/<raster_filename>, read the farms' windows
   A-->>B: deforestation ratio per farm and layer
-  B->>A: GET /deforestation_analysis/tiles/CO/2/dynamic/z/x/y.png?v=<version>
+  B->>A: GET /layer_analysis/tiles/CO/2/dynamic/z/x/y.png?v=<version>
   A->>S: read one window (overviews at low zoom)
   A-->>B: 256×256 PNG
 ```
@@ -276,7 +276,7 @@ down.
 
 ### 2. The analysis
 
-`POST /deforestation_analysis/analize` with the country, the layer ids and the farms.
+`POST /layer_analysis/analyze` with the country, the layer ids and the farms.
 For each requested layer of that country:
 
 1. Its raster is resolved as `<MAPS_ROOT>/<CC>/layers/rasters/<raster_filename>`
@@ -295,7 +295,7 @@ the tiles that cover a farm are read from the share, not the whole file.
 
 ### 3. Map tiles
 
-`GET /deforestation_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`:
+`GET /layer_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`:
 
 - The API reprojects the raster in one step, with nearest neighbour, onto the
   tile's own 256×256 grid in Web Mercator (`render_loss_mask` in
@@ -318,7 +318,7 @@ to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
 
 ### 4. Report images
 
-`POST /deforestation_analysis/generate-image` (feature, layer id, country) draws the
+`POST /layer_analysis/generate-image` (feature, layer id, country) draws the
 raster around a farm on top of a Google Maps satellite image (Static Maps API, with
 the API's key and signature secret), for the PDF report. The farm is drawn last, so
 its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85, no
@@ -328,7 +328,7 @@ the report embeds as is.
 - **Drawn like the tiles.** The loss comes from `render_loss_mask` on the image's
   own 640×420 grid, with the same overview rule: a farm more than about 10 km across
   (zoom 11 or lower for a 30 m layer) is drawn from an overview, so its red share is
-  an approximation of the ratio `/analize` computes from the native pixels.
+  an approximation of the ratio `/layer_analysis/analyze` computes from the native pixels.
 - **One satellite call per farm.** The satellite image depends only on the farm's
   center and zoom, not on the layer, so the API caches it in memory: bounded (256
   images), for 10 minutes, and shared by concurrent requests. A report's images for

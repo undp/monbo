@@ -17,7 +17,7 @@ from shapely.geometry import Polygon, shape
 from shapely.ops import transform as transform_geometry
 from shapely.ops import unary_union
 
-from app.modules.deforestation_analysis.helpers import (
+from app.modules.layer_analysis.helpers import (
     create_empty_tile,
     get_loss_area_fraction,
     get_tile,

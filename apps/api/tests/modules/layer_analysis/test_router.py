@@ -189,11 +189,11 @@ def test_parse_farms():
     assert response.json() == expected_response
 
 
-@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
-@patch("app.modules.deforestation_analysis.router.rasterio_open")
-@patch("app.modules.deforestation_analysis.router.get_country_maps")
-@patch("app.modules.deforestation_analysis.router.get_loss_area_fraction")
-def test_analize(
+@patch("app.modules.layer_analysis.router.get_map_raster_path")
+@patch("app.modules.layer_analysis.router.rasterio_open")
+@patch("app.modules.layer_analysis.router.get_country_maps")
+@patch("app.modules.layer_analysis.router.get_loss_area_fraction")
+def test_analyze(
     mock_get_loss_area_fraction,
     mock_get_country_maps,
     mock_raster_open,
@@ -259,7 +259,7 @@ def test_analize(
     ]
 
     # Make the request
-    response = client.post("/deforestation_analysis/analize", json=request_data)
+    response = client.post("/layer_analysis/analyze", json=request_data)
 
     # Assertions
     assert response.status_code == 200
@@ -269,7 +269,7 @@ def test_analize(
         raise Exception("Error")
 
     mock_raster_open.side_effect = raise_exception
-    response = client.post("/deforestation_analysis/analize", json=request_data)
+    response = client.post("/layer_analysis/analyze", json=request_data)
     assert response.status_code == 200
     assert response.json() == [
         {
@@ -280,13 +280,13 @@ def test_analize(
     ]
 
 
-@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
-@patch("app.modules.deforestation_analysis.router.get_tile")
-@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+@patch("app.modules.layer_analysis.router.get_map_raster_path")
+@patch("app.modules.layer_analysis.router.get_tile")
+@patch("app.modules.layer_analysis.router.get_map_by_id")
 def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path):
     mock_get_map_raster_path.return_value = "dummy/path.tif"
     mock_get_map_by_id.return_value = None
-    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
+    response = client.get("/layer_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Map not found"}
 
@@ -298,7 +298,7 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
     mock_get_tile.side_effect = lambda a, b, c, d: Image.new(
         "RGBA", (256, 256), (0, 0, 0, 0)
     )
-    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
+    response = client.get("/layer_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
 
@@ -306,9 +306,25 @@ def test_serve_tile(mock_get_map_by_id, mock_get_tile, mock_get_map_raster_path)
         raise Exception("Error")
 
     mock_get_tile.side_effect = raise_exception
-    response = client.get("/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png")
+    response = client.get("/layer_analysis/tiles/EC/1/dynamic/0/0/0.png")
     assert response.status_code == 404
     assert response.json() == {"detail": "Tile not found"}
+
+
+@pytest.mark.parametrize(
+    "method, path",
+    [
+        ("post", "/deforestation_analysis/analize"),
+        ("post", "/deforestation_analysis/generate-image"),
+        ("get", "/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png"),
+    ],
+)
+def test_the_old_routes_are_gone(method, path):
+    """Renamed to /layer_analysis without aliases (change layer-analysis-contract)."""
+    response = getattr(client, method)(
+        path, **({"json": {}} if method == "post" else {})
+    )
+    assert response.status_code == 404
 
 
 GENERATE_IMAGE_FEATURE = {
@@ -321,9 +337,9 @@ GENERATE_IMAGE_FEATURE = {
 }
 
 
-@patch("app.modules.deforestation_analysis.router.MapImageGenerator.generate")
-@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
-@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+@patch("app.modules.layer_analysis.router.MapImageGenerator.generate")
+@patch("app.modules.layer_analysis.router.get_map_raster_path")
+@patch("app.modules.layer_analysis.router.get_map_by_id")
 def test_generate_image_checks_the_analysed_version(
     mock_get_map_by_id, mock_get_map_raster_path, mock_generate
 ):
@@ -334,7 +350,7 @@ def test_generate_image_checks_the_analysed_version(
     }
     mock_get_map_raster_path.return_value = "dummy/path.tif"
     mock_generate.return_value = Image.new("RGBA", (640, 420), (0, 64, 0, 255))
-    url = "/deforestation_analysis/generate-image?include_satelital_background=false"
+    url = "/layer_analysis/generate-image?include_satelital_background=false"
 
     # The analysis used an older raster: the image would not match its results.
     response = client.post(
@@ -363,8 +379,8 @@ def test_generate_image_checks_the_analysed_version(
     side_effect=NoRasterDataOverlapError("no overlap"),
 )
 @patch("app.utils.image_generation.MapImageGenerator.GeometryHelper")
-@patch("app.modules.deforestation_analysis.router.get_map_raster_path")
-@patch("app.modules.deforestation_analysis.router.get_map_by_id")
+@patch("app.modules.layer_analysis.router.get_map_raster_path")
+@patch("app.modules.layer_analysis.router.get_map_by_id")
 def test_generate_image_does_not_block_other_requests(
     mock_get_map_by_id, mock_get_map_raster_path, mock_geometry_helper, _
 ):
@@ -388,7 +404,7 @@ def test_generate_image_does_not_block_other_requests(
         async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
             image = asyncio.ensure_future(
                 http.post(
-                    "/deforestation_analysis/generate-image"
+                    "/layer_analysis/generate-image"
                     "?include_satelital_background=false",
                     json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE},
                 )
@@ -410,7 +426,7 @@ def test_generate_image_does_not_block_other_requests(
     assert max(latencies) < 0.2
 
 
-# --- /analize on a real raster: farms that can't be measured --------------------
+# --- /analyze on a real raster: farms that can't be measured --------------------
 
 # A 100x100 EPSG:4326 raster around (0, 0), about 22 m per pixel. Its western half
 # (lng < 0) is loss (1), its eastern half no loss (0).
@@ -464,9 +480,9 @@ def _polygon_farm(farm_id, path, holes=()):
     return _multi_polygon_farm(farm_id, (path, holes))
 
 
-def _analize(farms):
+def _analyze(farms):
     response = client.post(
-        "/deforestation_analysis/analize", json={"maps": [0], "farms": farms}
+        "/layer_analysis/analyze", json={"maps": [0], "farms": farms}
     )
     assert response.status_code == 200
     return {r["farmId"]: r["value"] for r in response.json()[0]["farmResults"]}
@@ -497,15 +513,15 @@ SQUARE_OUTSIDE = [(1.0, 1.0), (1.0, 1.001), (1.001, 1.001), (1.001, 1.0)]
         pytest.param(SQUARE_OUTSIDE, id="outside the raster"),
     ],
 )
-def test_analize_unmeasurable_farm_gets_none(maps_root, path):
+def test_analyze_unmeasurable_farm_gets_none(maps_root, path):
     _write_loss_layer(maps_root)
-    results = _analize([_polygon_farm("bad", path)])
+    results = _analyze([_polygon_farm("bad", path)])
     assert results["bad"] is None
 
 
-def test_analize_bad_farm_leaves_the_others_intact(maps_root):
+def test_analyze_bad_farm_leaves_the_others_intact(maps_root):
     _write_loss_layer(maps_root)
-    results = _analize(
+    results = _analyze(
         [
             _polygon_farm("good", SQUARE_ON_LOSS),
             _polygon_farm("bowtie", BOWTIE_ON_LOSS),
@@ -529,7 +545,7 @@ VALIDATION_FARM = [
 GFW_CROP = Path(__file__).parent / "fixtures" / "gfw_validation_farm.tif"
 
 
-def test_analize_the_validation_farm_on_real_gfw_pixels(maps_root):
+def test_analyze_the_validation_farm_on_real_gfw_pixels(maps_root):
     path = maps_root.root / "layers" / "rasters" / "gfw.tif"
     path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(GFW_CROP, path)
@@ -537,16 +553,16 @@ def test_analize_the_validation_farm_on_real_gfw_pixels(maps_root):
         [{"id": 0, "raster_filename": "gfw.tif", "pixel_size": 30, "version": 1}]
     )
 
-    results = _analize([_polygon_farm("F-VALIDACION", VALIDATION_FARM)])
+    results = _analyze([_polygon_farm("F-VALIDACION", VALIDATION_FARM)])
 
     # (2 + 0.5 + 0.25 + 0.25) / 12 pixels; counting whole pixels gave 5 / 12
     assert results["F-VALIDACION"] == pytest.approx(0.25, abs=1e-6)
 
 
-def test_analize_ratio_is_the_share_of_area_on_loss(maps_root):
+def test_analyze_ratio_is_the_share_of_area_on_loss(maps_root):
     _write_loss_layer(maps_root)
     # The loss is the layer's west half: this square lies half on it.
-    results = _analize(
+    results = _analyze(
         [
             _polygon_farm(
                 "half",
@@ -557,7 +573,7 @@ def test_analize_ratio_is_the_share_of_area_on_loss(maps_root):
     assert results["half"] == pytest.approx(0.5)
 
 
-# --- /analize: holes and parts --------------------------------------------------
+# --- /analyze: holes and parts --------------------------------------------------
 
 
 def _square(west, south, east, north):
@@ -566,12 +582,12 @@ def _square(west, south, east, north):
     return [(west, south), (east, south), (east, north), (west, north)]
 
 
-def test_analize_loss_inside_a_hole_doesnt_count(maps_root):
+def test_analyze_loss_inside_a_hole_doesnt_count(maps_root):
     # Loss only in the raster's central block, about (-0.002, 0.002) on each axis
     data = np.zeros((100, 100), dtype=np.uint8)
     data[40:60, 40:60] = 1
     _write_loss_layer(maps_root, data)
-    results = _analize(
+    results = _analyze(
         [
             # Symmetric about the equator (latitudes −0.008 to 0.008), on purpose
             _polygon_farm("ring", _square(-8, -8, 8, 8), [_square(-3, -3, 3, 3)]),
@@ -582,11 +598,11 @@ def test_analize_loss_inside_a_hole_doesnt_count(maps_root):
     assert results["solid"] > 0
 
 
-def test_analize_loss_in_one_of_two_parts(maps_root):
+def test_analyze_loss_in_one_of_two_parts(maps_root):
     _write_loss_layer(maps_root)
     # Two parts of the same size: the first lies half on the loss (west half), the
     # second all east of it
-    results = _analize(
+    results = _analyze(
         [
             _multi_polygon_farm(
                 "two-parts",
@@ -598,10 +614,10 @@ def test_analize_loss_in_one_of_two_parts(maps_root):
     assert results["two-parts"] == pytest.approx(0.25)
 
 
-def test_analize_a_part_outside_the_raster(maps_root):
+def test_analyze_a_part_outside_the_raster(maps_root):
     _write_loss_layer(maps_root)
     # One part all on loss, the other (the same size) far outside the raster
-    results = _analize(
+    results = _analyze(
         [
             _multi_polygon_farm(
                 "half-outside",
@@ -633,7 +649,7 @@ def test_generate_image_for_a_farm_with_parts_and_a_hole(maps_root):
         },
     }
     response = client.post(
-        "/deforestation_analysis/generate-image?include_satelital_background=false",
+        "/layer_analysis/generate-image?include_satelital_background=false",
         json={"mapId": 0, "feature": feature},
     )
     assert response.status_code == 200, response.text

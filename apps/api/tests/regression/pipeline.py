@@ -4,8 +4,8 @@
    `loadExcelFileFarmsData`): headers on row 2, data from row 4, headers matched by
    keyword in Spanish or English. The upload has no country column: like the
    frontend, every row gets the analysis country.
-2. `POST /farms/parse`, then `POST /deforestation_analysis/analize` against every
-   layer in the index, and `POST /polygons_validation/validate`.
+2. `POST /farms/parse`, then `POST /layer_analysis/analyze` against every layer in
+   the index, and `POST /polygons_validation/validate`.
 3. Summarize what matters for regressions: parsed areas, one deforestation ratio per
    farm and layer, validation statuses and inconsistencies.
 """
@@ -27,6 +27,12 @@ REGRESSION_DIR = Path(__file__).parent
 EXCEL_PATH = REGRESSION_DIR / "regression_farms.xlsx"
 EXPECTED_PATH = REGRESSION_DIR / "expected_results.json"
 FIXTURE_MAPS_ROOT = REGRESSION_DIR / "fixtures" / "maps"
+
+ANALYZE_PATH = "/layer_analysis/analyze"
+# The route before the rename to /layer_analysis, which kept no alias. Only for
+# `parity` against a deployed API that predates the rename; remove it once
+# production serves /layer_analysis.
+LEGACY_ANALYZE_PATH = "/deforestation_analysis/analize"
 
 # Pinned so results don't depend on the local .env: the value deployed in Azure.
 OVERLAP_THRESHOLD_PERCENTAGE = 1.0
@@ -102,6 +108,16 @@ def read_farm_rows(path: Path = EXCEL_PATH) -> list[dict[str, Any]]:
     return rows
 
 
+def post_analysis(client, body: dict[str, Any], in_process: bool) -> Any:
+    """The analysis results. A deployed API that answers 404 on the current route
+    predates the rename, and gets the legacy one; in process there is no fallback."""
+    response = client.post(ANALYZE_PATH, json=body)
+    if response.status_code == 404 and not in_process:
+        response = client.post(LEGACY_ANALYZE_PATH, json=body)
+    response.raise_for_status()
+    return response.json()
+
+
 def run_pipeline(
     rows: list[dict[str, Any]],
     client=None,
@@ -142,9 +158,7 @@ def run_pipeline(
     if country is not None:
         # Per-country layout: layer ids are numbered within each country.
         analysis_body["country"] = country
-    response = client.post("/deforestation_analysis/analize", json=analysis_body)
-    response.raise_for_status()
-    analysis = response.json()
+    analysis = post_analysis(client, analysis_body, in_process)
 
     pinned_threshold = (
         patch(

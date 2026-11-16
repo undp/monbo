@@ -108,7 +108,34 @@
         "title": "AdminLayer",
         "type": "object"
       },
-      "AnalizeBody": {
+      "AnalysisUsage": {
+        "properties": {
+          "errors": {
+            "$ref": "#/components/schemas/ErrorCounts"
+          },
+          "farms": {
+            "title": "Farms",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "sessions": {
+            "title": "Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "errors",
+          "sessions",
+          "farms"
+        ],
+        "title": "AnalysisUsage",
+        "type": "object"
+      },
+      "AnalyzeBody": {
         "properties": {
           "country": {
             "anyOf": [
@@ -141,34 +168,7 @@
           "maps",
           "farms"
         ],
-        "title": "AnalizeBody",
-        "type": "object"
-      },
-      "AnalysisUsage": {
-        "properties": {
-          "errors": {
-            "$ref": "#/components/schemas/ErrorCounts"
-          },
-          "farms": {
-            "title": "Farms",
-            "type": "integer"
-          },
-          "ok": {
-            "title": "Ok",
-            "type": "integer"
-          },
-          "sessions": {
-            "title": "Sessions",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "ok",
-          "errors",
-          "sessions",
-          "farms"
-        ],
-        "title": "AnalysisUsage",
+        "title": "AnalyzeBody",
         "type": "object"
       },
       "BaseMapData": {
@@ -725,7 +725,7 @@
         "title": "FarmData",
         "type": "object"
       },
-      "FarmDeforestation": {
+      "FarmLayerResult": {
         "properties": {
           "farmId": {
             "title": "Farmid",
@@ -747,7 +747,7 @@
           "farmId",
           "value"
         ],
-        "title": "FarmDeforestation",
+        "title": "FarmLayerResult",
         "type": "object"
       },
       "FarmPolygonDetailData": {
@@ -1521,6 +1521,32 @@
         "title": "LayerInput",
         "type": "object"
       },
+      "LayerResults": {
+        "properties": {
+          "farmResults": {
+            "items": {
+              "$ref": "#/components/schemas/FarmLayerResult"
+            },
+            "title": "Farmresults",
+            "type": "array"
+          },
+          "mapId": {
+            "title": "Mapid",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mapId",
+          "version",
+          "farmResults"
+        ],
+        "title": "LayerResults",
+        "type": "object"
+      },
       "LocalizedAttributes": {
         "additionalProperties": false,
         "properties": {
@@ -1583,32 +1609,6 @@
           "passkey"
         ],
         "title": "LoginBody",
-        "type": "object"
-      },
-      "MapData": {
-        "properties": {
-          "farmResults": {
-            "items": {
-              "$ref": "#/components/schemas/FarmDeforestation"
-            },
-            "title": "Farmresults",
-            "type": "array"
-          },
-          "mapId": {
-            "title": "Mapid",
-            "type": "integer"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "mapId",
-          "version",
-          "farmResults"
-        ],
-        "title": "MapData",
         "type": "object"
       },
       "NotConfiguredResponse": {
@@ -2948,182 +2948,6 @@
         ]
       }
     },
-    "/deforestation_analysis/analize": {
-      "post": {
-        "operationId": "analize_deforestation_analysis_analize_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalizeBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MapData"
-                  },
-                  "title": "Response Analize Deforestation Analysis Analize Post",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Analize",
-        "tags": [
-          "Deforestation Analysis Module"
-        ]
-      }
-    },
-    "/deforestation_analysis/generate-image": {
-      "post": {
-        "operationId": "generate_image_deforestation_analysis_generate_image_post",
-        "parameters": [
-          {
-            "description": "Whether to include satellite imagery as background",
-            "in": "query",
-            "name": "include_satelital_background",
-            "required": false,
-            "schema": {
-              "default": true,
-              "description": "Whether to include satellite imagery as background",
-              "title": "Include Satelital Background",
-              "type": "boolean"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Generate Image",
-        "tags": [
-          "Deforestation Analysis Module"
-        ]
-      }
-    },
-    "/deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
-      "get": {
-        "description": "Serve a tile of a country's layer for the specified z/x/y.",
-        "operationId": "serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "country",
-            "required": true,
-            "schema": {
-              "pattern": "^[A-Z]{2}$",
-              "title": "Country",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "map_id",
-            "required": true,
-            "schema": {
-              "title": "Map Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "z",
-            "required": true,
-            "schema": {
-              "title": "Z",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "x",
-            "required": true,
-            "schema": {
-              "title": "X",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "y",
-            "required": true,
-            "schema": {
-              "title": "Y",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Serve Tile",
-        "tags": [
-          "Deforestation Analysis Module"
-        ]
-      }
-    },
     "/download-geojson": {
       "get": {
         "operationId": "download_geojson_download_geojson_get",
@@ -3359,6 +3183,182 @@
           }
         },
         "summary": "Liveness Check"
+      }
+    },
+    "/layer_analysis/analyze": {
+      "post": {
+        "operationId": "analyze_layer_analysis_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LayerResults"
+                  },
+                  "title": "Response Analyze Layer Analysis Analyze Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze",
+        "tags": [
+          "Layer Analysis Module"
+        ]
+      }
+    },
+    "/layer_analysis/generate-image": {
+      "post": {
+        "operationId": "generate_image_layer_analysis_generate_image_post",
+        "parameters": [
+          {
+            "description": "Whether to include satellite imagery as background",
+            "in": "query",
+            "name": "include_satelital_background",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Whether to include satellite imagery as background",
+              "title": "Include Satelital Background",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateImageBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Image",
+        "tags": [
+          "Layer Analysis Module"
+        ]
+      }
+    },
+    "/layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
+      "get": {
+        "description": "Serve a tile of a country's layer for the specified z/x/y.",
+        "operationId": "serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "map_id",
+            "required": true,
+            "schema": {
+              "title": "Map Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "title": "Z",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "title": "X",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "y",
+            "required": true,
+            "schema": {
+              "title": "Y",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Serve Tile",
+        "tags": [
+          "Layer Analysis Module"
+        ]
       }
     },
     "/maps": {

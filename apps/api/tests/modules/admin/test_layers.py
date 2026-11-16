@@ -434,8 +434,6 @@ def test_raster_less_layer_tiles_are_404_not_500(layers, client, admin_headers):
         "/admin/layers", json=layer_body(), headers=admin_headers
     ).json()["id"]
 
-    response = client.get(
-        f"/deforestation_analysis/tiles/CO/{layer_id}/dynamic/12/1/1.png"
-    )
+    response = client.get(f"/layer_analysis/tiles/CO/{layer_id}/dynamic/12/1/1.png")
 
     assert response.status_code == 404

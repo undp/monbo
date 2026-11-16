@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCountries } from "@/api/countries";
-import { getMaps } from "@/api/deforestationAnalysis";
+import { getMaps } from "@/api/layerAnalysis";
 import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
   ON_DEMAND_REFRESH_MIN_GAP,
@@ -14,8 +14,8 @@ import { renderWithDataProvider } from "@/test/renderWithDataProvider";
 import { readFlowGeneration } from "./DataContext";
 
 vi.mock("@/api/countries", () => ({ getCountries: vi.fn() }));
-vi.mock("@/api/deforestationAnalysis", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/api/deforestationAnalysis")>()),
+vi.mock("@/api/layerAnalysis", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/layerAnalysis")>()),
   getMaps: vi.fn(),
 }));
 

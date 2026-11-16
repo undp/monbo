@@ -12,7 +12,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.maps import COUNTRY_CODE_PATTERN, CountryCode
-from app.modules.deforestation_analysis.helpers import (
+from app.modules.layer_analysis.helpers import (
     get_loss_area_fraction,
     get_tile,
 )
@@ -24,13 +24,13 @@ from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.MapImageGenerator import MapImageGenerator
 from app.utils.maps import get_map_raster_path
 
-from .models import AnalizeBody, MapData
+from .models import AnalyzeBody, LayerResults
 
 router = APIRouter()
 
 
-@router.post("/analize", response_model=list[MapData])
-def analize(body: AnalizeBody, request: Request):
+@router.post("/analyze", response_model=list[LayerResults])
+def analyze(body: AnalyzeBody, request: Request):
     # The usage event takes the analyzed country, not the X-Monbo-Country header.
     note_usage(request, country=body.country)
     require_country(body.country)
@@ -142,7 +142,7 @@ class GenerateImageBody(BaseModel):
     mapId: int
     # Required with the per-country layout (ids are numbered within each country).
     country: CountryCode | None = None
-    # The layer version the analysis used (from /analize). When given and the layer
+    # The layer version the analysis used (from /analyze). When given and the layer
     # has a newer raster, the image would not match the results: 409.
     version: int | None = None
 

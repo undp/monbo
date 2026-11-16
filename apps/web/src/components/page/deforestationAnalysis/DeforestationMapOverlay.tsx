@@ -2,7 +2,7 @@
 
 import { GoogleMapsContext } from "@vis.gl/react-google-maps";
 import { useContext, useEffect } from "react";
-import { DEFORESTATION_ANALYSIS_TILES_URL } from "@/config/env";
+import { LAYER_ANALYSIS_TILES_URL } from "@/config/env";
 import { DataContext } from "@/context/DataContext";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 
@@ -21,7 +21,7 @@ export const DeforestationMapOverlay = () => {
       getTileUrl: (coord, zoom) =>
         zoom < 12
           ? null
-          : `${DEFORESTATION_ANALYSIS_TILES_URL}/${selectedCountry}/${id}/dynamic/${zoom}/${coord.x}/${coord.y}.png?v=${version}`,
+          : `${LAYER_ANALYSIS_TILES_URL}/${selectedCountry}/${id}/dynamic/${zoom}/${coord.x}/${coord.y}.png?v=${version}`,
       tileSize: new google.maps.Size(256, 256),
       maxZoom: 20,
       minZoom: 12,

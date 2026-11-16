@@ -14,7 +14,7 @@ import {
 import { useParams } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
 import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import pLimit from "p-limit";

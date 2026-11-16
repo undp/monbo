@@ -122,7 +122,7 @@ def test_analysis_includes_disabled_layers(maps_root):
     }
 
     response = client.post(
-        "/deforestation_analysis/analize", json={"maps": [7], "farms": [farm]}
+        "/layer_analysis/analyze", json={"maps": [7], "farms": [farm]}
     )
 
     # No raster file exists, so the value is None, but the disabled layer is analyzed.

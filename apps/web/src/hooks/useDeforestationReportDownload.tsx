@@ -4,7 +4,7 @@ import { saveAs } from "file-saver";
 import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { ReportContext } from "@/context/ReportContext";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
 import { sendUsageEvent } from "@/api/usageEvents";
 
