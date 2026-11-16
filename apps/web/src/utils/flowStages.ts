@@ -106,3 +106,49 @@ export const stageHref = (stage: FlowStage, { validationDone, analysisDone }: Fl
     return analysisDone ? "/deforestation-analysis" : "/deforestation-analysis/upload-data";
   return "/report-generation";
 };
+
+/** The report's choices, as far as the stepper needs them. */
+export interface ReportSelection {
+  /** Layers chosen for the report. */
+  reportMapIds: number[];
+  /** Layers of the current analysis. */
+  analysisMapIds: number[];
+  /** Farms chosen for the report. */
+  selectedFarmsCount: number;
+}
+
+/**
+ * Whether the report can open as it is: its layers were chosen, all of them are
+ * in the current analysis, and it has farms. Layers are saved as soon as they are
+ * ticked in the report modal, but farms only when it is confirmed, so layers alone
+ * don't mean the modal was completed.
+ */
+export const isReportSelectionReady = ({
+  reportMapIds,
+  analysisMapIds,
+  selectedFarmsCount,
+}: ReportSelection) =>
+  reportMapIds.length > 0 &&
+  selectedFarmsCount > 0 &&
+  reportMapIds.every((id) => analysisMapIds.includes(id));
+
+/**
+ * What pressing a stage does:
+ * - `analysisModal`: stage 2 after a validation and before an analysis opens the
+ *   analysis modal, where the polygon subset and the layers are chosen, as the
+ *   stage 1 card does. Stage 2 stays open to everyone (D5).
+ * - `reportModal`: stage 3 opens the report layer modal unless the report's
+ *   choices are ready.
+ * - `navigate`: anything else goes to `stageHref`.
+ */
+export type StageAction = "navigate" | "analysisModal" | "reportModal";
+
+export const stageAction = (
+  stage: FlowStage,
+  { validationDone, analysisDone }: FlowFlags,
+  reportSelection: ReportSelection
+): StageAction => {
+  if (stage === 2 && validationDone && !analysisDone) return "analysisModal";
+  if (stage === 3 && !isReportSelectionReady(reportSelection)) return "reportModal";
+  return "navigate";
+};

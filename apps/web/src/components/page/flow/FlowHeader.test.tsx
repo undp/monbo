@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
 import { makeDataContext } from "@/test/renderWithData";
-import { makeMap, makeMapResults, makeValidationResults } from "@/test/factories";
+import {
+  makeFarm,
+  makeMap,
+  makeMapResults,
+  makeValidationResults,
+} from "@/test/factories";
 import { router, setPathname } from "@/test/navigation";
 import { FlowHeader } from "./FlowHeader";
 
@@ -77,15 +82,32 @@ describe("FlowHeader", () => {
   });
 
   it("opens a stage's upload page, or its results when it has them", async () => {
+    await renderHeader("/polygons-validation/upload-data");
+
+    fireEvent.click(screen.getByRole("button", { name: /Análisis territorial/ }));
+    expect(router.push).toHaveBeenLastCalledWith("/deforestation-analysis/upload-data");
+  });
+
+  it("opens the validation results from another stage", async () => {
+    await renderHeader("/deforestation-analysis", {
+      ...ANALYZED,
+      polygonsValidationResults: makeValidationResults({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Validación/ }));
+    expect(router.push).toHaveBeenLastCalledWith("/polygons-validation");
+  });
+
+  it("after a validation, opens the analysis modal instead of skipping it", async () => {
     await renderHeader("/polygons-validation", {
       polygonsValidationResults: makeValidationResults({}),
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Análisis territorial/ }));
-    expect(router.push).toHaveBeenLastCalledWith("/deforestation-analysis/upload-data");
 
-    fireEvent.click(screen.getByRole("button", { name: /Validación/ }));
-    expect(router.push).toHaveBeenLastCalledWith("/polygons-validation");
+    expect(router.push).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Selecciona los polígonos a considerar")).toBeTruthy();
   });
 
   it("keeps the language prefix", async () => {
@@ -104,13 +126,34 @@ describe("FlowHeader", () => {
     expect(await screen.findByRole("dialog")).toBeTruthy();
   });
 
-  it("opens stage 3 directly once the report's layers were chosen", async () => {
-    await renderHeader("/polygons-validation", {
+  it("asks again when the report has layers but no confirmed farms", async () => {
+    const map = makeMap();
+    await renderHeader("/deforestation-analysis", {
       ...ANALYZED,
+      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
       reportGenerationParams: {
         initialFarmSelection: "all",
-        selectedMaps: [makeMap()],
+        selectedMaps: [map],
         selectedFarms: [],
+        downloadType: null,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Reporte/ }));
+
+    expect(router.push).not.toHaveBeenCalled();
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+
+  it("opens stage 3 directly once the report's choices are ready", async () => {
+    const map = makeMap();
+    await renderHeader("/polygons-validation", {
+      ...ANALYZED,
+      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
+      reportGenerationParams: {
+        initialFarmSelection: "all",
+        selectedMaps: [map],
+        selectedFarms: [makeFarm()],
         downloadType: null,
       },
     });

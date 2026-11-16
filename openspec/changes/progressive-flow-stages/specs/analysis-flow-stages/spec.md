@@ -105,10 +105,21 @@ exist; without them it SHALL NOT be a control and SHALL say "Con los resultados 
 Pressing a stage SHALL go to:
 - stage 1: `/polygons-validation` when validation results exist, `/polygons-validation/upload-data`
   otherwise;
-- stage 2: `/deforestation-analysis` when analysis results exist,
-  `/deforestation-analysis/upload-data` otherwise;
-- stage 3: `/report-generation` when the report's layers were chosen; otherwise the report layer
-  modal opens first, and continuing from it goes to `/report-generation`.
+- stage 2: `/deforestation-analysis` when analysis results exist. When validation results exist
+  and no analysis results do, the analysis modal opens instead (the polygon subset and the
+  layers), as from the stage 1 next-stage card, and continuing from it goes to
+  `/deforestation-analysis/upload-data`. Otherwise, `/deforestation-analysis/upload-data`;
+- stage 3: `/report-generation` when the report's choices are ready: at least one report layer,
+  every report layer among the current analysis's layers, and at least one farm chosen for the
+  report. Otherwise the report layer modal opens first, and continuing from it goes to
+  `/report-generation`.
+
+Opening the analysis modal doesn't block stage 2 (D5): it is the step that chooses what the
+analysis covers, so no analysis runs with a polygon subset the user didn't choose.
+
+Uploading farms on the stage 2 upload page SHALL drop the validation results of the farms loaded
+before: they don't describe the new farms. Stage 1 then shows "Sin realizar · opcional", and no
+new farm is hidden as invalid.
 
 The current stage SHALL be marked as the current step for assistive technologies.
 
@@ -122,18 +133,42 @@ The current stage SHALL be marked as the current step for assistive technologies
 - **WHEN** the user is on stage 1 with nothing loaded and presses stage 2
 - **THEN** the browser goes to `/deforestation-analysis/upload-data`
 
+#### Scenario: Stage 2 after a validation
+
+- **WHEN** the polygons were validated, no analysis exists, and the user presses stage 2
+- **THEN** the analysis modal opens with the polygon subset and the layers, and continuing goes to
+  `/deforestation-analysis/upload-data`
+
+#### Scenario: New farms on stage 2 after a validation
+
+- **WHEN** the polygons of one file were validated and the user uploads another file on the stage 2
+  upload page
+- **THEN** the earlier validation results are dropped and stage 1 shows "Sin realizar · opcional"
+
 #### Scenario: Stage 3 from the stepper
 
 - **WHEN** analysis results exist, no report layer was chosen yet, and the user presses stage 3
 - **THEN** the report layer modal opens, and continuing goes to `/report-generation`
+
+#### Scenario: Report layers ticked but not confirmed
+
+- **WHEN** the user ticked a layer in the report layer modal, closed it without continuing, and
+  presses stage 3
+- **THEN** the report layer modal opens again
+
+#### Scenario: Report layers of an earlier analysis
+
+- **WHEN** the report's layers were chosen, the analysis was run again with other layers, and the
+  user presses stage 3
+- **THEN** the report layer modal opens again
 
 ### Requirement: The stepper shows progress with a staggered entrance
 
 The stepper SHALL show the three stages joined by two progress bars. A completed stage SHALL show
 a check instead of its number, and a skipped stage a dashed outline. The stages SHALL appear one
 after another, and the bars SHALL fill after them. Users who ask the system for reduced motion
-SHALL get the final state without animation. On a narrow screen the stages SHALL stack and the
-bars SHALL be hidden.
+SHALL get the final state without animation. On a narrow screen the stages SHALL stack, the
+bars SHALL be hidden, and the flow header SHALL fit the viewport's width.
 
 #### Scenario: Reduced motion
 
@@ -143,7 +178,8 @@ bars SHALL be hidden.
 #### Scenario: Phone width
 
 - **WHEN** the viewport is 390 px wide
-- **THEN** the three stages are stacked and no horizontal scroll appears
+- **THEN** the three stages are stacked, and the flow header and the stepper add no horizontal
+  scroll
 
 ### Requirement: A next-stage card closes stages 1 and 2
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Box } from "@mui/material";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
 import { getCountryName } from "@/utils/countries";
 import { localizedPath } from "@/utils/languageChange";
@@ -52,7 +52,11 @@ export const FlowHeader: React.FC = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, opacity: 0.85 }}>
             <PlaceOutlinedIcon sx={{ fontSize: 16 }} aria-hidden />
             <span>
-              {t("flow:header.analysisIn")} <b>{countryName}</b>
+              <Trans
+                i18nKey="flow:header.analysisIn"
+                values={{ country: countryName }}
+                components={{ b: <b /> }}
+              />
             </span>
             <span aria-hidden>·</span>
             <Box

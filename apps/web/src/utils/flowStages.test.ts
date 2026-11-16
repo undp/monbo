@@ -3,6 +3,7 @@ import {
   deriveFlowStages,
   flowProgress,
   stageFromPathname,
+  stageAction,
   stageHref,
   type FlowFlags,
   type FlowStage,
@@ -109,5 +110,34 @@ describe("stageHref", () => {
   it("goes to a stage's upload page otherwise", () => {
     expect(stageHref(1, NOTHING)).toBe("/polygons-validation/upload-data");
     expect(stageHref(2, VALIDATED)).toBe("/deforestation-analysis/upload-data");
+  });
+});
+
+describe("stageAction", () => {
+  const READY = { reportMapIds: [1], analysisMapIds: [1, 2], selectedFarmsCount: 3 };
+
+  it("opens the analysis modal for stage 2 after a validation, before an analysis", () => {
+    expect(stageAction(2, VALIDATED, READY)).toBe("analysisModal");
+  });
+
+  it("goes straight to stage 2 without a validation, or with results", () => {
+    expect(stageAction(2, NOTHING, READY)).toBe("navigate");
+    expect(stageAction(2, BOTH, READY)).toBe("navigate");
+  });
+
+  it("opens the report only when its choices are ready", () => {
+    expect(stageAction(3, BOTH, READY)).toBe("navigate");
+  });
+
+  it.each([
+    ["no report layer", { ...READY, reportMapIds: [] }],
+    ["layers ticked but no farm confirmed", { ...READY, selectedFarmsCount: 0 }],
+    ["a report layer from an earlier analysis", { ...READY, reportMapIds: [3] }],
+  ])("asks for the report's choices with %s", (_, selection) => {
+    expect(stageAction(3, BOTH, selection)).toBe("reportModal");
+  });
+
+  it("navigates for stage 1", () => {
+    expect(stageAction(1, VALIDATED, READY)).toBe("navigate");
   });
 });

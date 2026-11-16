@@ -8,8 +8,14 @@ import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
 import { useFlowStages } from "@/hooks/useFlowStages";
 import { localizedPath } from "@/utils/languageChange";
-import { stageHref, type FlowStage, type FlowStageView } from "@/utils/flowStages";
+import {
+  stageAction,
+  stageHref,
+  type FlowStage,
+  type FlowStageView,
+} from "@/utils/flowStages";
 import { MapSelectionModal } from "@/components/page/deforestationAnalysis/MapSelectionModal";
+import { DeforestationModal } from "@/components/page/polygonsValidation/DeforestationModal";
 import { FLOW_COLORS, HEADING_FONT, REDUCED_MOTION, fill, rise } from "./flowStyles";
 
 // Entrance delays, in seconds: the stages one after another, each bar after the
@@ -87,15 +93,19 @@ const ProgressBar: React.FC<{ value: number; delay: number }> = ({ value, delay 
 
 /**
  * The flow's three stages, each with its state. Stages 1 and 2 can always be
- * opened; stage 3 only with analysis results (D5).
+ * opened; stage 3 only with analysis results (D5). Stage 2 after a validation,
+ * and stage 3 without its choices, go through the same modals as the next-stage
+ * cards.
  */
 export const FlowStepper: React.FC = () => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { stages, progress, flags } = useFlowStages();
   const {
-    reportGenerationParams: { selectedMaps: reportMaps },
+    reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
+    deforestationAnalysisParams: { selectedMaps: analysisMaps },
   } = useContext(DataContext);
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const goToReport = useCallback(
@@ -105,14 +115,16 @@ export const FlowStepper: React.FC = () => {
 
   const openStage = useCallback(
     (stage: FlowStage) => {
-      // The report needs its layers: choose them first, as from the analysis page.
-      if (stage === 3 && reportMaps.length === 0) {
-        setReportModalOpen(true);
-        return;
-      }
-      router.push(localizedPath(stageHref(stage, flags), i18n.language));
+      const action = stageAction(stage, flags, {
+        reportMapIds: reportMaps.map(({ id }) => id),
+        analysisMapIds: analysisMaps.map(({ id }) => id),
+        selectedFarmsCount: reportFarms.length,
+      });
+      if (action === "analysisModal") setAnalysisModalOpen(true);
+      else if (action === "reportModal") setReportModalOpen(true);
+      else router.push(localizedPath(stageHref(stage, flags), i18n.language));
     },
-    [reportMaps.length, router, flags, i18n.language]
+    [flags, reportMaps, analysisMaps, reportFarms.length, router, i18n.language]
   );
 
   return (
@@ -205,6 +217,10 @@ export const FlowStepper: React.FC = () => {
           })}
         </Box>
       </Box>
+      <DeforestationModal
+        isOpen={analysisModalOpen}
+        handleClose={() => setAnalysisModalOpen(false)}
+      />
       <MapSelectionModal
         isOpen={reportModalOpen}
         handleClose={() => setReportModalOpen(false)}

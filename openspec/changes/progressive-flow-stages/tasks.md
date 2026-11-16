@@ -46,3 +46,12 @@
 - [x] 7.1 Run the web CI checks: schema check, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test`, `pnpm run build`
 - [x] 7.2 Update `docs/onboarding.md` if it describes the module-to-module flow (modal, footers)
 - [x] 7.3 Verify in the browser: normal entry, direct entry to stage 2, stage 3 without results, narrow viewport, and capture screenshots for the PR
+
+## 8. Review fixes (PR #133)
+
+- [x] 8.1 Stage 2 after a validation and before an analysis opens `DeforestationModal` (`stageAction` in `utils/flowStages.ts`), with tests in `flowStages.test.ts` and `FlowHeader.test.tsx`
+- [x] 8.2 A new upload on the stage 2 upload page drops the earlier validation results, with a regression test
+- [x] 8.3 Stage 3 opens the report only when its layers are all in the current analysis and it has farms; otherwise the report layer modal
+- [x] 8.4 The report preview leaves room for the flow header and the fixed footer
+- [x] 8.5 "Análisis en {país}" built with `<Trans>` and `{{country}}`
+- [x] 8.6 Spec: the stage 2 modal, the new-upload rule, the stage 3 conditions, and the phone-width scenario limited to the flow header

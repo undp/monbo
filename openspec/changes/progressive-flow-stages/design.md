@@ -78,9 +78,24 @@ description, `onContinue`. The validation and analysis `PageFooter`s become the 
 `DeforestationModal` and `MapSelectionModal` exactly as the buttons did, and they stop rendering
 the fixed `Footer`.
 
-Stage 3 from the stepper uses `MapSelectionModal` too, when `reportGenerationParams.selectedMaps`
-is empty, so `/report-generation` is never opened without layers. That modal reads only
-`DataContext`, so the stepper can host it.
+The stepper hosts both modals too, so the stage buttons never skip the step that picks what
+an analysis or a report covers. `stageAction` (`utils/flowStages.ts`) decides what a press does:
+- Stage 2, with validation results and no analysis, opens `DeforestationModal`, as the stage 1
+  card does. Otherwise the analysis could use a `polygonsSubset` nobody chose, which is `"valid"`
+  if the modal never opened and `null` if it was closed. It could also cross new farms with the
+  validation of another file. Stage 2 is still open to everyone (D5).
+- Stage 3 opens `MapSelectionModal` unless the report's choices are ready: at least one report
+  layer, every report layer in the current analysis, and at least one farm.
+  - Layers alone don't count, because the modal saves them as they are ticked, while the farms
+    are saved only on "Continue".
+  - A report layer from an earlier analysis doesn't count either, because `ReportContext` would
+    then have no selection.
+
+Both modals read only `DataContext`, so the stepper can host them.
+
+A new upload on the stage 2 upload page drops `polygonsValidationResults`. The results described
+the farms loaded before, and `useVisibleDataForDeforestationPage` would otherwise filter the new
+farms by `id` against them. That page is GC-6's, so this unit changes one line there.
 
 *Why:* it keeps the polygon-subset and report-layer rules intact and avoids touching the GC-6 page.
 *Alternative:* pages instead of modals, as in the mockup. That changes the stage 2 content, which
@@ -89,9 +104,13 @@ belongs to GC-6.
 ### 4. Pages scroll, and tables keep a usable height
 
 The results pages stop fitting the viewport. The page is the flow header, the title row, a table
-section with `height: max(420px, calc(100vh - 64px - 140px))`, and the card. The table keeps a
+section with `height: max(420px, calc(100vh - 64px - 120px))`, and the card. The table keeps a
 bounded height, which `Table` (`TableContainer height: 100%`) needs. The report pages keep their
 footers, which hold the download actions, and get bottom padding so the footer doesn't cover them.
+
+The report preview keeps its viewer as tall as the viewport below the app header and above the
+fixed footer, and leaves the footer's height free below it, so the flow header scrolls away above
+it. Shrinking the viewer to fit the flow header would leave about 450 px for the PDF at 1366×768.
 
 `DevEnvWarning` moves into the flow header's meta row, so the flow pages show it once:
 - it leaves the validation and analysis footers, which no longer exist;

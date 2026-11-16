@@ -2,10 +2,16 @@ import TranslationsProvider from "@/context/TranslationProvider";
 import initTranslations from "@/utils/i18n";
 import { FlowHeader } from "./FlowHeader";
 
-// The flow header's texts, plus those of the report layer modal its stepper can
-// open. `common` goes first: it is the fallback namespace, where keys such as the
-// testing-environment warning's `home:devWarning` resolve.
-const namespaces = ["common", "flow", "reportGeneration", "deforestationAnalysis"];
+// The flow header's texts, plus those of the analysis and report modals its
+// stepper can open. `common` goes first: it is the fallback namespace, where keys
+// such as the testing-environment warning's `home:devWarning` resolve.
+const namespaces = [
+  "common",
+  "flow",
+  "polygonValidation",
+  "deforestationAnalysis",
+  "reportGeneration",
+];
 
 interface Props {
   locale: string;

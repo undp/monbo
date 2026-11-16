@@ -32,10 +32,14 @@ export const ReportGenerationPreviewPageContent = () => {
       : null;
 
   return (
+    // The viewer takes the viewport below the app header and above the fixed
+    // footer, and leaves the footer's height free below it. The flow header sits
+    // above and scrolls away, so the whole PDF stays visible.
     <Box
       sx={{
         width: "100%",
         height: "calc(100vh - 64px - 64px)",
+        marginBottom: "64px",
         display: "flex",
         flexDirection: "column",
       }}

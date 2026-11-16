@@ -62,8 +62,9 @@ Every page of the three modules shows the **flow header** (`components/page/flow
 - a stepper through the stages: Validación → Análisis territorial → Reporte.
 
 Each stage's state is a pure function of the route and `DataContext` (`utils/flowStages.ts`):
-- stage 2 can always be opened, even without validating first;
-- stage 3 needs analysis results.
+- stage 2 can always be opened, even without validating first. After a validation and before an analysis, it opens the analysis modal, so the user chooses the polygon subset and the layers;
+- stage 3 needs analysis results. It opens the report layer modal until the report's layers belong to the current analysis and it has farms;
+- uploading farms on module 2's upload page drops the validation of the farms loaded before.
 
 The results pages of modules 1 and 2 end with a "Next stage" card. It opens the modal that moves to the next stage: the polygon subset and layers for module 2, and the report layers for module 3. The application header has no module buttons.
 

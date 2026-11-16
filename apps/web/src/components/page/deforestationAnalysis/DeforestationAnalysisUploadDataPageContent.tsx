@@ -39,6 +39,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
     availableMapsError,
     farmsData,
     setFarmsData,
+    setPolygonsValidationResults,
     deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
     setDeforestationAnalysisParams,
     setDeforestationAnalysisResults,
@@ -129,6 +130,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
             country: readSelectedCountry() ?? farm.country,
           }))
         );
+        // A validation of earlier farms doesn't describe these: without it,
+        // stage 1 shows as not done and no farm is hidden as invalid.
+        setPolygonsValidationResults(null);
         setAnalysisRequested(true);
       } catch (error) {
         console.error(error);
@@ -140,7 +144,14 @@ export function DeforestationAnalysisUploadDataPageContent() {
         return;
       }
     },
-    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
+    [
+      openSnackbar,
+      setFarmsData,
+      setPolygonsValidationResults,
+      t,
+      i18n.language,
+      selectedCountry,
+    ]
   );
 
   const performDeforestationAnalysis = useCallback(

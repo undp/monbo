@@ -1,6 +1,6 @@
 {
   "header": {
-    "analysisIn": "Analysis in",
+    "analysisIn": "Analysis in <b>{{country}}</b>",
     "changeCountry": "Change country",
     "freeNote": "Free · your polygons are not stored on our servers"
   },

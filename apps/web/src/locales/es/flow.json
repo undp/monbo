@@ -1,6 +1,6 @@
 {
   "header": {
-    "analysisIn": "Análisis en",
+    "analysisIn": "Análisis en <b>{{country}}</b>",
     "changeCountry": "Cambiar país",
     "freeNote": "Gratis · tus polígonos no se guardan en nuestros servidores"
   },
