@@ -49,7 +49,23 @@ For each requested layer and each farm, `POST /layer_analysis/analyze` SHALL ret
 - **WHEN** random polygons are analysed on random loss rasters, in EPSG:4326 and in a UTM CRS
 - **THEN** each ratio equals, within 1e-6, the area of the union of the loss pixels intersected with the polygon divided by the polygon's area, both measured in an equal-area projection
 
-#### Scenario: The old route is gone
+## ADDED Requirements
+
+### Requirement: The analysis routes live under `/layer_analysis`
+
+The analysis SHALL be served at `POST /layer_analysis/analyze`, `POST /layer_analysis/generate-image` and `GET /layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`. The routes they replace under `/deforestation_analysis` SHALL NOT be served, not even as hidden aliases, and a request to any of them SHALL get 404.
+
+#### Scenario: The old analysis route
 
 - **WHEN** a client posts an analysis body to `/deforestation_analysis/analize`
-- **THEN** the response is 404, and no `analysis` usage event is recorded
+- **THEN** the response is 404
+
+#### Scenario: The old image route
+
+- **WHEN** a client posts an image request to `/deforestation_analysis/generate-image`
+- **THEN** the response is 404
+
+#### Scenario: The old tile route
+
+- **WHEN** a client requests `/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png`
+- **THEN** the response is 404

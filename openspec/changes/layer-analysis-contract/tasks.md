@@ -45,3 +45,7 @@
 - [x] 7.2 In `apps/web`: `pnpm install --frozen-lockfile`, the `schema.d.ts` check, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test`, `pnpm run build`
 - [x] 7.3 `git grep -n "analize\|deforestation_analysis\|DEFORESTATION_ANALYSIS_\|AnalizeBody\|FarmDeforestation"` outside `openspec/changes/archive` and the `CHANGELOG.md` history finds only the regression fallback, the 404 test and this change's own artifacts
 - [x] 7.4 Run the API locally and call `/layer_analysis/analyze`, `/generate-image` and `/tiles` (200, with the `analysis` usage event) and the old routes (404); check that the built web bundle names only `/layer_analysis/*`. The click-through in the browser is left to the `dev` check after the merge (sub-issue acceptance criterion)
+
+## 8. Archive
+
+- [ ] 8.1 When archiving this change, update the `Purpose` of `openspec/specs/deforestation-analysis/spec.md` to name `POST /layer_analysis/analyze` instead of `POST /deforestation_analysis/analize`. A delta spec only changes requirements, so the archive leaves the `Purpose` as it was; fix it in the same commit as the archive

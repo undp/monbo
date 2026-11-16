@@ -59,3 +59,8 @@ On an error, the counts SHALL be absent.
 
 - **WHEN** `/polygons_validation/validate` raises an unhandled exception
 - **THEN** one `validation` event is recorded with outcome `server_error`, and the client gets a 500
+
+#### Scenario: The removed analysis route records nothing
+
+- **WHEN** a client posts an analysis body to `/deforestation_analysis/analize`, which answers 404
+- **THEN** no `analysis` event is recorded
