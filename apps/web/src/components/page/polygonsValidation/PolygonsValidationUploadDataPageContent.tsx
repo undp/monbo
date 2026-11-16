@@ -25,6 +25,7 @@ import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeader
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
 import { FarmRow } from "@/interfaces/FarmRow";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -147,6 +148,7 @@ export function PolygonsValidationUploadDataPageContent() {
       <TextHeaderStepContainer
         title={t("polygonValidation:uploadDataPage:uploadStep:stepTitle")}
         subtitle={t("common:farmsUpload:intro")}
+        icon={<FileUploadOutlinedIcon />}
         sx={{ flexGrow: 1 }}
       >
         <FarmsUploadStep

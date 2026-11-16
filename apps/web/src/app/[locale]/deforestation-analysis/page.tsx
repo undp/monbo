@@ -16,8 +16,10 @@ import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHom
 import { ResultsMapSelector } from "@/components/page/deforestationAnalysis/ResultsMapSelector";
 import { DownloadPageData } from "@/components/page/deforestationAnalysis/DownloadPageData";
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
+import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
+import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
-const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
+const namespaces = ["common", "deforestationAnalysis", "reportGeneration", "flow"];
 
 interface SearchParams {
   view: "table" | "map";
@@ -45,21 +47,22 @@ export default async function DeforestationAnalysis({
         <Box
           sx={{
             padding: 3,
-            paddingBottom: 11,
             display: "flex",
             flexDirection: "column",
             gap: 2,
-            height: "calc(100vh - 64px)",
           }}
         >
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: "flex-end",
             }}
           >
-            <PageTitle />
+            <Box>
+              <StageEyebrow />
+              <PageTitle />
+            </Box>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               {selectedView === "table" && (
                 <Suspense>
@@ -92,12 +95,12 @@ export default async function DeforestationAnalysis({
             </Box>
           </Box>
           <SectionBackground
-            sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300, padding: 0 }}
+            sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT, padding: 0 }}
           >
             {selectedView == "map" ? <MapView /> : <DeforestationResultsTable />}
           </SectionBackground>
+          <PageFooter />
         </Box>
-        <PageFooter />
       </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );

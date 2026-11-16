@@ -1,0 +1,36 @@
+{
+  "header": {
+    "analysisIn": "Analysis in",
+    "changeCountry": "Change country",
+    "freeNote": "Free · your polygons are not stored on our servers"
+  },
+  "stepper": {
+    "label": "Analysis stages",
+    "stages": {
+      "1": "Validation",
+      "2": "Territorial analysis",
+      "3": "Report"
+    },
+    "states": {
+      "current": "You are here",
+      "done": "Completed",
+      "direct": "You can go straight there",
+      "available": "Available",
+      "skipped": "Not done · optional",
+      "locked": "With the results of stage 2"
+    }
+  },
+  "stageOf": "Stage {{stage}} of 3",
+  "nextStage": {
+    "eyebrow": "Next stage",
+    "continue": "Continue",
+    "analysis": {
+      "title": "Territorial analysis",
+      "description": "Cross your polygons with the layers available for {{country}}."
+    },
+    "report": {
+      "title": "Report",
+      "description": "Choose the polygons and download the report for your due diligence."
+    }
+  }
+}

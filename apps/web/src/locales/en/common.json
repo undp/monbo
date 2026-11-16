@@ -2,9 +2,6 @@
   "validatedManually": "Validated manually",
   "header": {
     "home": "Home",
-    "validation": "Polygon Validation",
-    "deforestation": "Deforestation Analysis",
-    "report": "Report Generation",
     "documentation": "Documentation",
     "admin": {
       "layers": "Layers",

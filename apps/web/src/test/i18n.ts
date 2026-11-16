@@ -9,6 +9,7 @@ const NAMESPACES = [
   "reportGeneration",
   "admin",
   "manualFarm",
+  "flow",
 ];
 
 export type TestLocale = "es" | "en";

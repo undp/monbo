@@ -2,9 +2,6 @@
   "validatedManually": "Validado manualmente",
   "header": {
     "home": "Inicio",
-    "validation": "Validación polígonos",
-    "deforestation": "Análisis deforestación",
-    "report": "Generación reporte",
     "documentation": "Documentación",
     "admin": {
       "layers": "Capas",

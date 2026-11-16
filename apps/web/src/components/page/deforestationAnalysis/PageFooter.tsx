@@ -1,26 +1,17 @@
 "use client";
 
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
-import { Footer } from "@/components/reusable/Footer";
-import { Box, Button } from "@mui/material";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MapSelectionModal } from "./MapSelectionModal";
 import { useRouter } from "next/navigation";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
+import { NextStageCard } from "@/components/page/flow/NextStageCard";
+import { MapSelectionModal } from "./MapSelectionModal";
 
+/** Closes stage 2: the card to the report, through the report layer modal. */
 export function PageFooter() {
   const { t } = useTranslation();
   const router = useRouter();
 
   const [isMapSelectionModalOpen, setIsMapSelectionModalOpen] = useState(false);
-
-  const handleOpenMapSelectionModal = () => {
-    setIsMapSelectionModalOpen(true);
-  };
-  const handleCloseMapSelectionModal = () => {
-    setIsMapSelectionModalOpen(false);
-  };
 
   const handleContinue = useCallback(() => {
     router.push("/report-generation");
@@ -28,25 +19,15 @@ export function PageFooter() {
 
   return (
     <>
-      <Footer>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="contained" onClick={handleOpenMapSelectionModal}>
-              {t("deforestationAnalysis:buttons:createReport")}
-            </Button>
-          </Box>
-        </Box>
-      </Footer>
+      <NextStageCard
+        stage={3}
+        title={t("flow:nextStage.report.title")}
+        description={t("flow:nextStage.report.description")}
+        onContinue={() => setIsMapSelectionModalOpen(true)}
+      />
       <MapSelectionModal
         isOpen={isMapSelectionModalOpen}
-        handleClose={handleCloseMapSelectionModal}
+        handleClose={() => setIsMapSelectionModalOpen(false)}
         handleContinue={handleContinue}
       />
     </>

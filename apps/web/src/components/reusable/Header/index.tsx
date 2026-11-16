@@ -54,16 +54,8 @@ export const Header = async ({ locale }: HeaderProps) => {
             </Link>
             <Box sx={{ display: "flex", gap: 2 }}>
               <HeaderNavigation>
+                {/* The flow's stages are reached from the stepper, not from here. */}
                 <HeaderButton path="/">{t("home:header:home")}</HeaderButton>
-                <HeaderButton path="/polygons-validation">
-                  {t("home:header:validation")}
-                </HeaderButton>
-                <HeaderButton path="/deforestation-analysis">
-                  {t("home:header:deforestation")}
-                </HeaderButton>
-                <HeaderButton path="/report-generation">
-                  {t("home:header:report")}
-                </HeaderButton>
                 <CountryMenu />
               </HeaderNavigation>
               <DocumentationButton />

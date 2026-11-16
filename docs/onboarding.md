@@ -57,6 +57,16 @@ The Azure resources, how the API reads the rasters and how the per-country admin
 
 The 3 modules are **not a rigid wizard**: `/home` shows 3 cards, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`apps/web/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
+Every page of the three modules shows the **flow header** (`components/page/flow/`, rendered by each module's `layout.tsx`):
+- the analysis country, with a "Change country" link to the landing page;
+- a stepper through the stages: Validación → Análisis territorial → Reporte.
+
+Each stage's state is a pure function of the route and `DataContext` (`utils/flowStages.ts`):
+- stage 2 can always be opened, even without validating first;
+- stage 3 needs analysis results.
+
+The results pages of modules 1 and 2 end with a "Next stage" card. It opens the modal that moves to the next stage: the polygon subset and layers for module 2, and the report layers for module 3. The application header has no module buttons.
+
 **Module 1 — Validation**
 1. The upload step (`components/page/uploadData/`, shared by modules 1 and 2) offers four ways to bring the farms, one card each, and builds **one list of sources** from any mix of them (`useUploadSources` + `utils/uploadSources.ts`):
    - **Excel template** (`public/files/m1-upload-file-template-{en,es}.xlsx`), with each farm's coordinates in a cell. The frontend reads it with `exceljs`/`xlsx` and validates the required columns (`utils/excel.ts`).
