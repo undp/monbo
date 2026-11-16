@@ -1,6 +1,6 @@
 ## 1. Classification module
 
-- [x] 1.1 Create `apps/web/src/utils/layerResults.ts` with `Polarity`, `ClassificationRule`, `ResultClass`, `findingRatio`, `classifyResult` (rounded percent comparison of design D3, `null`/`undefined` → `unknown`), `deforestationRule()` and `countResults`
+- [x] 1.1 Create `apps/web/src/utils/layerResults.ts` with `Polarity`, `ClassificationRule`, `ResultClass`, `findingRatio`, `classifyResult` (percent comparison tolerant only of floating-point rounding, design D3, `null`/`undefined` → `unknown`), `deforestationRule()` and `countResults`
 - [x] 1.2 Add `groupFarmsByResult(farms, mapResults, rule)` to the module, returning the farms per class for one layer
 - [x] 1.3 Write `utils/layerResults.test.ts`: both polarities, a value exactly on the threshold for each polarity, threshold 0, `null` and missing results, the default rule reading `GET /config`, and the grouping helper
 
