@@ -49,7 +49,7 @@ Una finca queda **sin resultado (N/D)**, en lugar de 0%, cuando no se puede medi
 - está completamente fuera de la zona que cubre la capa;
 - la capa no se pudo leer en ese momento.
 
-En el mapa del análisis aparece, por ahora, en la pestaña **Libre Def.** con N/D. No es un resultado libre de deforestación: no se pudo medir.
+En el mapa del análisis aparece en su propia pestaña, **Sin dato**, con N/D, y no suma en el contador de libres. No es un resultado libre de deforestación: no se pudo medir.
 
 :::details[Más detalle: la fórmula de Gauss paso a paso]
 El trozo de 300 m² del ejemplo tiene sus esquinas en (0, 0), (30, 0), (30, 5) y (0, 15), en metros. Cada lado aporta un término:

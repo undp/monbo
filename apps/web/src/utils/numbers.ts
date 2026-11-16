@@ -2,10 +2,8 @@ import {
   getDeforestationThreshold,
   getOverlapThreshold,
 } from "@/config/runtime";
-import {
-  isDeforestationAboveThreshold,
-  isOverlapAboveThreshold,
-} from "./deforestation";
+import { isOverlapAboveThreshold } from "./deforestation";
+import { classifyResult, deforestationRule } from "./layerResults";
 
 const languageLocale = {
   es: "es-CL",
@@ -188,7 +186,7 @@ export const formatDeforestationPercentage = (
   }
 
   // Threshold defined by user, so we use it for displaying deforestation
-  if (!isDeforestationAboveThreshold(value))
+  if (classifyResult(value, deforestationRule()) === "ok")
     return formattedBelowThreshold(getDeforestationThreshold(), language);
 
   return formatPercentage(value, deforestationDecimalPlaces(), language);

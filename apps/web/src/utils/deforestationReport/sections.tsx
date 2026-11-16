@@ -11,11 +11,12 @@ import {
   Image as ImagePDF,
   Styles,
 } from "@react-pdf/renderer";
-import { formatPercentage } from "../numbers";
 import {
-  getDeforestationPercentageChipBackgroundColor,
   getDeforestationPercentageChipColor,
+  resultClassBackgroundColor,
+  resultClassColor,
 } from "../styling";
+import { deforestationResultReportText } from "../resultLabels";
 import { upperCase, map } from "lodash";
 import { TFunction } from "i18next";
 import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "../geojson";
@@ -141,15 +142,11 @@ export const FarmMapPage = ({
   // If the deforestation percentage is null, return null to avoid rendering the page
   if (deforestationPercentage === null) return null;
 
-  // Format the deforestation text based on its value
-  const deforestationText =
-    deforestationPercentage === null
-      ? t("common:na")
-      : deforestationPercentage > 0
-      ? `${formatPercentage(deforestationPercentage, 1, language)} ${t(
-          "reportGeneration:words:deforestation"
-        ).toUpperCase()}`
-      : upperCase(t("reportGeneration:phrases:deforestationFree"));
+  const deforestationText = deforestationResultReportText(
+    deforestationPercentage,
+    t,
+    language
+  );
 
   const deforestationColor = getDeforestationPercentageChipColor(
     deforestationPercentage
@@ -420,13 +417,12 @@ interface Segment {
 }
 
 export const DeforestationExplanationPage = ({ t }: { t: TFunction }) => {
-  const withoutDeforestationColor = getDeforestationPercentageChipColor(0);
-  const withDeforestationColor = getDeforestationPercentageChipColor(1);
+  const withoutDeforestationColor = resultClassColor("ok");
+  const withDeforestationColor = resultClassColor("flagged");
 
-  const withoutDeforestationBackgroundColor =
-    getDeforestationPercentageChipBackgroundColor(0);
+  const withoutDeforestationBackgroundColor = resultClassBackgroundColor("ok");
   const withDeforestationBackgroundColor =
-    getDeforestationPercentageChipBackgroundColor(1);
+    resultClassBackgroundColor("flagged");
 
   return (
     <Page size="A4" style={styles.appendixPage}>

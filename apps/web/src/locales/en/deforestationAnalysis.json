@@ -21,6 +21,7 @@
     }
   },
   "deforestationFreeShortText": "Def. Free",
+  "noDataShortText": "No data",
   "deforestationFreeLongText": "Deforestation Free",
   "withDeforestation": "Deforested",
   "map": "Map",
