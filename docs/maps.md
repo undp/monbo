@@ -215,7 +215,7 @@ rolling back**:
   whose category is not `deforestation`** in the admin.
 - It only knows the global `DEFORESTATION_THRESHOLD_PERCENTAGE`. A country that stores
   its own `deforestation` with a `threshold_percentage` goes back to the global
-  threshold: **note it in the release notes**, or set the global value accordingly.
+  threshold, which applies to every country: **note it in the release notes**.
 - It doesn't hide layers because of their category. Layers hidden today by a disabled
   or broken category (`category_issue`) are published again: **hide them in the admin
   first**.

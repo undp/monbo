@@ -235,8 +235,11 @@ class LayerStore:
         if message != self._categories_read_error:
             logger.error("Cannot read categories at '%s': %s", path, error)
             self._categories_read_error = message
+        # `errors` may reach the country's admin: only the cause, never the share's
+        # path (the log above has it).
         return CategoriesFile(
-            readable=False, errors=[f"{CATEGORIES_FILENAME} can't be read: {message}"]
+            readable=False,
+            errors=[f"{CATEGORIES_FILENAME} can't be read: {error.strerror or error}"],
         )
 
     def read_attributes(self, filename: str, language: str) -> dict | None:

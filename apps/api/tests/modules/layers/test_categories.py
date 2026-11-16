@@ -292,9 +292,12 @@ def test_a_persistent_read_error_is_logged_once(co, caplog):
 
     with caplog.at_level(logging.ERROR):
         for _ in range(3):
-            assert co.store("CO").read_categories().readable is False
+            categories = co.store("CO").read_categories()
+            assert categories.readable is False
 
     assert caplog.text.count("Cannot read categories") == 1
+    # The errors may reach the admin: the cause, never the share's path.
+    assert all(str(co.root) not in error for error in categories.errors)
 
 
 def test_write_categories_refreshes_the_cache(co):
