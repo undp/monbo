@@ -100,9 +100,11 @@ Results that were invalidated because a layer changed SHALL NOT count as analysi
 
 ### Requirement: Stage 2 is never blocked and stage 3 needs results
 
-Stages 1 and 2 SHALL always be pressable. Stage 3 SHALL be pressable only when analysis results
-exist; without them it SHALL NOT be a control and SHALL say "Con los resultados de la etapa 2".
-Pressing a stage SHALL go to:
+Stages 1 and 2 SHALL always be pressable from another stage. Stage 3 SHALL be pressable only when
+analysis results exist; without them it SHALL NOT be a control and SHALL say "Con los resultados de
+la etapa 2". The current stage SHALL NOT be a control: it opens no dialog and goes nowhere. That
+keeps the analysis modal from reopening over stage 2 while its analysis runs or after it fails,
+where closing it would reset the polygon subset. Pressing another stage SHALL go to:
 - stage 1: `/polygons-validation` when validation results exist, `/polygons-validation/upload-data`
   otherwise;
 - stage 2: `/deforestation-analysis` when analysis results exist. When validation results exist
@@ -120,6 +122,12 @@ analysis covers, so no analysis runs with a polygon subset the user didn't choos
 Uploading farms on the stage 2 upload page SHALL drop the validation results of the farms loaded
 before: they don't describe the new farms. Stage 1 then shows "Sin realizar · opcional", and no
 new farm is hidden as invalid.
+
+Known path, out of this change's scope: the browser's back button can return to
+`/deforestation-analysis/upload-data` after a validation and before an analysis without going
+through the analysis modal. That page then starts the analysis, or offers to, with whatever
+polygon subset was left, so `"valid"` by default. It predates this change, the farms are the same
+ones, and the page belongs to GC-6 (undp/monbo#122), which tracks it.
 
 The current stage SHALL be marked as the current step for assistive technologies.
 
@@ -144,6 +152,17 @@ The current stage SHALL be marked as the current step for assistive technologies
 - **WHEN** the polygons of one file were validated and the user uploads another file on the stage 2
   upload page
 - **THEN** the earlier validation results are dropped and stage 1 shows "Sin realizar · opcional"
+
+#### Scenario: Stage 2 pressed on stage 2
+
+- **WHEN** the user is on `/deforestation-analysis/upload-data` after a validation, before an
+  analysis, for example while the analysis runs or after it failed
+- **THEN** stage 2 is marked as the current step, is not a control, and no dialog opens
+
+#### Scenario: Stage 3 pressed on the report
+
+- **WHEN** the user is on `/report-generation` with no farm chosen for the report
+- **THEN** stage 3 is marked as the current step, is not a control, and no dialog opens
 
 #### Scenario: Stage 3 from the stepper
 

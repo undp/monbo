@@ -55,3 +55,10 @@
 - [x] 8.4 The report preview leaves room for the flow header and the fixed footer
 - [x] 8.5 "Análisis en {país}" built with `<Trans>` and `{{country}}`
 - [x] 8.6 Spec: the stage 2 modal, the new-upload rule, the stage 3 conditions, and the phone-width scenario limited to the flow header
+
+## 9. Re-review fixes (PR #133)
+
+- [x] 9.1 `stageAction` takes the current stage: the current stage returns `none`, opens no dialog and isn't rendered as a control
+- [x] 9.2 The report layer modal closes when "Continue" is pressed
+- [x] 9.3 Tests for stage 2 pressed on stage 2 and stage 3 pressed on the report (`flowStages.test.ts`, `FlowHeader.test.tsx`)
+- [x] 9.4 Spec notes the browser back-button path as known and left to GC-6; pending item posted on undp/monbo#116

@@ -93,6 +93,16 @@ an analysis or a report covers. `stageAction` (`utils/flowStages.ts`) decides wh
 
 Both modals read only `DataContext`, so the stepper can host them.
 
+The modals open only when the press comes from another stage. The current stage isn't a control,
+and `stageAction` returns `none` for it. On stage 2 the analysis modal would reopen over the page
+while the analysis runs or after it fails, and its `onAfterClose` resets `polygonsSubset` to
+`null`. On the report, the report modal would push to the URL the user is already on.
+The report modal also closes when its "Continue" is pressed.
+
+The browser's back button can still reach the stage 2 upload page after a validation without the
+modal. That path predates this change, and GC-6 owns that page, so it is left to GC-6 and noted
+in the spec.
+
 A new upload on the stage 2 upload page drops `polygonsValidationResults`. The results described
 the farms loaded before, and `useVisibleDataForDeforestationPage` would otherwise filter the new
 farms by `id` against them. That page is GC-6's, so this unit changes one line there.

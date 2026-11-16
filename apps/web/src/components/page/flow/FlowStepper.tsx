@@ -100,7 +100,7 @@ const ProgressBar: React.FC<{ value: number; delay: number }> = ({ value, delay 
 export const FlowStepper: React.FC = () => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { stages, progress, flags } = useFlowStages();
+  const { current, stages, progress, flags } = useFlowStages();
   const {
     reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
     deforestationAnalysisParams: { selectedMaps: analysisMaps },
@@ -115,16 +115,17 @@ export const FlowStepper: React.FC = () => {
 
   const openStage = useCallback(
     (stage: FlowStage) => {
-      const action = stageAction(stage, flags, {
+      const action = stageAction(stage, current, flags, {
         reportMapIds: reportMaps.map(({ id }) => id),
         analysisMapIds: analysisMaps.map(({ id }) => id),
         selectedFarmsCount: reportFarms.length,
       });
       if (action === "analysisModal") setAnalysisModalOpen(true);
       else if (action === "reportModal") setReportModalOpen(true);
-      else router.push(localizedPath(stageHref(stage, flags), i18n.language));
+      else if (action === "navigate")
+        router.push(localizedPath(stageHref(stage, flags), i18n.language));
     },
-    [flags, reportMaps, analysisMaps, reportFarms.length, router, i18n.language]
+    [current, flags, reportMaps, analysisMaps, reportFarms.length, router, i18n.language]
   );
 
   return (
@@ -194,11 +195,17 @@ export const FlowStepper: React.FC = () => {
                     [REDUCED_MOTION]: { animation: "none" },
                   }}
                 >
-                  {state === "locked" ? (
-                    <Box sx={itemSx}>{content}</Box>
+                  {/* The current stage is where the user is, and a locked stage 3
+                      can't be opened: neither is a control. */}
+                  {state === "locked" || state === "current" ? (
+                    <Box
+                      sx={itemSx}
+                      aria-current={state === "current" ? "step" : undefined}
+                    >
+                      {content}
+                    </Box>
                   ) : (
                     <ButtonBase
-                      aria-current={state === "current" ? "step" : undefined}
                       onClick={() => openStage(stage)}
                       sx={{
                         ...itemSx,
@@ -224,7 +231,10 @@ export const FlowStepper: React.FC = () => {
       <MapSelectionModal
         isOpen={reportModalOpen}
         handleClose={() => setReportModalOpen(false)}
-        handleContinue={goToReport}
+        handleContinue={() => {
+          setReportModalOpen(false);
+          goToReport();
+        }}
       />
     </>
   );

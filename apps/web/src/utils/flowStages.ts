@@ -134,20 +134,27 @@ export const isReportSelectionReady = ({
 
 /**
  * What pressing a stage does:
- * - `analysisModal`: stage 2 after a validation and before an analysis opens the
- *   analysis modal, where the polygon subset and the layers are chosen, as the
- *   stage 1 card does. Stage 2 stays open to everyone (D5).
- * - `reportModal`: stage 3 opens the report layer modal unless the report's
- *   choices are ready.
+ * - `none`: the current stage. It is the page the user is on, so it opens no
+ *   dialog and goes nowhere; the stepper doesn't render it as a control. On
+ *   stage 2 that matters: while the analysis runs or after it fails, the analysis
+ *   modal would reopen over the page, and closing it resets the polygon subset.
+ * - `analysisModal`: stage 2, pressed from another stage after a validation and
+ *   before an analysis, opens the analysis modal, where the polygon subset and
+ *   the layers are chosen, as the stage 1 card does. Stage 2 stays open to
+ *   everyone (D5).
+ * - `reportModal`: stage 3, pressed from another stage, opens the report layer
+ *   modal unless the report's choices are ready.
  * - `navigate`: anything else goes to `stageHref`.
  */
-export type StageAction = "navigate" | "analysisModal" | "reportModal";
+export type StageAction = "none" | "navigate" | "analysisModal" | "reportModal";
 
 export const stageAction = (
   stage: FlowStage,
+  current: FlowStage | null,
   { validationDone, analysisDone }: FlowFlags,
   reportSelection: ReportSelection
 ): StageAction => {
+  if (stage === current) return "none";
   if (stage === 2 && validationDone && !analysisDone) return "analysisModal";
   if (stage === 3 && !isReportSelectionReady(reportSelection)) return "reportModal";
   return "navigate";

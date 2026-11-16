@@ -60,9 +60,11 @@ describe("FlowHeader", () => {
       "2Análisis territorialPuedes ir directo",
       "3ReporteCon los resultados de la etapa 2",
     ]);
-    expect(
-      screen.getByRole("button", { name: /Validación/ }).getAttribute("aria-current")
-    ).toBe("step");
+    // The current stage is marked, and isn't a control.
+    expect(screen.queryByRole("button", { name: /Validación/ })).toBeNull();
+    expect(stepper().querySelector('[aria-current="step"]')?.textContent).toBe(
+      "1ValidaciónEstás aquí"
+    );
   });
 
   it("direct entry to stage 2: stage 1 is optional and stage 3 can't be pressed", async () => {
@@ -108,6 +110,30 @@ describe("FlowHeader", () => {
     expect(router.push).not.toHaveBeenCalled();
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Selecciona los polígonos a considerar")).toBeTruthy();
+  });
+
+  it("on stage 2 itself, the stage opens no dialog, even after a validation", async () => {
+    // As while the analysis runs, or after it failed, back on the form.
+    await renderHeader("/deforestation-analysis/upload-data", {
+      polygonsValidationResults: makeValidationResults({}),
+      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [makeMap()] },
+    });
+
+    expect(screen.queryByRole("button", { name: /Análisis territorial/ })).toBeNull();
+    fireEvent.click(screen.getByText("Análisis territorial"));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("on the report itself, the stage opens no dialog without chosen farms", async () => {
+    await renderHeader("/report-generation", ANALYZED);
+
+    expect(screen.queryByRole("button", { name: /Reporte/ })).toBeNull();
+    fireEvent.click(screen.getByText("Reporte"));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("keeps the language prefix", async () => {
