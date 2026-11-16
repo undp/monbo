@@ -11,7 +11,9 @@ export function proxy(request: NextRequest) {
   const home = request.nextUrl.pathname.match(HOME);
   if (home) {
     const url = request.nextUrl.clone();
-    url.pathname = home[1] ?? "/";
+    // The default locale has no prefix: /es/home goes straight to /.
+    url.pathname =
+      home[1] && home[1] !== `/${i18nConfig.defaultLocale}` ? home[1] : "/";
     return NextResponse.redirect(url);
   }
   return i18nRouter(request, i18nConfig);

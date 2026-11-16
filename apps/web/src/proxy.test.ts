@@ -14,7 +14,7 @@ describe("proxy", () => {
   it.each([
     ["/home", "/"],
     ["/home/", "/"],
-    ["/es/home", "/es"],
+    ["/es/home", "/"],
     ["/en/home", "/en"],
   ])("redirects %s to the start page (%s)", (path, target) => {
     const response = proxy(request(path));

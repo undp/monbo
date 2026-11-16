@@ -41,4 +41,5 @@ Then, for each language:
 5. Press "Generar reporte" and then "Descargar" (one PDF with every polygon).
 6. Save the file as `es/ejemplo-reporte.pdf` (or `en/example-report.pdf`).
 7. Check that no farm map has a satellite photo behind it (they show a plain dark
-   green background).
+   green background). The caption under each map still mentions Google Maps
+   imagery until GC-7 shows it only with the satellite background (#116).
