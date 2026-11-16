@@ -192,6 +192,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Categories
+         * @description A country's enabled layer categories: the built-in "deforestation" first (unless
+         *     the country stores its own), then the country's in the order it keeps them.
+         *     Texts come in every language. `thresholdPercentage` is already resolved (the
+         *     category's own, or the global threshold). An unknown or disabled country gets an
+         *     empty list. Categories that fail validation are left out, and so are their
+         *     layers in `GET /maps`.
+         */
+        get: operations["get_categories_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config": {
         parameters: {
             query?: never;
@@ -467,7 +492,8 @@ export interface paths {
          *
          *     This endpoint reads the maps index file and their corresponding metadata
          *     files to return detailed information about each enabled map layer. Disabled
-         *     layers are left out here but remain usable by id for analysis and tiles.
+         *     layers, and layers whose category is disabled or doesn't resolve, are left out
+         *     here but remain usable by id for analysis and tiles.
          *
          *     Args:
          *         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -482,8 +508,9 @@ export interface paths {
          *           the country
          *         - name: Complete name of the layer (e.g., "Global Forest Watch")
          *         - alias: Short name or reference (e.g., "GFW 2020-2023")
-         *         - baseline: Base year for comparison
-         *         - comparedAgainst: Final year for comparison
+         *         - baseline: Base year for comparison (None for layers without years, in
+         *           categories that are not temporal)
+         *         - comparedAgainst: Final year for comparison (None likewise)
          *         - coverage: Geographic coverage of the layer
          *         - source: Origin of the layer data
          *         - resolution: Spatial resolution (e.g., "30 x 30 meters")
@@ -498,6 +525,8 @@ export interface paths {
          *         - availableCountriesCodes: The layer's country, as a one-element list of
          *           ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
          *           layer lists)
+         *         - categoryId: The id of the layer's category in its country (see
+         *           `GET /categories`)
          *         - version: Raster version, incremented on every raster replacement (the
          *           frontend appends it to tile URLs to bypass cached tiles)
          *         - pixelSize: Nominal pixel size in meters, used by the analysis formula
@@ -608,6 +637,8 @@ export interface components {
             availableCountriesCodes: string[];
             /** Baseline */
             baseline: number | null;
+            /** Categoryid */
+            categoryId: string;
             /** Comparedagainst */
             comparedAgainst: number | null;
             /** Considerations */
@@ -1028,6 +1059,43 @@ export interface components {
             /** Updatefrequency */
             updateFrequency?: string | null;
         };
+        /** LayerCategory */
+        LayerCategory: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description: components["schemas"]["LocalizedText"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            /**
+             * Id
+             * @description Stable slug, unique in its country, never reused
+             */
+            id: string;
+            name: components["schemas"]["LocalizedText"];
+            /**
+             * Polarity
+             * @description `avoid`: the finding is `value` (coinciding with the layer is a finding). `required`: the finding is `1 - value` (not coinciding is a finding).
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["ResultLabels"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description A farm has findings when 100 × finding > thresholdPercentage. Already resolved: the category's own threshold, or the global one.
+             */
+            thresholdPercentage: number;
+        };
         /**
          * LayerInput
          * @description Body of `POST /admin/layers` and `PUT /admin/layers/{id}`.
@@ -1070,6 +1138,13 @@ export interface components {
             en?: string | null;
             /** Es */
             es?: string | null;
+        };
+        /** LocalizedText */
+        LocalizedText: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
         };
         /** LoginBody */
         LoginBody: {
@@ -1196,6 +1271,13 @@ export interface components {
             requested: number;
             /** Requestedsessions */
             requestedSessions: number;
+        };
+        /** ResultLabels */
+        ResultLabels: {
+            /** @description Result with findings */
+            flagged: components["schemas"]["LocalizedText"];
+            /** @description Result without findings */
+            ok: components["schemas"]["LocalizedText"];
         };
         /** SessionData */
         SessionData: {
@@ -1684,6 +1766,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotConfiguredResponse"];
+                };
+            };
+        };
+    };
+    get_categories_categories_get: {
+        parameters: {
+            query: {
+                country: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerCategory"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

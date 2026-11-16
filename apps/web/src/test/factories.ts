@@ -96,6 +96,7 @@ export const makeMap = (overrides: Partial<MapData> = {}): MapData => ({
   alias: "GFW",
   availableCountriesCodes: ["CR"],
   baseline: 2020,
+  categoryId: "deforestation",
   comparedAgainst: 2023,
   considerations: null,
   contentDate: null,

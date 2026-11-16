@@ -202,6 +202,10 @@
             ],
             "title": "Baseline"
           },
+          "categoryId": {
+            "title": "Categoryid",
+            "type": "string"
+          },
           "comparedAgainst": {
             "anyOf": [
               {
@@ -348,6 +352,7 @@
           "considerations",
           "availableCountriesCodes",
           "country",
+          "categoryId",
           "version",
           "pixelSize"
         ],
@@ -1474,6 +1479,75 @@
         "title": "LayerAttributes",
         "type": "object"
       },
+      "LayerCategory": {
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable slug, unique in its country, never reused",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "polarity": {
+            "description": "`avoid`: the finding is `value` (coinciding with the layer is a finding). `required`: the finding is `1 - value` (not coinciding is a finding).",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/ResultLabels"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "description": "A farm has findings when 100 × finding > thresholdPercentage. Already resolved: the category's own threshold, or the global one.",
+            "title": "Thresholdpercentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "icon",
+          "color",
+          "polarity",
+          "thresholdPercentage",
+          "resultLabels",
+          "temporal"
+        ],
+        "title": "LayerCategory",
+        "type": "object"
+      },
       "LayerInput": {
         "additionalProperties": false,
         "description": "Body of `POST /admin/layers` and `PUT /admin/layers/{id}`.",
@@ -1594,6 +1668,24 @@
           }
         },
         "title": "LocalizedConsiderations",
+        "type": "object"
+      },
+      "LocalizedText": {
+        "properties": {
+          "en": {
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "LocalizedText",
         "type": "object"
       },
       "LoginBody": {
@@ -1956,6 +2048,24 @@
           "farmsDownloaded"
         ],
         "title": "ReportsUsage",
+        "type": "object"
+      },
+      "ResultLabels": {
+        "properties": {
+          "flagged": {
+            "$ref": "#/components/schemas/LocalizedText",
+            "description": "Result with findings"
+          },
+          "ok": {
+            "$ref": "#/components/schemas/LocalizedText",
+            "description": "Result without findings"
+          }
+        },
+        "required": [
+          "ok",
+          "flagged"
+        ],
+        "title": "ResultLabels",
         "type": "object"
       },
       "SessionData": {
@@ -2900,6 +3010,54 @@
         ]
       }
     },
+    "/categories": {
+      "get": {
+        "description": "A country's enabled layer categories: the built-in \"deforestation\" first (unless\nthe country stores its own), then the country's in the order it keeps them.\nTexts come in every language. `thresholdPercentage` is already resolved (the\ncategory's own, or the global threshold). An unknown or disabled country gets an\nempty list. Categories that fail validation are left out, and so are their\nlayers in `GET /maps`.",
+        "operationId": "get_categories_categories_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LayerCategory"
+                  },
+                  "title": "Response Get Categories Categories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Categories",
+        "tags": [
+          "Maps Module"
+        ]
+      }
+    },
     "/config": {
       "get": {
         "description": "Product settings the frontend needs, owned by the API's environment so there is a\nsingle place to set them. The frontend loads them once at startup.",
@@ -3363,7 +3521,7 @@
     },
     "/maps": {
       "get": {
-        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers are left out here but remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison\n    - comparedAgainst: Final year for comparison\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
+        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers, and layers whose category is disabled or doesn't resolve, are left out\nhere but remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison (None for layers without years, in\n      categories that are not temporal)\n    - comparedAgainst: Final year for comparison (None likewise)\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - categoryId: The id of the layer's category in its country (see\n      `GET /categories`)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
         "operationId": "get_maps_maps_get",
         "parameters": [
           {

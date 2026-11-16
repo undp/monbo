@@ -40,6 +40,10 @@ MAPS_MOCK_DATA = [
         "enabled": True,
         "version": 2,
         "pixel_size": 30,
+        # Tags added by LayersRoot when it resolves each layer's category.
+        "category_id": "deforestation",
+        "category_issue": None,
+        "category_enabled": True,
     },
     {
         "id": 1,
@@ -52,6 +56,9 @@ MAPS_MOCK_DATA = [
         "enabled": False,
         "version": 1,
         "pixel_size": 30,
+        "category_id": "deforestation",
+        "category_issue": None,
+        "category_enabled": True,
     },
 ]
 
@@ -102,6 +109,7 @@ EXPECTED_MAPS_DATA = [
         "considerations": CONSIDERATIONS_MOCK_DATA,
         "availableCountriesCodes": ["EC", "CO", "CR"],
         "country": None,  # the legacy flat layout
+        "categoryId": "deforestation",
         "version": 2,
         "pixelSize": 30,
     }

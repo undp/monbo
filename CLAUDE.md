@@ -117,6 +117,9 @@ A new or changed layer touches these together:
 
 - its entry in `app/maps/index.json`: a unique `id`, `pixel_size` in meters, `baseline`,
   `compared_against` and ISO 3166-1 alpha-2 `available_countries_codes`;
+- its category: `category_id` (missing means `deforestation`, the only category of the
+  flat layout) must name a category of its country (`<CC>/categories.json` in the
+  per-country layout), or the layer is hidden from the public app;
 - the raster, as an LFS file;
 - the attribute (`.json`) and consideration (`.md`) metadata in both
   `metadata/*/es/` and `metadata/*/en/`.
