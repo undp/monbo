@@ -224,6 +224,9 @@ pnpm test:watch   # re-runs the affected tests on save
     injected `DataContext` with the real translations. Its `wrapper` option mounts a
     provider inside that context, as the `ReportProvider` tests do;
   - `renderWithDataProvider`, which mounts the real `DataProvider`;
+  - `renderLanding`, which renders a start page component with the app's theme and
+    translations, the countries CO, CR and EC, and a selected country held in real
+    state;
   - `deferred`, to settle a mocked response when the test chooses;
   - `FakeWorker` / `installFakeWorker` and `stubObjectUrls`, for the browser APIs
     jsdom lacks;
@@ -234,9 +237,11 @@ pnpm test:watch   # re-runs the affected tests on save
   - en/es translation parity;
   - the hooks that read `DataContext`;
   - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
-  - the PDF worker client.
+  - the PDF worker client;
+  - the start page (`components/page/landing/`) and the header's navigation, brand
+    and country menu.
 
-  The PDF rendering itself (`reportPdf.worker.tsx`) and the components aren't
+  The PDF rendering itself (`reportPdf.worker.tsx`) and the other components aren't
   covered.
 - **What is replaced** (`src/test/setup.ts`): `next/navigation` (a shared router whose
   methods are spies; `setSearchParams` and `setParams` control what the hooks read),

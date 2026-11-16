@@ -59,7 +59,11 @@ export const LanguageMenu: React.FC = ({}) => {
 
   return (
     <>
-      <IconButton sx={{ color: "#3A3541" }} onClick={handleOpen}>
+      <IconButton
+        aria-label={t("common:language:select")}
+        sx={{ color: "inherit" }}
+        onClick={handleOpen}
+      >
         <LanguageIcon />
       </IconButton>
       <Popover

@@ -265,7 +265,7 @@ sequenceDiagram
 ### 1. Finding the layers
 
 - **`GET /countries`**: the enabled countries with at least one enabled layer. The
-  landing page shows one card per country from it.
+  start page shows one country pill per country from it.
 - **`GET /maps?country=CO&language=es`**: Colombia's enabled layers, with their
   metadata in the requested language and their `version`.
 

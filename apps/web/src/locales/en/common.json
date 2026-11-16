@@ -2,12 +2,17 @@
   "validatedManually": "Validated manually",
   "header": {
     "home": "Home",
-    "documentation": "Documentation",
+    "analysis": "Analysis",
+    "methodology": "Methodology",
     "admin": {
       "layers": "Layers",
       "usage": "Usage",
       "navigation": "Admin"
-    }
+    },
+    "navigation": "Main navigation",
+    "menu": "Open the navigation menu",
+    "brandMark": "UNDP",
+    "logoLabel": "Monbo, by UNDP: go to the start page"
   },
   "language": {
     "select": "Language",
@@ -23,7 +28,6 @@
   "cancel": "Cancel",
   "close": "Close",
   "all": "All",
-  "step": "Step",
   "surface": "Area",
   "devWarning": "You are in a testing environment; the analyses may not be official.",
   "polygon": "Polygon",

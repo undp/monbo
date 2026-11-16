@@ -242,7 +242,7 @@ The admin shows and changes only that country's layers. Then:
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 
-A country appears on the app's landing map once it has at least one published layer
+A country appears on the app's start page once it has at least one published layer
 whose category is enabled and valid.
 
 GFW and TMF were migrated as one copy per country. The copies are independent: when a

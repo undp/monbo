@@ -1,11 +1,10 @@
 import initTranslations from "@/utils/i18n";
-import { AppBar, Toolbar, Box } from "@mui/material";
-import Image from "next/image";
-import Link from "next/link";
+import { Toolbar, Box } from "@mui/material";
 import React, { Suspense } from "react";
-import { HeaderButton } from "./HeaderButton";
+import { HeaderBar } from "./HeaderBar";
+import { HeaderBrand } from "./HeaderBrand";
 import { HeaderNavigation } from "./HeaderNavigation";
-import { DocumentationButton } from "./DocumentationButton";
+import { MainNavigation } from "./MainNavigation";
 
 import { LanguageMenu } from "../LanguageMenu";
 import { CountryMenu } from "../CountryMenu";
@@ -16,7 +15,7 @@ interface HeaderProps {
 }
 
 export const Header = async ({ locale }: HeaderProps) => {
-  const { t, resources } = await initTranslations(locale, ["common"]);
+  const { resources } = await initTranslations(locale, ["common"]);
 
   return (
     <TranslationsProvider
@@ -24,13 +23,7 @@ export const Header = async ({ locale }: HeaderProps) => {
       namespaces={["common"]}
       resources={resources}
     >
-      <AppBar
-        position="fixed"
-        sx={{
-          backgroundColor: "white",
-          color: "#3A3541",
-        }}
-      >
+      <HeaderBar>
         <Toolbar
           sx={{
             padding: "12px 16px",
@@ -40,32 +33,31 @@ export const Header = async ({ locale }: HeaderProps) => {
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-between",
+              alignItems: "center",
+              gap: { xs: 1, md: 2 },
               width: "100%",
             }}
           >
-            <Link href="/" style={{ height: 40 }}>
-              <Image
-                alt="logo"
-                src="/images/Logo.svg"
-                height={40}
-                width={188}
-              />
-            </Link>
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <HeaderBrand />
+            <MainNavigation />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                marginLeft: "auto",
+              }}
+            >
               <HeaderNavigation>
-                {/* The flow's stages are reached from the stepper, not from here. */}
-                <HeaderButton path="/">{t("home:header:home")}</HeaderButton>
                 <CountryMenu />
               </HeaderNavigation>
-              <DocumentationButton />
               <Suspense>
                 <LanguageMenu />
               </Suspense>
             </Box>
           </Box>
         </Toolbar>
-      </AppBar>
+      </HeaderBar>
     </TranslationsProvider>
   );
 };
