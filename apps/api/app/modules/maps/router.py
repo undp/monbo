@@ -5,14 +5,9 @@ from fastapi import APIRouter, Query
 from app.models.maps import COUNTRY_CODE_PATTERN, BaseMapData
 from app.modules.layers.store import get_layers_root, is_public_layer
 from app.modules.maps.helpers import get_all_maps
-from app.utils.maps import read_attributes, read_considerations
+from app.utils.maps import parse_year, read_attributes, read_considerations
 
 router = APIRouter()
-
-
-def _year(value) -> int | None:
-    """Years are stored as strings; layers without years have none (or null)."""
-    return int(value) if value else None
 
 
 @router.get("", response_model=list[BaseMapData])
@@ -88,8 +83,8 @@ def get_maps(
                 categoryId=map["category_id"],
                 name=attributes_dict.get("name") if attributes_dict else None,
                 alias=attributes_dict.get("alias") if attributes_dict else None,
-                baseline=_year(map.get("baseline")),
-                comparedAgainst=_year(map.get("compared_against")),
+                baseline=parse_year(map.get("baseline")),
+                comparedAgainst=parse_year(map.get("compared_against")),
                 coverage=attributes_dict.get("coverage") if attributes_dict else None,
                 source=attributes_dict.get("source") if attributes_dict else None,
                 resolution=(

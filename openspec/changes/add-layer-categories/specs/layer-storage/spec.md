@@ -57,6 +57,11 @@ Every write to `index.json`, to `categories.json`, or to a metadata file SHALL b
 - **WHEN** a country's `categories.json` is written while `GET /categories` is served for that country
 - **THEN** the request sees either the complete previous categories or the complete new ones
 
+#### Scenario: Category file rewritten in the same instant
+
+- **WHEN** the API writes a country's `categories.json` twice within the file system's timestamp resolution, and both versions have the same size
+- **THEN** the next read in that process returns the second version
+
 #### Scenario: Mount without chmod support
 
 - **WHEN** the maps root is an Azure Files mount where `chmod` is not permitted

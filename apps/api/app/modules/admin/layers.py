@@ -18,6 +18,7 @@ from app.modules.layers.processing import (
     raster_pixel_size_range_m,
 )
 from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, get_layers_root
+from app.utils.maps import parse_year
 
 from .auth import Session, logger, require_admin
 from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
@@ -39,10 +40,6 @@ def _position(index: list[dict], layer_id: int) -> int:
     raise HTTPException(status_code=404, detail="Layer not found")
 
 
-def _year(value) -> int | None:
-    return int(value) if value not in (None, "") else None
-
-
 def _to_admin_layer(store: LayerStore, entry: dict) -> AdminLayer:
     attributes = {}
     considerations = {}
@@ -57,8 +54,8 @@ def _to_admin_layer(store: LayerStore, entry: dict) -> AdminLayer:
     return AdminLayer(
         id=entry["id"],
         pixel_size=entry["pixel_size"],
-        baseline=_year(entry.get("baseline")),
-        compared_against=_year(entry.get("compared_against")),
+        baseline=parse_year(entry.get("baseline")),
+        compared_against=parse_year(entry.get("compared_against")),
         references=entry.get("references", []),
         enabled=entry["enabled"],
         version=entry["version"],

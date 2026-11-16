@@ -115,6 +115,9 @@ class LayerStore:
         self._lock = lock or threading.RLock()
         self._index_cache: tuple[tuple[int, int], list[dict]] | None = None
         self._categories_cache: tuple[tuple[int, int], CategoriesFile] | None = None
+        # The last I/O error logged for `categories.json`, so a persistent one is
+        # logged once instead of on every request (tiles included).
+        self._categories_read_error: str | None = None
 
     # --- Paths ---------------------------------------------------------------
 
@@ -191,27 +194,50 @@ class LayerStore:
 
     def read_categories(self) -> CategoriesFile:
         """The stored categories (`categories.json`), validated one by one. A missing
-        file is readable and empty. Cached while the file is unchanged, and each
-        problem is logged once per version of the file."""
+        file is readable and empty.
+
+        What the file holds (valid or not) is cached while the file is unchanged, and
+        each problem is logged once per version of the file. An I/O error is not
+        cached: it may be transient (SMB), so the next read retries. Until then the
+        file counts as unreadable."""
         with self._lock:
             path = self.categories_path
             try:
                 stat = path.stat()
             except FileNotFoundError:
                 self._categories_cache = None
+                self._categories_read_error = None
                 return CategoriesFile()
             except OSError as e:
-                logger.error("Cannot read categories at '%s': %s", path, e)
-                return CategoriesFile(
-                    readable=False, errors=[f"{CATEGORIES_FILENAME} can't be read"]
-                )
+                return self._categories_io_error(path, e)
             key = (stat.st_mtime_ns, stat.st_size)
             if self._categories_cache is None or self._categories_cache[0] != key:
-                categories = parse_categories(self._read_json(path))
+                try:
+                    with open(path, "r", encoding="utf-8") as file:
+                        content = json.load(file)
+                except OSError as e:
+                    return self._categories_io_error(path, e)
+                except ValueError as e:  # not JSON, or not UTF-8
+                    categories = CategoriesFile(
+                        readable=False,
+                        errors=[f"{CATEGORIES_FILENAME} is not valid JSON: {e}"],
+                    )
+                else:
+                    categories = parse_categories(content)
                 for error in categories.errors:
                     logger.error("Invalid categories at '%s': %s", path, error)
                 self._categories_cache = (key, categories)
+            self._categories_read_error = None
             return copy.deepcopy(self._categories_cache[1])
+
+    def _categories_io_error(self, path: Path, error: OSError) -> CategoriesFile:
+        message = str(error)
+        if message != self._categories_read_error:
+            logger.error("Cannot read categories at '%s': %s", path, error)
+            self._categories_read_error = message
+        return CategoriesFile(
+            readable=False, errors=[f"{CATEGORIES_FILENAME} can't be read: {message}"]
+        )
 
     def read_attributes(self, filename: str, language: str) -> dict | None:
         path = self.attributes_path(filename, language)
@@ -294,6 +320,13 @@ class LayerStore:
         data = json.dumps(parsed.categories, indent=2, ensure_ascii=False) + "\n"
         with self._lock:
             self._atomic_write(self.categories_path, data.encode("utf-8"))
+            stat = self.categories_path.stat()
+            # Like `write_index`: a rewrite in the same mtime tick with the same size
+            # would otherwise be read back from the stale cache.
+            self._categories_cache = (
+                (stat.st_mtime_ns, stat.st_size),
+                CategoriesFile(categories=copy.deepcopy(parsed.categories)),
+            )
 
     def _atomic_write(self, target: Path, data: bytes) -> None:
         """Write `data` to a temporary file next to `target`, then rename it over.

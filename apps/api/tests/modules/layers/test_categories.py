@@ -2,6 +2,7 @@
 category, how each layer's `category_id` resolves (and what happens when it
 doesn't), and the public `GET /categories`, `GET /maps` and `GET /countries`."""
 
+import builtins
 import json
 import logging
 import os
@@ -43,7 +44,9 @@ def category(category_id, **overrides):
 def write_categories(root, code, content):
     path = root.root / code / "categories.json"
     path.write_text(content if isinstance(content, str) else json.dumps(content))
-    # The cache key is (mtime, size): make sure a rewrite in the same tick is seen.
+    # Stands for a hand edit (the API writes through `LayerStore.write_categories`,
+    # which refreshes its cache). The cache key is (mtime, size): make sure a rewrite
+    # in the same tick is seen.
     stat = path.stat()
     os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000))
 
@@ -248,6 +251,67 @@ def test_the_cache_sees_a_rewritten_file(co):
     assert category_ids("CO") == ["deforestation", "protected_areas"]
     write_categories(co, "CO", [category("protected_areas"), category("frontier")])
     assert category_ids("CO") == ["deforestation", "protected_areas", "frontier"]
+
+
+def test_a_transient_read_error_is_not_cached(co, monkeypatch, caplog):
+    # Regression: an OSError while opening the file was cached as "unreadable" and
+    # hid the whole country until the file changed or the API restarted.
+    path = str(co.root / "CO" / "categories.json")
+    real_open = builtins.open
+    failures = []
+
+    def flaky_open(file, *args, **kwargs):
+        if str(file) == path and not failures:
+            failures.append(file)
+            raise OSError(5, "Input/output error")
+        return real_open(file, *args, **kwargs)
+
+    store = co.store("CO")
+    monkeypatch.setattr(builtins, "open", flaky_open)
+    with caplog.at_level(logging.ERROR):
+        assert store.read_categories().readable is False
+        assert store.read_categories().readable is True
+
+    assert "Cannot read categories" in caplog.text
+    assert "not a JSON list" not in caplog.text
+    assert listed("CO") == {0: "deforestation", 1: "protected_areas"}
+
+
+def test_invalid_json_is_reported_as_such(co, caplog):
+    with caplog.at_level(logging.ERROR):
+        write_categories(co, "CO", "{ not json")
+        assert co.store("CO").read_categories().readable is False
+
+    assert "is not valid JSON" in caplog.text
+
+
+def test_a_persistent_read_error_is_logged_once(co, caplog):
+    path = co.root / "CO" / "categories.json"
+    path.unlink()
+    path.mkdir()  # stat works, open fails every time
+
+    with caplog.at_level(logging.ERROR):
+        for _ in range(3):
+            assert co.store("CO").read_categories().readable is False
+
+    assert caplog.text.count("Cannot read categories") == 1
+
+
+def test_write_categories_refreshes_the_cache(co):
+    # A rewrite in the same mtime tick with the same size must not be read back
+    # from the cache: write, read (caching it), rewrite, and put the first mtime
+    # back, as if both writes had happened in the same tick.
+    store = co.store("CO")
+    path = co.root / "CO" / "categories.json"
+    store.write_categories([category("protected_areas", color="#111111")])
+    assert store.read_categories().categories[0]["color"] == "#111111"
+    first = path.stat()
+
+    store.write_categories([category("protected_areas", color="#222222")])
+    os.utime(path, ns=(first.st_atime_ns, first.st_mtime_ns))
+
+    assert path.stat().st_size == first.st_size
+    assert store.read_categories().categories[0]["color"] == "#222222"
 
 
 def test_write_categories_refuses_invalid_lists(co):

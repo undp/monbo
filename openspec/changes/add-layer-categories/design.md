@@ -105,7 +105,10 @@ Validation is per category, so one bad entry doesn't take the others down.
 
 Each problem is logged once per file version (the result is cached with the file's
 mtime/size). An entry without a usable `id` can't be referenced, so it only produces an
-error.
+error. An I/O error while reading the file is different: it may be transient on the SMB
+share, so it is never cached (the next read retries), and the same error is logged once
+until a read succeeds. `write_categories()` refreshes the cache like `write_index()`, so a
+rewrite in the same mtime tick with the same size is never read back stale.
 
 ### 3. The built-in `deforestation` category
 
@@ -274,8 +277,10 @@ this change, checked on 2026-11-16 by running the `origin/dev` API at `2903805`
 | `baseline` key missing | `GET /maps` answers 500 (`map["baseline"]`). Avoided by decision 5: writers always write the keys. |
 | A layer of a `required` category (e.g. agricultural frontier) | **Shown and classified as deforestation**: the previous web compares `value` to the threshold, so the result is inverted. |
 
-So: before rolling back past train 2, disable every layer whose category is not
-`deforestation` (admin or `tools/layers-ops`), then roll back. The procedure goes into
+So, before rolling back past train 2: disable every layer whose category is not
+`deforestation`; note that a country's own `deforestation` threshold falls back to the
+global one; and disable the layers that are hidden today by a disabled or broken
+category, because the previous release publishes them again. Then roll back. The procedure goes into
 `docs/maps.md`. Until GC-2 ships no such layer can exist, so rolling back GC-1 alone needs
 nothing.
 

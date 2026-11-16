@@ -196,7 +196,7 @@ show it:
 |---|---|
 | `unknown_category` | The country has no category with that id. |
 | `invalid_category` | The category is in the file but fails validation, or its id is repeated. |
-| `unreadable_categories` | `categories.json` is not valid JSON or not a list: no category resolves, not even `deforestation`. |
+| `unreadable_categories` | `categories.json` is not valid JSON or not a list, or can't be read: no category resolves, not even `deforestation`. A read error is retried on the next request. |
 
 A stored `deforestation` that fails validation is not replaced by the built-in one: its
 layers are hidden rather than judged with the global threshold instead of the
@@ -207,11 +207,18 @@ country's.
 Releases without categories ignore `category_id` and
 `categories.json`: `GET /maps`, analyses, tiles and the admin keep working, and admin
 edits keep each layer's `category_id`. Checked on 2026-11-16 by running that API
-against a root with categories. Two things to know:
+against a root with categories. What changes silently, and what to do **before
+rolling back**:
 
 - That release treats **every** layer as deforestation. A layer of a `required`
-  category (agricultural frontier) would show inverted results. **Before rolling back,
-  hide every layer whose category is not `deforestation`** in the admin.
+  category (agricultural frontier) would show inverted results. **Hide every layer
+  whose category is not `deforestation`** in the admin.
+- It only knows the global `DEFORESTATION_THRESHOLD_PERCENTAGE`. A country that stores
+  its own `deforestation` with a `threshold_percentage` goes back to the global
+  threshold: **note it in the release notes**, or set the global value accordingly.
+- It doesn't hide layers because of their category. Layers hidden today by a disabled
+  or broken category (`category_issue`) are published again: **hide them in the admin
+  first**.
 - It answers 500 on `GET /maps` for a layer without a `baseline` or
   `compared_against` key, so the keys are always written (as `null` when empty).
 

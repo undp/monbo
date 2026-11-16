@@ -15,7 +15,7 @@ In the per-country layout, each country folder MAY contain `categories.json`: a 
 - `temporal`: a boolean, whether the category's layers have a baseline and a comparison year;
 - `enabled`: a boolean, `true` when missing.
 
-The file SHALL be read and written only through the storage module, under the same lock and with the same atomic write as `index.json`. Each category SHALL be validated on its own: a category that breaks any of these rules SHALL be rejected, and when an `id` appears more than once every entry with that id SHALL be rejected. A file that is not valid JSON or not a list SHALL be unreadable, and then none of its categories SHALL be used. Rejected categories and an unreadable file SHALL NOT make the country's other categories or layers unavailable. For every problem the storage module SHALL log an error naming the file, the entry's position and id when it has one, and the reason, and SHALL make the list of problems readable to the admin. Category ids SHALL never be reused within a country.
+The file SHALL be read and written only through the storage module, under the same lock and with the same atomic write as `index.json`. Each category SHALL be validated on its own: a category that breaks any of these rules SHALL be rejected, and when an `id` appears more than once every entry with that id SHALL be rejected. A file that is not valid JSON or not a list SHALL be unreadable, and then none of its categories SHALL be used. Rejected categories SHALL NOT make the country's other categories or layers unavailable. An unreadable file SHALL hide the country's layers from the public listings without affecting other countries. An I/O error while reading the file SHALL make it unreadable only for that read: it SHALL NOT be cached, and the next read SHALL retry. For every problem the storage module SHALL log an error naming the file, the entry's position and id when it has one, and the reason, and SHALL make the list of problems readable to the admin. Category ids SHALL never be reused within a country.
 
 #### Scenario: Category with an invalid polarity
 
@@ -31,6 +31,11 @@ The file SHALL be read and written only through the storage module, under the sa
 
 - **WHEN** two categories in one file have the id `protected_areas`
 - **THEN** both are rejected
+
+#### Scenario: Transient read error
+
+- **WHEN** opening CO's `categories.json` fails once with an I/O error and then succeeds
+- **THEN** only the failing read treats the file as unreadable, the next read returns CO's categories, and the error is logged as a read error, not as invalid content
 
 #### Scenario: Unparseable file
 

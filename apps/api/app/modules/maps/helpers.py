@@ -17,8 +17,12 @@ def get_all_maps() -> list[dict]:
     - `country`: the layer's country, or None in the legacy flat layout;
     - `available_countries_codes`: `[country]`, or the layer's own list in the
       flat layout.
-    Callers that list layers publicly must filter on `enabled`; analysis, tiles
-    and image generation resolve layers by id regardless of it.
+    - `category_id`: the layer's category (`deforestation` when the entry has
+      none), and `category_issue` / `category_enabled`: whether that category
+      resolves and is enabled (see `LayersRoot._with_categories`).
+    Callers that list layers publicly must filter with `is_public_layer` (enabled,
+    and its category resolves and is enabled); analysis, tiles and image generation
+    resolve layers by id regardless of it.
     Returns:
         list[dict]: The layers.
     Raises:
