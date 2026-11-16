@@ -32,7 +32,7 @@ export const LandingHero: React.FC = memo(function LandingHero() {
       sx={{
         position: "relative",
         overflow: "hidden",
-        color: "#fff",
+        color: "common.white",
         // The header (64 px) is drawn over the hero.
         padding: { xs: "88px 0 40px", md: "84px 0 112px" },
         background: `linear-gradient(105deg, ${colors.navy} 0%, ${colors.navyForest} 45%, ${colors.forest} 100%)`,
@@ -168,7 +168,7 @@ export const LandingHero: React.FC = memo(function LandingHero() {
               component={Link}
               href={localizedPath("/documentation", i18n.language)}
               sx={{
-                color: "#fff",
+                color: "common.white",
                 fontWeight: 600,
                 fontSize: 16,
                 whiteSpace: "nowrap",

@@ -35,11 +35,15 @@
 
 *Alternative:* one component as today. Rejected: any `DataContext` change would re-render the cards, and the requirement says they must not.
 
-### 2. /home becomes an HTTP redirect in next.config.ts
+### 2. /home becomes an HTTP redirect in the proxy
 
-`next.config.ts` declares `redirects()`: `/home` → `/` and `/:locale(es|en)/home` → `/:locale` (307, not permanent). The `app/[locale]/home/` route (page and its `RequireCountry` layout) is deleted, so the redirect does not wait for a country. In-app pushes to `/home` (`useCountryChange.confirmRestart`, `NavigateHomepageWhenEmptyData`, `ValidFarmsTable`) change to `/`. `HeaderButton` keeps treating both paths as the homepage.
+`src/proxy.tsx` redirects `/home` → `/` and `/{locale}/home` → `/{locale}` (307) before handing the request to `next-i18n-router`, which then applies the locale cookie as for any other path. The `app/[locale]/home/` route (page and its `RequireCountry` layout) is deleted, so the redirect does not wait for a country. In-app pushes to `/home` (`useCountryChange.confirmRestart`, `NavigateHomepageWhenEmptyData`, `ValidFarmsTable`) change to `/`. `HeaderButton` keeps treating both paths as the homepage.
 
-*Alternative tried and dropped:* a page that calls `redirect()`. It works in `next dev`, but the page is prerendered: in the production build `/en/home` answered 200 (the redirect only ran on the client) and `/home`, rewritten by `next-i18n-router` to `/es/home`, answered `307 location: /home`. Config redirects run before the proxy and give a real HTTP redirect, checked with `curl -L` against the standalone server.
+*Alternatives tried and dropped:*
+- A page that calls `redirect()`. It works in `next dev`, but the page is prerendered: in the production build `/en/home` answered 200 (the redirect only ran on the client) and `/home` answered `307 location: /home`.
+- `redirects()` in `next.config.ts`. It works with `next start`, but in the standalone server (`node server.js`, what the container runs) having config routes sends the proxy's `/` → `/es` rewrite back through the proxy, so every unprefixed Spanish path (`/`, `/documentation`, …) loops on 307. Found in review.
+
+The proxy redirect is checked by `src/proxy.test.ts` (behaviour: status and location, rewrites left alone) and with `curl -L` against the standalone build (`HOSTNAME=0.0.0.0 node server.js`), with and without the `NEXT_LOCALE=en` cookie.
 
 ### 3. Header: new navigation, and a start-page variant
 
@@ -61,7 +65,7 @@ The navigation links and `LanguageMenu` take their color from the bar (`color: i
 
 - Step card 1 and "Empezar en {país}": stage 1 through `useModuleRouter("/polygons-validation")` (→ `/upload-data` without farms). With farms loaded, the existing "same data" modal (texts `home:sameDataModal:*`) opens first.
 - Step card 2: stage 2 through `useModuleRouter("/deforestation-analysis")`, with its "same data" modal. The route stays `/deforestation-analysis` (GC-13 renames it).
-- Step card 3: a plain `article`, not focusable, with only the "Ver ejemplo de reporte" link active. The link opens `/files/examples/{es,en}/` sample report PDFs (`ejemplo-reporte.pdf`, `example-report.pdf`) in a new tab. They are generated once with the app itself: load the example farms (`ejemplo-fincas-con-coordenadas.xlsx` / `example-farms-with-coordinates.xlsx`) for Costa Rica, where they are, run the analysis with every layer (GFW, TMF, MOCUPP) and download the PDF report (24 pages, about 2 MB each). The steps are written in `public/files/examples/README.md` so GC-7 can regenerate them after it changes the cover.
+- Step card 3: a plain `article`, not focusable, with only the "Ver ejemplo de reporte" link active. The link opens `/files/examples/{es,en}/` sample report PDFs (`ejemplo-reporte.pdf`, `example-report.pdf`) in a new tab. They are generated once with the app itself: load the example farms (`ejemplo-fincas-con-coordenadas.xlsx` / `example-farms-with-coordinates.xlsx`) for Costa Rica, where they are, run the analysis with every layer (GFW, TMF, MOCUPP) and download the PDF report. They are generated **without the satellite background** (API without the Maps key, web with a satellite limit below 5 farms): Google Maps imagery can't be kept in a public repository as a static file. Each PDF has 24 pages and about 500 KB. The steps are written in `public/files/examples/README.md` so GC-7 can regenerate them after it changes the cover.
 - "Descargar plantilla": `<a download href={getUploadFileTemplatePath(locale)}>` (the main Excel template).
 - "Cómo funciona ↗": `/documentation`. "Ver capas por país ↗": `/documentation#deforestation` until GC-8 adds the per-country layers section and retargets it.
 - "¿Tu país no está? Escríbenos": `CONTACT_URL`, hidden when unset (same rule as the old invite card).

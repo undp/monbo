@@ -60,7 +60,7 @@ export const StepCard: React.FC<StepCardProps> = ({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#fff",
+        backgroundColor: "common.white",
         border: `1px solid ${colors.line}`,
         borderRadius: "16px",
         padding: "18px 20px 16px",
@@ -87,7 +87,7 @@ export const StepCard: React.FC<StepCardProps> = ({
             placeItems: "center",
             font: "800 14px/1 var(--font-heading)",
             backgroundColor: colors.forest,
-            color: "#fff",
+            color: "common.white",
           }}
         >
           {step}

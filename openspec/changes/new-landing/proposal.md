@@ -34,7 +34,7 @@ The client's feedback on the redesign (2026-11) asked the start page to stress t
 
 ## Impact
 
-- `apps/web/src/app/[locale]/page.tsx`; `apps/web/src/app/[locale]/home/` is deleted and `apps/web/next.config.ts` redirects `/home`.
+- `apps/web/src/app/[locale]/page.tsx`; `apps/web/src/app/[locale]/home/` is deleted and `apps/web/src/proxy.tsx` redirects `/home`.
 - `apps/web/src/components/page/landing/` (rewritten), `apps/web/src/components/page/home/` (removed).
 - `apps/web/src/components/reusable/Header/` (new navigation and brand mark, dark variant, `DocumentationButton` replaced), `CountryMenu.tsx` (hidden on the start page), `apps/web/src/app/[locale]/layout.tsx` (header spacer, `--font-heading`).
 - `apps/web/src/hooks/useCountryChange.ts`, `NavigateHomepageWhenEmptyData.tsx`, `ValidFarmsTable.tsx` (`/home` → `/`).

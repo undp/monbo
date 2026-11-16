@@ -15,8 +15,22 @@ report. The farms are five coffee plots in Costa Rica.
 ## Regenerating the sample report
 
 The report is built by the app itself, so regenerate it whenever the report changes
-(its cover, sections or layers). With the API and the web running (`pnpm dev`, rasters
-pulled with `git lfs pull`), for each language:
+(its cover, sections or layers).
+
+It must be generated **without the satellite background**: the farm maps then use the
+solid background, with no Google Maps imagery, whose terms restrict storing it and
+serving it from a public repository as a static file. Start the API without the Maps key
+and the web with a satellite limit below the number of farms (5), so that the report
+asks for none (rasters pulled with `git lfs pull`):
+
+```bash
+# from apps/api
+GCP_MAPS_PLATFORM_API_KEY= GCP_MAPS_PLATFORM_SIGNATURE_SECRET= uv run fastapi dev app/main.py
+# from apps/web
+NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION=1 pnpm dev
+```
+
+Then, for each language:
 
 1. Open the start page in that language (`/` or `/en`), choose **Costa Rica** and press
    step 1.
@@ -26,3 +40,5 @@ pulled with `git lfs pull`), for each language:
 4. Press "Preparar reporte", keep every polygon, select every layer and continue.
 5. Press "Generar reporte" and then "Descargar" (one PDF with every polygon).
 6. Save the file as `es/ejemplo-reporte.pdf` (or `en/example-report.pdf`).
+7. Check that no farm map has a satellite photo behind it (they show a plain dark
+   green background).

@@ -18,10 +18,11 @@ import { entrance } from "./entrance";
 
 // The generic categories a country can group its layers in (illustrative: they
 // don't depend on the selected country).
+// Their colors are in the theme (`palette.landing.categories`).
 const CATEGORIES = [
-  { key: "deforestation", Icon: ParkOutlinedIcon, color: "#2f8f5e", background: "#e5f3ea" },
-  { key: "protectedAreas", Icon: ShieldOutlinedIcon, color: "#0f7c86", background: "#e0f2f3" },
-  { key: "agriculturalFrontier", Icon: SpaOutlinedIcon, color: "#a8741a", background: "#f8eedb" },
+  { key: "deforestation", Icon: ParkOutlinedIcon },
+  { key: "protectedAreas", Icon: ShieldOutlinedIcon },
+  { key: "agriculturalFrontier", Icon: SpaOutlinedIcon },
 ] as const;
 
 // A sample report built from the example farms (see public/files/examples/README.md).
@@ -53,7 +54,7 @@ export const LandingSteps: React.FC<LandingStepsProps> = memo(function LandingSt
           columnGap: 1.75,
           rowGap: 0.5,
           marginBottom: 1.5,
-          color: { xs: colors.ink, md: "#fff" },
+          color: { xs: colors.ink, md: "common.white" },
         }}
       >
         <Box
@@ -120,40 +121,43 @@ export const LandingSteps: React.FC<LandingStepsProps> = memo(function LandingSt
               padding: 0,
             }}
           >
-            {CATEGORIES.map(({ key, Icon, color, background }) => (
-              <Box
-                component="li"
-                key={key}
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 10px 4px 6px",
-                  borderRadius: 999,
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  backgroundColor: background,
-                  color,
-                }}
-              >
+            {CATEGORIES.map(({ key, Icon }) => {
+              const { main, tint } = colors.categories[key];
+              return (
                 <Box
-                  component="span"
-                  aria-hidden
+                  component="li"
+                  key={key}
                   sx={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    display: "grid",
-                    placeItems: "center",
-                    backgroundColor: color,
-                    color: "#fff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 10px 4px 6px",
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    backgroundColor: tint,
+                    color: main,
                   }}
                 >
-                  <Icon sx={{ fontSize: 13 }} />
+                  <Box
+                    component="span"
+                    aria-hidden
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      display: "grid",
+                      placeItems: "center",
+                      backgroundColor: main,
+                      color: "common.white",
+                    }}
+                  >
+                    <Icon sx={{ fontSize: 13 }} />
+                  </Box>
+                  {t(`home:landing:categories:${key}`)}
                 </Box>
-                {t(`home:landing:categories:${key}`)}
-              </Box>
-            ))}
+              );
+            })}
           </Box>
         </StepCard>
         <StepArrow delay={0.53} />

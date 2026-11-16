@@ -23,7 +23,7 @@ export const HeaderBar: React.FC<{ children: React.ReactNode }> = ({
         startPage
           ? {
               backgroundColor: "transparent",
-              color: "#fff",
+              color: "common.white",
               borderBottom: "1px solid rgba(255,255,255,.1)",
             }
           : {

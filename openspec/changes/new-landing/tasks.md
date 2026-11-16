@@ -1,8 +1,8 @@
 ## 1. Routing
 
-- [x] 1.1 Redirect `/home` and `/{locale}/home` to the start page in `next.config.ts` (`redirects()`) and delete `app/[locale]/home/`
+- [x] 1.1 Redirect `/home` and `/{locale}/home` to the start page in `src/proxy.tsx`, before the locale router, and delete `app/[locale]/home/`
 - [x] 1.2 Change in-app pushes to `/home` to `/` (`useCountryChange.confirmRestart`, `NavigateHomepageWhenEmptyData`, `ValidFarmsTable`) and update their tests
-- [x] 1.3 Test the redirect rules, and check them with `curl -L` against the production build
+- [x] 1.3 Test the proxy's behaviour, and check it with `curl -L` against the standalone build
 
 ## 2. Header: navigation and start-page variant
 
@@ -26,7 +26,7 @@
 - [x] 3.6 Add `utils/countryShape.ts` and build `LandingStart` with `CountryPill`s (button group with `aria-pressed`, default CO, loading/error/empty states, contact link, "Empezar en {país}")
 - [x] 3.7 Rewrite `LandingPageContent` to compose them with stable callbacks and the restart modal
 - [x] 3.8 Add the trust row under the start bar (hidden below 900 px)
-- [x] 3.9 Generate the sample report PDFs (`public/files/examples/es/ejemplo-reporte.pdf`, `public/files/examples/en/example-report.pdf`) from the example farms, and write the regeneration steps in `public/files/examples/README.md`
+- [x] 3.9 Generate the sample report PDFs (`public/files/examples/es/ejemplo-reporte.pdf`, `public/files/examples/en/example-report.pdf`) from the example farms, without the satellite background, and write the regeneration steps in `public/files/examples/README.md`
 - [x] 3.10 Delete `CountryCard`, `InviteCard` and `components/page/home/`
 - [x] 3.11 Mobile layout below 900 px (stacked cards, rotated arrows, wrapped start bar, no horizontal scroll)
 

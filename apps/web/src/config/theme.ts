@@ -1,6 +1,11 @@
 "use client";
 import { createTheme } from "@mui/material/styles";
 
+interface CategoryColors {
+  main: string;
+  tint: string;
+}
+
 // The start page's palette (mockup v2): navy and forest greens.
 interface LandingPalette {
   navy: string;
@@ -21,6 +26,12 @@ interface LandingPalette {
   blueTint: string;
   background: string;
   silhouette: string;
+  // The generic layer categories shown on the start page's step 2
+  categories: {
+    deforestation: CategoryColors;
+    protectedAreas: CategoryColors;
+    agriculturalFrontier: CategoryColors;
+  };
 }
 
 declare module "@mui/material/styles" {
@@ -66,6 +77,11 @@ const theme = createTheme({
       background: "#f6faf8",
       // Country silhouettes in the start bar, before they are chosen
       silhouette: "#8aa3bb",
+      categories: {
+        deforestation: { main: "#2f8f5e", tint: "#e5f3ea" },
+        protectedAreas: { main: "#0f7c86", tint: "#e0f2f3" },
+        agriculturalFrontier: { main: "#a8741a", tint: "#f8eedb" },
+      },
     },
   },
   typography: {

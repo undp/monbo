@@ -60,7 +60,7 @@ export const LandingStart: React.FC<LandingStartProps> = ({ onStart }) => {
         flexWrap: "wrap",
         padding: { xs: "14px 16px", md: "14px 16px 14px 22px" },
         borderRadius: "16px",
-        backgroundColor: "#fff",
+        backgroundColor: "common.white",
         border: `1px solid ${colors.line}`,
         boxShadow: "0 10px 28px rgba(10,36,64,.08)",
       }}

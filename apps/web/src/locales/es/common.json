@@ -11,7 +11,8 @@
     },
     "navigation": "Navegación principal",
     "menu": "Abrir el menú de navegación",
-    "brandMark": "PNUD",
+    "brandMarkTop": "PN",
+    "brandMarkBottom": "UD",
     "logoLabel": "Monbo, del PNUD: ir al inicio"
   },
   "language": {

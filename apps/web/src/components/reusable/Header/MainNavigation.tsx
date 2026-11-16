@@ -9,9 +9,8 @@ import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
 import { useIsStartPage } from "@/hooks/useIsStartPage";
 import { localizedPath } from "@/utils/languageChange";
-import { isSamePath } from "@/utils/paths";
+import { isAdminPath, isSamePath } from "@/utils/paths";
 
-const ADMIN_PATH = /^\/(?:[a-z]{2}\/)?admin(?:\/|$)/;
 const FLOW_PATH =
   /^\/(?:[a-z]{2}\/)?(?:polygons-validation|deforestation-analysis|report-generation)(?:\/|$)/;
 const DOCUMENTATION_PATH = "/documentation";
@@ -50,7 +49,7 @@ export const MainNavigation: React.FC = () => {
   const locale = i18n.language;
 
   const links: NavLink[] = [
-    ...(ADMIN_PATH.test(pathname)
+    ...(isAdminPath(pathname)
       ? []
       : [
           {

@@ -12,7 +12,6 @@ export const HeaderBrand: React.FC = () => {
   const { t, i18n } = useTranslation();
   const startPage = useIsStartPage();
   const colors = useTheme().palette.landing;
-  const mark = t("common:header:brandMark");
 
   return (
     <Box
@@ -48,14 +47,14 @@ export const HeaderBrand: React.FC = () => {
           letterSpacing: ".08em",
           textAlign: "center",
           backgroundColor: colors.blue,
-          color: "#fff",
+          color: "common.white",
           padding: "4px 5px",
           borderRadius: "2px",
         }}
       >
-        {mark.slice(0, 2)}
+        {t("common:header:brandMarkTop")}
         <br />
-        {mark.slice(2)}
+        {t("common:header:brandMarkBottom")}
       </Box>
     </Box>
   );
