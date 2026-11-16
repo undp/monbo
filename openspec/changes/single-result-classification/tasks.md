@@ -1,6 +1,6 @@
 ## 1. Classification module
 
-- [x] 1.1 Create `apps/web/src/utils/layerResults.ts` with `Polarity`, `ClassificationRule`, `ResultClass`, `findingRatio`, `classifyResult` (percent comparison of design D3, `null`/`undefined` → `unknown`), `deforestationRule()` and `countResults`
+- [x] 1.1 Create `apps/web/src/utils/layerResults.ts` with `Polarity`, `ClassificationRule`, `ResultClass`, `findingRatio`, `classifyResult` (rounded percent comparison of design D3, `null`/`undefined` → `unknown`), `deforestationRule()` and `countResults`
 - [x] 1.2 Add `groupFarmsByResult(farms, mapResults, rule)` to the module, returning the farms per class for one layer
 - [x] 1.3 Write `utils/layerResults.test.ts`: both polarities, a value exactly on the threshold for each polarity, threshold 0, `null` and missing results, the default rule reading `GET /config`, and the grouping helper
 
@@ -28,3 +28,9 @@
 - [x] 4.1 Run the web CI checks from `apps/web`: schema check, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test`, `pnpm run build`
 - [x] 4.2 Add a `CHANGELOG.md` "Unreleased" entry describing the fix and the visible counter change
 - [x] 4.3 Check `docs/`, `apps/web/README.md` and the methodology page (`content/documentation/*/deforestation.md`) for statements about how "free" is decided and update them
+
+## 5. Review fixes (PR #130)
+
+- [x] 5.1 `ClassicTabs`: clamp the selected index during render, so removing the selected tab doesn't throw; regression test in `ClassicTabs.test.tsx`
+- [x] 5.2 Component tests that the views use the classification: `MapView.test.tsx` (groups, the "No data" tab, switching layers from it) and `DeforestationResultsTable.test.tsx` (cells and counter)
+- [x] 5.3 Compare with the threshold tolerating only floating-point rounding (design D3), with a test over every quarter-point threshold for both polarities and one for tiny thresholds

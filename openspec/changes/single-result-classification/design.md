@@ -54,11 +54,14 @@ It has no React and no i18n, so the PDF worker, hooks and components share it. `
 
 The categories' shape belongs to the API contract, and `CLAUDE.md` forbids writing an API shape by hand. Today no API shape carries a polarity, so the module declares `Polarity` itself. When GC-1 adds the category model to `openapi.json`, GC-6 replaces the local alias with the schema's type (`interfaces/` re-export). Same values (`avoid`, `required`), so the switch is a type swap.
 
-### D3. Comparison in percent, without an epsilon
+### D3. Comparison in percent, tolerant only of floating-point rounding
 
-`flagged` is `findingPercentage > thresholdPercentage`, where `findingPercentage` is `100 × value` for `avoid` and `100 − 100 × value` for `required`. Computing `100 − 100 × value` instead of `100 × (1 − value)` keeps a value on the threshold on the threshold in floating point: `100 × (1 − 0.99)` is `1.0000000000000009`, which would flag a farm exactly at a 1% threshold, while `100 − 100 × 0.99` is `1`. For `avoid` the expression is the one used today, so every current classification is bit-identical. `findingRatio` stays `1 − value` for display and for callers that need the ratio.
+`flagged` is `100 × finding − threshold > 8 × Number.EPSILON × scale`, where `scale` is the larger of the two numbers compared (and at least 100 for `required`, because `1 − value` is rounded at the scale of 1). A raw `100 × finding > threshold` puts a value that is exactly on the threshold a hair above it: `100 × 0.07` is `7.000000000000001`, `100 × (1 − 0.58)` is `42.00000000000001`, `100 × (1 − 0.99)` is `1.0000000000000009`. Over every threshold in quarter points from 0 to 100, the raw comparison flags 28 farms that sit exactly on it; this one flags none, for both polarities, and still flags a finding one ten-thousandth of a point past the threshold (`layerResults.test.ts`; an extra sweep in hundredths of a point and 6-decimal values, 40,004 checks, also found none). For `avoid` the tolerance is relative, so a threshold of 0.0000001% (the API accepts any percentage, and `numbers.test.ts` covers one) keeps a finding of 0.00000015% flagged.
 
-*Alternative:* compare with an epsilon. Rejected: it changes `avoid` results near the threshold, however slightly, and hides the rule behind a tolerance nobody chose.
+*Alternatives:*
+- `100 − 100 × value` for `required` (the first version of this change) fixes 0.99 but not 0.58 with a threshold of 42, and leaves `avoid` with the same problem (0.07 with 7).
+- Rounding both sides to a millionth of a point (suggested in review) fixes the boundaries but erases thresholds below that resolution: with a 0.0000001% threshold every finding under 0.0000005% reads as on it.
+- A fixed absolute epsilon has the same problem as the fixed resolution.
 
 ### D4. Colours by class, value-based helpers delegate
 
@@ -87,6 +90,7 @@ The counter hook counts `ok` through `countResults`, and stays `null` when every
 - **Visible change in the free counter** → Farms with `0 < value ≤ threshold` move from "not free" to "free" in the table counter and table cell (they were already green and "free" in the map). With the dev threshold of 2%, the counter rises by that many farms. This is the intended rule (the threshold is the product's definition of a finding); it is called out in the PR and the CHANGELOG.
 - **A third tab in a narrow column** → Shown only when there are farms with no data.
 - **Local `Polarity` type drifts from the API's** → Same literal values; GC-6 swaps it for the schema type, and the tests by polarity fail if the meaning flips.
+- **Tabs that appear and disappear** → `ClassicTabs` used to read the selected tab during the render that removed it, and threw (switching layers from the "No data" tab to a layer without such farms). It now clamps the index in the render itself; the effect only syncs the state.
 - **Removing `isDeforestationAboveThreshold`** → A caller added in parallel (GC-6, GC-7, GC-10) would fail the type-check on rebase, which is the point: it must use the module.
 
 ## Migration Plan

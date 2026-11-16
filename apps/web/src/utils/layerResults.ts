@@ -27,18 +27,42 @@ export type ResultClass = "ok" | "flagged" | "unknown";
 export const findingRatio = (value: number, polarity: Polarity): number =>
   polarity === "avoid" ? value : 1 - value;
 
-// In percent, and `100 - 100 * value` rather than `100 * (1 - value)`: the latter
-// turns 0.99 into 1.0000000000000009, which would flag a farm sitting exactly on a
-// 1% threshold. For `avoid` this is the comparison the web always made.
-const findingPercentage = (value: number, polarity: Polarity): number =>
-  polarity === "avoid" ? 100 * value : 100 - 100 * value;
+// Floating point puts a finding that is exactly on the threshold a hair above it:
+// 100 × 0.07 is 7.000000000000001 and 100 × (1 − 0.58) is 42.00000000000001, which
+// would flag a farm sitting on a 7% or 42% threshold. A finding is above the
+// threshold only when it beats it by more than that rounding error: a few units in
+// the last place (ULPs) at the scale of the numbers compared. For `required`, 1 − value
+// is rounded at the scale of 1 (100 in percent), however small the finding.
+// The tolerance is relative, not a fixed resolution, because the API accepts
+// thresholds as small as it likes (see formatDeforestationPercentage).
+const ROUNDING_ULPS = 8;
+
+const isAboveThreshold = (
+  findingPercentage: number,
+  thresholdPercentage: number,
+  polarity: Polarity
+) => {
+  const scale = Math.max(
+    Math.abs(findingPercentage),
+    Math.abs(thresholdPercentage),
+    polarity === "required" ? 100 : 0
+  );
+  return (
+    findingPercentage - thresholdPercentage >
+    ROUNDING_ULPS * Number.EPSILON * scale
+  );
+};
 
 export const classifyResult = (
   value: number | null | undefined,
   rule: ClassificationRule
 ): ResultClass => {
   if (value === null || value === undefined) return "unknown";
-  return findingPercentage(value, rule.polarity) > rule.thresholdPercentage
+  return isAboveThreshold(
+    100 * findingRatio(value, rule.polarity),
+    rule.thresholdPercentage,
+    rule.polarity
+  )
     ? "flagged"
     : "ok";
 };

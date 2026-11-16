@@ -28,7 +28,7 @@ The layer-categories project (undp/monbo#116) adds categories with a polarity (`
 
 ## Impact
 
-- Web only (`apps/web/src`): `utils/layerResults.ts` and `utils/resultLabels.ts` (new), `utils/deforestation.ts`, `utils/styling.ts`, `utils/numbers.ts`, `utils/deforestationReport/sections.tsx`, `hooks/useDeforestationFreeResultsCountByMap.tsx`, and in `components/page/deforestationAnalysis/`: `MapView.tsx`, `DeforestationResultsTable.tsx`, `SelectedPolygonsMap.tsx`, `DeforestationFreeCounterChip.tsx` (`FarmsList.tsx` keeps its code and gets the class colours through `utils/styling.ts`).
+- Web only (`apps/web/src`): `utils/layerResults.ts` and `utils/resultLabels.ts` (new), `utils/deforestation.ts`, `utils/styling.ts`, `utils/numbers.ts`, `utils/deforestationReport/sections.tsx`, `hooks/useDeforestationFreeResultsCountByMap.tsx`, and in `components/page/deforestationAnalysis/`: `MapView.tsx`, `DeforestationResultsTable.tsx`, `SelectedPolygonsMap.tsx`, `DeforestationFreeCounterChip.tsx`; `components/reusable/ClassicTabs.tsx`, which no longer throws when the selected tab disappears (`FarmsList.tsx` keeps its code and gets the class colours through `utils/styling.ts`).
 - i18n: one new key, `deforestationAnalysis:noDataShortText`, in `es` and `en`. The methodology page (`content/documentation/*/deforestation.md`) stops saying that no-data farms appear in the free tab.
 - No API, contract, ratio or infrastructure change. `DEFORESTATION_THRESHOLD_PERCENTAGE` keeps its name (D12).
 - Consumers: GC-6 (stage 2 by category) and GC-7 (report by category) pass a category's rule to the same functions. `api/deforestationAnalysis.ts` (renamed by GC-12) is not touched.

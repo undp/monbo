@@ -2,7 +2,7 @@
 
 ### Requirement: One classification of a layer result
 
-The web SHALL classify a farm's result for a layer as `ok`, `flagged` or `unknown` with one function, from the result's `value` and a rule made of a polarity (`avoid` or `required`) and a threshold in percent. The finding SHALL be `value` for `avoid` and `1 − value` for `required`. A result SHALL be `flagged` when 100 × finding is strictly greater than the threshold, and `ok` otherwise. A `value` of `null`, or a farm with no result for that layer, SHALL be `unknown`, whatever the rule.
+The web SHALL classify a farm's result for a layer as `ok`, `flagged` or `unknown` with one function, from the result's `value` and a rule made of a polarity (`avoid` or `required`) and a threshold in percent. The finding SHALL be `value` for `avoid` and `1 − value` for `required`. A result SHALL be `flagged` when 100 × finding is strictly greater than the threshold, and `ok` otherwise. A finding SHALL count as above the threshold only when it exceeds it by more than floating-point rounding error, so a result exactly on the threshold is never flagged, whatever the size of the threshold. A `value` of `null`, or a farm with no result for that layer, SHALL be `unknown`, whatever the rule.
 
 #### Scenario: Avoid polarity above the threshold
 
@@ -22,13 +22,18 @@ The web SHALL classify a farm's result for a layer as `ok`, `flagged` or `unknow
 
 #### Scenario: A value exactly on the threshold
 
-- **WHEN** a result of `0.01` is classified with polarity `avoid` and a threshold of 1, or a result of `0.99` with polarity `required` and a threshold of 1
-- **THEN** both are `ok`
+- **WHEN** a result of `0.07` is classified with polarity `avoid` and a threshold of 7, or a result of `0.58` with polarity `required` and a threshold of 42
+- **THEN** both are `ok`, although `100 × 0.07` and `100 × (1 − 0.58)` are a hair above the threshold in floating point
+
+#### Scenario: A tiny threshold
+
+- **WHEN** the threshold is 0.0000001 and polarity is `avoid`
+- **THEN** a result of `0.000000001` is `ok` and a result of `0.0000000015` is `flagged`
 
 #### Scenario: Threshold of zero
 
 - **WHEN** the threshold is 0 and polarity is `avoid`
-- **THEN** a result of `0` is `ok` and any result above `0` is `flagged`
+- **THEN** a result of `0` is `ok` and a result of `0.000001` is `flagged`
 
 #### Scenario: No data
 
@@ -76,3 +81,8 @@ The map view SHALL put each farm whose result for the selected layer is `unknown
 
 - **WHEN** every farm has a numeric result for the selected layer
 - **THEN** the map view shows only the deforested and deforestation-free groups
+
+#### Scenario: Switching layers from the "No data" group
+
+- **WHEN** the "No data" group is open and the user selects a layer where every farm has a result
+- **THEN** the map view shows the deforested group, without an error

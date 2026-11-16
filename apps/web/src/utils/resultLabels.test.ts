@@ -58,8 +58,10 @@ describe("deforestationResultReportText", () => {
   });
 });
 
-describe("one classification across views", () => {
-  it("gives the same free count in the counter, the map, the table and the PDF", async () => {
+// The helpers agree with each other here; that the views use them is tested in
+// MapView.test.tsx and DeforestationResultsTable.test.tsx.
+describe("one classification across helpers", () => {
+  it("gives the same free count in the counter hook, the grouping and both label helpers", async () => {
     const t = await tFor("es");
     const values = { F01: 0, F02: 0.005, F03: 0.02, F04: 0.05, F05: null };
     const farms = Object.keys(values).map((id) => makeFarm({ id }));

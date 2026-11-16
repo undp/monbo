@@ -44,14 +44,43 @@ describe("classifyResult", () => {
   it("does not flag a value exactly on the threshold, for either polarity", () => {
     expect(classifyResult(0.01, avoid(1))).toBe("ok");
     expect(classifyResult(0.0101, avoid(1))).toBe("flagged");
-    // 100 × (1 − 0.99) is 1.0000000000000009 in floating point.
+    // Raw floating point puts these a hair above the threshold:
+    // 100 × 0.07 = 7.000000000000001, 100 × (1 − 0.58) = 42.00000000000001.
+    expect(classifyResult(0.07, avoid(7))).toBe("ok");
+    expect(classifyResult(0.58, required(42))).toBe("ok");
     expect(classifyResult(0.99, required(1))).toBe("ok");
     expect(classifyResult(0.9899, required(1))).toBe("flagged");
+  });
+
+  it("is exact on every threshold in quarter points from 0 to 100", () => {
+    for (let quarters = 0; quarters <= 400; quarters++) {
+      const threshold = quarters / 4;
+      // The value a user would read as "exactly the threshold", as a decimal.
+      const onAvoid = Number((threshold / 100).toFixed(4));
+      const onRequired = Number((1 - threshold / 100).toFixed(4));
+      expect(classifyResult(onAvoid, avoid(threshold))).toBe("ok");
+      expect(classifyResult(onRequired, required(threshold))).toBe("ok");
+      // One ten-thousandth of a point past it is flagged.
+      if (threshold < 100) {
+        expect(classifyResult(onAvoid + 1e-6, avoid(threshold))).toBe("flagged");
+        expect(classifyResult(onRequired - 1e-6, required(threshold))).toBe(
+          "flagged"
+        );
+      }
+    }
   });
 
   it("flags any finding above 0 with a threshold of 0", () => {
     expect(classifyResult(0, avoid(0))).toBe("ok");
     expect(classifyResult(0.000001, avoid(0))).toBe("flagged");
+    expect(classifyResult(1e-12, avoid(0))).toBe("flagged");
+  });
+
+  it("keeps tiny thresholds apart from the findings next to them", () => {
+    // A threshold of 0.0000001% (the API accepts any percentage).
+    expect(classifyResult(1e-9, avoid(1e-7))).toBe("ok");
+    expect(classifyResult(1.5e-9, avoid(1e-7))).toBe("flagged");
+    expect(classifyResult(1 - 1.5e-9, required(1e-7))).toBe("flagged");
   });
 
   it("never treats a missing result as a value", () => {
