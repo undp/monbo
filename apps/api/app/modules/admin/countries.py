@@ -27,6 +27,7 @@ from app.modules.layers.store import (
     SUPPORTED_LANGUAGES,
     LayersRoot,
     is_country_folder_name,
+    is_enabled,
 )
 
 from .auth import hash_passkey
@@ -140,7 +141,8 @@ def list_countries(root: LayersRoot) -> list[dict]:
                 "name": country_name(country["code"]),
                 "enabled": country["enabled"],
                 "layers": len(index),
-                "enabled_layers": sum(1 for entry in index if entry["enabled"]),
+                # Like the admin and GET /maps: only the boolean true is published.
+                "enabled_layers": sum(1 for entry in index if is_enabled(entry)),
             }
         )
     return rows

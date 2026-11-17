@@ -25,6 +25,18 @@ export type LayerInput = components["schemas"]["LayerInput"];
 // metadata file doesn't exist
 export type StoredAttributes = components["schemas"]["StoredAttributes"];
 export type AdminLayer = components["schemas"]["AdminLayer"];
+// Why a layer's category doesn't resolve in its country (the layer is then hidden)
+export type LayerCategoryIssue = NonNullable<AdminLayer["category_issue"]>;
+
+// Every country has this category; until the admin picks categories (GC-5), new
+// layers go in it.
+export const DEFAULT_CATEGORY_ID = "deforestation";
+
+// A country's categories as the admin sees them (camelCase, like GET /categories)
+export type AdminCategories = components["schemas"]["AdminCategories"];
+export type AdminCategory = components["schemas"]["AdminCategory"];
+export type CategoryInput = components["schemas"]["CategoryInput"];
+export type CategoryCreate = components["schemas"]["CategoryCreate"];
 export type AdminSession = components["schemas"]["SessionData"];
 
 // Errors and warnings carry a stable code; the UI translates them by code.

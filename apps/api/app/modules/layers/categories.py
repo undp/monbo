@@ -26,9 +26,22 @@ from app.models.categories import CategoryIcon, CategoryPolarity
 CATEGORIES_FILENAME = "categories.json"
 DEFAULT_CATEGORY_ID = "deforestation"
 CATEGORY_ID_PATTERN = r"^[a-z][a-z0-9_]{0,49}$"
+# A layer's years, as `LayerInput` accepts them and as the public listing requires
+# them of the index (`years_fit`).
+YEAR_MIN = 1900
+YEAR_MAX = 2100
+# Limits of a stored category, shared with the admin's input models.
+COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
+NAME_MAX_LENGTH = 100
+DESCRIPTION_MAX_LENGTH = 1000
+LABEL_MAX_LENGTH = 60
+THRESHOLD_MIN = 0
+THRESHOLD_MAX = 100
 
 # Why a layer's category doesn't resolve. Stable codes: the admin translates them.
 CategoryIssue = Literal["unknown_category", "invalid_category", "unreadable_categories"]
+# Why a layer whose category resolves still can't be public. Stable codes too.
+LayerIssue = Literal["years_mismatch", "missing_raster"]
 
 
 class _Stored(BaseModel):
@@ -38,18 +51,18 @@ class _Stored(BaseModel):
 
 
 class _Name(_Stored):
-    es: str = Field(min_length=1, max_length=100)
-    en: str = Field(min_length=1, max_length=100)
+    es: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
+    en: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
 
 
 class _Description(_Stored):
-    es: str = Field(max_length=1000)
-    en: str = Field(max_length=1000)
+    es: str = Field(max_length=DESCRIPTION_MAX_LENGTH)
+    en: str = Field(max_length=DESCRIPTION_MAX_LENGTH)
 
 
 class _Label(_Stored):
-    es: str = Field(min_length=1, max_length=60)
-    en: str = Field(min_length=1, max_length=60)
+    es: str = Field(min_length=1, max_length=LABEL_MAX_LENGTH)
+    en: str = Field(min_length=1, max_length=LABEL_MAX_LENGTH)
 
 
 class _ResultLabels(_Stored):
@@ -62,10 +75,12 @@ class StoredCategory(_Stored):
     name: _Name
     description: _Description
     icon: CategoryIcon
-    color: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+    color: str = Field(pattern=COLOR_PATTERN)
     polarity: CategoryPolarity
     # None: the global DEFORESTATION_THRESHOLD_PERCENTAGE.
-    threshold_percentage: float | None = Field(default=None, ge=0, le=100)
+    threshold_percentage: float | None = Field(
+        default=None, ge=THRESHOLD_MIN, le=THRESHOLD_MAX
+    )
     result_labels: _ResultLabels
     temporal: bool
     enabled: bool = True
@@ -180,3 +195,46 @@ def is_temporal(category_id: Any, file: CategoriesFile) -> bool:
     by_id = {category["id"]: category for category in effective_categories(file)}
     category, _ = resolve_category(category_id, file, by_id)
     return bool(category and category["temporal"])
+
+
+def years_problem(baseline: int | None, compared_against: int | None) -> str | None:
+    """Why a layer's pair of years is not valid, or None: they go together, and the
+    baseline is not after the comparison year. Each year's range is checked on its
+    own (`YEAR_MIN`..`YEAR_MAX`)."""
+    if (baseline is None) != (compared_against is None):
+        return "baseline and compared_against go together"
+    if (
+        baseline is not None
+        and compared_against is not None
+        and baseline > compared_against
+    ):
+        return "baseline must not be later than compared_against"
+    return None
+
+
+def stored_year(value: Any) -> int | None:
+    """A year as the index stores it ("2020"), or None when the layer has none
+    (missing, null or ""). Raises `ValueError` when it isn't a year `LayerInput`
+    would accept: not an integer (a boolean or "2020a" included), or out of range."""
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{value!r} is not a year")
+    year = int(value)  # ValueError for "2020a"
+    if not YEAR_MIN <= year <= YEAR_MAX:
+        raise ValueError(f"{year} is out of range")
+    return year
+
+
+def years_fit(entry: dict, temporal: bool) -> bool:
+    """Whether an index entry's years are valid by the rules of `LayerInput` and fit
+    a category that is (or isn't) temporal: temporal categories need both years,
+    the others none."""
+    try:
+        baseline = stored_year(entry.get("baseline"))
+        compared_against = stored_year(entry.get("compared_against"))
+    except ValueError:
+        return False
+    if years_problem(baseline, compared_against) is not None:
+        return False
+    return (baseline is not None) == temporal

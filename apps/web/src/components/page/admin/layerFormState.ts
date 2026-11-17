@@ -2,6 +2,7 @@ import {
   ADMIN_LANGUAGES,
   AdminLanguage,
   AdminLayer,
+  DEFAULT_CATEGORY_ID,
   LayerAttributes,
   LayerInput,
   OPTIONAL_ATTRIBUTE_KEYS,
@@ -10,6 +11,8 @@ import {
 
 // The form's values: what the user types, converted to LayerInput on save.
 export interface LayerFormValues {
+  // Not editable yet: the layer's category is kept as is (GC-5 adds the selector)
+  category_id: string;
   pixel_size: string;
   baseline: string;
   compared_against: string;
@@ -42,6 +45,7 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
     considerations[language] = layer?.considerations[language] ?? "";
   }
   return {
+    category_id: layer?.category_id ?? DEFAULT_CATEGORY_ID,
     pixel_size: layer ? String(layer.pixel_size) : "30",
     // New layers start at 2020, the baseline most layers use
     baseline: layer?.baseline != null ? String(layer.baseline) : "2020",
@@ -69,6 +73,7 @@ export const toLayerInput = (values: LayerFormValues): LayerInput => {
     considerations[language] = values.considerations[language].trim() || null;
   }
   return {
+    category_id: values.category_id,
     pixel_size: Number(values.pixel_size),
     baseline: Number(values.baseline),
     compared_against: Number(values.compared_against),

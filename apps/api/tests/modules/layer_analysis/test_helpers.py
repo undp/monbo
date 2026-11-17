@@ -43,6 +43,8 @@ def test_get_all_maps(maps_root):
             "country": None,
             "category_issue": None,
             "category_enabled": True,
+            # A deforestation layer without years can't be public.
+            "layer_issue": "years_mismatch",
         },
         {
             "id": 2,
@@ -53,6 +55,8 @@ def test_get_all_maps(maps_root):
             "country": None,
             "category_issue": None,
             "category_enabled": True,
+            # A deforestation layer without years can't be public.
+            "layer_issue": "years_mismatch",
         },
     ]
 

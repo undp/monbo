@@ -20,9 +20,11 @@ def get_all_maps() -> list[dict]:
     - `category_id`: the layer's category (`deforestation` when the entry has
       none), and `category_issue` / `category_enabled`: whether that category
       resolves and is enabled (see `LayersRoot._with_categories`).
-    Callers that list layers publicly must filter with `is_public_layer` (enabled,
-    and its category resolves and is enabled); analysis, tiles and image generation
-    resolve layers by id regardless of it.
+    - `layer_issue`: `years_mismatch` when the layer's years don't fit its
+      category.
+    Callers that list layers publicly must filter with `LayersRoot.is_public`
+    (enabled, category resolves and is enabled, years fit, raster on disk);
+    analysis, tiles and image generation resolve layers by id regardless of it.
     Returns:
         list[dict]: The layers.
     Raises:

@@ -18,7 +18,9 @@ from app.modules.layers.categories import (
     effective_categories,
     is_temporal,
     parse_categories,
+    years_fit,
 )
+from app.modules.layers.store import CategoriesUnreadable, LayerStore
 from app.modules.maps.helpers import get_map_by_id
 from tests.modules.layers.test_countries_layout import layer
 
@@ -60,12 +62,22 @@ def co(country_root):
     country_root.country("CO").write_index(
         [
             layer(0, "gfw.tif"),
-            layer(1, "runap.tif", category_id="protected_areas", baseline=None),
+            layer(
+                1,
+                "runap.tif",
+                category_id="protected_areas",
+                baseline=None,
+                compared_against=None,
+            ),
         ]
     )
     write_categories(country_root, "CO", [category("protected_areas")])
-    country_root.country("EC").write_index([layer(0, "snap.tif", category_id="snap")])
+    country_root.country("EC").write_index(
+        [layer(0, "snap.tif", category_id="snap", baseline=None, compared_against=None)]
+    )
     write_categories(country_root, "EC", [category("snap")])
+    for code, raster in (("CO", "gfw.tif"), ("CO", "runap.tif"), ("EC", "snap.tif")):
+        country_root.country(code).write_raster(raster)
     return country_root
 
 
@@ -363,6 +375,7 @@ def test_the_flat_layout_has_only_the_built_in_category(maps_root):
             layer(1, "x.tif", available_countries_codes=["CO"], category_id="frontier"),
         ]
     )
+    maps_root.write_raster("gfw.tif")
 
     assert {e["id"]: e["category_issue"] for e in maps_root.layers_root.layers()} == {
         0: None,
@@ -489,3 +502,219 @@ def test_an_analysis_still_resolves_a_hidden_layer(co):
     )
     assert response.status_code == 200
     assert [result["mapId"] for result in response.json()] == [1]
+
+
+# --- put_category: one-entry writes that keep the rest of the file -----------------
+
+
+def raw_categories(root, code):
+    return json.loads((root.root / code / "categories.json").read_text())
+
+
+def test_put_category_adds_at_the_end_or_first(co):
+    store = co.store("CO")
+    store.put_category(category("frontier", polarity="required"))
+    store.put_category(category(DEFAULT_CATEGORY["id"]), first=True)
+
+    assert [c["id"] for c in raw_categories(co, "CO")] == [
+        "deforestation",
+        "protected_areas",
+        "frontier",
+    ]
+
+
+def test_put_category_replaces_in_place_and_collapses_copies(co):
+    write_categories(
+        co,
+        "CO",
+        [
+            category("frontier"),
+            category("protected_areas"),
+            category("frontier", color="#000000"),
+        ],
+    )
+    store = co.store("CO")
+    assert store.read_categories().invalid_ids == {"frontier"}
+
+    store.put_category(category("frontier", color="#2e7d32"))
+
+    stored = raw_categories(co, "CO")
+    assert [c["id"] for c in stored] == ["frontier", "protected_areas"]
+    assert stored[0]["color"] == "#2e7d32"
+    file = store.read_categories()
+    assert file.invalid_ids == frozenset() and file.errors == []
+
+
+def test_put_category_keeps_rejected_and_unknown_entries_verbatim(co):
+    rejected = category("frontier", polarity="inside")
+    without_id = {"name": "no id", "from": "a later release"}
+    later = category("rivers", icon="river")  # an icon a later release may add
+    write_categories(
+        co, "CO", [rejected, category("protected_areas"), without_id, later]
+    )
+
+    co.store("CO").put_category(category("protected_areas", color="#123456"))
+
+    stored = raw_categories(co, "CO")
+    assert stored[0] == rejected
+    assert stored[1]["color"] == "#123456"
+    assert stored[2] == without_id
+    assert stored[3] == later
+
+
+@pytest.mark.parametrize("content", ["{ not json", '{"id": "frontier"}'])
+def test_put_category_never_overwrites_an_unreadable_file(co, content):
+    write_categories(co, "CO", content)
+    path = co.root / "CO" / "categories.json"
+
+    with pytest.raises(CategoriesUnreadable):
+        co.store("CO").put_category(category("frontier"))
+
+    assert path.read_text() == content
+
+
+def test_put_category_never_overwrites_a_file_it_cant_read(co, monkeypatch):
+    path = co.root / "CO" / "categories.json"
+    before = path.read_text()
+    real_open = builtins.open
+
+    def failing_open(file, mode="r", *args, **kwargs):
+        if str(file) == str(path) and "r" in mode:
+            raise OSError(5, "Input/output error")
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", failing_open)
+    with pytest.raises(CategoriesUnreadable) as error:
+        co.store("CO").put_category(category("frontier"))
+
+    monkeypatch.undo()
+    assert path.read_text() == before
+    assert str(co.root) not in str(error.value)
+
+
+def test_put_category_refuses_an_invalid_category(co):
+    path = co.root / "CO" / "categories.json"
+    before = path.read_text()
+
+    with pytest.raises(ValueError):
+        co.store("CO").put_category(category("frontier", threshold_percentage=120))
+
+    assert path.read_text() == before
+
+
+def test_put_category_creates_a_missing_file(co):
+    (co.root / "CO" / "categories.json").unlink()
+
+    co.store("CO").put_category(category("frontier"))
+
+    assert [c["id"] for c in raw_categories(co, "CO")] == ["frontier"]
+
+
+def test_put_category_refreshes_the_cache(co):
+    store = co.store("CO")
+    path = co.root / "CO" / "categories.json"
+    store.put_category(category("protected_areas", color="#111111"))
+    assert store.read_categories().categories[0]["color"] == "#111111"
+    first = path.stat()
+
+    store.put_category(category("protected_areas", color="#222222"))
+    os.utime(path, ns=(first.st_atime_ns, first.st_mtime_ns))
+
+    assert path.stat().st_size == first.st_size
+    assert store.read_categories().categories[0]["color"] == "#222222"
+
+
+@pytest.mark.parametrize("stored_enabled, kept", [(False, False), ("no", True)])
+def test_put_category_can_keep_the_stored_enabled(co, stored_enabled, kept):
+    write_categories(
+        co, "CO", [category("frontier", icon="river", enabled=stored_enabled)]
+    )
+
+    result = co.store("CO").put_category(category("frontier"), keep_enabled=True)
+
+    assert result["enabled"] is kept
+    assert raw_categories(co, "CO")[0]["enabled"] is kept
+
+
+# --- Read-side invariant: an inconsistent layer is never public ------------------
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"compared_against": None},  # temporal category, one year
+        {"baseline": "", "compared_against": "2023"},
+        {"baseline": "2020a"},  # not a year (and no 500)
+        {
+            "category_id": "protected_areas",  # not temporal, with years
+        },
+        {"raster_filename": "missing.tif"},
+        {"raster_filename": None},
+        # Years `LayerInput` would refuse (re-review 3 of #138).
+        {"baseline": "2023", "compared_against": "2020"},
+        {"baseline": "1", "compared_against": "99999"},
+        {"baseline": True, "compared_against": True},
+        {"baseline": 2020.5, "compared_against": "2023"},
+        # Only `enabled: true` is published.
+        {"enabled": "false"},
+        {"enabled": "true"},
+        {"enabled": 1},
+    ],
+)
+def test_a_hand_edited_inconsistent_layer_is_never_public(co, overrides):
+    # Every admin route refuses to publish these; a hand edit of the share can
+    # still leave them enabled. The listing hides them whatever the path.
+    co.country("CO").write_index(
+        [layer(0, "gfw.tif", **overrides), layer(2, "gfw.tif", enabled=False)]
+    )
+
+    assert listed("CO") == {}
+    countries = client().get("/countries").json()
+    assert {"code": "CO"} not in countries
+    assert {"code": "EC"} in countries
+
+
+def test_hidden_inconsistent_layers_are_tagged_and_logged(co, caplog):
+    co.country("CO").write_index(
+        [layer(0, "gfw.tif", compared_against=None), layer(1, "gfw.tif")]
+    )
+
+    with caplog.at_level(logging.ERROR):
+        assert listed("CO") == {1: "deforestation"}
+
+    tags = {e["id"]: e["layer_issue"] for e in co.layers_root.country_layers("CO")}
+    assert tags == {0: "years_mismatch", 1: None}
+    assert "Layer 0 of CO is hidden: its years don't fit" in caplog.text
+
+
+def test_a_layer_without_raster_is_logged_once(co, caplog):
+    co.country("CO").write_index([layer(0, "missing.tif")])
+
+    with caplog.at_level(logging.ERROR):
+        for _ in range(3):
+            assert listed("CO") == {}
+
+    assert caplog.text.count("its raster is missing") == 1
+
+
+def test_valid_years_fit():
+    assert years_fit({"baseline": "2020", "compared_against": "2020"}, True)
+    assert years_fit({"baseline": 1900, "compared_against": "2100"}, True)
+    assert years_fit({}, False)
+    assert years_fit({"baseline": "", "compared_against": None}, False)
+    assert not years_fit({"baseline": "1899", "compared_against": "2020"}, True)
+    assert not years_fit({"baseline": "2020", "compared_against": "2101"}, True)
+
+
+def test_maps_of_a_country_only_check_that_countrys_rasters(co, monkeypatch):
+    checked = []
+    real_has_raster = LayerStore.has_raster
+
+    def recording_has_raster(store, filename):
+        checked.append(store.root.name)
+        return real_has_raster(store, filename)
+
+    monkeypatch.setattr(LayerStore, "has_raster", recording_has_raster)
+
+    assert listed("CO") == {0: "deforestation", 1: "protected_areas"}
+    assert set(checked) == {"CO"}

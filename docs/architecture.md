@@ -440,6 +440,11 @@ Every admin route works on **the session's country only**:
 - **Layers:** listing, creating (the next id in that country), editing fields and
   metadata, and publishing or hiding. They all use `<CC>/index.json` and
   `<CC>/metadata/`.
+- **Categories:** listing, creating, editing and enabling or disabling
+  (`/admin/categories`), in `<CC>/categories.json`. A published layer never changes
+  meaning in place: its category can't be disabled nor change polarity, and the layer
+  can't change category, until it is hidden (`docs/maps.md`, "Managing categories in
+  the admin").
 - **Rasters:** uploads go to that country's folder.
 - **Other countries:** an id or a job of another country answers 404, as if it
   didn't exist.

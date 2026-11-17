@@ -55,6 +55,13 @@ def countries(country_root):
     )
     for code, raster in (("EC", "gfw.tif"), ("CO", "gfw.tif"), ("CR", "gfw.tif")):
         country_root.country(code).write_raster(raster, code.encode())
+    # Only layers with a raster are public.
+    for code, raster in (
+        ("EC", "ecuador.tif"),
+        ("CO", "ideam.tif"),
+        ("CR", "mocupp.tif"),
+    ):
+        country_root.country(code).write_raster(raster)
     country_root.country("CR").write_attributes(
         "es", "mocupp.json", {"name": "MOCUPP", "alias": "MOCUPP 2021-2022"}
     )
@@ -316,6 +323,7 @@ def test_countries_on_a_flat_root(maps_root):
             layer(1, "hidden.tif", available_countries_codes=["PE"], enabled=False),
         ]
     )
+    maps_root.write_raster("gfw.tif")
 
     assert public("/countries").json() == [{"code": "CO"}, {"code": "EC"}]
     assert [entry["id"] for entry in public("/maps?country=CO").json()] == [0]

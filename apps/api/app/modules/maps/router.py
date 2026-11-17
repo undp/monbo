@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.models.maps import COUNTRY_CODE_PATTERN, BaseMapData
-from app.modules.layers.store import get_layers_root, is_public_layer
+from app.modules.layers.store import get_layers_root
 from app.modules.maps.helpers import get_all_maps
 from app.utils.maps import parse_year, read_attributes, read_considerations
 
@@ -20,8 +20,9 @@ def get_maps(
 
     This endpoint reads the maps index file and their corresponding metadata
     files to return detailed information about each enabled map layer. Disabled
-    layers, and layers whose category is disabled or doesn't resolve, are left out
-    here but remain usable by id for analysis and tiles.
+    layers, layers whose category is disabled or doesn't resolve, layers whose
+    years don't fit their category, and layers without a raster are left out here
+    but remain usable by id for analysis and tiles.
 
     Args:
         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -59,16 +60,18 @@ def get_maps(
           frontend appends it to tile URLs to bypass cached tiles)
         - pixelSize: Nominal pixel size in meters, used by the analysis formula
     """
-    enabled_countries = get_layers_root().enabled_countries()
+    root = get_layers_root()
+    enabled_countries = root.enabled_countries()
     maps = [
         map
         for map in get_all_maps()
-        if is_public_layer(map)
-        and (country is None or country in map["available_countries_codes"])
+        if (country is None or country in map["available_countries_codes"])
         and (
             enabled_countries is None
             or enabled_countries & set(map["available_countries_codes"])
         )
+        # Last: it checks the raster on the share, only for layers to be listed.
+        and root.is_public(map)
     ]
 
     parsed_maps = []
