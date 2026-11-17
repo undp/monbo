@@ -164,6 +164,23 @@ def test_list(root, capsys):
     assert "disabled" in lines[1] and "0 layers (0 enabled)" in lines[1]
 
 
+def test_list_counts_only_boolean_true_as_enabled(root, capsys):
+    # Re-review 4 of #138: a hand-edited "false" counted as an enabled layer,
+    # though neither the admin nor GET /maps publish it.
+    run(root, "add", "CO")
+    (root.root / "CO" / "index.json").write_text(
+        json.dumps(
+            [{"id": 3, "enabled": True}, {"id": 7, "enabled": "false"}, {"id": 8}]
+        )
+    )
+
+    [colombia] = cli.list_countries(root)
+
+    assert colombia["layers"] == 3
+    # Layer 8 predates `enabled`: it counts as enabled, like everywhere else.
+    assert colombia["enabled_layers"] == 2
+
+
 def test_commands_other_than_list_need_a_code(root):
     with pytest.raises(SystemExit):
         run(root, "add")
