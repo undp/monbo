@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
-import { NEUTRAL_CHIP_BACKGROUND, RESULT_COLORS } from "./methodologyStyles";
+import { resultClassBackgroundColor, resultClassColor } from "@/utils/styling";
+import { NEUTRAL_CHIP_BACKGROUND } from "./methodologyStyles";
 
 /** A chip of a category's block: its threshold (neutral) or one of its results. */
 export const ResultChip: React.FC<{ kind: "ok" | "flagged" | "neutral"; children: React.ReactNode }> = ({
@@ -8,7 +9,9 @@ export const ResultChip: React.FC<{ kind: "ok" | "flagged" | "neutral"; children
 }) => {
   const colors = useTheme().palette.landing;
   const palette =
-    kind === "neutral" ? { color: colors.inkSecondary, background: NEUTRAL_CHIP_BACKGROUND } : RESULT_COLORS[kind];
+    kind === "neutral"
+      ? { color: colors.inkSecondary, background: NEUTRAL_CHIP_BACKGROUND }
+      : { color: resultClassColor(kind), background: resultClassBackgroundColor(kind) };
   return (
     <Box
       component="span"

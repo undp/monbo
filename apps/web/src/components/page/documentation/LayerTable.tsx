@@ -21,7 +21,7 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
         return { main: map.name ?? null, detail: map.alias ?? null, strong: true };
       case "period": {
         const { window, dataRange } = layerPeriod(map);
-        return window ? { main: window, detail: dataRange } : { main: dataRange };
+        return window ? { main: window, detail: dataRange, nowrap: true } : { main: dataRange };
       }
       default:
         return { main: map[column] ?? null };
@@ -60,7 +60,7 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
             py: 1.25,
             verticalAlign: "top",
             borderBottom: `1px solid ${colors.line}`,
-            overflowWrap: "anywhere",
+            overflowWrap: "break-word",
           },
           "& tbody tr:last-of-type td": { borderBottom: 0 },
           // Phones: each row is a card, each cell "Column: value".

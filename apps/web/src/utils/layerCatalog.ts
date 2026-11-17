@@ -1,5 +1,5 @@
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
-import type { LayerCategory, LocalizedText } from "@/interfaces/LayerCategory";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 
 /**
  * A category and its layers. `category` is null for the layers whose `categoryId`
@@ -58,7 +58,3 @@ export const layerPeriod = (map: MapData): LayerPeriod => ({
  */
 export const isWebUrl = (url: string | null | undefined): url is string =>
   !!url && /^https?:\/\//i.test(url);
-
-/** A text of the API (both languages) in the page's language; Spanish is the default. */
-export const localizedText = (text: LocalizedText, language: string): string =>
-  language === "en" ? text.en : text.es;

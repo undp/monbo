@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { makeLayerCategory, makeMap } from "@/test/factories";
+import { makeCategory, makeMap } from "@/test/factories";
 import { groupLayersByCategory, layerPeriod } from "./layerCatalog";
 
-const deforestation = makeLayerCategory();
-const protectedAreas = makeLayerCategory({ id: "protected_areas", icon: "shield" });
-const frontier = makeLayerCategory({ id: "frontier", polarity: "required" });
+const deforestation = makeCategory();
+const protectedAreas = makeCategory({ id: "protected_areas", icon: "shield" });
+const frontier = makeCategory({ id: "frontier", polarity: "required" });
 
 const gfw = makeMap({ id: 0, categoryId: "deforestation" });
 const runap = makeMap({ id: 1, categoryId: "protected_areas" });

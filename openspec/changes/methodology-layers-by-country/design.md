@@ -86,8 +86,8 @@ selected. `MethodologyDocument` calls it once and passes the state to both secti
 
 The page needs one country per tab, so it never reads GC-6's `availableCategories` from
 `DataContext` (only the session country's). The client, `interfaces/LayerCategory.ts` and
-`GET_CATEGORIES_URL` are GC-6's, by agreed names; until GC-6 merges this unit carries an
-identical copy, and adopts GC-6's version when it rebases.
+`GET_CATEGORIES_URL` are GC-6's (#140), by agreed names, and this unit uses them as they
+are.
 
 `GET_CATEGORIES_URL` follows `GET_COUNTRIES_URL`: `NEXT_PUBLIC_GET_CATEGORIES_URL`
 (build-time) falling back to `${NEXT_PUBLIC_API_URL}/categories`. No runtime variable is
@@ -118,14 +118,14 @@ document is worse than a descriptive one.
 
 ### 6. Category visuals
 
-`components/reusable/CategoryIcon.tsx` maps the API's icon catalog to MUI icons
-(`forest`→`Forest`, `shield`→`Shield`, `agriculture`→`Agriculture`, `water`→`WaterDrop`,
-`mountain`→`Terrain`, `wetland`→`Water`, `fire`→`LocalFireDepartment`,
-`layers`→`Layers`, unknown → `Layers`), so GC-5 and GC-6 can reuse it. A category block
-uses its API `color` for the icon, a left border and a 10% tint background (computed with
-MUI `alpha`). Polarity reads "Marca lo que se debe evitar" / "Marca lo permitido" with
-the matching chips: ok label in green, flagged label in red, with "≤ umbral" and
-"> umbral" text so color is never the only signal.
+A category looks the same here as in the territorial analysis (GC-6): its icon is GC-6's
+`LayerCategoryIcon`, its colors come from `categoryTints` (`utils/categoryColors.ts`: the
+API `color` for the icon and a left border, a 12% tint behind), the result chips use
+`resultClassColor` / `resultClassBackgroundColor` (`utils/styling.ts`), and texts go
+through `localizedText`. A layer whose category isn't published gets the generic icon in
+the grey of a missing category. Polarity reads "Marca lo que se debe evitar" / "Marca lo
+permitido", and each chip states its rule ("dentro/fuera de la capa: ≤ / > umbral"), so
+color is never the only signal.
 
 ### 7. Layout
 
@@ -162,9 +162,8 @@ the matching chips: ok label in green, flagged label in red, with "≤ umbral" a
 
 ## Risks / Trade-offs
 
-- [GC-6 and this unit both carry the categories client] → Same file names and exports,
-  agreed with GC-6 and GC-7; this unit rebases on GC-6 and drops its copy. The icon map
-  (`CategoryIcon`) is reusable for GC-5/GC-6; whoever merges second keeps one.
+- [A category drawn differently on two screens] → This page reuses GC-6's icon, tints,
+  result colors and `localizedText` instead of its own (review of #139, nit 3).
 - [A country with many layers makes the page long] → The limits are collapsed, and the
   tables are compact; acceptable for today's 2–4 layers per country.
 - [`coverage` is not "Global/Nacional"] → Decision 5; the mockup is not yet revalidated

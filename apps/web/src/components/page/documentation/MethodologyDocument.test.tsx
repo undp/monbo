@@ -9,7 +9,7 @@ import { setRuntimeConfig } from "@/config/runtime";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import { makeLayerCategory, makeMap } from "@/test/factories";
+import { makeCategory, makeFrontierCategory, makeMap } from "@/test/factories";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
 import { makeDataContext } from "@/test/renderWithData";
 import type { DocumentationContent } from "@/utils/documentation";
@@ -34,8 +34,8 @@ const CONTENT: DocumentationContent = {
   area: section("Area"),
 };
 
-const deforestation = makeLayerCategory({ thresholdPercentage: 2 });
-const protectedAreas = makeLayerCategory({
+const deforestation = makeCategory({ thresholdPercentage: 2 });
+const protectedAreas = makeCategory({
   id: "protected_areas",
   name: { es: "Áreas protegidas", en: "Protected areas" },
   description: { es: "Zonas protegidas por ley.", en: "Areas protected by law." },
@@ -50,20 +50,7 @@ const protectedAreas = makeLayerCategory({
   temporal: false,
 });
 
-const frontier = makeLayerCategory({
-  id: "agricultural_frontier",
-  name: { es: "Frontera agrícola", en: "Agricultural frontier" },
-  description: { es: "Zonas donde se permite la producción.", en: "Areas where farming is allowed." },
-  icon: "agriculture",
-  color: "#a8741a",
-  polarity: "required",
-  thresholdPercentage: 10,
-  resultLabels: {
-    ok: { es: "Dentro de la frontera agrícola", en: "Inside the agricultural frontier" },
-    flagged: { es: "Fuera de la frontera agrícola", en: "Outside the agricultural frontier" },
-  },
-  temporal: false,
-});
+const frontier = makeFrontierCategory({ thresholdPercentage: 10 });
 
 const CONSIDERATIONS_WITH_LINKS =
   "Ver [la fuente](https://example.org/gfw), [esto](javascript:alert(1)), [el admin](/admin) y [el correo](mailto:a@b.c).";

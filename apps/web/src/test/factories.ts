@@ -113,28 +113,6 @@ export const makeMap = (overrides: Partial<MapData> = {}): MapData => ({
   ...overrides,
 });
 
-/** A layer category as GET /categories returns it: the built-in deforestation one. */
-export const makeLayerCategory = (
-  overrides: Partial<LayerCategory> = {}
-): LayerCategory => ({
-  id: "deforestation",
-  name: { es: "Deforestación", en: "Deforestation" },
-  description: {
-    es: "Pérdida de bosque posterior al año de línea base de la capa.",
-    en: "Forest loss after the layer's baseline year.",
-  },
-  icon: "forest",
-  color: "#c62828",
-  polarity: "avoid",
-  thresholdPercentage: 10,
-  resultLabels: {
-    ok: { es: "Libre de deforestación", en: "Deforestation-free" },
-    flagged: { es: "Con deforestación", en: "With deforestation" },
-  },
-  temporal: true,
-  ...overrides,
-});
-
 /** One layer's results: `values` maps each farm id to its deforestation (0-1). */
 export const makeMapResults = (
   mapId: number,

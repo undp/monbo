@@ -12,7 +12,8 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTranslation } from "react-i18next";
 import type { CountryLayerCatalogState } from "@/hooks/useCountryLayerCatalog";
-import { groupLayersByCategory, isWebUrl, localizedText } from "@/utils/layerCatalog";
+import { groupLayersByCategory, isWebUrl } from "@/utils/layerCatalog";
+import { localizedText } from "@/utils/localizedText";
 import { CatalogStatus } from "./CatalogStatus";
 import { CategoryChip } from "./CategoryChip";
 import { ConsiderationsMarkdown } from "./DocumentationMarkdown";
@@ -72,8 +73,8 @@ export const LayerLimitsSection: React.FC<LayerLimitsSectionProps> = ({ countryN
                       ) : (
                         <CategoryChip
                           name={t("methodology:category:others")}
-                          icon="layers"
-                          color={colors.muted}
+                          icon={null}
+                          color={null}
                         />
                       )}
                     </Box>

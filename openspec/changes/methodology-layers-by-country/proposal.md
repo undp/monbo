@@ -34,8 +34,8 @@ v2.
 - The web client shared with GC-6 and GC-7: `api/layerCategories.ts`
   (`getLayerCategories(country)`), `interfaces/LayerCategory.ts` and `GET_CATEGORIES_URL`
   (build-time override with the usual fallback to `NEXT_PUBLIC_API_URL`, so no
-  runtime-variable wiring). GC-6 owns them; this unit carries an identical copy until
-  GC-6 merges, then adopts GC-6's.
+  runtime-variable wiring). GC-6 (#140) owns them, with `LayerCategoryIcon`,
+  `categoryTints` and `localizedText`, which this page reuses.
 - New i18n namespace `methodology` (es and en) for the page's interface texts.
 - The cap on the page's static Spanish text (details closed) rises from 1,100 to 1,400
   words for the two new Markdown sections; the API-driven layer content doesn't count.

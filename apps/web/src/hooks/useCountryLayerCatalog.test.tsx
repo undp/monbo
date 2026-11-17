@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getMaps } from "@/api/layerAnalysis";
 import { getLayerCategories } from "@/api/layerCategories";
 import { deferred } from "@/test/deferred";
-import { makeLayerCategory, makeMap } from "@/test/factories";
+import { makeCategory, makeMap } from "@/test/factories";
 import { useCountryLayerCatalog } from "./useCountryLayerCatalog";
 
 vi.mock("@/api/layerAnalysis", () => ({ getMaps: vi.fn() }));
 vi.mock("@/api/layerCategories", () => ({ getLayerCategories: vi.fn() }));
 
-const deforestation = makeLayerCategory();
+const deforestation = makeCategory();
 const ideam = makeMap({ id: 3, name: "IDEAM", country: "CO" });
 const maate = makeMap({ id: 2, name: "MAATE", country: "EC" });
 

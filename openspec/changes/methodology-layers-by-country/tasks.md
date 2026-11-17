@@ -1,7 +1,7 @@
 ## 1. Data access
 
-- [x] 1.1 Add `GET_CATEGORIES_URL` to `config/env.ts` and `NEXT_PUBLIC_GET_CATEGORIES_URL=` to `.env.template`
-- [x] 1.2 Add `api/layerCategories.ts#getLayerCategories(country)` and `interfaces/LayerCategory.ts` (same names as GC-6; adopt GC-6's version when it merges)
+- [x] 1.1 Use GC-6's `GET_CATEGORIES_URL` (`config/env.ts`, `.env.template`)
+- [x] 1.2 Use GC-6's `api/layerCategories.ts#getLayerCategories(country)` and `interfaces/LayerCategory.ts`
 - [x] 1.3 Add `utils/layerCatalog.ts` (`groupLayersByCategory`, `layerPeriod`) with unit tests (order, unknown category under "other", period fallbacks)
 - [x] 1.4 Add `hooks/useCountryLayerCatalog.ts` (parallel fetch, cache per country and language, stale-response guard, retry) with tests mocking `@/api/*`
 
@@ -18,7 +18,7 @@
 
 - [x] 3.1 Add the `methodology` namespace (es, en), move the `common:documentation` keys into it and load it in the page
 - [x] 3.2 Rework `MethodologyDocument`: hero (eyebrow, title, subtitle), sticky side index from 900 px, top index below, `#deforestation` alias anchor, selected-country state
-- [x] 3.3 Add `components/reusable/CategoryIcon.tsx` (icon catalog → MUI icons, fallback)
+- [x] 3.3 Draw categories with GC-6's `LayerCategoryIcon`, `categoryTints` and result colors
 - [x] 3.4 Add `CountryTabs` (silhouette tabs, initial tab from the session country, never writes it)
 - [x] 3.5 Add `CountryLayersSection` (category blocks with polarity, threshold and labels; layer table from 900 px, cards below; empty category; "Other layers"; loading and error with retry)
 - [x] 3.6 Add `LayerLimitsSection` (country name, one closed accordion per layer with category chip, considerations Markdown without HTML, references)
@@ -41,3 +41,4 @@
 - [x] 6.4 Link only `http(s)` addresses in a layer's considerations, with a test for `javascript:`, `/admin` and `mailto:`
 - [x] 6.5 Scroll to the anchor again once the country's catalog settles, unless the reader scrolled
 - [x] 6.6 Run the web checks again
+- [x] 6.7 Rebase on GC-6 (#140) and drop this unit's copies: the categories client, `CategoryIcon`, `localizedText`, `categoryTint`, the result colors and the category factory

@@ -1,13 +1,14 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import { useTranslation } from "react-i18next";
-import { CategoryIcon } from "@/components/reusable/CategoryIcon";
+import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import { localizedText } from "@/utils/layerCatalog";
+import { categoryTints } from "@/utils/categoryColors";
+import { localizedText } from "@/utils/localizedText";
 import { formatThreshold } from "@/utils/numbers";
 import { LayerTable } from "./LayerTable";
-import { HEADING_FONT, categoryTint } from "./methodologyStyles";
+import { HEADING_FONT } from "./methodologyStyles";
 import { ResultChip } from "./ResultChip";
 
 /** One category of the country: what it marks, its threshold and results, and its layers. */
@@ -18,7 +19,8 @@ export const CategoryBlock: React.FC<{ category: LayerCategory | null; layers: M
   const { t, i18n } = useTranslation();
   const colors = useTheme().palette.landing;
   const language = i18n.language;
-  const color = category?.color ?? colors.muted;
+  // The grey of a missing category for "Otras capas", as in the territorial analysis.
+  const tints = categoryTints(category?.color);
   const threshold = category ? formatThreshold(category.thresholdPercentage, language) : "";
   const name = category ? localizedText(category.name, language) : t("methodology:category:others");
 
@@ -28,7 +30,7 @@ export const CategoryBlock: React.FC<{ category: LayerCategory | null; layers: M
       aria-label={name}
       sx={{
         border: `1px solid ${colors.line}`,
-        borderLeft: `4px solid ${color}`,
+        borderLeft: `4px solid ${tints.color}`,
         borderRadius: "14px",
         backgroundColor: "common.white",
         p: { xs: 2, md: "16px 18px" },
@@ -44,11 +46,11 @@ export const CategoryBlock: React.FC<{ category: LayerCategory | null; layers: M
             borderRadius: "10px",
             display: "grid",
             placeItems: "center",
-            color,
-            backgroundColor: categoryTint(color),
+            color: tints.color,
+            backgroundColor: tints.background,
           }}
         >
-          <CategoryIcon icon={category?.icon ?? "layers"} />
+          <LayerCategoryIcon icon={category?.icon} aria-hidden />
         </Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography component="h3" sx={{ font: `700 16px/1.2 ${HEADING_FONT}`, color: colors.ink }}>
