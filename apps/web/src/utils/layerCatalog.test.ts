@@ -41,21 +41,31 @@ describe("groupLayersByCategory", () => {
 });
 
 describe("layerPeriod", () => {
-  it("is the content date the country wrote", () => {
-    expect(layerPeriod(makeMap({ contentDate: "Entre 2021 y 2022" }))).toBe(
-      "Entre 2021 y 2022"
-    );
-  });
-
-  it("falls back to the layer's years", () => {
+  it("is the analysis window, with the dataset's range apart", () => {
     expect(
-      layerPeriod(makeMap({ contentDate: null, baseline: 2020, comparedAgainst: 2023 }))
-    ).toBe("2020–2023");
+      layerPeriod(
+        makeMap({ baseline: 2020, comparedAgainst: 2023, contentDate: "Datos entre 2000 y 2023" })
+      )
+    ).toEqual({ window: "2020 → 2023", dataRange: "Datos entre 2000 y 2023" });
   });
 
-  it("is null for a layer without date or years", () => {
+  it("has only the window when the country wrote no range", () => {
+    expect(
+      layerPeriod(makeMap({ baseline: 2021, comparedAgainst: 2022, contentDate: null }))
+    ).toEqual({ window: "2021 → 2022", dataRange: null });
+  });
+
+  it("has only the range for a layer without years", () => {
+    expect(
+      layerPeriod(
+        makeMap({ baseline: null, comparedAgainst: null, contentDate: "Actualizado en 2024" })
+      )
+    ).toEqual({ window: null, dataRange: "Actualizado en 2024" });
+  });
+
+  it("is empty for a layer without years or range", () => {
     expect(
       layerPeriod(makeMap({ contentDate: null, baseline: null, comparedAgainst: null }))
-    ).toBeNull();
+    ).toEqual({ window: null, dataRange: null });
   });
 });

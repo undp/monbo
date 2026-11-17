@@ -20,8 +20,16 @@
     "avoid": "Marca lo que se debe evitar: coincidir con la capa es una observación.",
     "required": "Marca lo permitido: quedar fuera de la capa es una observación.",
     "threshold": "Umbral: {{threshold}}",
-    "okRule": "{{threshold}} o menos",
-    "flaggedRule": "más de {{threshold}}",
+    "rules": {
+      "avoid": {
+        "ok": "dentro de la capa: {{threshold}} o menos",
+        "flagged": "dentro de la capa: más de {{threshold}}"
+      },
+      "required": {
+        "ok": "fuera de la capa: {{threshold}} o menos",
+        "flagged": "fuera de la capa: más de {{threshold}}"
+      }
+    },
     "noLayers": "Todavía no hay capas publicadas en esta categoría.",
     "others": "Otras capas",
     "othersDescription": "Capas cuya categoría no está publicada en este país."

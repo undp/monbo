@@ -2,9 +2,8 @@ import { Box, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
 import { layerPeriod } from "@/utils/layerCatalog";
+import { LayerCell, type LayerCellText } from "./LayerCell";
 import { TABLE_HEADER_BACKGROUND } from "./methodologyStyles";
-
-const MISSING = "—";
 
 const COLUMNS = ["name", "coverage", "source", "period", "resolution", "updateFrequency"] as const;
 
@@ -15,14 +14,19 @@ const COLUMNS = ["name", "coverage", "source", "period", "resolution", "updateFr
 export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
   const { t } = useTranslation();
   const colors = useTheme().palette.landing;
-  const values = (map: MapData): Record<(typeof COLUMNS)[number], string | null> => ({
-    name: map.name ?? null,
-    coverage: map.coverage ?? null,
-    source: map.source ?? null,
-    period: layerPeriod(map),
-    resolution: map.resolution ?? null,
-    updateFrequency: map.updateFrequency ?? null,
-  });
+  // Each cell: its value and, below it in smaller type, a detail.
+  const cell = (map: MapData, column: (typeof COLUMNS)[number]): LayerCellText => {
+    switch (column) {
+      case "name":
+        return { main: map.name ?? null, detail: map.alias ?? null, strong: true };
+      case "period": {
+        const { window, dataRange } = layerPeriod(map);
+        return window ? { main: window, detail: dataRange } : { main: dataRange };
+      }
+      default:
+        return { main: map[column] ?? null };
+    }
+  };
 
   return (
     <Box
@@ -96,29 +100,15 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
           </tr>
         </thead>
         <tbody>
-          {layers.map((map) => {
-            const row = values(map);
-            return (
-              <tr key={map.id}>
-                {COLUMNS.map((column) => (
-                  <td key={column} data-label={t(`methodology:layer:${column}`)}>
-                    {column === "name" ? (
-                      <Box>
-                        <Box component="b" sx={{ fontWeight: 600 }}>
-                          {row.name ?? MISSING}
-                        </Box>
-                        {map.alias && (
-                          <Box sx={{ color: colors.muted, fontSize: 12.5 }}>{map.alias}</Box>
-                        )}
-                      </Box>
-                    ) : (
-                      (row[column] ?? MISSING)
-                    )}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {layers.map((map) => (
+            <tr key={map.id}>
+              {COLUMNS.map((column) => (
+                <td key={column} data-label={t(`methodology:layer:${column}`)}>
+                  <LayerCell {...cell(map, column)} />
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </Box>
     </Box>

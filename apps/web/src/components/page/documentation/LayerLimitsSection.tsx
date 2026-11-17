@@ -12,14 +12,11 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTranslation } from "react-i18next";
 import type { CountryLayerCatalogState } from "@/hooks/useCountryLayerCatalog";
-import { groupLayersByCategory, localizedText } from "@/utils/layerCatalog";
+import { groupLayersByCategory, isWebUrl, localizedText } from "@/utils/layerCatalog";
 import { CatalogStatus } from "./CatalogStatus";
 import { CategoryChip } from "./CategoryChip";
 import { ConsiderationsMarkdown } from "./DocumentationMarkdown";
 import { HEADING_FONT } from "./methodologyStyles";
-
-// Only web addresses become links: a reference is written by a country's admin.
-const WEB_URL = /^https?:\/\//i;
 
 interface LayerLimitsSectionProps {
   /** The country chosen in "Capas por país", null while there is none. */
@@ -95,7 +92,7 @@ export const LayerLimitsSection: React.FC<LayerLimitsSectionProps> = ({ countryN
                         <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
                           {map.references.map((reference) => (
                             <Box component="li" key={reference} sx={{ mb: 0.5, fontSize: 14 }}>
-                              {WEB_URL.test(reference) ? (
+                              {isWebUrl(reference) ? (
                                 <Link
                                   href={reference}
                                   target="_blank"

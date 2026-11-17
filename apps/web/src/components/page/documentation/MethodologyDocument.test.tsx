@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,11 +50,29 @@ const protectedAreas = makeLayerCategory({
   temporal: false,
 });
 
+const frontier = makeLayerCategory({
+  id: "agricultural_frontier",
+  name: { es: "Frontera agrícola", en: "Agricultural frontier" },
+  description: { es: "Zonas donde se permite la producción.", en: "Areas where farming is allowed." },
+  icon: "agriculture",
+  color: "#a8741a",
+  polarity: "required",
+  thresholdPercentage: 10,
+  resultLabels: {
+    ok: { es: "Dentro de la frontera agrícola", en: "Inside the agricultural frontier" },
+    flagged: { es: "Fuera de la frontera agrícola", en: "Outside the agricultural frontier" },
+  },
+  temporal: false,
+});
+
+const CONSIDERATIONS_WITH_LINKS =
+  "Ver [la fuente](https://example.org/gfw), [esto](javascript:alert(1)), [el admin](/admin) y [el correo](mailto:a@b.c).";
+
 const CATALOG: Record<string, { categories: LayerCategory[]; maps: MapData[] }> = {
   CO: {
-    categories: [deforestation, protectedAreas],
+    categories: [deforestation, protectedAreas, frontier],
     maps: [
-      makeMap({ id: 0, name: "Global Forest Watch", alias: "GFW 2020-2023", country: "CO", coverage: "Global", contentDate: null, baseline: 2020, comparedAgainst: 2023, considerations: "### Límites\n\nNo distingue plantaciones. <b>negrita</b>", references: ["https://glad.example.org", "javascript:alert(1)"] }),
+      makeMap({ id: 0, name: "Global Forest Watch", alias: "GFW 2020-2023", country: "CO", coverage: "Global", contentDate: "Datos entre 2000 y 2023", baseline: 2020, comparedAgainst: 2023, considerations: "### Límites\n\nNo distingue plantaciones. <b>negrita</b>", references: ["https://glad.example.org", "javascript:alert(1)"] }),
       makeMap({ id: 3, name: "IDEAM", alias: null, country: "CO", coverage: "Colombia", source: "Instituto de Hidrología", resolution: "30 x 30 metros", updateFrequency: "Anual" }),
     ],
   },
@@ -146,6 +164,23 @@ describe("MethodologyDocument", () => {
     }
   });
 
+  it("goes to the anchor again once the layers have loaded", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.location.hash = "#upload";
+    try {
+      await renderDocument();
+      await within(layersSection()).findByText("IDEAM");
+
+      // The second scroll runs in an effect after the tables render.
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
+      const upload = document.getElementById("upload");
+      expect(scrollIntoView.mock.contexts).toEqual([upload, upload]);
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
   it("titles each summary in the page's language", async () => {
     await renderDocument("es");
     expect(screen.getAllByText("En resumen")).toHaveLength(7);
@@ -231,6 +266,28 @@ describe("MethodologyDocument layers by country", () => {
     expect(getMaps).toHaveBeenCalledWith("es", "CO");
   });
 
+  it("shows the analysis window as the period, with the dataset's range below", async () => {
+    await renderDocument();
+
+    const row = (await within(layersSection()).findByText("Global Forest Watch")).closest("tr")!;
+    const period = row.querySelector('td[data-label="Período"]')!;
+    expect(period.textContent).toBe("2020 → 2023Datos entre 2000 y 2023");
+  });
+
+  it("states a 'what is allowed' category's rule on the share outside the layer", async () => {
+    await renderDocument();
+
+    const block = await within(layersSection()).findByRole("region", { name: "Frontera agrícola" });
+    expect(within(block).getByText(/Marca lo permitido/)).toBeTruthy();
+    expect(within(block).getByText("Umbral: 10%")).toBeTruthy();
+    expect(
+      within(block).getByText(/Dentro de la frontera agrícola · fuera de la capa: 10% o menos/)
+    ).toBeTruthy();
+    expect(
+      within(block).getByText(/Fuera de la frontera agrícola · fuera de la capa: más de 10%/)
+    ).toBeTruthy();
+  });
+
   it("explains each category's polarity, threshold and results", async () => {
     await renderDocument();
 
@@ -238,8 +295,12 @@ describe("MethodologyDocument layers by country", () => {
     expect(within(block).getByText("Zonas protegidas por ley.")).toBeTruthy();
     expect(within(block).getByText(/Marca lo que se debe evitar/)).toBeTruthy();
     expect(within(block).getByText("Umbral: 0,5%")).toBeTruthy();
-    expect(within(block).getByText(/Fuera de áreas protegidas · 0,5% o menos/)).toBeTruthy();
-    expect(within(block).getByText(/En área protegida · más de 0,5%/)).toBeTruthy();
+    expect(
+      within(block).getByText(/Fuera de áreas protegidas · dentro de la capa: 0,5% o menos/)
+    ).toBeTruthy();
+    expect(
+      within(block).getByText(/En área protegida · dentro de la capa: más de 0,5%/)
+    ).toBeTruthy();
   });
 
   it("shows each layer's coverage, source, period, resolution and update frequency", async () => {
@@ -254,7 +315,7 @@ describe("MethodologyDocument layers by country", () => {
       ["Capa", "IDEAM"],
       ["Cobertura", "Colombia"],
       ["Fuente", "Instituto de Hidrología"],
-      ["Período", "2020–2023"],
+      ["Período", "2020 → 2023"],
       ["Resolución", "30 x 30 metros"],
       ["Actualización", "Anual"],
     ]);
@@ -317,6 +378,26 @@ describe("MethodologyDocument scope and limits", () => {
     const considerations = await within(limitsSection()).findByText(/No distingue plantaciones/);
     expect(considerations.querySelector("b")).toBeNull();
     expect(within(limitsSection()).getByText("javascript:alert(1)").tagName).toBe("SPAN");
+  });
+
+  it("links only the web addresses of a layer's considerations", async () => {
+    CATALOG.EC.maps[0].considerations = CONSIDERATIONS_WITH_LINKS;
+    try {
+      await renderDocument("es", { selectedCountry: "EC" });
+      fireEvent.click(await within(limitsSection()).findByRole("button", { name: /MAATE/ }));
+      await within(limitsSection()).findByText("la fuente");
+
+      const links = within(limitsSection()).getAllByRole("link");
+      expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+        ["la fuente", "https://example.org/gfw"],
+      ]);
+      expect(links[0].getAttribute("target")).toBe("_blank");
+      for (const text of ["esto", "el admin", "el correo"]) {
+        expect(within(limitsSection()).getByText(text).closest("a")).toBeNull();
+      }
+    } finally {
+      CATALOG.EC.maps[0].considerations = null;
+    }
   });
 
   it("says when a layer has no considerations", async () => {

@@ -99,8 +99,11 @@ added, so `entrypoint.sh` and Terraform don't change; `.env.template` lists the 
 `[{ category, layers }]` in the categories' order, then `{ category: null, layers }` for
 layers whose `categoryId` is unknown ("Otras capas"), and is unit-tested. A layer is never
 placed under a category it doesn't name, and an unknown category never gets a polarity
-or threshold by guess. `layerPeriod(map)` returns `contentDate`, else
-`baseline–comparedAgainst`, else `null` ("—").
+or threshold by guess. `layerPeriod(map)` returns the analysis window
+(`baseline → comparedAgainst`) and, apart, the dataset's range (`contentDate`): the
+window is what backs a due diligence (the loss after the 2020 baseline), and
+`contentDate` ("Datos entre 2000 y 2023") alone read as if the loss counted since 2000
+(review of #139).
 
 ### 5. "Alcance" shows the layer's coverage text
 
@@ -134,7 +137,16 @@ the matching chips: ok label in green, flagged label in red, with "≤ umbral" a
   never widen the page.
 - Considerations: one MUI `Accordion` per layer, closed, rendering the Markdown with the
   page's components minus `img` (headings mapped down to `h4` size). `react-markdown`
-  without `rehype-raw` shows HTML as text. References as a list of external links.
+  without `rehype-raw` shows HTML as text. Only `http(s)` addresses are links, in the
+  considerations and in the references (`isWebUrl`); anything else (`javascript:`, a
+  path of the app, `mailto:`) is plain text, since a country's admin writes them.
+- Anchors: the page scrolls to the URL's anchor when it mounts (it renders after
+  `GET /config`, too late for the browser), and once more when the country's catalog
+  settles and the layers section changes height, unless the reader has scrolled.
+- A category's two result chips state their rule on what is compared with the
+  threshold: the share inside the layer ("what to avoid") or outside it ("what is
+  allowed"). The calculation section gives no category's threshold as a number, only
+  the fallback, and points to each country's tab (review of #139).
 
 ### 8. Texts
 

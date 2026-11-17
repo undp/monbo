@@ -13,6 +13,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkDirective from "remark-directive";
 import { useTranslation } from "react-i18next";
+import { isWebUrl } from "@/utils/layerCatalog";
 import remarkDocumentationBlocks from "@/utils/remarkDocumentationBlocks";
 
 // How the methodology page renders Markdown: its own sections, with their summary
@@ -188,6 +189,15 @@ const considerationComponents: Components = {
     </Typography>
   ),
   img: () => null,
+  // Written by a country's admin: only web addresses are links (see isWebUrl).
+  a: ({ href, children }) =>
+    isWebUrl(href) ? (
+      <Link href={href} target="_blank" rel="noopener noreferrer">
+        {children}
+      </Link>
+    ) : (
+      <span>{children}</span>
+    ),
 };
 
 /** A layer's considerations, as its country wrote them. */

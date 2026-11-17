@@ -32,3 +32,12 @@
 
 - [x] 5.1 Check the page in the browser at desktop width and at 390 px (es and en, anchors `#layers` and `#deforestation`, tab switching keeps the session country)
 - [x] 5.2 Run the web checks: schema check, `tsc --noEmit`, `lint`, `test`, `build`
+
+## 6. Review of #139
+
+- [x] 6.1 Stop the calculation section from stating Deforestation's threshold; point to each category's threshold and give only the fallback (es, en, spec)
+- [x] 6.2 State each result chip's rule on the share inside the layer (`avoid`) or outside it (`required`), with a component test for a `required` category
+- [x] 6.3 Show the analysis window (`baseline → comparedAgainst`) as the period, with `contentDate` below it
+- [x] 6.4 Link only `http(s)` addresses in a layer's considerations, with a test for `javascript:`, `/admin` and `mailto:`
+- [x] 6.5 Scroll to the anchor again once the country's catalog settles, unless the reader scrolled
+- [x] 6.6 Run the web checks again

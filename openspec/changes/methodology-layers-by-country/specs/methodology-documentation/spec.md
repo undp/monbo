@@ -17,7 +17,7 @@ The web SHALL serve the methodology page at `/documentation` in Spanish and at `
 - polygon validation (`validation`);
 - farm area (`area`).
 
-An index SHALL link to the seven anchors: beside the content, and visible while scrolling, on screens 900 px wide or more; above the content on narrower screens. Opening the page with an anchor SHALL scroll to that section with its heading visible below the fixed header. The former anchor `#deforestation` SHALL scroll to the calculation section. The page SHALL NOT require an analysis country to be selected.
+An index SHALL link to the seven anchors: beside the content, and visible while scrolling, on screens 900 px wide or more; above the content on narrower screens. Opening the page with an anchor SHALL scroll to that section with its heading visible below the fixed header, also once the layers by country section has loaded and changed height, unless the user has scrolled meanwhile. The former anchor `#deforestation` SHALL scroll to the calculation section. The page SHALL NOT require an analysis country to be selected.
 
 #### Scenario: Spanish page
 
@@ -62,7 +62,7 @@ The calculation section SHALL explain, for any layer:
   - in the body: why the formula works (each edge forms a signed triangle with the origin, and the parts outside the polygon cancel out), with a diagram;
   - in "More detail": the 300 m² piece of the worked example, with corners (0, 0), (30, 0), (30, 5) and (0, 15), computed edge by edge.
 - **A worked example:** a 1 ha farm on 30 m pixels of a deforestation layer, with two marked pixels inside it and a third on its edge, giving 21%.
-- **How the percentage becomes a result:** it is read through the layer's category (see the categories section); for the default deforestation category, a farm is flagged when its percentage is above the deforestation threshold.
+- **How the percentage becomes a result:** it is read through the layer's category (see the categories section): a farm is flagged when its finding is above its category's threshold, which is the category's own or, when it has none, the deployment's deforestation threshold. The section SHALL NOT state any category's threshold as a number, since each country can set its own; it SHALL point to the layers by country section for them and give only the fallback value.
 - **No result:** a farm gets no percentage when its polygon is empty, invalid or has no area, when it lies outside the layer, or when the layer can't be read; it is shown as "no data", never as a result without findings.
 - **The limit of the method:** the precision stops at the layer's pixel, since a marked pixel counts as marked as a whole.
 
@@ -95,15 +95,20 @@ The calculation section SHALL explain, for any layer:
 
 Wherever the page's Markdown mentions the overlap threshold or the deforestation threshold, it SHALL show the values the web loaded from `GET /config`, formatted as a percentage in the page's language with the threshold's own decimal places. The thresholds SHALL NOT be written into the page's text. The Spanish and English content SHALL use the same placeholders, and no placeholder SHALL be left unreplaced in the rendered page, inside a "More detail" block or outside one. A category's own threshold, in the layers by country section, SHALL be the `thresholdPercentage` that `GET /categories` returns, formatted the same way.
 
+#### Scenario: A country's own deforestation threshold
+
+- **WHEN** `GET /config` returns `deforestationThresholdPercentage` 1 and Colombia's "Deforestación" category has `thresholdPercentage` 5
+- **THEN** the calculation section doesn't say that "Deforestación" uses 1%, and the Colombia tab shows its threshold as 5%
+
 #### Scenario: Thresholds from the API
 
 - **WHEN** `GET /config` returns `overlapThresholdPercentage` 1 and `deforestationThresholdPercentage` 2, and a user opens `/documentation`
-- **THEN** the validation section mentions an overlap threshold of 1% and the calculation section a deforestation threshold of 2%
+- **THEN** the validation section mentions an overlap threshold of 1% and the calculation section gives 2% as the threshold of a category without its own
 
 #### Scenario: Decimal threshold in English
 
 - **WHEN** `deforestationThresholdPercentage` is 0.5 and a user opens `/en/documentation`
-- **THEN** the calculation section shows the threshold as 0.5%
+- **THEN** the calculation section shows the fallback threshold as 0.5%
 
 #### Scenario: Threshold of 0
 
@@ -221,7 +226,7 @@ Its "More detail" SHALL work out one farm with a 30% percentage under each polar
 
 ### Requirement: The layers by country section lists each country's layers by category
 
-The layers by country section SHALL show one tab per country that `GET /countries` returns, with the country's silhouette and its name in the page's language, sorted by name. The selected tab SHALL show the country's enabled categories from `GET /categories?country=<code>`, in the API's order, and under each category the country's layers from `GET /maps?country=<code>&language=<page language>` whose `categoryId` is that category, in the API's order. Each category SHALL show its icon, color, name and description in the page's language; its polarity in words ("what to avoid" or "what is allowed"); its threshold; and its two result labels. Each layer SHALL show its name and alias, coverage, source, period (`contentDate`, or the years `baseline`–`comparedAgainst` when it has no `contentDate`), resolution and update frequency, with "—" for a missing value. On screens 900 px wide or more the layers SHALL be a table; on narrower screens, one card per layer with the same fields.
+The layers by country section SHALL show one tab per country that `GET /countries` returns, with the country's silhouette and its name in the page's language, sorted by name. The selected tab SHALL show the country's enabled categories from `GET /categories?country=<code>`, in the API's order, and under each category the country's layers from `GET /maps?country=<code>&language=<page language>` whose `categoryId` is that category, in the API's order. Each category SHALL show its icon, color, name and description in the page's language; its polarity in words ("what to avoid" or "what is allowed"); its threshold; and its two result labels, each with its rule stated on what is compared with the threshold: the share of the farm inside the layer for "what to avoid", and the share outside it for "what is allowed". Each layer SHALL show its name and alias, coverage, source, period, resolution and update frequency. The period SHALL be the analysis window, `baseline → comparedAgainst` ("2020 → 2023"), with `contentDate` (the dataset's own range) below it when there is one; a layer without years shows its `contentDate` alone. A missing value SHALL show "—". On screens 900 px wide or more the layers SHALL be a table; on narrower screens, one card per layer with the same fields.
 
 A category with no published layer SHALL say so. A layer whose `categoryId` is not among the categories SHALL be listed under "Other layers", with no polarity or threshold. The section SHALL show a loading state while either request is pending, and a message with a retry button when one fails; a failure SHALL affect only this section and the scope and limits section.
 
@@ -240,7 +245,17 @@ The first selected tab SHALL be the session's analysis country when it is among 
 #### Scenario: Category texts and threshold
 
 - **WHEN** the "Áreas protegidas" category has polarity `avoid`, threshold 0 and the result labels "Fuera de áreas protegidas" and "En área protegida"
-- **THEN** its block says it marks what to avoid, shows the threshold 0% and both labels
+- **THEN** its block says it marks what to avoid, shows the threshold 0% and both labels, each with its rule on the share inside the layer
+
+#### Scenario: Rule of a "what is allowed" category
+
+- **WHEN** the "Frontera agrícola" category has polarity `required`, threshold 10 and the result labels "Dentro de la frontera agrícola" and "Fuera de la frontera agrícola"
+- **THEN** its block says it marks what is allowed, and its labels read "Dentro de la frontera agrícola · fuera de la capa: 10% o menos" and "Fuera de la frontera agrícola · fuera de la capa: más de 10%"
+
+#### Scenario: Period of a layer
+
+- **WHEN** GFW has `baseline` 2020, `comparedAgainst` 2023 and `contentDate` "Datos entre 2000 y 2023"
+- **THEN** its period reads "2020 → 2023", with "Datos entre 2000 y 2023" below it
 
 #### Scenario: Session country first
 
@@ -264,7 +279,7 @@ The first selected tab SHALL be the session's analysis country when it is among 
 
 ### Requirement: The scope and limits section shows each layer's considerations
 
-The scope and limits section SHALL list the layers of the country selected in the layers by country section, grouped like that section, and name that country. Each layer SHALL show its name, its category's chip, and a collapsible block, closed when the page opens, with its considerations from `GET /maps` rendered as Markdown with no raw HTML, and its reference links, opened in a new tab. A layer without considerations SHALL say so.
+The scope and limits section SHALL list the layers of the country selected in the layers by country section, grouped like that section, and name that country. Each layer SHALL show its name, its category's chip, and a collapsible block, closed when the page opens, with its considerations from `GET /maps` rendered as Markdown with no raw HTML, and its reference links, opened in a new tab. Only `http` and `https` addresses, in the considerations and in the references, SHALL be links; any other address (`javascript:`, a path of the app such as `/admin`, `mailto:`) SHALL be shown as plain text. A layer without considerations SHALL say so.
 
 #### Scenario: Considerations of the selected country
 
@@ -275,6 +290,11 @@ The scope and limits section SHALL list the layers of the country selected in th
 
 - **WHEN** the user selects the Ecuador tab
 - **THEN** the scope and limits section names Ecuador and lists Ecuador's layers
+
+#### Scenario: Only web links
+
+- **WHEN** a layer's considerations link to `https://example.org`, `javascript:alert(1)`, `/admin` and `mailto:a@b.c`
+- **THEN** only the `https` address is a link, opened in a new tab, and the other three are plain text
 
 #### Scenario: Markdown without HTML
 

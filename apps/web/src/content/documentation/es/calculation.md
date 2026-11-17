@@ -26,7 +26,7 @@ Por ejemplo, en una capa de deforestación, una finca de 1 ha (10.000 m²) sobre
 % de la finca = (2 × 900 + 300) / 10.000 × 100 = 21%
 ```
 
-En la categoría Deforestación, una finca sobre {{deforestationThreshold}} se muestra con deforestación en esa capa; con {{deforestationThreshold}} o menos, como **libre de deforestación**.
+En una categoría como Deforestación, una finca sobre el umbral de su categoría se muestra con deforestación en esa capa; con el umbral o menos, como **libre de deforestación**. El umbral de cada categoría está en [Capas por país](#layers); si una categoría no tiene uno propio, se usa el general, {{deforestationThreshold}}.
 
 ### ¿Cómo se mide cada superficie?
 

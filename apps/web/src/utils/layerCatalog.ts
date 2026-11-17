@@ -29,17 +29,35 @@ export const groupLayersByCategory = (
   return others.length > 0 ? [...groups, { category: null, layers: others }] : groups;
 };
 
+export interface LayerPeriod {
+  /** The analysis window, baseline → comparison year ("2020 → 2023"). */
+  window: string | null;
+  /** The dataset's own range, as its country wrote it ("Datos entre 2000 y 2023"). */
+  dataRange: string | null;
+}
+
 /**
- * The period a layer covers: its `contentDate` as written by its country, else its
- * years ("2020–2023"), else null.
+ * The period of a layer. What backs a due diligence is the analysis window (the
+ * loss after the baseline), not the years the dataset spans, so the window comes
+ * first and the dataset's range only completes it.
  */
-export const layerPeriod = (map: MapData): string | null => {
-  if (map.contentDate) return map.contentDate;
-  if (map.baseline != null && map.comparedAgainst != null) {
-    return `${map.baseline}–${map.comparedAgainst}`;
-  }
-  return map.baseline != null ? String(map.baseline) : null;
-};
+export const layerPeriod = (map: MapData): LayerPeriod => ({
+  window:
+    map.baseline != null && map.comparedAgainst != null
+      ? `${map.baseline} → ${map.comparedAgainst}`
+      : map.baseline != null
+        ? String(map.baseline)
+        : null,
+  dataRange: map.contentDate ?? null,
+});
+
+/**
+ * Whether an address a country's admin wrote (a reference, a link in a layer's
+ * considerations) may be a link: only web addresses. Anything else, from
+ * `javascript:` to a path of this app or `mailto:`, is shown as text.
+ */
+export const isWebUrl = (url: string | null | undefined): url is string =>
+  !!url && /^https?:\/\//i.test(url);
 
 /** A text of the API (both languages) in the page's language; Spanish is the default. */
 export const localizedText = (text: LocalizedText, language: string): string =>

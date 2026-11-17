@@ -20,8 +20,16 @@
     "avoid": "Marks what to avoid: coinciding with the layer is a finding.",
     "required": "Marks what is allowed: falling outside the layer is a finding.",
     "threshold": "Threshold: {{threshold}}",
-    "okRule": "{{threshold}} or less",
-    "flaggedRule": "above {{threshold}}",
+    "rules": {
+      "avoid": {
+        "ok": "inside the layer: {{threshold}} or less",
+        "flagged": "inside the layer: above {{threshold}}"
+      },
+      "required": {
+        "ok": "outside the layer: {{threshold}} or less",
+        "flagged": "outside the layer: above {{threshold}}"
+      }
+    },
     "noLayers": "There are no published layers in this category yet.",
     "others": "Other layers",
     "othersDescription": "Layers whose category isn't published in this country."

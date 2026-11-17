@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect, useRef, useState } from "react";
 import { Box, Divider, Link, Typography, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
@@ -48,10 +48,26 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
 
   // The page renders once GET /config answers, after the browser looked for the
   // URL's anchor: go to it now, so /documentation#layers opens at its section.
+  // The layers section grows when its country's catalog arrives, which moves every
+  // section below it (browsers without scroll anchoring don't compensate), so go
+  // to the anchor again then, unless the reader has scrolled meanwhile.
+  const pendingAnchor = useRef<{ id: string; scrollY: number } | null>(null);
   useEffect(() => {
     const id = decodeURIComponent(window.location.hash.slice(1));
-    if (id) document.getElementById(id)?.scrollIntoView();
+    const target = id ? document.getElementById(id) : null;
+    if (!target) return;
+    target.scrollIntoView();
+    pendingAnchor.current = { id, scrollY: window.scrollY };
   }, []);
+  const catalogSettled = catalog.status === "ready" || catalog.status === "error";
+  useEffect(() => {
+    const anchor = pendingAnchor.current;
+    if (!catalogSettled || !anchor) return;
+    pendingAnchor.current = null;
+    if (Math.abs(window.scrollY - anchor.scrollY) <= 1) {
+      document.getElementById(anchor.id)?.scrollIntoView();
+    }
+  }, [catalogSettled]);
 
   const index = (
     <Box component="ol" sx={{ m: 0, p: 0, listStyle: "none" }}>

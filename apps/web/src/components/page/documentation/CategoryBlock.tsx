@@ -72,11 +72,11 @@ export const CategoryBlock: React.FC<{ category: LayerCategory | null; layers: M
             <ResultChip kind="ok">
               <CheckIcon aria-hidden sx={{ fontSize: 14 }} />
               {localizedText(category.resultLabels.ok, language)} ·{" "}
-              {t("methodology:category:okRule", { threshold })}
+              {t(`methodology:category:rules:${category.polarity}:ok`, { threshold })}
             </ResultChip>
             <ResultChip kind="flagged">
               {localizedText(category.resultLabels.flagged, language)} ·{" "}
-              {t("methodology:category:flaggedRule", { threshold })}
+              {t(`methodology:category:rules:${category.polarity}:flagged`, { threshold })}
             </ResultChip>
           </Box>
         </Box>

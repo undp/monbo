@@ -26,7 +26,7 @@ For example, on a deforestation layer, a 1 ha farm (10,000 m²) on 30 m pixels (
 % of the farm = (2 × 900 + 300) / 10,000 × 100 = 21%
 ```
 
-In the Deforestation category, a farm above {{deforestationThreshold}} is shown with deforestation on that layer; at {{deforestationThreshold}} or less, as **deforestation-free**.
+In a category such as Deforestation, a farm above its category's threshold is shown with deforestation on that layer; at the threshold or less, as **deforestation-free**. Each category's threshold is in [Layers by country](#layers); a category without its own uses the general one, {{deforestationThreshold}}.
 
 ### How is each area measured?
 
