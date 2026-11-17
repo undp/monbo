@@ -1,18 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
-import {
-  isDeforestationAboveThreshold,
-  isOverlapAboveThreshold,
-} from "./deforestation";
+import { isOverlapAboveThreshold } from "./deforestation";
 
-describe("threshold checks", () => {
+describe("overlap threshold check", () => {
   it("counts a value equal to the threshold as not above it", () => {
     setRuntimeConfig({
       deforestationThresholdPercentage: 1,
       overlapThresholdPercentage: 1,
     });
-    expect(isDeforestationAboveThreshold(0.01)).toBe(false);
-    expect(isDeforestationAboveThreshold(0.0101)).toBe(true);
     expect(isOverlapAboveThreshold(0.01)).toBe(false);
     expect(isOverlapAboveThreshold(0.0101)).toBe(true);
   });
@@ -22,17 +17,15 @@ describe("threshold checks", () => {
       deforestationThresholdPercentage: 0,
       overlapThresholdPercentage: 0,
     });
-    expect(isDeforestationAboveThreshold(0)).toBe(false);
-    expect(isDeforestationAboveThreshold(0.000001)).toBe(true);
     expect(isOverlapAboveThreshold(0)).toBe(false);
+    expect(isOverlapAboveThreshold(0.000001)).toBe(true);
   });
 
-  it("reads each threshold separately", () => {
+  it("reads the overlap threshold, not the deforestation one", () => {
     setRuntimeConfig({
       deforestationThresholdPercentage: 5,
       overlapThresholdPercentage: 0.5,
     });
-    expect(isDeforestationAboveThreshold(0.01)).toBe(false);
     expect(isOverlapAboveThreshold(0.01)).toBe(true);
   });
 });

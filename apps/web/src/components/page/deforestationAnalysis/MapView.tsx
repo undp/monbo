@@ -10,10 +10,9 @@ import { useTranslation } from "react-i18next";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import { FarmData } from "@/interfaces/Farm";
 import { useSearchParams } from "next/navigation";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
-import { isDeforestationAboveThreshold } from "@/utils/deforestation";
+import { deforestationRule, groupFarmsByResult } from "@/utils/layerResults";
 
 export const MapView: React.FC = () => {
   const { t } = useTranslation();
@@ -36,25 +35,23 @@ export const MapView: React.FC = () => {
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
 
-  const [deforestedFarms, freeDeforestationFarms] = useMemo(() => {
-    const deforested: FarmData[] = [];
-    const deforestationFree: FarmData[] = [];
-    farmsData.forEach((farm) => {
-      const deforestationResult = deforestationAnalysisResults
-        ?.find((result) => result.mapId === selectedMapId)
-        ?.farmResults.find((farmResult) => farmResult.farmId === farm.id);
-      if (!deforestationResult || deforestationResult.value === null) {
-        // Farms without deforestation analysis results for this map (or without data,
-        // a null value) are assumed to be deforestation-free
-        deforestationFree.push(farm);
-      } else if (isDeforestationAboveThreshold(deforestationResult.value)) {
-        deforested.push(farm);
-      } else {
-        deforestationFree.push(farm);
-      }
-    });
-    return [deforested, deforestationFree];
-  }, [farmsData, deforestationAnalysisResults, selectedMapId]);
+  // A farm without a result for this layer (or with a null one) is "no data", never
+  // deforestation-free.
+  const {
+    flagged: deforestedFarms,
+    ok: freeDeforestationFarms,
+    unknown: noDataFarms,
+  } = useMemo(
+    () =>
+      groupFarmsByResult(
+        farmsData,
+        deforestationAnalysisResults?.find(
+          (result) => result.mapId === selectedMapId
+        ),
+        deforestationRule()
+      ),
+    [farmsData, deforestationAnalysisResults, selectedMapId]
+  );
 
   const onPolygonListClick = useCallback(
     (id: string) => {
@@ -102,10 +99,29 @@ export const MapView: React.FC = () => {
           />
         ),
       },
+      // Only when there is something to show: the column is narrow.
+      ...(noDataFarms.length > 0
+        ? [
+            {
+              id: 3,
+              title: `${t("deforestationAnalysis:noDataShortText")} (${
+                noDataFarms.length
+              })`,
+              content: (
+                <FarmsList
+                  farmsData={noDataFarms}
+                  selectedValue={selectedPolygonIdAtList}
+                  onChange={onPolygonListClick}
+                />
+              ),
+            },
+          ]
+        : []),
     ];
   }, [
     deforestedFarms,
     freeDeforestationFarms,
+    noDataFarms,
     onPolygonListClick,
     selectedPolygonIdAtList,
     t,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { setRuntimeConfig } from "@/config/runtime";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import { makeFarm, makeMap, makeMapResults, makeValidationResults } from "@/test/factories";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
@@ -28,17 +29,24 @@ describe("useValidFarmsDataForValidationPage", () => {
 });
 
 describe("useDeforestationFreeResultsCountByMap", () => {
-  it("counts the farms with no deforestation per layer, and null when a layer has no data", async () => {
+  it("counts the farms at or below the threshold per layer, and null when a layer has no data", async () => {
+    setRuntimeConfig({ deforestationThresholdPercentage: 1, overlapThresholdPercentage: 1 });
     const { result } = await renderHookWithData(useDeforestationFreeResultsCountByMap, {
       context: makeDataContext({
-        farmsData: [makeFarm({ id: "F01" }), makeFarm({ id: "F02" }), makeFarm({ id: "F03" })],
+        farmsData: [
+          makeFarm({ id: "F01" }),
+          makeFarm({ id: "F02" }),
+          makeFarm({ id: "F03" }),
+          makeFarm({ id: "F04" }),
+        ],
         deforestationAnalysisParams: {
           polygonsSubset: "all",
           selectedMaps: [makeMap({ id: 1 }), makeMap({ id: 2 })],
         },
         deforestationAnalysisResults: [
-          makeMapResults(1, { F01: 0, F02: 0.004, F03: 0 }),
-          makeMapResults(2, { F01: null, F02: null, F03: null }),
+          // 0.004 is below the 1% threshold: free, as the table cell and the map say.
+          makeMapResults(1, { F01: 0, F02: 0.004, F03: 0.05, F04: null }),
+          makeMapResults(2, { F01: null, F02: null, F03: null, F04: null }),
         ],
       }),
     });

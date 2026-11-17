@@ -49,7 +49,7 @@ A farm gets **no result (N/A)**, instead of 0%, when it can't be measured:
 - it lies entirely outside the area the layer covers;
 - the layer couldn't be read at that moment.
 
-On the analysis map it is listed, for now, in the **Def. Free** tab with N/A. It is not a deforestation-free result: it couldn't be measured.
+On the analysis map it is listed in its own tab, **No data**, with N/A, and the deforestation-free counter leaves it out. It is not a deforestation-free result: it couldn't be measured.
 
 :::details[More detail: Gauss's formula step by step]
 The 300 m² piece of the example has its corners at (0, 0), (30, 0), (30, 5) and (0, 15), in metres. Each edge adds one term:

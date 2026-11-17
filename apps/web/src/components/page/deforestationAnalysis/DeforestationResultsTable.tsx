@@ -11,7 +11,7 @@ import { DataContext, DataContextValue } from "@/context/DataContext";
 import { useSearch } from "@/hooks/useSearch";
 import { useSortedTable } from "@/hooks/useSortedTable";
 import { FarmData } from "@/interfaces/Farm";
-import { formatDeforestationPercentage } from "@/utils/numbers";
+import { deforestationResultShortText } from "@/utils/resultLabels";
 import { removeDiacritics } from "@/utils/strings";
 import { orderBy } from "lodash";
 import { useSearchParams } from "next/navigation";
@@ -75,15 +75,7 @@ const parseRows = (
           const farmResultValue =
             resultsByMap.get(current.mapId)?.get(farm.id) ?? null;
           acc[`map_${current.mapId}`] = {
-            value:
-              farmResultValue === null
-                ? t("common:na")
-                : farmResultValue === 0
-                ? t("deforestationAnalysis:deforestationFreeShortText")
-                : `${formatDeforestationPercentage(
-                    farmResultValue,
-                    language
-                  )} Def.`,
+            value: deforestationResultShortText(farmResultValue, t, language),
             chipStyle: {
               width: 100,
               color: getDeforestationPercentageChipColor(farmResultValue),
