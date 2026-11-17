@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { Button, Menu, MenuItem } from "@mui/material";
+import { Box, Button, Menu, MenuItem } from "@mui/material";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { useTranslation } from "react-i18next";
@@ -37,10 +37,17 @@ export const CountryMenu: React.FC = () => {
         aria-haspopup="menu"
         startIcon={<PlaceOutlinedIcon />}
         endIcon={<ArrowDropDownIcon />}
-        sx={{ color: "#3A3541" }}
+        sx={{
+          color: "#3A3541",
+          minWidth: 0,
+          "& .MuiButton-startIcon": { marginRight: { xs: 0, sm: 1 } },
+        }}
         onClick={(event) => setAnchorEl(event.currentTarget)}
       >
-        {selectedName}
+        {/* Narrow screens show only the pin: the flow header names the country. */}
+        <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+          {selectedName}
+        </Box>
       </Button>
       <Menu
         anchorEl={anchorEl}

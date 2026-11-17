@@ -58,7 +58,7 @@ The Azure resources, how the API reads the rasters and how the per-country admin
 The 3 modules are **not a rigid wizard**: the start page offers steps 1 and 2 as entry points, and both module 1 and module 2 have their own file-upload screen. What connects them is the shared state in `DataContext` (`apps/web/src/context/DataContext.tsx`), which holds: the selected country, `farmsData` (the source of truth), validation results, deforestation parameters/results, report parameters, and the `availableMaps` catalog (refreshed periodically via polling).
 
 Every page of the three modules shows the **flow header** (`components/page/flow/`, rendered by each module's `layout.tsx`):
-- the analysis country, with a "Change country" link to the landing page;
+- the analysis country, with a "Change country" link to the start page;
 - a stepper through the stages: Validación → Análisis territorial → Reporte.
 
 Each stage's state is a pure function of the route and `DataContext` (`utils/flowStages.ts`):
@@ -185,8 +185,7 @@ tests/                     # pytest, mirrors the modules/ structure; tests/regre
 
 ```
 app/[locale]/              # App Router; the language is a route segment (en/es)
-├── page.tsx               #   Landing: pick the analysis country on a card
-├── home/                  #   The 3 module cards
+├── page.tsx               #   Start page: the 3 steps and the country pills (/home redirects here, in proxy.tsx)
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
 ├── deforestation-analysis/#   Module 2 (+ its own upload-data)
 ├── report-generation/     #   Module 3 (+ preview)
