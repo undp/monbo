@@ -49,7 +49,7 @@ The grouping, the classification and the texts come from the modules stage 2 use
 - `layerResult(value, category, t, language)`: `{ resultClass, finding, findingText, label }`, with the class from `classifyResult(value, categoryRule(category))`, the label from the category's `resultLabels` (or "No data"), and the finding from `findingRatio`. Without a category, the class is `unknown`.
 - `categoryLayerName`, `findingPercentCell` and `layerResultColumns` for the exports.
 
-The sheet, the methodology, the Excel and the GeoJSON all go through it. `resultLabels.ts`'s `deforestationResultReportText` (the old PDF farm page) is removed.
+The sheet, the methodology, the Excel and the GeoJSON all go through it. `resultLabels.ts`'s `deforestationResultReportText` (the old PDF farm page) is removed. Stage 2's `layerResultText` is built from `layerResult` too, and both use stage 2's keys for "No data" and "No category", so the table and the PDF can't drift apart.
 
 ### D3. Layer without a known category is "No data"
 
@@ -87,6 +87,10 @@ The formula is "share of the polygon = area that coincides with the layer / tota
 ### D8. Satellite caption
 
 Shown under a map only when `satelliteBackground` is true. Its text becomes generic ("The satellite image from Google Maps is for reference only and does not show the layer's result"). This resolves the note in `public/files/examples/README.md`, whose step 7 is updated.
+
+### D10. Reference URLs print exactly
+
+react-pdf prints a "-" wherever it breaks a word, so a URL it breaks no longer reads as the URL. The report keeps words of up to 30 characters whole (Spanish words are shorter) and prints each reference in lines of up to 30 characters, cut after its separators (`referenceLines`), one under the other, each linking to the whole URL. react-pdf breaks none of them, so the lines, read in order, are exactly the URL. A longer word elsewhere (an id in a text field) is still split as a last resort, so it doesn't run off the page.
 
 ### D9. The large-report count includes the sheets
 

@@ -41,7 +41,7 @@ export const layerResult = (
   language = "es"
 ): LayerResult => {
   if (!category || value === null || value === undefined) {
-    const noData = t("common:layerResults:noData");
+    const noData = t("deforestationAnalysis:noDataShortText");
     return {
       resultClass: "unknown",
       finding: null,
@@ -71,7 +71,7 @@ export const categoryLayerName = (
   t("common:layerResults:categoryLayer", {
     category: category
       ? localizedText(category.name, language)
-      : t("common:layerResults:noCategory"),
+      : t("deforestationAnalysis:categories.uncategorized"),
     layer: layerLabel(layer, "short"),
   });
 

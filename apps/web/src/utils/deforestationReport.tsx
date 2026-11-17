@@ -17,42 +17,13 @@ import {
 import { groupLayersByCategory, layerCategory } from "./layerResults";
 import { styles } from "./deforestationReport/styles";
 import { assetUrl } from "./deforestationReport/assets";
+import { reportWordParts } from "./deforestationReport/wordBreaks";
 
 export interface DeforestationReportImage {
   mapId: number;
   farmId: string;
   url: string | null;
 }
-
-// react-pdf's own hyphenation uses English rules and splits Spanish words
-// ("iden-tifica", "prote-gida"), so words stay whole. Only a word longer than any
-// Spanish or English one (a URL in the references, an id) is split, after its URL
-// separators and in parts that fit a table cell: whole, it would run past the page
-// and be cut off in print. react-pdf prints a "-" where it breaks one (the link keeps
-// the exact URL), so it never breaks right after a "-" or "_": that would read "--".
-const LONGEST_WHOLE_WORD = 30;
-const LONGEST_PART = 24;
-const PARTS = new RegExp(`.{1,${LONGEST_PART}}`, "g");
-
-/** A word's break points for the report (see above): `[word]` keeps it whole. */
-export const reportWordParts = (word: string): string[] => {
-  if (word.length <= LONGEST_WHOLE_WORD) return [word];
-  // Pieces that end after a separator, none longer than LONGEST_PART
-  const pieces = (word.match(/[^/?#&;=.]*[/?#&;=.]?/g) ?? [])
-    .filter(Boolean)
-    .flatMap((token) => token.match(PARTS) ?? []);
-  const parts: string[] = [];
-  let current = "";
-  for (const piece of pieces) {
-    if (current && current.length + piece.length > LONGEST_PART) {
-      parts.push(current);
-      current = "";
-    }
-    current += piece;
-  }
-  if (current) parts.push(current);
-  return parts;
-};
 
 // Served by the web itself (public/fonts/roboto, Apache 2.0): every weight and style
 // the report uses. The layers' considerations are markdown, and their _italic_ and

@@ -9,15 +9,23 @@ import {
   makeMap,
   makeMapResults,
 } from "@/test/factories";
-import { findAll, pagesText, pdfTree } from "@/test/pdfTree";
+import {
+  findAll,
+  pagesText,
+  pdfTree,
+  textOf,
+  type PdfNode,
+} from "@/test/pdfTree";
 import type { DeforestationAnalysisMapResults } from "@/interfaces/DeforestationAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
+import { DeforestationReportDocument } from "./deforestationReport";
 import {
-  DeforestationReportDocument,
+  LONGEST_WHOLE_WORD,
+  referenceLines,
   reportWordParts,
-} from "./deforestationReport";
-import { REPORT_ANCHORS } from "./deforestationReport/sections";
+} from "./deforestationReport/wordBreaks";
+import { LayerScopePages, REPORT_ANCHORS } from "./deforestationReport/sections";
 import { Considerations } from "./deforestationReport/considerations";
 
 const tFor = async (locale: TestLocale) =>
@@ -295,22 +303,100 @@ describe("the report's word breaks", () => {
   });
 });
 
-describe("a sublist in the considerations", () => {
-  it("keeps the item that opens it with what follows", () => {
-    const items = findAll(
-      pdfTree(
-        Considerations({
-          considerations:
-            "- Differences with other definitions:\n  - FAO\n  - IPCC\n- Last item",
-        })
-      ),
-      "VIEW"
+describe("a layer's references", () => {
+  const drive =
+    "https://drive.google.com/drive/folders/1_4Y_tGth6FSJl32VlAeq8kX5lhP1GUlf";
+  const gfwUrl =
+    "https://glad.earthengine.app/view/global-forest-change#bl=off;old=off;dl=1;lon=20;lat=10;zoom=3;";
+
+  it("print exactly as the URL, in lines react-pdf never breaks", () => {
+    for (const url of [drive, gfwUrl, "https://short.example/x"]) {
+      const lines = referenceLines(url);
+      expect(lines.join("")).toBe(url);
+      // Whole words for react-pdf (reportWordParts): no break, so no "-" added
+      for (const line of lines) {
+        expect(line.length).toBeLessThanOrEqual(LONGEST_WHOLE_WORD);
+        expect(reportWordParts(line)).toEqual([line]);
+      }
+    }
+  });
+
+  it("link every printed line to the whole URL", async () => {
+    const t = await tFor("es");
+    const layer = makeMap({ id: 3, references: [drive, gfwUrl] });
+    const tree = pdfTree(
+      LayerScopePages({
+        groups: [
+          {
+            category: makeCategory(),
+            layers: [
+              {
+                id: 3,
+                categoryId: "deforestation",
+                map: layer,
+                category: makeCategory(),
+                results: makeMapResults(3, {}),
+              },
+            ],
+          },
+        ],
+        t,
+        language: "es",
+      })
     );
-    expect(items.map(({ props }) => props.minPresenceAhead)).toEqual([
-      40,
-      undefined,
-      undefined,
-      undefined,
-    ]);
+    const links = findAll(tree, "LINK").filter(({ props }) =>
+      [drive, gfwUrl].includes(props.src as string)
+    );
+    const printed = (url: string) =>
+      links
+        .filter(({ props }) => props.src === url)
+        .map(({ children }) => children.join(""))
+        .join("");
+    expect(printed(drive)).toBe(drive);
+    expect(printed(gfwUrl)).toBe(gfwUrl);
+    expect(links.length).toBeGreaterThan(2);
+  });
+});
+
+describe("a sublist or a heading in the considerations", () => {
+  /** The considerations' top-level elements: blocks and single lines. */
+  const topLevel = (considerations: string) =>
+    pdfTree(Considerations({ considerations })) as PdfNode[];
+
+  it("keeps the item that opens a sublist with its first sub-item", () => {
+    const [block, ipcc, last] = topLevel(
+      "- Differences with other definitions:\n  - FAO\n  - IPCC\n- Last item"
+    );
+    expect(block.props.wrap).toBe(false);
+    expect(textOf(block.children)).toBe("• Differences with other definitions: • FAO");
+    expect(textOf([ipcc])).toBe("• IPCC");
+    expect(textOf([last])).toBe("• Last item");
+  });
+
+  it("keeps a heading with the line under it, past empty lines", () => {
+    const [block, rest] = topLevel(
+      "### Scope\n\n- Under the heading\n- Next"
+    );
+    expect(block.props.wrap).toBe(false);
+    expect(textOf(block.children)).toBe("Scope • Under the heading");
+    expect(textOf([rest])).toBe("• Next");
+  });
+
+  it("keeps the section's title with the first block", () => {
+    const [first, rest] = pdfTree(
+      Considerations({
+        considerations: "### Scope\n- One\n- Two",
+        title: "Considerations",
+      })
+    ) as PdfNode[];
+    expect(first.props.wrap).toBe(false);
+    expect(textOf(first.children)).toBe("Considerations Scope • One");
+    expect(textOf([rest])).toBe("• Two");
+  });
+
+  it("chains a heading with an item that opens a sublist", () => {
+    const [block, rest] = topLevel("### Scope\n- Kinds:\n  - One\n  - Two");
+    expect(textOf(block.children)).toBe("Scope • Kinds: • One");
+    expect(textOf([rest])).toBe("• Two");
   });
 });

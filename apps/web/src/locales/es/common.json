@@ -233,8 +233,6 @@
     "empty": "Aún no hay fincas: usa una de las opciones de arriba."
   },
   "layerResults": {
-    "noData": "Sin dato",
-    "noCategory": "Sin categoría",
     "categoryLayer": "{{- category}} · {{- layer}}",
     "findingHeader": "{{- name}} — % hallazgo",
     "resultHeader": "{{- name}} — Resultado",

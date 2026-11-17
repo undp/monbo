@@ -31,6 +31,7 @@ import { layerLabel } from "../layerLabel";
 import { styles } from "./styles";
 import { assetUrl } from "./assets";
 import { Considerations } from "./considerations";
+import { referenceLines } from "./wordBreaks";
 import { getCommaSeparatedUniqueTexts } from "@/utils/strings";
 import { DOWNLOAD_GEOJSON_URL } from "@/config/env";
 
@@ -66,7 +67,7 @@ const categoryName = (
 ) =>
   category
     ? localizedText(category.name, language)
-    : t("common:layerResults:noCategory");
+    : t("deforestationAnalysis:categories.uncategorized");
 
 // A category's color goes only on its name, dot, border and header (D23): results
 // are green, red or grey by class, whatever the category's color.
@@ -461,7 +462,7 @@ export const FarmSheetPage = ({
         const label =
           category && resultClass !== "unknown"
             ? localizedText(category.resultLabels[resultClass], language)
-            : t("common:layerResults:noData");
+            : t("deforestationAnalysis:noDataShortText");
         return (
           <View
             key={category?.id ?? "no-category"}
@@ -703,7 +704,7 @@ export const MethodologyPage = ({
                   </ResultChip>
                 </View>
               ) : (
-                t("common:layerResults:noData")
+                t("deforestationAnalysis:noDataShortText")
               ),
             ]}
           />
@@ -805,19 +806,26 @@ export const LayerScopePages = ({
               {attribute === "references" ? (
                 <View>
                   {map.references.length > 0 ? (
-                    map.references.map((reference, i) =>
-                      showLinks ? (
-                        <Link
-                          key={`${map.id}-reference-link-${i}`}
-                          src={reference}
-                          style={[styles.blueLink, { marginTop: i === 0 ? 0 : 10 }]}
-                        >
-                          {reference}
-                        </Link>
-                      ) : (
-                        <Text key={`${map.id}-reference-text-${i}`}>-</Text>
-                      )
-                    )
+                    map.references.map((reference, i) => (
+                      // One line per part, all short enough that react-pdf never
+                      // breaks them: no "-" is added, so the printed reference is
+                      // exactly the URL. Every line links to the whole URL (the
+                      // preview, without links, prints the same lines).
+                      <View
+                        key={`${map.id}-reference-${i}`}
+                        style={{ marginTop: i === 0 ? 0 : 10 }}
+                      >
+                        {referenceLines(reference).map((line, j) =>
+                          showLinks ? (
+                            <Link key={j} src={reference} style={styles.blueLink}>
+                              {line}
+                            </Link>
+                          ) : (
+                            <Text key={j}>{line}</Text>
+                          )
+                        )}
+                      </View>
+                    ))
                   ) : (
                     <Text>{t("common:na")}</Text>
                   )}
@@ -828,14 +836,24 @@ export const LayerScopePages = ({
             </AppendixPageTableRow>
           ))}
 
-          <Text style={styles.appendixPageSubtitleText}>
-            {t(`deforestationAnalysis:mapsInfoModal:considerations`)}
-          </Text>
+          {/* The title travels with the first block, so it never ends a page alone */}
           <View style={styles.appendixPageBodyText}>
             {map.considerations ? (
-              <Considerations considerations={map.considerations} />
+              <Considerations
+                considerations={map.considerations}
+                title={
+                  <Text style={styles.appendixPageSubtitleText}>
+                    {t(`deforestationAnalysis:mapsInfoModal:considerations`)}
+                  </Text>
+                }
+              />
             ) : (
-              <Text>{t("common:na")}</Text>
+              <View wrap={false}>
+                <Text style={styles.appendixPageSubtitleText}>
+                  {t(`deforestationAnalysis:mapsInfoModal:considerations`)}
+                </Text>
+                <Text>{t("common:na")}</Text>
+              </View>
             )}
           </View>
         </View>
