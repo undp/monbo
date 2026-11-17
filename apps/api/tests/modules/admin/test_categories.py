@@ -636,6 +636,40 @@ def test_disable_and_enable_a_category_without_published_layers(
     assert "protected_areas" in public_ids(client)
 
 
+@pytest.mark.parametrize("raster", ["runap.tif", None])
+def test_a_category_with_published_layers_cant_be_enabled(
+    protected_areas, client, admin_headers, raster
+):
+    # Regression (second re-review of #138): enabling the category published a
+    # hand-edited layer 7 whose years don't fit (or without a raster), skipping
+    # the checks of PATCH /admin/layers/{id}.
+    client.patch("/admin/layers/6", json={"enabled": False}, headers=admin_headers)
+    client.patch(
+        "/admin/categories/protected_areas",
+        json={"enabled": False},
+        headers=admin_headers,
+    )
+    layer7 = {
+        **RUNAP,
+        "id": 7,
+        "baseline": "2020",
+        "compared_against": "2023",
+        "raster_filename": raster,
+    }
+    protected_areas.write_index([GFW, HIDDEN, {**RUNAP, "enabled": False}, layer7])
+
+    response = client.patch(
+        "/admin/categories/protected_areas",
+        json={"enabled": True},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(7)" in response.json()["detail"]
+    assert stored(protected_areas)[0]["enabled"] is False
+    assert all(m["id"] != 7 for m in client.get("/maps?country=CO").json())
+
+
 def test_disabling_the_built_in_category_stores_it_first(
     protected_areas, client, admin_headers
 ):

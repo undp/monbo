@@ -44,6 +44,8 @@ MAPS_MOCK_DATA = [
         "category_id": "deforestation",
         "category_issue": None,
         "category_enabled": True,
+        "layer_issue": None,
+        "country": None,
     },
     {
         "id": 1,
@@ -59,6 +61,8 @@ MAPS_MOCK_DATA = [
         "category_id": "deforestation",
         "category_issue": None,
         "category_enabled": True,
+        "layer_issue": None,
+        "country": None,
     },
 ]
 
@@ -116,10 +120,13 @@ EXPECTED_MAPS_DATA = [
 ]
 
 
+@patch("app.modules.layers.store.LayerStore.has_raster", return_value=True)
 @patch("app.modules.maps.router.read_considerations")
 @patch("app.modules.maps.router.read_attributes")
 @patch("app.modules.maps.router.get_all_maps")
-def test_get_maps(mock_get_all_maps, mock_read_attributes, mock_read_considerations):
+def test_get_maps(
+    mock_get_all_maps, mock_read_attributes, mock_read_considerations, _has_raster
+):
     mock_get_all_maps.return_value = MAPS_MOCK_DATA
     mock_read_attributes.return_value = ATTRIBUTES_MOCK_DATA
     mock_read_considerations.return_value = CONSIDERATIONS_MOCK_DATA

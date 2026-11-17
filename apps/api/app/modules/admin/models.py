@@ -28,6 +28,7 @@ from app.modules.layers.categories import (
     THRESHOLD_MAX,
     THRESHOLD_MIN,
     CategoryIssue,
+    LayerIssue,
 )
 
 YEAR = Field(default=None, ge=1900, le=2100)
@@ -142,6 +143,13 @@ class AdminLayer(BaseModel):
     )
     category_enabled: bool = Field(
         description="Whether the layer's category resolves and is enabled"
+    )
+    layer_issue: LayerIssue | None = Field(
+        description=(
+            "Why the layer can't be public even with a usable category: its years "
+            "don't fit the category's `temporal` (`years_mismatch`), or it has no "
+            "raster (`missing_raster`). Null when nothing stops it."
+        )
     )
     pixel_size: float
     baseline: int | None

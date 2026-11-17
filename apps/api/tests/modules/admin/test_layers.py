@@ -717,6 +717,22 @@ def test_a_layer_without_years_is_published_in_a_category_without_them(
     assert response.status_code == 200
 
 
+def test_list_shows_why_a_layer_cant_be_public(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [
+            *index,
+            {**GFW, "id": 7, "compared_against": None},
+            {**GFW, "id": 8, "raster_filename": "missing.tif"},
+        ]
+    )
+
+    assert admin_layer(client, admin_headers, 0)["layer_issue"] is None
+    assert admin_layer(client, admin_headers, 7)["layer_issue"] == "years_mismatch"
+    assert admin_layer(client, admin_headers, 8)["layer_issue"] == "missing_raster"
+    assert {m["id"] for m in client.get("/maps?country=CO").json()} == {0}
+
+
 def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
     index = json.loads(categories.store.index_path.read_text())
     categories.write_index([*index, {**GFW, "id": 7, "category_id": "frontier"}])

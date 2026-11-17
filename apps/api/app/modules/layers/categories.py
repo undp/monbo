@@ -36,6 +36,8 @@ THRESHOLD_MAX = 100
 
 # Why a layer's category doesn't resolve. Stable codes: the admin translates them.
 CategoryIssue = Literal["unknown_category", "invalid_category", "unreadable_categories"]
+# Why a layer whose category resolves still can't be public. Stable codes too.
+LayerIssue = Literal["years_mismatch", "missing_raster"]
 
 
 class _Stored(BaseModel):
@@ -189,3 +191,25 @@ def is_temporal(category_id: Any, file: CategoriesFile) -> bool:
     by_id = {category["id"]: category for category in effective_categories(file)}
     category, _ = resolve_category(category_id, file, by_id)
     return bool(category and category["temporal"])
+
+
+def _year_state(value: Any) -> bool | None:
+    """True for a year, False for none (missing, null or ""), None when the index
+    holds something that isn't a year (a hand edit)."""
+    if value in (None, ""):
+        return False
+    try:
+        int(value)
+    except (TypeError, ValueError):
+        return None
+    return True
+
+
+def years_fit(entry: dict, temporal: bool) -> bool:
+    """Whether an index entry's years fit a category that is (or isn't) temporal:
+    temporal categories need both years, the others none. A year that can't be
+    read never fits."""
+    years = [_year_state(entry.get(key)) for key in ("baseline", "compared_against")]
+    if None in years:
+        return False
+    return all(years) if temporal else not any(years)

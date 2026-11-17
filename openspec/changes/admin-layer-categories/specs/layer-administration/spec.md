@@ -109,12 +109,17 @@
 
 ### Requirement: Enable and disable categories
 
-`PATCH /admin/categories/{id}` with `{ "enabled": true | false }` SHALL change whether the category and its layers can be public. Disabling a category that has published layers SHALL be rejected with 400, with a message naming those layers, and nothing SHALL be written. Enabling or disabling the built-in `deforestation` while it is not stored SHALL store it first in the file. A rejected entry SHALL answer 400 until it is repaired with `PUT`. Ids that are not in the session's country SHALL return 404. There SHALL be no endpoint that deletes a category.
+`PATCH /admin/categories/{id}` with `{ "enabled": true | false }` SHALL change whether the category and its layers can be public. Disabling or enabling a category that has published layers SHALL be rejected with 400, with a message naming those layers, and nothing SHALL be written: its layers become public only by being enabled with `PATCH /admin/layers/{id}` (a disabled category with published layers only exists after a hand edit). Enabling or disabling the built-in `deforestation` while it is not stored SHALL store it first in the file. A rejected entry SHALL answer 400 until it is repaired with `PUT`. Ids that are not in the session's country SHALL return 404. There SHALL be no endpoint that deletes a category.
 
 #### Scenario: Disable a category with published layers
 
 - **WHEN** CO's `protected_areas` has published layer 5 and a CO admin disables it
 - **THEN** the response is 400 naming layer 5, and `protected_areas` stays enabled
+
+#### Scenario: Enable a category with published layers
+
+- **WHEN** CO's `protected_areas` is disabled and a hand edit left its layer 7 enabled, with years, and a CO admin enables `protected_areas`
+- **THEN** the response is 400 naming layer 7, `protected_areas` stays disabled, and `GET /maps?country=CO` doesn't list layer 7
 
 #### Scenario: Disable a category without published layers
 
@@ -135,6 +140,7 @@
 - the index fields: `id`, `pixel_size`, `baseline`, `compared_against`, `references`, `enabled`, `version`, `raster_filename`, `category_id` (`deforestation` when the entry has none);
 - `category_issue`: `null` when the layer's category resolves in its country, otherwise `unknown_category`, `invalid_category` or `unreadable_categories`;
 - `category_enabled`: whether the layer's category resolves and is enabled;
+- `layer_issue`: `null`, or why the layer can't be public even with a usable category: `years_mismatch` when its years don't fit the category's `temporal`, `missing_raster` when it has no raster;
 - the attributes and considerations in every supported language (`en`, `es`);
 - whether a raster file is currently present.
 
@@ -152,6 +158,11 @@
 
 - **WHEN** CO's layer 3 has `category_id: "frontier"` and CO has no category `frontier`
 - **THEN** layer 3 appears with `category_id: "frontier"`, `category_issue: "unknown_category"` and `category_enabled: false`
+
+#### Scenario: Layer that can't be public
+
+- **WHEN** CO's layer 7 is in `deforestation` with only a baseline year, and layer 8 has no raster file
+- **THEN** layer 7 appears with `layer_issue: "years_mismatch"` and layer 8 with `layer_issue: "missing_raster"`
 
 #### Scenario: Legacy layer
 

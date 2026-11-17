@@ -142,7 +142,7 @@ concurrent publish.
 
 | Action | Refused when |
 |---|---|
-| `PATCH` category `enabled: false` | the category has published layers |
+| `PATCH` category `enabled: false` or `true` | the category has published layers (enabling would publish them without the layer checks; only a hand edit gets there) |
 | `PUT` category, `polarity` changes | the category has published layers |
 | `PUT` category, `temporal` changes | the category has any layer (its years would stop matching) |
 | `PUT` on a rejected entry (repair) | the category has published layers (its polarity and years can't be read), or a layer's years don't fit the new `temporal` |
@@ -172,7 +172,33 @@ concurrent publish.
   a boolean (`put_category(keep_enabled=True)`): `enabled` changes only through
   `PATCH`.
 - Together with GC-1's read-side guard, the admin can no longer produce a published
-  layer in a disabled or broken category, or with years that don't fit it. Such a layer can still appear through a hand
+  layer in a disabled or broken category, or with years that don't fit it.
+
+### 4b. Read-side invariant: an inconsistent layer is never public
+
+The rules above close the admin's paths one by one, and three more were found in
+review, all starting from a hand edit of the share. So the public listing also checks
+the result, whatever produced it. `LayersRoot.is_public(layer)` (it replaces GC-1's
+`is_public_layer`) lists a layer in `GET /maps` and counts it for `GET /countries`
+only when it is enabled, its category resolves and is enabled (GC-1), its years fit
+the category (`years_fit`, now in `app/modules/layers/categories.py`), and its
+raster is on disk.
+
+- The years check is a tag, `layer_issue: "years_mismatch"`, added by
+  `_with_categories` next to `category_issue`: no I/O. A year that can't be parsed
+  never fits, so a hand-edited `"2020a"` hides the layer instead of answering 500 in
+  `GET /maps` (the admin's `GET /admin/layers` still answers 500 for it, as before
+  this change).
+- The raster check needs a `stat` on the share, so only `is_public` does it, which
+  only the listings call. Tiles and images, which call `layers()` on every request,
+  don't pay for it.
+- Each hidden layer is logged once per reason. `AdminLayer.layer_issue` shows
+  `years_mismatch` or `missing_raster` so GC-5 can say why an enabled layer isn't
+  public.
+- Analysis, tiles and images still resolve a hidden layer by id (GC-1, decision 4): a
+  browser may hold a list loaded before the layer was hidden, and `value` doesn't
+  depend on the category. The invariant is about what is offered, not what an old
+  request may still name. Such a layer can still appear through a hand
   edit of the share; `AdminLayer` shows it (decision 5) and the admin fixes it by moving
   the layer (`PUT`, after hiding it) or repairing the category.
 

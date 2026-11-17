@@ -35,6 +35,10 @@ the "Gestor de capas" orchestration (undp/monbo#116), unit GC-2 (undp/monbo#118)
 - **Category writes never drop what they don't understand**: they replace or add one entry
   of `categories.json` and keep every other entry as stored, even a rejected one. An
   unreadable file refuses category writes (409) instead of being overwritten.
+- **A read-side invariant** (added in review): `GET /maps` and `GET /countries` only
+  offer a layer that is enabled, whose category resolves and is enabled, whose years
+  fit the category and whose raster exists, whatever produced the index.
+  `AdminLayer.layer_issue` says why an enabled layer isn't public.
 - **Contracts regenerated** (`pnpm contracts`), and the admin web form sends the layer's
   current `category_id` (`deforestation` for a new layer) so it keeps compiling and working
   until GC-5 adds the category selector.
@@ -48,6 +52,8 @@ administration.
 
 ### Modified Capabilities
 
+- `layer-storage`: the public listing also leaves out layers whose years don't fit
+  their category or whose raster is missing.
 - `layer-administration`: new requirements for listing, creating, editing and
   enabling/disabling a country's categories; listing, creating, editing and publishing a
   layer now involve its category (`category_id`, its issue, years by `temporal`).

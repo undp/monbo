@@ -10,9 +10,9 @@ from app.modules.layers.categories import (
     CategoryIssue,
     effective_categories,
     resolve_category,
+    years_fit,
 )
 from app.modules.layers.store import LayerStore, get_layers_root
-from app.utils.maps import parse_year
 
 from .auth import Session
 
@@ -65,16 +65,6 @@ def published_ids(layers: list[dict]) -> list[int]:
 
 def describe_ids(ids: list[int]) -> str:
     return ", ".join(str(layer_id) for layer_id in ids)
-
-
-def years_fit(entry: dict, temporal: bool) -> bool:
-    """Whether an index entry's years fit a category that is (or isn't) temporal:
-    temporal categories need both years, the others none. Missing, null and ""
-    are no year."""
-    years = [parse_year(entry.get(key)) for key in ("baseline", "compared_against")]
-    if temporal:
-        return all(year is not None for year in years)
-    return all(year is None for year in years)
 
 
 def years_mismatch(layers: list[dict], temporal: bool) -> list[int]:

@@ -61,12 +61,22 @@ def co(country_root):
     country_root.country("CO").write_index(
         [
             layer(0, "gfw.tif"),
-            layer(1, "runap.tif", category_id="protected_areas", baseline=None),
+            layer(
+                1,
+                "runap.tif",
+                category_id="protected_areas",
+                baseline=None,
+                compared_against=None,
+            ),
         ]
     )
     write_categories(country_root, "CO", [category("protected_areas")])
-    country_root.country("EC").write_index([layer(0, "snap.tif", category_id="snap")])
+    country_root.country("EC").write_index(
+        [layer(0, "snap.tif", category_id="snap", baseline=None, compared_against=None)]
+    )
     write_categories(country_root, "EC", [category("snap")])
+    for code, raster in (("CO", "gfw.tif"), ("CO", "runap.tif"), ("EC", "snap.tif")):
+        country_root.country(code).write_raster(raster)
     return country_root
 
 
@@ -364,6 +374,7 @@ def test_the_flat_layout_has_only_the_built_in_category(maps_root):
             layer(1, "x.tif", available_countries_codes=["CO"], category_id="frontier"),
         ]
     )
+    maps_root.write_raster("gfw.tif")
 
     assert {e["id"]: e["category_issue"] for e in maps_root.layers_root.layers()} == {
         0: None,
@@ -622,3 +633,55 @@ def test_put_category_can_keep_the_stored_enabled(co, stored_enabled, kept):
 
     assert result["enabled"] is kept
     assert raw_categories(co, "CO")[0]["enabled"] is kept
+
+
+# --- Read-side invariant: an inconsistent layer is never public ------------------
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"compared_against": None},  # temporal category, one year
+        {"baseline": "", "compared_against": "2023"},
+        {"baseline": "2020a"},  # not a year (and no 500)
+        {
+            "category_id": "protected_areas",  # not temporal, with years
+        },
+        {"raster_filename": "missing.tif"},
+        {"raster_filename": None},
+    ],
+)
+def test_a_hand_edited_inconsistent_layer_is_never_public(co, overrides):
+    # Every admin route refuses to publish these; a hand edit of the share can
+    # still leave them enabled. The listing hides them whatever the path.
+    co.country("CO").write_index(
+        [layer(0, "gfw.tif", **overrides), layer(2, "gfw.tif", enabled=False)]
+    )
+
+    assert listed("CO") == {}
+    countries = client().get("/countries").json()
+    assert {"code": "CO"} not in countries
+    assert {"code": "EC"} in countries
+
+
+def test_hidden_inconsistent_layers_are_tagged_and_logged(co, caplog):
+    co.country("CO").write_index(
+        [layer(0, "gfw.tif", compared_against=None), layer(1, "gfw.tif")]
+    )
+
+    with caplog.at_level(logging.ERROR):
+        assert listed("CO") == {1: "deforestation"}
+
+    tags = {e["id"]: e["layer_issue"] for e in co.layers_root.country_layers("CO")}
+    assert tags == {0: "years_mismatch", 1: None}
+    assert "Layer 0 of CO is hidden: its years don't fit" in caplog.text
+
+
+def test_a_layer_without_raster_is_logged_once(co, caplog):
+    co.country("CO").write_index([layer(0, "missing.tif")])
+
+    with caplog.at_level(logging.ERROR):
+        for _ in range(3):
+            assert listed("CO") == {}
+
+    assert caplog.text.count("its raster is missing") == 1

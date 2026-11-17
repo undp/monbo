@@ -214,6 +214,22 @@
             "title": "Id",
             "type": "integer"
           },
+          "layer_issue": {
+            "anyOf": [
+              {
+                "enum": [
+                  "years_mismatch",
+                  "missing_raster"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.",
+            "title": "Layer Issue"
+          },
           "pixel_size": {
             "title": "Pixel Size",
             "type": "number"
@@ -246,6 +262,7 @@
           "category_id",
           "category_issue",
           "category_enabled",
+          "layer_issue",
           "pixel_size",
           "baseline",
           "compared_against",
@@ -2988,7 +3005,7 @@
     },
     "/admin/categories/{category_id}": {
       "patch": {
-        "description": "Enable or disable a category. A disabled category is left out of\n`GET /categories`, and its layers out of `GET /maps`. A category with published\nlayers can't be disabled (400): hide the layers first.",
+        "description": "Enable or disable a category. A disabled category is left out of\n`GET /categories`, and its layers out of `GET /maps`. A category with published\nlayers can't be disabled or enabled (400): hide the layers first, and publish\nthem afterwards with `PATCH /admin/layers/{id}`.",
         "operationId": "set_category_enabled_admin_categories__category_id__patch",
         "parameters": [
           {
@@ -4117,7 +4134,7 @@
     },
     "/maps": {
       "get": {
-        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers, and layers whose category is disabled or doesn't resolve, are left out\nhere but remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison (None for layers without years, in\n      categories that are not temporal)\n    - comparedAgainst: Final year for comparison (None likewise)\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - categoryId: The id of the layer's category in its country (see\n      `GET /categories`)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
+        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers, layers whose category is disabled or doesn't resolve, layers whose\nyears don't fit their category, and layers without a raster are left out here\nbut remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison (None for layers without years, in\n      categories that are not temporal)\n    - comparedAgainst: Final year for comparison (None likewise)\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - categoryId: The id of the layer's category in its country (see\n      `GET /categories`)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
         "operationId": "get_maps_maps_get",
         "parameters": [
           {

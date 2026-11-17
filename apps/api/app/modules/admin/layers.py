@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from rasterio import open as rasterio_open
 from rasterio.errors import RasterioIOError
 
+from app.modules.layers.categories import LayerIssue, years_fit
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
@@ -31,7 +32,6 @@ from .helpers import (
     country_store,
     index_or_500,
     read_country_categories,
-    years_fit,
 )
 from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
 
@@ -59,11 +59,18 @@ def _to_admin_layer(
             entry["considerations_filename"], language
         )
     category, issue = categories.resolve(entry["category_id"])
+    has_raster = store.has_raster(entry.get("raster_filename"))
+    layer_issue: LayerIssue | None = None
+    if category is not None and not years_fit(entry, category["temporal"]):
+        layer_issue = "years_mismatch"
+    elif not has_raster:
+        layer_issue = "missing_raster"
     return AdminLayer(
         id=entry["id"],
         category_id=str(entry["category_id"]),
         category_issue=issue,
         category_enabled=bool(category and category["enabled"]),
+        layer_issue=layer_issue,
         pixel_size=entry["pixel_size"],
         baseline=parse_year(entry.get("baseline")),
         compared_against=parse_year(entry.get("compared_against")),
@@ -71,7 +78,7 @@ def _to_admin_layer(
         enabled=entry["enabled"],
         version=entry["version"],
         raster_filename=entry.get("raster_filename"),
-        has_raster=store.has_raster(entry.get("raster_filename")),
+        has_raster=has_raster,
         attributes=attributes,
         considerations=considerations,
     )

@@ -255,7 +255,8 @@ def set_category_enabled(
     """
     Enable or disable a category. A disabled category is left out of
     `GET /categories`, and its layers out of `GET /maps`. A category with published
-    layers can't be disabled (400): hide the layers first.
+    layers can't be disabled or enabled (400): hide the layers first, and publish
+    them afterwards with `PATCH /admin/layers/{id}`.
     """
     store = country_store(session)
     with store.locked():
@@ -270,12 +271,17 @@ def set_category_enabled(
         current = categories.by_id().get(category_id)
         if current is None:
             raise _not_found()
+        # Either way, the category's layers must be hidden: disabling would hide
+        # them behind the admin's back, and enabling would publish them without
+        # the checks of `PATCH /admin/layers/{id}` (only a hand edit leaves a
+        # disabled category with published layers).
         published = published_ids(layers_in(index, category_id))
-        if not body.enabled and current["enabled"] and published:
+        if body.enabled != current["enabled"] and published:
+            action = "enabling" if body.enabled else "disabling"
             raise HTTPException(
                 status_code=400,
                 detail=f"Category '{category_id}' has published layers "
-                f"({describe_ids(published)}): hide them before disabling it",
+                f"({describe_ids(published)}): hide them before {action} it",
             )
         category = {**current, "enabled": body.enabled}
         if current["enabled"] != body.enabled:

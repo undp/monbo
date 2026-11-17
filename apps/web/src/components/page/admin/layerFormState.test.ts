@@ -7,6 +7,7 @@ const layer = (overrides: Partial<AdminLayer> = {}): AdminLayer => ({
   category_id: "protected_areas",
   category_issue: null,
   category_enabled: true,
+  layer_issue: null,
   pixel_size: 30,
   baseline: 2020,
   compared_against: 2024,

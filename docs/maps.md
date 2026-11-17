@@ -225,7 +225,7 @@ message names the layers to hide first, when:
 
 | Action | Refused when |
 |---|---|
-| Disable a category | it has published layers |
+| Disable or enable a category | it has published layers |
 | Change a category's polarity | it has published layers |
 | Change whether a category is temporal | it has any layer |
 | Repair a rejected category, or create one whose id layers already use | any of those layers is published, or their years don't fit its `temporal` |
@@ -233,7 +233,14 @@ message names the layers to hide first, when:
 | Move a layer to another category | the layer is published |
 
 Years fit when a temporal category's layers have both years and the others have
-none. Thresholds, texts, icon and color can change at any time. A repair keeps the entry's
+none.
+
+**What the public app offers, whatever edited the share.** `GET /maps` and
+`GET /countries` only offer a layer that is enabled, whose category resolves and is
+enabled, whose years fit that category and whose raster file exists. Any other layer
+is hidden, logged once as an error, and shown in the admin with `category_issue` or
+`layer_issue` (`years_mismatch`, `missing_raster`). Like any hidden layer, it still
+resolves by id for analyses already open. Thresholds, texts, icon and color can change at any time. A repair keeps the entry's
 `enabled`: only `PATCH` publishes or hides a category.
 
 Writes change one entry of `categories.json` and keep the others as they are stored,
@@ -288,8 +295,9 @@ The admin shows and changes only that country's layers. Then:
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 
-A country appears on the app's start page once it has at least one published layer
-whose category is enabled and valid.
+A country appears on the app's start page once it has at least one layer that
+`GET /maps` offers: published, with an enabled and valid category, years that fit it,
+and its raster.
 
 GFW and TMF were migrated as one copy per country. The copies are independent: when a
 new GFW year comes out, each country's admin uploads it to their own copy, and

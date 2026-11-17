@@ -49,6 +49,7 @@ from app.modules.layers.categories import (
     effective_categories,
     parse_categories,
     resolve_category,
+    years_fit,
 )
 
 logger = get_logger("modules.layers.store")
@@ -99,17 +100,6 @@ def _with_defaults(entry: dict) -> dict:
         "version": entry.get("version", 1),
         "category_id": DEFAULT_CATEGORY_ID if category_id is None else category_id,
     }
-
-
-def is_public_layer(entry: dict) -> bool:
-    """Whether a layer from `LayersRoot.layers()` may be listed publicly: enabled,
-    and its category resolves and is enabled. Analysis, tiles and images resolve
-    layers by id regardless."""
-    return bool(
-        entry["enabled"]
-        and entry.get("category_issue") is None
-        and entry.get("category_enabled")
-    )
 
 
 class LayerStore:
@@ -712,7 +702,10 @@ class LayersRoot:
         - `category_issue`: None when its `category_id` resolves, else why not
           (`unknown_category`, `invalid_category`, `unreadable_categories`);
         - `category_enabled`: whether the resolved category is enabled (False when
-          it doesn't resolve).
+          it doesn't resolve);
+        - `layer_issue`: `years_mismatch` when the category resolves but the
+          layer's years don't fit its `temporal`, else None (`is_public` adds
+          `missing_raster`, which needs the disk).
         The tags only exist on what this class returns: `LayerStore.read_index()`
         returns entries as stored, so they are never written back."""
         by_id = {c["id"]: c for c in effective_categories(categories_file)}
@@ -722,21 +715,53 @@ class LayersRoot:
             )
             layer["category_issue"] = issue
             layer["category_enabled"] = bool(category and category["enabled"])
+            layer["layer_issue"] = (
+                "years_mismatch"
+                if category is not None and not years_fit(layer, category["temporal"])
+                else None
+            )
             if issue is not None:
-                self._log_issue(layer, issue)
+                self._log_hidden(
+                    layer,
+                    f"its category '{layer['category_id']}' doesn't resolve "
+                    f"({issue})",
+                )
+            elif layer["layer_issue"] and layer["enabled"]:
+                self._log_hidden(
+                    layer, f"its years don't fit category '{layer['category_id']}'"
+                )
         return layers
 
-    def _log_issue(self, layer: dict, issue: str) -> None:
-        key = (layer["country"], layer["id"], str(layer["category_id"]), issue)
+    def is_public(self, layer: dict) -> bool:
+        """Whether a layer from `layers()` / `country_layers()` may be listed
+        publicly (`GET /maps`, `GET /countries`): enabled, its category resolves and
+        is enabled, its years fit the category, and its raster is on disk. This is
+        the read-side guard: a layer that an edit of the share left inconsistent is
+        never offered, whatever the path that produced it. Analysis, tiles and
+        images resolve layers by id regardless (a browser may hold an older list).
+        Only listings call it, so tiles don't pay for the raster check."""
+        if not (
+            layer["enabled"]
+            and layer.get("category_issue") is None
+            and layer.get("category_enabled")
+            and layer.get("layer_issue") is None
+        ):
+            return False
+        if not self.store_for(layer).has_raster(layer.get("raster_filename")):
+            self._log_hidden(layer, "its raster is missing")
+            return False
+        return True
+
+    def _log_hidden(self, layer: dict, reason: str) -> None:
+        key = (layer["country"], layer["id"], str(layer["category_id"]), reason)
         if key in self._logged_issues:
             return
         self._logged_issues.add(key)
         logger.error(
-            "Layer %s of %s is hidden: its category '%s' doesn't resolve (%s)",
+            "Layer %s of %s is hidden: %s",
             layer["id"],
             layer["country"] or "the flat root",
-            layer["category_id"],
-            issue,
+            reason,
         )
 
     def country_categories(self, code: str) -> list[dict] | None:
@@ -787,13 +812,13 @@ class LayersRoot:
 
     def public_countries(self) -> list[str] | None:
         """Countries a visitor can pick: in the per-country layout, those enabled in
-        the registry with at least one public layer (`is_public_layer`); in the flat
+        the registry with at least one public layer (`is_public`); in the flat
         layout, the countries of the public layers. None if any index cannot be
         read."""
         layers = self.layers()
         if layers is None:
             return None
-        enabled_layers = [entry for entry in layers if is_public_layer(entry)]
+        enabled_layers = [entry for entry in layers if self.is_public(entry)]
         codes = {
             code
             for entry in enabled_layers

@@ -48,3 +48,11 @@
 - [x] 8.1 API: `uv sync --frozen`, `uv run pytest` (regression and numeric baseline green without regeneration), `ruff check`, `black --check`, `mypy app`, `python -m app.openapi --check`
 - [x] 8.2 Web: `pnpm install --frozen-lockfile`, schema check, `tsc --noEmit`, `lint`, `test`, `build`
 - [x] 8.3 `openspec validate admin-layer-categories`
+
+## 9. Review fixes (#138)
+
+- [x] 9.1 Repairing a rejected category and creating one over existing layers require the layers hidden and their years to fit (`_check_adopted_layers`); publishing re-checks the years
+- [x] 9.2 A repair keeps the stored `enabled` (`put_category(keep_enabled=True)`)
+- [x] 9.3 `years_fit`: both years for a temporal category, none otherwise
+- [x] 9.4 Enabling a category with published layers answers 400
+- [x] 9.5 Read-side invariant: `LayersRoot.is_public` also requires years that fit and the raster; `layer_issue` tag and `AdminLayer.layer_issue`; tests with hand-edited indexes

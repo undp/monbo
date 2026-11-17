@@ -84,7 +84,8 @@ export interface paths {
          * Set Category Enabled
          * @description Enable or disable a category. A disabled category is left out of
          *     `GET /categories`, and its layers out of `GET /maps`. A category with published
-         *     layers can't be disabled (400): hide the layers first.
+         *     layers can't be disabled or enabled (400): hide the layers first, and publish
+         *     them afterwards with `PATCH /admin/layers/{id}`.
          */
         patch: operations["set_category_enabled_admin_categories__category_id__patch"];
         trace?: never;
@@ -553,8 +554,9 @@ export interface paths {
          *
          *     This endpoint reads the maps index file and their corresponding metadata
          *     files to return detailed information about each enabled map layer. Disabled
-         *     layers, and layers whose category is disabled or doesn't resolve, are left out
-         *     here but remain usable by id for analysis and tiles.
+         *     layers, layers whose category is disabled or doesn't resolve, layers whose
+         *     years don't fit their category, and layers without a raster are left out here
+         *     but remain usable by id for analysis and tiles.
          *
          *     Args:
          *         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -738,6 +740,11 @@ export interface components {
             has_raster: boolean;
             /** Id */
             id: number;
+            /**
+             * Layer Issue
+             * @description Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.
+             */
+            layer_issue: ("years_mismatch" | "missing_raster") | null;
             /** Pixel Size */
             pixel_size: number;
             /** Raster Filename */
