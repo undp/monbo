@@ -22,10 +22,13 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import FormatListBulletedRoundedIcon from "@mui/icons-material/FormatListBulletedRounded";
 import { Accept } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { DropZone } from "@/components/reusable/DropZone";
 import { Text } from "@/components/reusable/Text";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { getUploadExamples } from "@/config/uploadExamples";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { FarmRow } from "@/interfaces/FarmRow";
@@ -257,11 +260,14 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
 
       <Box>
         <Box
-          sx={{ display: "flex", alignItems: "baseline", gap: 1.5, flexWrap: "wrap" }}
+          sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}
         >
-          <Text variant="body1" bold>
-            {t("common:farmsUpload:listTitle")}
-          </Text>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FormatListBulletedRoundedIcon color="primary" fontSize="small" aria-hidden />
+            <Text variant="body1" bold>
+              {t("common:farmsUpload:listTitle")}
+            </Text>
+          </Box>
           {sources.length > 0 && (
             <Text variant="body2" color="secondary">
               {uploadSummaryText(summary, t)}
@@ -378,9 +384,19 @@ const OptionCard: React.FC<OptionCardProps> = ({
       <Text variant="body2" color="secondary">
         {t(`${key}:when`)}
       </Text>
-      <Box component="ol" sx={{ margin: 0, paddingLeft: 2.5 }}>
+      {/* In order, but with bullets: digits here read like the flow's stages. */}
+      <Box component="ol" sx={{ margin: 0, padding: 0, listStyle: "none" }}>
         {Array.from({ length: steps }, (_, index) => (
-          <Text component="li" variant="body2" key={index}>
+          <Text
+            component="li"
+            variant="body2"
+            key={index}
+            sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}
+          >
+            <ChevronRightRoundedIcon
+              aria-hidden
+              sx={{ fontSize: 18, color: FLOW_COLORS.leafDark, marginTop: "1px" }}
+            />
             {t(`${key}:steps:${index + 1}`)}
           </Text>
         ))}

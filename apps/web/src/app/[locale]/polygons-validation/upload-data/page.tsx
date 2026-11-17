@@ -3,7 +3,7 @@ import { PolygonsValidationUploadDataPageContent } from "@/components/page/polyg
 import { BasePageProps } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
 
-const namespaces = ["common", "polygonValidation", "manualFarm"];
+const namespaces = ["common", "polygonValidation", "manualFarm", "flow"];
 
 export default async function UploadDataPage({ params }: BasePageProps) {
   const { locale } = await params;

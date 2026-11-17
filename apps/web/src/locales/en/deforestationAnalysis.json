@@ -26,9 +26,6 @@
   "withDeforestation": "Deforested",
   "map": "Map",
   "deforestationLevel": "Def. Level",
-  "buttons": {
-    "createReport": "Prepare report"
-  },
   "mapsInfoModal": {
     "title": "Map details",
     "coverage": "Coverage",

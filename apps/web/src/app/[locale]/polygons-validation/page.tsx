@@ -13,8 +13,10 @@ import initTranslations from "@/utils/i18n";
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { Suspense } from "react";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
+import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
+import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
-const namespaces = ["common", "polygonValidation", "deforestationAnalysis"];
+const namespaces = ["common", "polygonValidation", "deforestationAnalysis", "flow"];
 
 export default async function PolygonsValidationPage({
   params,
@@ -32,23 +34,24 @@ export default async function PolygonsValidationPage({
       <Box
         sx={{
           padding: 3,
-          paddingBottom: 11,
           display: "flex",
           flexDirection: "column",
           gap: 2,
-          height: "calc(100vh - 64px)",
         }}
       >
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-end",
           }}
         >
-          <Text variant="h3" bold>
-            {t("polygonValidation:title")}
-          </Text>
+          <Box>
+            <StageEyebrow />
+            <Text variant="h3" bold>
+              {t("polygonValidation:title")}
+            </Text>
+          </Box>
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             <Suspense>
               <SearchBar
@@ -60,7 +63,7 @@ export default async function PolygonsValidationPage({
           </Box>
         </Box>
         <SectionBackground
-          sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300 }}
+          sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT }}
         >
           <Suspense>
             <Tabs
@@ -79,9 +82,8 @@ export default async function PolygonsValidationPage({
             />
           </Suspense>
         </SectionBackground>
+        <PageFooter />
       </Box>
-
-      <PageFooter />
     </TranslationsProvider>
   );
 }
