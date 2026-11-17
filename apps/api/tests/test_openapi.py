@@ -28,6 +28,21 @@ def test_export_includes_the_admin_and_config():
         assert name in schemas
 
 
+def test_the_analysis_contract_is_named_after_layers():
+    """Change layer-analysis-contract: /layer_analysis, no /deforestation_analysis."""
+    document = json.loads(openapi.render())
+    paths = document["paths"]
+    assert "/layer_analysis/analyze" in paths
+    assert "/layer_analysis/generate-image" in paths
+    assert "/layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png" in paths
+    assert not [path for path in paths if path.startswith("/deforestation_analysis")]
+    schemas = document["components"]["schemas"]
+    for name in ("AnalyzeBody", "LayerResults", "FarmLayerResult"):
+        assert name in schemas
+    for name in ("AnalizeBody", "MapData", "FarmDeforestation"):
+        assert name not in schemas
+
+
 def test_committed_openapi_is_up_to_date():
     """CI runs `python -m app.openapi --check`; this keeps the suite honest too."""
     assert openapi.main(["--check"]) == 0

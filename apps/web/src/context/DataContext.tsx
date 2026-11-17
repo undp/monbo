@@ -18,7 +18,7 @@ import {
   DeforestationAnalysisMapResults,
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
-import { getMaps } from "@/api/deforestationAnalysis";
+import { getMaps } from "@/api/layerAnalysis";
 import { getCountries } from "@/api/countries";
 import { orderBy } from "lodash";
 import {

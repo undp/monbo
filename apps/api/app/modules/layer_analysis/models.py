@@ -8,7 +8,7 @@ class DeforestationUnprocessedFarmData(InputFarmData):
     pass
 
 
-class AnalizeBody(BaseModel):
+class AnalyzeBody(BaseModel):
     # The country of the layers: ids are numbered within each country. Required
     # with the per-country layout; optional with the flat one (global ids).
     country: CountryCode | None = None
@@ -16,14 +16,14 @@ class AnalizeBody(BaseModel):
     farms: list[FarmPolygonDetailData]
 
 
-class FarmDeforestation(BaseModel):
+class FarmLayerResult(BaseModel):
     farmId: str
     value: float | None
 
 
-class MapData(BaseModel):
+class LayerResults(BaseModel):
     mapId: int
     # The layer version (raster) the results were computed against. Clients send it
     # back to /generate-image so a report never mixes results from different rasters.
     version: int
-    farmResults: list[FarmDeforestation]
+    farmResults: list[FarmLayerResult]

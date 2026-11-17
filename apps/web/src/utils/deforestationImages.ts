@@ -8,9 +8,9 @@ import {
 import { FarmData } from "@/interfaces/Farm";
 import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import {
-  generatePolygonDeforestationImage,
+  generateLayerImage,
   ImageRequestError,
-} from "@/api/deforestationAnalysis";
+} from "@/api/layerAnalysis";
 
 export interface DeforestationImageBlob {
   mapId: number;
@@ -130,7 +130,7 @@ export const fetchFarmImages = ({
               ),
             REQUEST_TIMEOUT_MS
           );
-          return generatePolygonDeforestationImage(
+          return generateLayerImage(
             country,
             mapResults.mapId,
             feature,
@@ -186,7 +186,7 @@ export const fetchDeforestationImages = async (
 
   const promises = payloads.map((payload) =>
     limit(() =>
-      generatePolygonDeforestationImage(
+      generateLayerImage(
         country,
         payload.mapId,
         payload.farmGeoJson,

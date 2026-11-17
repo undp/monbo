@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DataContext } from "@/context/DataContext";
 import { ReportContext } from "@/context/ReportContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { sendUsageEvent } from "@/api/usageEvents";
 import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
 import { createTestI18n } from "@/test/i18n";

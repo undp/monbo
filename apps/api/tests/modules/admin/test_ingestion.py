@@ -151,7 +151,7 @@ def test_valid_upload_is_converted_and_activated(
     )
     public = TestClient(create_app()).get("/maps").json()
     assert next(layer for layer in public if layer["id"] == 6)["version"] == 1
-    tile = client.get("/deforestation_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
+    tile = client.get("/layer_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
     assert tile.status_code == 200
 
 

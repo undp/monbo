@@ -1,8 +1,8 @@
 # How the deforestation percentage is calculated
 
-For each farm and layer, `POST /deforestation_analysis/analize` returns a **ratio from 0 to 1** (the web shows it as a percentage): the share of the farm's area that lies on the layer's loss pixels. It is not an area in hectares.
+For each farm and layer, `POST /layer_analysis/analyze` returns a **ratio from 0 to 1** (the web shows it as a percentage): the share of the farm's area that lies on the layer's loss pixels. It is not an area in hectares.
 
-The code is `get_loss_area_fraction` in `apps/api/app/modules/deforestation_analysis/helpers.py`, called once per farm and layer by the router.
+The code is `get_loss_area_fraction` in `apps/api/app/modules/layer_analysis/helpers.py`, called once per farm and layer by the router.
 
 The user-facing explanation is the web's documentation page (`/documentation#deforestation`). Its text is in `apps/web/src/content/documentation/{es,en}/deforestation.md`: update it whenever this calculation changes.
 

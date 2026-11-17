@@ -29,8 +29,8 @@ Invariants that decide what counts as a bug:
   `docs/maps.md`, "Usage events".
 - **Per-farm and per-map failures are swallowed on purpose.** `value: null` (area `-1`) means
   "could not be computed". The sentinel must never reach arithmetic or a report as a real value.
-- **`analize` is the contract spelling** (`POST /deforestation_analysis/analize`, `AnalizeBody`).
-  "Fixing" it on one side only breaks the contract.
+- **The analysis contract is `POST /layer_analysis/analyze`** (`AnalyzeBody` → `LayerResults`).
+  The old `/deforestation_analysis/*` routes were removed without aliases: don't call them.
 - **Rasters are Git LFS files** under `apps/api/app/maps/layers/rasters/`, catalogued in
   `apps/api/app/maps/index.json`. Without `git lfs pull`, module 2 fails.
 - **The ratio** is `min(1.0, deforested_pixels × pixel_size² / geodesic_area)`, with

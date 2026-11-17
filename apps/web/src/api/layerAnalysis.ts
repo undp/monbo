@@ -1,7 +1,7 @@
 import {
   GET_MAPS_URL,
-  DEFORESTATION_ANALYSIS_URL,
-  DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL,
+  LAYER_ANALYSIS_URL,
+  LAYER_ANALYSIS_IMAGE_GENERATION_URL,
 } from "@/config/env";
 import {
   DeforestationAnalysisMapResults,
@@ -24,7 +24,7 @@ export class MapLayerChangedError extends Error {
 /** `/generate-image` answered with an error status (other than 409). */
 export class ImageRequestError extends Error {
   constructor(readonly status: number) {
-    super(`Error on generate polygon deforestation image (HTTP ${status})`);
+    super(`Error on generate layer image (HTTP ${status})`);
     this.name = "ImageRequestError";
   }
 }
@@ -46,12 +46,12 @@ export const getMaps = async (
 };
 
 // Layer ids are numbered within each country: every call names the country.
-export const analizeDeforestation = async (
+export const analyzeLayers = async (
   data: FarmData[],
   selectedMaps: MapData[],
   country: string
 ): Promise<DeforestationAnalysisMapResults[]> => {
-  const body: components["schemas"]["AnalizeBody"] = {
+  const body: components["schemas"]["AnalyzeBody"] = {
     country,
     farms: data.map(({ id, polygon }) => ({
       id,
@@ -60,7 +60,7 @@ export const analizeDeforestation = async (
     })),
     maps: map(selectedMaps, "id"),
   };
-  const response = await fetch(DEFORESTATION_ANALYSIS_URL, {
+  const response = await fetch(LAYER_ANALYSIS_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,13 +69,13 @@ export const analizeDeforestation = async (
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error("Error on analize deforestation");
+    throw new Error("Error on layer analysis");
   }
 
   return response.json();
 };
 
-export const generatePolygonDeforestationImage = async (
+export const generateLayerImage = async (
   country: string,
   mapId: number,
   feature: GeoJsonFeature,
@@ -83,7 +83,7 @@ export const generatePolygonDeforestationImage = async (
   version?: number,
   signal?: AbortSignal
 ): Promise<Blob> => {
-  const url = `${DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL}?include_satelital_background=${includeSatelitalBackground}`;
+  const url = `${LAYER_ANALYSIS_IMAGE_GENERATION_URL}?include_satelital_background=${includeSatelitalBackground}`;
   const body: components["schemas"]["GenerateImageBody"] = {
     country,
     mapId,

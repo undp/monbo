@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
-import { analizeDeforestation } from "@/api/deforestationAnalysis";
+import { analyzeLayers } from "@/api/layerAnalysis";
 import {
   DataContext,
   readFlowGeneration,
@@ -153,7 +153,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       };
       setLoading(true);
       try {
-        const response = await analizeDeforestation(
+        const response = await analyzeLayers(
           data,
           selectedMapsForDeforestation,
           selectedCountry!

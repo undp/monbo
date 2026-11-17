@@ -336,9 +336,9 @@ NEXT_PUBLIC_GET_CONFIG_URL=                     # URL of the API's product setti
 
 NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL=      # URL to parse excel file data into valid Farm objects for polygon validation module
 NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons validation and find inconsistencies
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL=  # URL to parse excel file data into valid Farm objects for deforestation analysis
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation analysis
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
+NEXT_PUBLIC_LAYER_ANALYSIS_URL=                 # URL to run the layer analysis (POST /layer_analysis/analyze)
+NEXT_PUBLIC_LAYER_ANALYSIS_TILES_URL=           # URL to get map tiles with the layer's pixels drawn on them
+NEXT_PUBLIC_LAYER_ANALYSIS_IMAGE_GENERATION_URL= # URL to generate the report's map images (POST /layer_analysis/generate-image)
 NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION= # Most farms whose report images get a satellite background (one Google Static Maps call per farm); above it they get a solid one. Empty = no limit
 ```
@@ -349,7 +349,7 @@ The overlap and deforestation thresholds are not frontend variables: the API own
 
 The report is rendered in the browser with `@react-pdf/renderer`, off the main thread:
 
-- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /deforestation_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
+- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /layer_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
 - Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
 - Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
 - **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, selected (farm, layer) pairs with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:

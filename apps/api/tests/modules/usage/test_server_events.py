@@ -106,12 +106,10 @@ def test_validation_counts_the_farms_not_valid(client, usage_dir):
     assert "module" not in event
 
 
-@patch("app.modules.deforestation_analysis.router.get_country_maps", return_value=[])
+@patch("app.modules.layer_analysis.router.get_country_maps", return_value=[])
 def test_analysis_takes_the_body_country(_, client, usage_dir):
     body = {"country": "PE", "maps": [], "farms": [_square("a", 0.0, 0.0)]}
-    response = client.post(
-        "/deforestation_analysis/analize", json=body, headers=HEADERS
-    )
+    response = client.post("/layer_analysis/analyze", json=body, headers=HEADERS)
     assert response.status_code == 200
 
     [event] = recorded(usage_dir)
@@ -120,9 +118,20 @@ def test_analysis_takes_the_body_country(_, client, usage_dir):
     assert (event["farms"], event["maps"]) == (1, 0)
 
 
+def test_the_removed_analysis_route_records_nothing(client, usage_dir):
+    # /deforestation_analysis/analize was renamed without an alias: a 404, and no
+    # analysis event that the dashboard would count.
+    body = {"country": "PE", "maps": [], "farms": [_square("a", 0.0, 0.0)]}
+    response = client.post(
+        "/deforestation_analysis/analize", json=body, headers=HEADERS
+    )
+    assert response.status_code == 404
+    assert recorded(usage_dir) == []
+
+
 def test_a_422_before_the_route_is_invalid_input(client, usage_dir):
     response = client.post(
-        "/deforestation_analysis/analize", json={"maps": "all"}, headers=HEADERS
+        "/layer_analysis/analyze", json={"maps": "all"}, headers=HEADERS
     )
     assert response.status_code == 422
 

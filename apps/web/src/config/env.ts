@@ -34,23 +34,23 @@ export const POLYGON_VALIDATION_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
   }/polygons_validation/validate`;
 
-export const DEFORESTATION_ANALYSIS_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL ||
+export const LAYER_ANALYSIS_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/analize`;
+  }/layer_analysis/analyze`;
 
-export const DEFORESTATION_ANALYSIS_TILES_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL ||
+export const LAYER_ANALYSIS_TILES_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_TILES_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/tiles`;
+  }/layer_analysis/tiles`;
 
-export const DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL ||
+export const LAYER_ANALYSIS_IMAGE_GENERATION_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_IMAGE_GENERATION_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/generate-image`;
+  }/layer_analysis/generate-image`;
 
 // Usage events reported by the browser (report requests and downloads)
 export const USAGE_EVENTS_URL =

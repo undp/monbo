@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { setRuntimeConfig } from "@/config/runtime";
 import type { DataContextValue } from "@/context/DataContext";
 import { deferred } from "@/test/deferred";
