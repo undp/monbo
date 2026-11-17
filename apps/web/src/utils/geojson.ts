@@ -7,8 +7,9 @@ import {
   DeforestationAnalysisMapResults,
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
-import { formatDeforestationPercentage } from "./numbers";
-import { layerLabel } from "./layerLabel";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
+import type { TFunction } from "i18next";
+import { layerResultColumns } from "./layerCategories";
 
 const toPositions = (ring: Coordinates[]) => ring.map(({ lng, lat }) => [lng, lat]);
 
@@ -67,6 +68,11 @@ export const generateGeoJsonFarmsDataWithPolygonsValidation = (
   return geoJsonData;
 };
 
+/**
+ * The farms as GeoJSON, each with two properties per analysed layer (its finding and
+ * its result, read with the layer's category), named in the user's language after
+ * the category and the layer.
+ */
 export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
   farmsData: FarmData[],
   deforestationAnalysisResults: Pick<
@@ -74,37 +80,30 @@ export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
     "mapId" | "farmResults"
   >[],
   availableMaps: MapData[],
+  categories: LayerCategory[],
+  t: TFunction,
   language?: string
 ) => {
+  const columns = layerResultColumns(
+    deforestationAnalysisResults,
+    availableMaps,
+    categories,
+    t,
+    language
+  );
   const geoJsonData: GeoJsonData = {
     type: "FeatureCollection",
     features: farmsData.map((farm) => {
       const feature = generateGeoJsonFeature(farm);
+      const results: Record<string, string> = {};
+      columns.forEach(({ findingHeader, resultHeader, result }) => {
+        const { findingText, label } = result(farm.id);
+        results[findingHeader] = findingText;
+        results[resultHeader] = label;
+      });
       return {
         ...feature,
-        properties: {
-          ...feature.properties,
-          ...deforestationAnalysisResults.reduce(
-            (acc, { mapId, farmResults }) => {
-              const map = availableMaps.find((map) => map.id === mapId);
-              const farmMapResult = farmResults.find(
-                ({ farmId }) => farmId === farm.id
-              );
-              if (!map || !farmMapResult) return acc;
-              return {
-                ...acc,
-                [`Deforestation according to ${layerLabel(map, "short")}`]:
-                  !farmMapResult || farmMapResult.value === null
-                    ? "N/A"
-                    : formatDeforestationPercentage(
-                        farmMapResult.value,
-                        language
-                      ),
-              };
-            },
-            {}
-          ),
-        },
+        properties: { ...feature.properties, ...results },
       };
     }),
   };

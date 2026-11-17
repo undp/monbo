@@ -322,7 +322,7 @@ to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
 raster around a farm on top of a Google Maps satellite image (Static Maps API, with
 the API's key and signature secret), for the PDF report. The farm is drawn last, so
 its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85, no
-chroma subsampling), the aspect ratio of the map box on the PDF's farm page, which
+chroma subsampling), the aspect ratio of the map box on the PDF's map pages, which
 the report embeds as is.
 
 - **Drawn like the tiles.** The loss comes from `render_loss_mask` on the image's

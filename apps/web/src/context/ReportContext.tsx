@@ -33,6 +33,7 @@ import {
 } from "@/workers/reportPdfClient";
 import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import type { FarmData } from "@/interfaces/Farm";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
   DeforestationAnalysisMapResults,
   MapData,
@@ -53,9 +54,11 @@ interface Selection {
   country: string;
   farms: FarmData[];
   maps: MapData[];
+  /** The country's categories: each layer's rule and texts in the report. */
+  categories: LayerCategory[];
   results: DeforestationAnalysisMapResults[];
   locale: string;
-  /** Its (farm, layer) pairs with a result: one page each in a complete PDF. */
+  /** Its farm pages: a sheet per farm and a map per (farm, layer) with a result. */
   farmPages: number;
   isLarge: boolean;
 }
@@ -178,6 +181,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   const {
     reportGenerationParams: { selectedMaps, selectedFarms },
     selectedCountry,
+    availableCategories,
     invalidateAnalysis,
   } = useContext(DataContext);
 
@@ -197,6 +201,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       locale,
       results.map((r) => `${r.mapId}@${r.version}`).sort(),
       selectedFarms.map((f) => f.id).sort(),
+      // A category edited by the admin changes the report's results and texts.
+      availableCategories,
     ]);
     const farmPages = countFarmPages(selectedFarms, results);
     return {
@@ -204,6 +210,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       country: selectedCountry,
       farms: selectedFarms,
       maps: selectedMaps,
+      categories: availableCategories,
       results,
       locale,
       farmPages,
@@ -214,6 +221,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     selectedMaps,
     selectedFarms,
     selectedCountry,
+    availableCategories,
     locale,
   ]);
 
@@ -258,6 +266,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         farms: s.farms,
         results: s.results,
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: satelliteFor(s),
         images,
       });
     },
@@ -286,6 +296,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         farms: [farm],
         results: farmResults(farm, s.results),
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: satelliteFor(s),
         images,
       });
     },
@@ -326,12 +338,14 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       onProgress: (done: number, total: number) => void,
       signal: AbortSignal
     ): Promise<Blob> => {
+      const includeSatelliteBackground = satelliteFor(s);
       const job = await workerClient().startZip({
         locale: s.locale,
         config: getRuntimeConfig(),
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: includeSatelliteBackground,
       });
-      const includeSatelliteBackground = satelliteFor(s);
       const limit = pLimit(20);
       const total = s.farms.length;
       const images: (Promise<DeforestationImageBlob[]> | null | undefined)[] = [];

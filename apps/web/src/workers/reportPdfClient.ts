@@ -1,14 +1,11 @@
-import type { RuntimeConfig } from "@/config/runtime";
-import type {
-  DeforestationAnalysisMapResults,
-  MapData,
-} from "@/interfaces/DeforestationAnalysis";
+import type { DeforestationAnalysisMapResults } from "@/interfaces/DeforestationAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 import type { DeforestationImageBlob } from "@/utils/deforestationImages";
 import type {
   ReportPdfMessage,
   ReportPdfRequest,
   ReportPdfResponse,
+  ZipCommand,
 } from "./reportPdfProtocol";
 
 /** A large report's ZIP being built in the worker, farm by farm. */
@@ -48,11 +45,9 @@ export class ReportPdfClient {
   }
 
   /** Starts a ZIP job in the worker; its farms are added one by one. */
-  async startZip(params: {
-    locale: string;
-    config: RuntimeConfig;
-    maps: MapData[];
-  }): Promise<ZipJob> {
+  async startZip(
+    params: Omit<Extract<ZipCommand, { op: "start" }>, "op">
+  ): Promise<ZipJob> {
     const job = this.nextJob++;
     const command = (zip: Extract<ReportPdfMessage, { job: number }>["zip"]) =>
       this.send((id) => ({ id, job, zip }));

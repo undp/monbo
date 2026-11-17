@@ -9,10 +9,9 @@ import {
   DeforestationAnalysisMapResults,
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
-import {
-  formatDeforestationPercentage,
-  formatOverlapPercentage,
-} from "./numbers";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
+import { formatOverlapPercentage } from "./numbers";
+import { findingPercentCell, layerResultColumns } from "./layerCategories";
 import {
   SheetData,
   TEMPLATE_COLUMNS,
@@ -171,41 +170,53 @@ export const buildPolygonValidationSheets = async (
   };
 };
 
+/**
+ * The layer analysis as one sheet: the template's columns, then two per analysed
+ * layer, headed in the user's language after the category and the layer: the
+ * finding, as a number in percent ("No data" as text), and the result label.
+ * `availableMaps` are the analysed layers (see layerResultColumns).
+ */
 export const buildDeforestationSheets = async (
   farmsData: FarmData[],
   deforestationAnalysisResults: DeforestationAnalysisMapResults[],
   availableMaps: MapData[],
+  categories: LayerCategory[],
+  t: TFunction,
   language: string
 ): Promise<Record<string, SheetData>> => {
-  const mapsHeaders = deforestationAnalysisResults.map(({ mapId }) => {
-    const map = availableMaps.find((map) => map.id === mapId);
-    return `Deforestación según ${map?.alias ?? ""}`;
-  });
+  const columns = layerResultColumns(
+    deforestationAnalysisResults,
+    availableMaps,
+    categories,
+    t,
+    language
+  );
 
-  const polygonsParsedData = farmsData.map((farm) => {
-    const deforestationPercentages = deforestationAnalysisResults.map(
-      ({ farmResults }) => {
-        const farmMapResult = farmResults.find(
-          ({ farmId }) => farmId === farm.id
-        );
-        if (!farmMapResult || farmMapResult.value === null) return "N/D";
-        return formatDeforestationPercentage(farmMapResult.value, language);
-      }
-    );
-    return [...farmToTemplateRow(farm), ...deforestationPercentages];
-  });
+  const polygonsParsedData = farmsData.map((farm) => [
+    ...farmToTemplateRow(farm),
+    ...columns.flatMap(({ result }) => {
+      const farmResult = result(farm.id);
+      return [findingPercentCell(farmResult), farmResult.label];
+    }),
+  ]);
 
   const templateHeadersRows = await loadTemplateHeaderRows(language);
 
   // All 3 rows: an upload skips them, so the first farm must start on row 4
-  const deforestationHeaders: Cell[][] = [[], [], []];
-  deforestationHeaders[0].push(...templateHeadersRows[0]);
-  deforestationHeaders[1].push(...templateHeadersRows[1], ...mapsHeaders);
-  deforestationHeaders[2].push(...templateHeadersRows[2]);
+  const resultsHeaders: Cell[][] = [[], [], []];
+  resultsHeaders[0].push(...templateHeadersRows[0]);
+  resultsHeaders[1].push(
+    ...templateHeadersRows[1],
+    ...columns.flatMap(({ findingHeader, resultHeader }) => [
+      findingHeader,
+      resultHeader,
+    ])
+  );
+  resultsHeaders[2].push(...templateHeadersRows[2]);
 
   return {
-    "Resultados de deforestación": {
-      rows: [...deforestationHeaders, ...polygonsParsedData],
+    [t("common:layerResults:sheetName")]: {
+      rows: [...resultsHeaders, ...polygonsParsedData],
     },
   };
 };

@@ -17,7 +17,12 @@ import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "@/utils/geojs
 export const DownloadPageData = () => {
   const { farmsData, deforestationAnalysisResults } =
     useVisibleDataForDeforestationPage();
-  const { availableMaps } = useContext(DataContext);
+  // The analysed layers, not today's catalog: a layer whose category was disabled
+  // after the analysis leaves GET /maps, but its results stay, with "No data".
+  const {
+    deforestationAnalysisParams: { selectedMaps },
+    availableCategories,
+  } = useContext(DataContext);
   const { openSnackbar } = useContext(SnackbarContext);
   const downloadAsExcel = useExcelDownload();
   const downloadAsGeoJson = useGeoJsonDownload();
@@ -32,7 +37,9 @@ export const DownloadPageData = () => {
       const parsedData = await buildDeforestationSheets(
         farmsData,
         deforestationAnalysisResults,
-        availableMaps,
+        selectedMaps,
+        availableCategories,
+        t,
         i18n.language
       );
       downloadAsExcel(parsedData, "step2-results.xlsx");
@@ -51,7 +58,8 @@ export const DownloadPageData = () => {
   }, [
     farmsData,
     deforestationAnalysisResults,
-    availableMaps,
+    selectedMaps,
+    availableCategories,
     isDisabled,
     openSnackbar,
     downloadAsExcel,
@@ -67,7 +75,9 @@ export const DownloadPageData = () => {
         generateGeoJsonFarmsDataWithDeforestationAnalysis(
           farmsData,
           deforestationAnalysisResults,
-          availableMaps,
+          selectedMaps,
+          availableCategories,
+          t,
           i18n.language
         );
       downloadAsGeoJson(geoJsonData, "step2-results.geojson");
@@ -82,7 +92,8 @@ export const DownloadPageData = () => {
     isDisabled,
     farmsData,
     openSnackbar,
-    availableMaps,
+    selectedMaps,
+    availableCategories,
     deforestationAnalysisResults,
     downloadAsGeoJson,
     t,

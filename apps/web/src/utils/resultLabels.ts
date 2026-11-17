@@ -1,12 +1,7 @@
 import type { TFunction } from "i18next";
-import { upperCase } from "lodash";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import { formatDeforestationPercentage, formatPercentage } from "./numbers";
-import {
-  categoryRule,
-  classifyResult,
-  deforestationRule,
-} from "./layerResults";
+import { formatDeforestationPercentage } from "./numbers";
+import { categoryRule, classifyResult } from "./layerResults";
 import { localizedText } from "./localizedText";
 
 /**
@@ -37,23 +32,4 @@ export const layerResultText = (
   // under 0.1% reads "< 0,1%", never "0%" next to the flagged label.
   const finding = formatDeforestationPercentage(value, language, rule);
   return `${finding} · ${localizedText(category.resultLabels.flagged, language)}`;
-};
-
-// The text of a deforestation result, from its class: the PDF report, until it
-// reads categories (GC-7).
-
-/** The result line of a farm's page in the PDF report. */
-export const deforestationResultReportText = (
-  value: number | null | undefined,
-  t: TFunction,
-  language?: string
-): string => {
-  const resultClass = classifyResult(value, deforestationRule());
-  if (resultClass === "unknown" || value === null || value === undefined)
-    return t("common:na");
-  if (resultClass === "ok")
-    return upperCase(t("reportGeneration:phrases:deforestationFree"));
-  return `${formatPercentage(value, 1, language)} ${t(
-    "reportGeneration:words:deforestation"
-  ).toUpperCase()}`;
 };

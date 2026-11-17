@@ -12,15 +12,12 @@
   "words": {
     "association": "Association",
     "polygon": "Polygon",
-    "product": "Product",
-    "deforestation": "Deforestation",
-    "map": "Map",
     "coordinates": "Coordinates",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "category": "Category",
+    "layer": "Layer"
   },
   "phrases": {
-    "deforestationAnalysis": "Deforestation Analysis",
-    "deforestationFree": "Deforestation Free",
     "downloadGeojson": "Download GeoJSON",
     "analysisPerformedBy": "Analysis performed by",
     "originCountry": "Origin country",
@@ -63,28 +60,63 @@
     "totalArea": "Total Area (ha)"
   },
   "coverPage": {
-    "titleFirstLine": "Deforestation",
-    "titleSecondLine": "Analysis Report"
-  },
-  "appendixPages": {
-    "deforestationExplanation": {
-      "title": "Deforestation Calculation",
-      "formulaSubtitle": "Formula used",
-      "formulaText": "The formula for calculating the deforestation percentage considers the ratio between the deforested area according to the reference map and the total area of the polygon.",
-      "deforestationStatesSubtitle": "Deforestation States",
-      "deforestationFreeText": "DEFORESTATION FREE",
-      "deforestationFreeExplanation": "Indicates that there has been no intervention that has caused the reduction of natural forest within the evaluated polygon, according to official maps or recognized methodologies.",
-      "withDeforestationText": "% DEFORESTATION",
-      "withDeforestationExplanation": "Quantifies the degree of deforestation or loss of forest cover of the evaluated polygon, according to the used reference map."
-    },
-    "mapsExplanation": {
-      "title": "Maps used for deforestation analysis",
-      "mapsText": "The maps used for deforestation analysis are:"
+    "titleFirstLine": "Territorial",
+    "titleSecondLine": "analysis report",
+    "polygons": "Polygons",
+    "includesTitle": "This report includes",
+    "layerCount_one": "{{count}} layer",
+    "layerCount_other": "{{count}} layers",
+    "indexTitle": "Contents",
+    "index": {
+      "farmSheets": "Sheets and results per polygon",
+      "methodology": "Methodology",
+      "scope": "Scope and limits of the layers"
     }
   },
   "zipProgress": {
     "title": "Generating the ZIP",
     "count": "{{done}} of {{total}} farms",
     "hint": "You can stay on this page. Leaving it cancels the download."
+  },
+  "footer": {
+    "page": "Page {{pageNumber}} of {{totalPages}}"
+  },
+  "farmSheet": {
+    "eyebrow": "Polygon sheet",
+    "resultsTitle": "Results by category",
+    "finding": "Finding",
+    "categoriesWithoutFindings_one": "{{ok}} of {{count}} category without findings",
+    "categoriesWithoutFindings_other": "{{ok}} of {{count}} categories without findings",
+    "document": "Document {{number}}"
+  },
+  "mapPage": {
+    "eyebrow": "Layer map",
+    "legend": "The layer's pixels are shown in red and the polygon in yellow.",
+    "satelliteDisclaimer": "The satellite image from Google Maps is for reference only and does not show the layer's result."
+  },
+  "methodology": {
+    "title": "Methodology",
+    "subtitle": "How the result is calculated",
+    "formulaText": "For each layer, Monbo measures how much of the polygon's area coincides with the layer's pixels.",
+    "formulaLabel": "% of the polygon",
+    "formulaNumerator": "Area of the polygon that coincides with the layer",
+    "formulaDenominator": "Total area of the polygon",
+    "findingTitle": "Finding and threshold",
+    "findingAvoid": "In a category to avoid (for example, deforestation or protected areas), the finding is the part of the polygon that coincides with the layer.",
+    "findingRequired": "In a category to comply with (for example, the agricultural frontier), the finding is the part of the polygon that does not coincide with the layer.",
+    "thresholdText": "A polygon has findings in a layer when its finding is above the category's threshold. Otherwise, the category's result without findings is shown.",
+    "noDataText": "“No data” means that the result could not be calculated, for example because the polygon lies outside the layer's coverage. A result with no data never counts as without findings.",
+    "categoriesTitle": "How each category reads",
+    "findingColumn": "What a finding is",
+    "thresholdColumn": "Threshold",
+    "resultsColumn": "Results",
+    "polarityAvoid": "Coinciding with the layer",
+    "polarityRequired": "Not coinciding with the layer",
+    "noCategoryText": "This layer's category is no longer available: its results are shown as “No data”.",
+    "layersTitle": "Layers used",
+    "periodColumn": "Period"
+  },
+  "scope": {
+    "title": "Scope and limits of the layers"
   }
 }

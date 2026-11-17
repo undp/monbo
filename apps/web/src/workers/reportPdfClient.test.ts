@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FakeWorker, installFakeWorker } from "@/test/fakeWorker";
 import type { ReportPdfMessage, ReportPdfRequest } from "./reportPdfProtocol";
 import { ReportPdfClient, ReportPdfWorkerTerminatedError } from "./reportPdfClient";
+import { makeCategory } from "@/test/factories";
 
 const request = (kind: ReportPdfRequest["kind"] = "complete"): ReportPdfRequest => ({
   kind,
@@ -11,8 +12,19 @@ const request = (kind: ReportPdfRequest["kind"] = "complete"): ReportPdfRequest 
   farms: [],
   results: [],
   maps: [],
+  categories: [],
+  satelliteBackground: false,
   images: [],
 });
+
+/** A ZIP job's `start`, with the categories its PDFs read the results with. */
+const START = {
+  locale: "es",
+  config: { deforestationThresholdPercentage: 0, overlapThresholdPercentage: 0 },
+  maps: [],
+  categories: [makeCategory()],
+  satelliteBackground: true,
+};
 
 /** The id the client gave the n-th message it posted to `worker`. */
 const idOf = (worker: FakeWorker, n: number) =>
@@ -105,7 +117,6 @@ describe("ReportPdfClient", () => {
 });
 
 describe("ReportPdfClient ZIP jobs", () => {
-  const CONFIG = { deforestationThresholdPercentage: 0, overlapThresholdPercentage: 0 };
   const farm = { id: "F01" } as ReportPdfRequest["farms"][number];
 
   /** Answers the last message posted to `worker` with `data`. */
@@ -114,9 +125,12 @@ describe("ReportPdfClient ZIP jobs", () => {
 
   it("starts, adds farms and finishes a job", async () => {
     const client = new ReportPdfClient();
-    const starting = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const starting = client.startZip(START);
     const [worker] = FakeWorker.instances;
-    expect(worker.messages[0]).toMatchObject({ job: 0, zip: { op: "start", locale: "es" } });
+    expect(worker.messages[0]).toMatchObject({
+      job: 0,
+      zip: { op: "start", ...START },
+    });
     answerLast(worker, { added: 0 });
     const job = await starting;
 
@@ -133,11 +147,11 @@ describe("ReportPdfClient ZIP jobs", () => {
 
   it("gives each job its own id", async () => {
     const client = new ReportPdfClient();
-    const first = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const first = client.startZip(START);
     const [worker] = FakeWorker.instances;
     answerLast(worker, { added: 0 });
     await first;
-    const second = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const second = client.startZip(START);
     answerLast(worker, { added: 0 });
     await second;
 
@@ -146,7 +160,7 @@ describe("ReportPdfClient ZIP jobs", () => {
 
   it("cancels a job in the worker", async () => {
     const client = new ReportPdfClient();
-    const starting = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const starting = client.startZip(START);
     const [worker] = FakeWorker.instances;
     answerLast(worker, { added: 0 });
     const job = await starting;
@@ -158,7 +172,7 @@ describe("ReportPdfClient ZIP jobs", () => {
 
   it("rejects a farm the worker failed to render", async () => {
     const client = new ReportPdfClient();
-    const starting = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const starting = client.startZip(START);
     const [worker] = FakeWorker.instances;
     answerLast(worker, { added: 0 });
     const job = await starting;
@@ -171,7 +185,7 @@ describe("ReportPdfClient ZIP jobs", () => {
 
   it("rejects the job's pending farms when the worker is terminated", async () => {
     const client = new ReportPdfClient();
-    const starting = client.startZip({ locale: "es", config: CONFIG, maps: [] });
+    const starting = client.startZip(START);
     const [worker] = FakeWorker.instances;
     answerLast(worker, { added: 0 });
     const job = await starting;
