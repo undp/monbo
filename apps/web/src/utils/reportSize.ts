@@ -3,15 +3,16 @@ import type { DeforestationAnalysisMapResults } from "@/interfaces/Deforestation
 import type { FarmData } from "@/interfaces/Farm";
 
 /**
- * The farm pages of a report: its (farm, layer) pairs with a result, one page each
- * in the complete PDF. `results` holds only the selected layers.
+ * The farm pages of a report, as the complete PDF has them: one sheet per selected
+ * farm (also when none of its results could be computed) and one map page per
+ * selected (farm, layer) pair with a result. `results` holds only the selected layers.
  */
 export const countFarmPages = (
   farms: FarmData[],
   results: DeforestationAnalysisMapResults[]
 ): number => {
   const selected = new Set(farms.map(({ id }) => id));
-  return results.reduce(
+  const mapPages = results.reduce(
     (pages, layer) =>
       pages +
       layer.farmResults.filter(
@@ -19,6 +20,7 @@ export const countFarmPages = (
       ).length,
     0
   );
+  return selected.size + mapPages;
 };
 
 /** A large report is downloaded only as a ZIP, built farm by farm. */

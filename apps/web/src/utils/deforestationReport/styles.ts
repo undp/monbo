@@ -1,10 +1,10 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
-// The farm page's map image: the A4 width (595.28 pt) minus the page's padding, in
-// the aspect ratio of the API's images (MapDefaults.OUTPUT_SIZE, 640×420). With
-// another ratio the farm would be cut or banded.
-const FARM_MAP_IMAGE_WIDTH = 595.28 - 2 * 30;
-const FARM_MAP_IMAGE_HEIGHT = (FARM_MAP_IMAGE_WIDTH * 420) / 640;
+// The map page's image: the A4 width (595.28 pt) minus the page's padding, in the
+// aspect ratio of the API's images (MapDefaults.OUTPUT_SIZE, 640×420). With another
+// ratio the farm would be cut or banded.
+const MAP_IMAGE_WIDTH = 595.28 - 2 * 30;
+const MAP_IMAGE_HEIGHT = (MAP_IMAGE_WIDTH * 420) / 640;
 
 export const styles = StyleSheet.create({
   document: {
@@ -76,96 +76,236 @@ export const styles = StyleSheet.create({
   coverBoldText: {
     fontWeight: 500,
   },
-  farmMapPage: {
-    fontSize: 12,
-    padding: "30px",
-    paddingBottom: 0,
+  contentPage: {
+    fontSize: 11,
+    color: "#3A3541",
+    padding: 30,
+    // Room for the fixed footer on pages that wrap
+    paddingBottom: 60,
   },
-  farmMapPageSection: {
-    marginBottom: 12,
+  pageTitleContainer: {
+    marginBottom: 14,
   },
-  farmMapPageTable: {
-    display: "flex",
-    flexDirection: "column",
+  eyebrowText: {
+    fontSize: 9,
+    fontWeight: 500,
+    letterSpacing: 1,
+    color: "#1F6F8B",
+    marginBottom: 4,
+  },
+  pageTitleText: {
+    fontSize: 18,
+    fontWeight: 500,
+  },
+  card: {
     backgroundColor: "#FAFAFA",
     borderWidth: 1,
     borderColor: "#DEDEDE",
     borderRadius: 5,
+    padding: "8px 10px",
+    marginBottom: 10,
   },
-  farmMapPageRow: {
+  cardRow: {
     flexDirection: "row",
-    padding: "6px 8px",
-  },
-  farmMapPageSpaceBetween: {
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  farmMapPageSpaceEvenly: {
-    justifyContent: "space-evenly",
-  },
-  farmMapPageDivider: {
-    height: 0,
-    borderBottom: "1px solid #DEDEDE",
-    margin: "0 8px",
-  },
-  farmMapPageGrid: {
-    display: "flex",
+  dataGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
   },
-  farmMapPageGridLeftItem: {
-    width: "35%",
+  dataItem: {
+    width: "33.33%",
+    paddingVertical: 4,
+    paddingRight: 8,
   },
-  farmMapPageGridRightItem: {
-    width: "65%",
+  documents: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 12,
+    maxWidth: "70%",
   },
-  farmMapPageTitleText: {
-    fontSize: 16,
+  sectionTitleText: {
     fontWeight: 500,
-    color: "#3A3541",
   },
-  farmMapPageSectionTitleText: {
-    color: "#3A3541",
+  sectionHeadingText: {
+    fontSize: 13,
     fontWeight: 500,
+    marginTop: 12,
+    marginBottom: 8,
   },
-  farmMapPageLightText: {
+  lightText: {
     color: "#000000",
     fontWeight: 400,
     opacity: 0.6,
   },
-  farmMapPageBoldText: {
+  smallLightText: {
+    fontSize: 9,
+    color: "#000000",
+    fontWeight: 400,
+    opacity: 0.6,
+  },
+  boldText: {
     color: "#000000",
     fontWeight: 500,
     opacity: 0.87,
   },
-  farmMapPageDeforestationText: {
+  bodyText: {
+    lineHeight: "15px",
+    marginBottom: 5,
+  },
+  resultsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  categoryCard: {
+    borderWidth: 1,
+    borderColor: "#DEDEDE",
+    borderLeftWidth: 4,
+    borderRadius: 5,
+    marginBottom: 8,
+  },
+  categoryCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: "6px 10px",
+    backgroundColor: "#FAFAFA",
+  },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  layerResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: "6px 10px",
+    borderTop: "1px solid #EEEEEE",
+  },
+  layerResultName: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  layerResultFinding: {
+    width: 70,
+    alignItems: "flex-end",
+    marginRight: 10,
+  },
+  resultChip: {
+    borderRadius: 10,
+    padding: "3px 8px",
+    fontSize: 8,
     fontWeight: 500,
+    alignSelf: "flex-start",
   },
   blueLink: {
     color: "#0D6EFD",
     textDecoration: "underline",
   },
-  farmMapPageMapImageContainer: {
-    marginBottom: 30,
+  mapImageContainer: {
+    marginTop: 6,
     width: "100%",
   },
-  farmMapPageMapImage: {
-    width: FARM_MAP_IMAGE_WIDTH,
-    height: FARM_MAP_IMAGE_HEIGHT,
+  mapImage: {
+    width: MAP_IMAGE_WIDTH,
+    height: MAP_IMAGE_HEIGHT,
     // Never crops: if the ratios drift, the image gets bands, not a cut farm.
     objectFit: "contain",
   },
-  appendixPage: {
-    padding: "30px",
-    fontSize: 12,
-    color: "#3A3541",
+  captionText: {
+    fontSize: 9,
+    marginTop: 5,
+    opacity: 0.6,
   },
-  appendixPageTitleContainer: {},
-  appendixPageTitleText: {
-    fontSize: 20,
+  inlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  formulaBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1F3A4D",
+    color: "#FFFFFF",
+    borderRadius: 6,
+    padding: "12px 16px",
+    marginVertical: 8,
+  },
+  formulaLabel: {
     fontWeight: 500,
   },
-  appendixPageBodyContainer: {
-    paddingLeft: 20,
-    paddingRight: 20,
+  formulaSign: {
+    marginHorizontal: 10,
+  },
+  formulaFraction: {
+    alignItems: "center",
+    fontSize: 10,
+  },
+  formulaBar: {
+    height: 1,
+    alignSelf: "stretch",
+    backgroundColor: "#FFFFFF",
+    marginVertical: 3,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: "#DEDEDE",
+    borderRadius: 5,
+    fontSize: 9,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderTop: "1px solid #EEEEEE",
+  },
+  tableHeaderRow: {
+    backgroundColor: "#F5F5F5",
+    borderTop: "none",
+  },
+  tableHeaderText: {
+    fontWeight: 500,
+  },
+  tableCell: {
+    padding: "5px 6px",
+  },
+  labelsCell: {
+    gap: 3,
+  },
+  coverIncludes: {
+    marginTop: 18,
+    fontSize: 12,
+  },
+  coverIncludesTitle: {
+    fontSize: 10,
+    letterSpacing: 1,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  coverCategories: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  coverCategoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DEDEDE",
+    borderRadius: 12,
+    padding: "4px 10px",
+    fontWeight: 400,
+  },
+  coverCategoryCount: {
+    opacity: 0.6,
+  },
+  coverIndexLink: {
+    color: "#3A3541",
+    fontWeight: 400,
+    textDecoration: "none",
+    marginBottom: 4,
   },
   appendixPageSubtitleText: {
     fontSize: 14,
@@ -182,10 +322,6 @@ export const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
   },
-  deforestationExplanationPageTableRow: {
-    minHeight: 92,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any,
   mapsExplanationPageTableRow: {
     minHeight: 60,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,14 +336,6 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: 5,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any,
-  deforestationExplanationPageTableLeftCellChip: {
-    width: "100%",
-    height: 24,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-  },
   appendixPageTableLeftCell: {
     backgroundColor: "#F9F9F9",
     padding: "8px",
@@ -216,10 +344,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     fontWeight: 500,
   },
-  deforestationExplanationPageTableLeftCell: {
-    alignItems: "center",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any,
   appendixPageTableRightCell: {
     padding: "8px 10px",
     flex: 2,
@@ -227,24 +351,15 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     lineHeight: "18px",
   },
-  mapsExplanationMapNameText: {
-    fontSize: 18,
-    fontWeight: 700,
-    marginTop: 20,
-    marginBottom: 16,
-    marginLeft: 20,
-  },
-  mapsExplanationPageTableRightCell: {
-    // lineHeight: undefined,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any,
   footer: {
     position: "absolute",
     bottom: 20, // Distance from the bottom edge
-    left: 40,
+    left: 30,
     right: 30,
-    textAlign: "right",
-    fontSize: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    fontSize: 10,
   },
   footerLightText: {
     color: "#000000",

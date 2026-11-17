@@ -14,6 +14,7 @@ import type {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type { DeforestationImageBlob } from "@/utils/deforestationImages";
 import type {
   ReportPdfMessage,
@@ -72,6 +73,8 @@ const renderDocument = (params: {
   farms: FarmData[];
   results: DeforestationAnalysisMapResults[];
   maps: MapData[];
+  categories: LayerCategory[];
+  satelliteBackground: boolean;
   images: DeforestationReportImage[];
   t: TFunction;
   locale: Locale;
@@ -82,6 +85,8 @@ const renderDocument = (params: {
       farmsData={params.farms}
       deforestationAnalysisResults={params.results}
       mapsData={params.maps}
+      categories={params.categories}
+      satelliteBackground={params.satelliteBackground}
       images={params.images}
       t={params.t}
       language={params.locale}
@@ -102,6 +107,8 @@ const render = async (request: ReportPdfRequest): Promise<Blob> => {
         farms,
         results: request.results,
         maps: request.maps,
+        categories: request.categories,
+        satelliteBackground: request.satelliteBackground,
         images,
         t,
         locale,
@@ -125,6 +132,8 @@ interface ZipJob {
   locale: Locale;
   t: TFunction;
   maps: MapData[];
+  categories: LayerCategory[];
+  satelliteBackground: boolean;
   added: number;
 }
 const zipJobs = new Map<number, ZipJob>();
@@ -142,6 +151,8 @@ const runZipCommand = async (
       locale,
       t: await getT(locale),
       maps: command.maps,
+      categories: command.categories,
+      satelliteBackground: command.satelliteBackground,
       added: 0,
     });
     return { added: 0 };
@@ -165,6 +176,8 @@ const runZipCommand = async (
       farms: [command.farm],
       results: command.results,
       maps: state.maps,
+      categories: state.categories,
+      satelliteBackground: state.satelliteBackground,
       images,
       t: state.t,
       locale: state.locale,

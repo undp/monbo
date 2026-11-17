@@ -14,7 +14,11 @@ import {
   getUploadFileTemplatePath,
   loadExcelFileFarmsData,
 } from "./excel";
-import { makeMultiPolygonFarm } from "@/test/factories";
+import {
+  makeCategory,
+  makeFrontierCategory,
+  makeMultiPolygonFarm,
+} from "@/test/factories";
 import {
   FarmTooLargeForExcelError,
   buildDeforestationSheets,
@@ -163,7 +167,12 @@ const OVERLAP: InconsistentPolygonData = {
   },
 };
 
-const LAYER = { id: 7, alias: "GFW" } as MapData;
+const LAYER = { id: 7, alias: "GFW", categoryId: "deforestation" } as MapData;
+const FRONTIER_LAYER = {
+  id: 8,
+  alias: "UPRA",
+  categoryId: "agricultural_frontier",
+} as MapData;
 
 // The exports fetch the template from public/files/, as the browser does. The
 // percentages they write are labelled with the API's thresholds. The global setup
@@ -205,19 +214,32 @@ const validationSheets = async (locale: TestLocale) => {
   );
 };
 
-const deforestationSheets = (locale: TestLocale) =>
-  buildDeforestationSheets(
+const deforestationSheets = async (locale: TestLocale) => {
+  const { t } = await createTestI18n(locale);
+  return buildDeforestationSheets(
     FARMS,
     [
+      {
+        mapId: FRONTIER_LAYER.id,
+        version: 1,
+        // The first farm 18% outside the frontier, the second without a result
+        farmResults: [
+          { farmId: FARMS[0].id, value: 0.82 },
+          { farmId: FARMS[1].id, value: null },
+        ],
+      },
       {
         mapId: LAYER.id,
         version: 1,
         farmResults: FARMS.map(({ id }) => ({ farmId: id, value: 0.1 })),
       },
     ],
-    [LAYER],
+    [LAYER, FRONTIER_LAYER],
+    [makeCategory({ thresholdPercentage: 2 }), makeFrontierCategory()],
+    t,
     locale
   );
+};
 
 describe.each(LOCALES)("the %s upload template", (locale) => {
   it("has the columns the exports write, in their order", () => {
@@ -271,14 +293,78 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     expect(firstFarm[TEMPLATE_COLUMNS.length]).toBe("VALID");
   });
 
-  it("puts the deforestation of each layer after the template's columns", async () => {
-    const workbook = await writeAndRead(await deforestationSheets(locale));
-    const [, headers, , firstFarm] = XLSX.utils.sheet_to_json<unknown[]>(
-      workbook.Sheets["Resultados de deforestación"],
-      { header: 1, defval: "" }
+  it("puts each layer's finding and result after the template's columns, by category", async () => {
+    const sheets = await deforestationSheets(locale);
+    const sheetName = { es: "Análisis territorial", en: "Territorial analysis" }[
+      locale
+    ];
+    expect(Object.keys(sheets)).toEqual([sheetName]);
+    const workbook = await writeAndRead(sheets);
+    const [, headers, , firstFarm, secondFarm] = XLSX.utils.sheet_to_json<
+      unknown[]
+    >(workbook.Sheets[sheetName], { header: 1, defval: "" });
+    const results = (row: unknown[]) => row.slice(TEMPLATE_COLUMNS.length);
+
+    expect(results(headers)).toEqual(
+      {
+        es: [
+          "Deforestación · GFW — % hallazgo",
+          "Deforestación · GFW — Resultado",
+          "Frontera agrícola · UPRA — % hallazgo",
+          "Frontera agrícola · UPRA — Resultado",
+        ],
+        en: [
+          "Deforestation · GFW — % finding",
+          "Deforestation · GFW — Result",
+          "Agricultural frontier · UPRA — % finding",
+          "Agricultural frontier · UPRA — Result",
+        ],
+      }[locale]
     );
-    expect(headers[TEMPLATE_COLUMNS.length]).toBe("Deforestación según GFW");
-    expect(firstFarm[TEMPLATE_COLUMNS.length]).not.toBe("");
+    // The finding is a number in percent, the same in both languages
+    expect(results(firstFarm)).toEqual(
+      {
+        es: [10, "Con deforestación", 18, "Fuera de la frontera agrícola"],
+        en: [10, "With deforestation", 18, "Outside the agricultural frontier"],
+      }[locale]
+    );
+    const sheet = workbook.Sheets[sheetName];
+    const findingCell = XLSX.utils.encode_cell({ r: 3, c: TEMPLATE_COLUMNS.length });
+    expect(sheet[findingCell].t).toBe("n");
+    // A null result is "No data" in both columns, and the farm stays
+    expect(results(secondFarm).slice(2)).toEqual(
+      { es: ["Sin dato", "Sin dato"], en: ["No data", "No data"] }[locale]
+    );
+  });
+
+  it("keeps an analysed layer whose category is gone, with No data", async () => {
+    const { t } = await createTestI18n(locale);
+    // RUNAP's category was disabled after the analysis: it is no longer among
+    // the country's categories, but the analysis still has its results.
+    const runap = { id: 9, alias: "RUNAP", categoryId: "protected_areas" } as MapData;
+    const sheets = await buildDeforestationSheets(
+      FARMS,
+      [
+        {
+          mapId: runap.id,
+          version: 1,
+          farmResults: FARMS.map(({ id }) => ({ farmId: id, value: 0.5 })),
+        },
+      ],
+      [runap],
+      [makeCategory()],
+      t,
+      locale
+    );
+    const [, headers, , firstFarm] = Object.values(sheets)[0].rows;
+    const noData = { es: "Sin dato", en: "No data" }[locale];
+    expect(headers.slice(TEMPLATE_COLUMNS.length)).toEqual(
+      {
+        es: ["Sin categoría · RUNAP — % hallazgo", "Sin categoría · RUNAP — Resultado"],
+        en: ["No category · RUNAP — % finding", "No category · RUNAP — Result"],
+      }[locale]
+    );
+    expect(firstFarm.slice(TEMPLATE_COLUMNS.length)).toEqual([noData, noData]);
   });
 
   it("merges the overlap percentage in its own column", async () => {

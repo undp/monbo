@@ -5,15 +5,19 @@ import {
 import { FarmData } from "@/interfaces/Farm";
 import { Font, Document } from "@react-pdf/renderer";
 import { TFunction } from "i18next";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import {
   CoverPage,
-  DeforestationExplanationPage,
-  FarmMapPage,
-  MapDescriptionPage,
+  FarmSheetPage,
+  LayerScopePages,
+  MapPage,
+  MethodologyPage,
+  type ReportLayer,
 } from "./deforestationReport/sections";
-import { flatten } from "lodash";
+import { groupLayersByCategory, layerCategory } from "./layerResults";
 import { styles } from "./deforestationReport/styles";
 import { assetUrl } from "./deforestationReport/assets";
+import { reportWordParts } from "./deforestationReport/wordBreaks";
 
 export interface DeforestationReportImage {
   mapId: number;
@@ -28,6 +32,7 @@ let fontsRegistered = false;
 export const registerReportFonts = () => {
   if (fontsRegistered) return;
   fontsRegistered = true;
+  Font.registerHyphenationCallback(reportWordParts);
   Font.register({
     family: "Roboto",
     fonts: [
@@ -48,78 +53,108 @@ export const registerReportFonts = () => {
   });
 };
 
-// Create Document Component
+/**
+ * The report's layers, grouped by category: one per layer with results, with its
+ * metadata from `mapsData` and its category from `categories` (null when unknown).
+ */
+export const reportLayerGroups = (
+  results: DeforestationAnalysisMapResults[],
+  mapsData: MapData[],
+  categories: LayerCategory[]
+) => {
+  const layers: ReportLayer[] = results.map((layerResults) => {
+    const map = mapsData.find((m) => m.id === layerResults.mapId);
+    if (!map)
+      throw new Error(`Map data not found for map ${layerResults.mapId}`);
+    return {
+      id: map.id,
+      categoryId: map.categoryId,
+      map,
+      category: layerCategory(map, categories),
+      results: layerResults,
+    };
+  });
+  return groupLayersByCategory(layers, categories);
+};
+
 export const DeforestationReportDocument = ({
   farmsData,
   deforestationAnalysisResults,
   mapsData,
+  categories,
   images,
+  satelliteBackground,
   t,
-  language,
+  language = "es",
   onRender,
   showLinks = true,
 }: {
   farmsData: FarmData[];
   deforestationAnalysisResults: DeforestationAnalysisMapResults[];
   mapsData: MapData[];
+  /** The country's categories (GET /categories): each layer's rule and texts. */
+  categories: LayerCategory[];
   images: DeforestationReportImage[];
+  /** Whether the map images have the satellite background (its caption). */
+  satelliteBackground: boolean;
   t: TFunction;
   language?: string;
   onRender?: () => void;
   showLinks?: boolean;
 }) => {
+  const groups = reportLayerGroups(
+    deforestationAnalysisResults,
+    mapsData,
+    categories
+  );
+  const layers = groups.flatMap((group) => group.layers);
+
   return (
     <Document style={styles.document} onRender={onRender}>
-      {/* COVER PAGE */}
-      <CoverPage farmsData={farmsData} t={t} language={language} />
+      <CoverPage farmsData={farmsData} groups={groups} t={t} language={language} />
 
-      {/* FARM-MAP PAGES */}
-      {flatten(
-        farmsData.map((farm) =>
-          deforestationAnalysisResults.map((mapResults) => {
-            const farmMapResult = mapResults.farmResults.find(
-              (r) => r.farmId === farm.id
-            );
-            if (!farmMapResult)
-              throw new Error(
-                `Map results not found for farm ${farm.id} and map ${mapResults.mapId}`
-              );
+      {/* Each farm: its sheet (every layer, "No data" included), then a map page
+          per layer with a result. A farm is never left out. */}
+      {farmsData.flatMap((farm, farmIndex) => [
+        <FarmSheetPage
+          key={`${farm.id}-sheet`}
+          farm={farm}
+          groups={groups}
+          categories={categories}
+          t={t}
+          language={language}
+          showLinks={showLinks}
+          anchor={farmIndex === 0}
+        />,
+        ...layers
+          .filter(
+            ({ results }) =>
+              results.farmResults.find(({ farmId }) => farmId === farm.id)
+                ?.value != null
+          )
+          .map((layer) => (
+            <MapPage
+              key={`${farm.id}-${layer.map.id}`}
+              farm={farm}
+              layer={layer}
+              t={t}
+              language={language}
+              imageBlobUrl={
+                images.find(
+                  (i) => i.mapId === layer.map.id && i.farmId === farm.id
+                )?.url ?? null
+              }
+              satelliteBackground={satelliteBackground}
+            />
+          )),
+      ])}
 
-            if (farmMapResult.value === null) return null;
+      <MethodologyPage groups={groups} t={t} language={language} />
 
-            const map = mapsData.find((m) => m.id === mapResults.mapId);
-            if (!map)
-              throw new Error(`Map data not found for map ${mapResults.mapId}`);
-
-            const imageBlobUrl =
-              images.find(
-                (i) => i.mapId === mapResults.mapId && i.farmId === farm.id
-              )?.url ?? null;
-
-            return (
-              <FarmMapPage
-                key={`${farm.id}-${mapResults.mapId}`}
-                farm={farm}
-                map={map}
-                result={farmMapResult}
-                t={t}
-                language={language}
-                imageBlobUrl={imageBlobUrl}
-                showLinks={showLinks}
-              />
-            );
-          })
-        )
-      ).filter(Boolean)}
-
-      {/* EXPLANATION OF THE DEFORESTATION CALCULATION */}
-      <DeforestationExplanationPage t={t} />
-
-      {/* EXPLANATION OF THE MAPS USED FOR THE DEFORESTATION ANALYSIS */}
-      <MapDescriptionPage
-        deforestationAnalysisResults={deforestationAnalysisResults}
-        mapsData={mapsData}
+      <LayerScopePages
+        groups={groups}
         t={t}
+        language={language}
         showLinks={showLinks}
       />
     </Document>

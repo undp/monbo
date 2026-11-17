@@ -12,15 +12,12 @@
   "words": {
     "association": "Asociación",
     "polygon": "Polígono",
-    "product": "Producto",
-    "deforestation": "Deforestación",
-    "map": "Mapa",
     "coordinates": "Coordenadas",
-    "documentation": "Documentación"
+    "documentation": "Documentación",
+    "category": "Categoría",
+    "layer": "Capa"
   },
   "phrases": {
-    "deforestationAnalysis": "Análisis de deforestación",
-    "deforestationFree": "Libre de deforestación",
     "downloadGeojson": "Descargar GeoJSON",
     "analysisPerformedBy": "Análisis realizado por",
     "originCountry": "País de origen",
@@ -63,28 +60,63 @@
     "totalArea": "Superficie total (ha)"
   },
   "coverPage": {
-    "titleFirstLine": "Reporte Análisis",
-    "titleSecondLine": "Deforestación"
-  },
-  "appendixPages": {
-    "deforestationExplanation": {
-      "title": "Cálculo de deforestación",
-      "formulaSubtitle": "Fórmula utilizada",
-      "formulaText": "La fórmula para calcular el porcentaje de deforestación considera la razón entre el área deforestada según el mapa de referencia y el área total del polígono.",
-      "deforestationStatesSubtitle": "Estados de deforestación",
-      "deforestationFreeText": "LIBRE DEFORESTACIÓN",
-      "deforestationFreeExplanation": "Indica que no ha habido intervención que haya provocado la reducción del bosque natural dentro del polígono evaluado, de acuerdo con los mapas oficiales o metodologías reconocidas.",
-      "withDeforestationText": "% DEFORESTACIÓN",
-      "withDeforestationExplanation": "Cuantifica el grado de deforestación o pérdida de cobertura boscosa del polígono evaluado, de acuerdo con el mapa de referencia utilizado"
-    },
-    "mapsExplanation": {
-      "title": "Mapas utilizados para el análisis de deforestación",
-      "mapsText": "Los mapas utilizados para el análisis de deforestación son:"
+    "titleFirstLine": "Reporte de análisis",
+    "titleSecondLine": "territorial",
+    "polygons": "Polígonos",
+    "includesTitle": "Este reporte incluye",
+    "layerCount_one": "{{count}} capa",
+    "layerCount_other": "{{count}} capas",
+    "indexTitle": "Contenido",
+    "index": {
+      "farmSheets": "Fichas y resultados por polígono",
+      "methodology": "Metodología",
+      "scope": "Alcances y límites de las capas"
     }
   },
   "zipProgress": {
     "title": "Generando el ZIP",
     "count": "{{done}} de {{total}} fincas",
     "hint": "Puedes seguir en esta página. Si sales de ella, la descarga se cancela."
+  },
+  "footer": {
+    "page": "Página {{pageNumber}} de {{totalPages}}"
+  },
+  "farmSheet": {
+    "eyebrow": "Ficha del polígono",
+    "resultsTitle": "Resultados por categoría",
+    "finding": "Hallazgo",
+    "categoriesWithoutFindings_one": "{{ok}} de {{count}} categoría sin observaciones",
+    "categoriesWithoutFindings_other": "{{ok}} de {{count}} categorías sin observaciones",
+    "document": "Documento {{number}}"
+  },
+  "mapPage": {
+    "eyebrow": "Mapa de la capa",
+    "legend": "Los píxeles de la capa se muestran en rojo y el polígono, en amarillo.",
+    "satelliteDisclaimer": "La imagen satelital de Google Maps es referencial y no muestra el resultado de la capa."
+  },
+  "methodology": {
+    "title": "Metodología",
+    "subtitle": "Cómo se calcula el resultado",
+    "formulaText": "Para cada capa, Monbo mide qué parte del área del polígono coincide con los píxeles de la capa.",
+    "formulaLabel": "% del polígono",
+    "formulaNumerator": "Área del polígono que coincide con la capa",
+    "formulaDenominator": "Área total del polígono",
+    "findingTitle": "Hallazgo y umbral",
+    "findingAvoid": "En una categoría que se debe evitar (por ejemplo, deforestación o áreas protegidas), el hallazgo es la parte del polígono que coincide con la capa.",
+    "findingRequired": "En una categoría que se debe cumplir (por ejemplo, frontera agrícola), el hallazgo es la parte del polígono que no coincide con la capa.",
+    "thresholdText": "Un polígono tiene observaciones en una capa cuando su hallazgo supera el umbral de la categoría. Si no lo supera, se muestra el resultado sin observaciones de la categoría.",
+    "noDataText": "«Sin dato» significa que el resultado no se pudo calcular, por ejemplo porque el polígono queda fuera de la cobertura de la capa. Un resultado sin dato nunca cuenta como sin observaciones.",
+    "categoriesTitle": "Cómo se lee cada categoría",
+    "findingColumn": "Qué es un hallazgo",
+    "thresholdColumn": "Umbral",
+    "resultsColumn": "Resultados",
+    "polarityAvoid": "Coincidir con la capa",
+    "polarityRequired": "No coincidir con la capa",
+    "noCategoryText": "La categoría de esta capa ya no está disponible: sus resultados se muestran como «Sin dato».",
+    "layersTitle": "Capas utilizadas",
+    "periodColumn": "Período"
+  },
+  "scope": {
+    "title": "Alcances y límites de las capas"
   }
 }

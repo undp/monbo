@@ -4,6 +4,7 @@ import type {
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type { DeforestationImageBlob } from "@/utils/deforestationImages";
 
 // Messages between the report page and src/workers/reportPdf.worker.tsx. Everything
@@ -19,6 +20,10 @@ export interface ReportPdfRequest {
   farms: FarmData[];
   results: DeforestationAnalysisMapResults[];
   maps: MapData[];
+  /** The country's categories: each layer's rule and texts. */
+  categories: LayerCategory[];
+  /** Whether the images have the satellite background (its caption). */
+  satelliteBackground: boolean;
   images: DeforestationImageBlob[];
 }
 
@@ -33,6 +38,8 @@ export type ZipCommand =
       locale: string;
       config: RuntimeConfig;
       maps: MapData[];
+      categories: LayerCategory[];
+      satelliteBackground: boolean;
     }
   | {
       op: "add";

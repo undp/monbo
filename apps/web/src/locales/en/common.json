@@ -231,5 +231,11 @@
       "sourcesWithProblems_other": "{{count}} sources with problems"
     },
     "empty": "No farms yet: use one of the options above."
+  },
+  "layerResults": {
+    "categoryLayer": "{{- category}} · {{- layer}}",
+    "findingHeader": "{{- name}} — % finding",
+    "resultHeader": "{{- name}} — Result",
+    "sheetName": "Territorial analysis"
   }
 }

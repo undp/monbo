@@ -5,7 +5,7 @@ import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { setRuntimeConfig } from "@/config/runtime";
 import type { DataContextValue } from "@/context/DataContext";
 import { deferred } from "@/test/deferred";
-import { makeFarm, makeMap, makeMapResults } from "@/test/factories";
+import { makeCategory, makeFarm, makeMap, makeMapResults } from "@/test/factories";
 import { setParams } from "@/test/navigation";
 import { stubObjectUrls } from "@/test/objectUrls";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
@@ -64,6 +64,7 @@ vi.mock("@/utils/reportSize", async (importOriginal) => ({
 
 const CONFIG = { deforestationThresholdPercentage: 1, overlapThresholdPercentage: 0 };
 const gfw = makeMap({ id: 1, alias: "GFW" });
+const categories = [makeCategory()];
 const f1 = makeFarm({ id: "F01" });
 const f2 = makeFarm({ id: "F02" });
 const results = [makeMapResults(1, { F01: 0.1, F02: 0 })];
@@ -85,6 +86,7 @@ const reportContext = (farms = [f1, f2], overrides: Partial<DataContextValue> = 
       selectedFarms: farms,
       downloadType: null,
     },
+    availableCategories: categories,
     ...overrides,
   });
 
@@ -143,8 +145,27 @@ describe("ReportProvider with a selection", () => {
       ["complete", true],
     ]);
     for (const request of requests()) {
-      expect(request).toMatchObject({ locale: "es", config: CONFIG, images });
+      // 2 farms, above the satellite limit of 1: the maps have no satellite photo
+      expect(request).toMatchObject({
+        locale: "es",
+        config: CONFIG,
+        images,
+        categories,
+        satelliteBackground: false,
+      });
     }
+  });
+
+  it("renders again when a category changes", async () => {
+    const rendered = await renderReport();
+    await waitFor(() => expect(client.render).toHaveBeenCalledTimes(2));
+
+    const edited = [makeCategory({ thresholdPercentage: 5 })];
+    rendered.setContext(reportContext(undefined, { availableCategories: edited }));
+    rendered.rerender(undefined);
+
+    await waitFor(() => expect(client.render).toHaveBeenCalledTimes(4));
+    expect(requests()[2].categories).toEqual(edited);
   });
 
   it("downloads the pre-rendered report without rendering again", async () => {
@@ -324,7 +345,13 @@ describe("ReportProvider with a large report", () => {
 
     expect(await zip.text()).toBe("zip:F01,F02");
     expect(client.startZip).toHaveBeenCalledWith(
-      expect.objectContaining({ locale: "es", config: CONFIG, maps: [gfw] })
+      expect.objectContaining({
+        locale: "es",
+        config: CONFIG,
+        maps: [gfw],
+        categories,
+        satelliteBackground: false,
+      })
     );
     expect(added).toEqual([
       { farm: "F01", results: [makeMapResults(1, { F01: 0.1 })], images: farmImages("F01") },

@@ -12,7 +12,8 @@ import {
 } from "@/test/factories";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
 import { categoryRule, groupFarmsByResult } from "./layerResults";
-import { deforestationResultReportText, layerResultText } from "./resultLabels";
+import { layerResult } from "./layerCategories";
+import { layerResultText } from "./resultLabels";
 
 const tFor = async (locale: "es" | "en") =>
   (await createTestI18n(locale)).getFixedT(locale) as TFunction;
@@ -105,28 +106,10 @@ describe("layerResultText", () => {
   });
 });
 
-describe("deforestationResultReportText", () => {
-  it("names each class on the PDF farm page", async () => {
-    // lodash's upperCase drops the accents, as the report always printed them.
-    const es = await tFor("es");
-    expect(deforestationResultReportText(0.005, es, "es")).toBe(
-      "LIBRE DE DEFORESTACION"
-    );
-    expect(deforestationResultReportText(0.05, es, "es")).toBe(
-      "5% DEFORESTACIÓN"
-    );
-    const en = await tFor("en");
-    expect(deforestationResultReportText(0, en, "en")).toBe(
-      "DEFORESTATION FREE"
-    );
-    expect(deforestationResultReportText(null, en, "en")).toBe("N/A");
-  });
-});
-
 // The helpers agree with each other here; that the views use them is tested in
 // MapView.test.tsx and DeforestationResultsTable.test.tsx.
 describe("one classification across helpers", () => {
-  it("gives the same free count in the counter hook, the grouping and the table text", async () => {
+  it("gives the same free count in the counter hook, the grouping, the table and the PDF", async () => {
     const t = await tFor("es");
     const category = makeCategory({ thresholdPercentage: 2 });
     const values = { F01: 0, F02: 0.005, F03: 0.02, F04: 0.05, F05: null };
@@ -151,9 +134,9 @@ describe("one classification across helpers", () => {
     const tableCells = results.farmResults.map(({ value }) =>
       layerResultText(value, category, t, "es")
     );
-    // The PDF still reads the deforestation rule (GET /config: also 2).
-    const pdfTexts = results.farmResults.map(({ value }) =>
-      deforestationResultReportText(value, t, "es")
+    // The PDF and the exports read the same category
+    const pdfTexts = results.farmResults.map(
+      ({ value }) => layerResult(value, category, t, "es").label
     );
 
     expect(counter.current[0].count).toBe(3);
@@ -162,7 +145,7 @@ describe("one classification across helpers", () => {
       tableCells.filter((text) => text === "Libre de deforestación")
     ).toHaveLength(3);
     expect(
-      pdfTexts.filter((text) => text === "LIBRE DE DEFORESTACION")
+      pdfTexts.filter((text) => text === "Libre de deforestación")
     ).toHaveLength(3);
     // The null farm is "no data" everywhere, never free.
     expect(mapGroups.unknown.map(({ id }) => id)).toEqual(["F05"]);
