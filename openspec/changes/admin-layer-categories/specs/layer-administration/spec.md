@@ -50,7 +50,7 @@
 
 ### Requirement: Edit a category
 
-`PUT /admin/categories/{id}` SHALL replace a category's editable fields (`name`, `description`, `icon`, `color`, `polarity`, `thresholdPercentage`, `resultLabels`, `temporal`) with the same validation as creation. It SHALL NOT change `id` or `enabled`. A change of `polarity` SHALL be rejected with 400 while the category has published layers, and a change of `temporal` SHALL be rejected with 400 while the category has any layer; the message SHALL name the layers involved. Changes to the texts, icon, color and threshold SHALL be allowed at any time. Editing the built-in `deforestation` while it is not stored SHALL store it, first in the file. Editing an id that the file holds as a rejected entry SHALL replace every entry with that id by the new valid one, and SHALL be rejected with 400 while the country has published layers in that category, because the rejected entry's polarity and years can't be read. The write SHALL keep every other entry of `categories.json` as it was stored, including rejected ones. Ids that are not in the session's country SHALL return 404. When the country's `categories.json` can't be read, the request SHALL be rejected with 409 and the file SHALL NOT be changed.
+`PUT /admin/categories/{id}` SHALL replace a category's editable fields (`name`, `description`, `icon`, `color`, `polarity`, `thresholdPercentage`, `resultLabels`, `temporal`) with the same validation as creation. It SHALL NOT change `id` or `enabled`. A change of `polarity` SHALL be rejected with 400 while the category has published layers, and a change of `temporal` SHALL be rejected with 400 while the category has any layer; the message SHALL name the layers involved. Changes to the texts, icon, color and threshold SHALL be allowed at any time. Editing the built-in `deforestation` while it is not stored SHALL store it, first in the file. Editing an id that the file holds as a rejected entry SHALL replace every entry with that id by the new valid one, and SHALL be rejected with 400 while the country has published layers in that category, because the rejected entry's polarity and years can't be read, or when the years of any of its layers don't fit the new `temporal` (a temporal category needs both years, any other none). The repaired entry SHALL keep its stored `enabled` when it is a boolean. The write SHALL keep every other entry of `categories.json` as it was stored, including rejected ones. Ids that are not in the session's country SHALL return 404. When the country's `categories.json` can't be read, the request SHALL be rejected with 409 and the file SHALL NOT be changed.
 
 #### Scenario: Change a threshold
 
@@ -81,6 +81,16 @@
 
 - **WHEN** CO's `frontier` entry is rejected and CO's layer 4, in `frontier`, is published
 - **THEN** a CO admin's `PUT /admin/categories/frontier` answers 400 naming layer 4, and the file is unchanged
+
+#### Scenario: Repair that doesn't fit its layers' years
+
+- **WHEN** CO's `protected_areas` entry is rejected, CO's hidden layer 6 in it has no years, and a CO admin puts `protected_areas` with `temporal: true`
+- **THEN** the response is 400 naming layer 6, and the file is unchanged
+
+#### Scenario: Repair a disabled entry
+
+- **WHEN** CO's `frontier` entry is rejected and stored with `enabled: false`, and a CO admin puts a valid `frontier`
+- **THEN** `frontier` is stored valid and still disabled, and `GET /categories?country=CO` doesn't list it
 
 #### Scenario: Another country's category
 
@@ -233,7 +243,7 @@
 
 ### Requirement: Enable and disable layers
 
-`PATCH /admin/layers/{id}` with `{ "enabled": true | false }` SHALL change the layer's visibility in the public listing. Enabling a layer that has no raster file SHALL fail with 409. Enabling a layer whose category doesn't resolve in its country, or is disabled, SHALL fail with 400. Disabling SHALL always be allowed. Ids that are unknown or that belong to another country SHALL return 404. There SHALL be no endpoint that hard-deletes a layer.
+`PATCH /admin/layers/{id}` with `{ "enabled": true | false }` SHALL change the layer's visibility in the public listing. Enabling a layer that has no raster file SHALL fail with 409. Enabling a layer whose category doesn't resolve in its country, or is disabled, or whose years don't fit its category (a temporal category needs both years, any other none) SHALL fail with 400. Disabling SHALL always be allowed. Ids that are unknown or that belong to another country SHALL return 404. There SHALL be no endpoint that hard-deletes a layer.
 
 #### Scenario: Disable a layer
 
@@ -253,6 +263,11 @@
 #### Scenario: Enable with a broken category
 
 - **WHEN** CO's layer 3 has a raster and `category_issue: "unknown_category"`, and a CO admin enables it
+- **THEN** the response is 400 and the layer stays disabled
+
+#### Scenario: Enable with years that don't fit the category
+
+- **WHEN** CO's layer 7 has a raster and no years, its category `deforestation` is temporal, and a CO admin enables it
 - **THEN** the response is 400 and the layer stays disabled
 
 #### Scenario: Another country's layer

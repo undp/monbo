@@ -12,6 +12,7 @@ from app.modules.layers.categories import (
     resolve_category,
 )
 from app.modules.layers.store import LayerStore, get_layers_root
+from app.utils.maps import parse_year
 
 from .auth import Session
 
@@ -64,3 +65,14 @@ def published_ids(layers: list[dict]) -> list[int]:
 
 def describe_ids(ids: list[int]) -> str:
     return ", ".join(str(layer_id) for layer_id in ids)
+
+
+def has_years(entry: dict) -> bool:
+    """Whether an index entry has a baseline (its years go together)."""
+    return parse_year(entry.get("baseline")) is not None
+
+
+def years_mismatch(layers: list[dict], temporal: bool) -> list[int]:
+    """Ids of the layers whose years don't fit a category that is (or isn't)
+    temporal: temporal categories need years, the others have none."""
+    return [entry["id"] for entry in layers if has_years(entry) != temporal]

@@ -610,3 +610,15 @@ def test_put_category_refreshes_the_cache(co):
 
     assert path.stat().st_size == first.st_size
     assert store.read_categories().categories[0]["color"] == "#222222"
+
+
+@pytest.mark.parametrize("stored_enabled, kept", [(False, False), ("no", True)])
+def test_put_category_can_keep_the_stored_enabled(co, stored_enabled, kept):
+    write_categories(
+        co, "CO", [category("frontier", icon="river", enabled=stored_enabled)]
+    )
+
+    result = co.store("CO").put_category(category("frontier"), keep_enabled=True)
+
+    assert result["enabled"] is kept
+    assert raw_categories(co, "CO")[0]["enabled"] is kept

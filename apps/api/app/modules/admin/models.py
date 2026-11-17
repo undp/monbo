@@ -1,5 +1,6 @@
-"""Admin contracts: layers, layer categories and ingestion jobs. The frontend's types are generated from
-the API's OpenAPI (`pnpm contracts`), so these models are the single source.
+"""Admin contracts: layers, layer categories and ingestion jobs. The frontend's types
+are generated from the API's OpenAPI (`pnpm contracts`), so these models are the
+single source.
 
 Field names follow the layers index (`<country>/index.json` under MAPS_ROOT), which
 is what these endpoints read and write. A layer belongs to the country of the admin

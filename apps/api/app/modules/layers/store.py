@@ -337,24 +337,32 @@ class LayerStore:
                 CategoriesFile(categories=copy.deepcopy(parsed.categories)),
             )
 
-    def put_category(self, category: dict, *, first: bool = False) -> None:
+    def put_category(
+        self, category: dict, *, first: bool = False, keep_enabled: bool = False
+    ) -> dict:
         """Store one category: replace the entry with its id (dropping any other copy
         of that id), or add it, at the start when `first`, else at the end. Every
         other entry is written back exactly as stored, rejected ones included, so an
         admin edit never loses what this release can't validate (a hand edit, or a
-        file written by a later release).
+        file written by a later release). With `keep_enabled`, the replaced entry's
+        `enabled` is kept when it is a boolean (repairing a rejected entry must not
+        publish it). Returns the category as stored.
 
         Raises `ValueError` when `category` is not a valid category, and
         `CategoriesUnreadable` when the file can't be read or parsed: it is then never
         overwritten."""
-        stored = StoredCategory.model_validate(category).model_dump()
         with self._lock:
             entries = self._read_category_entries()
             matches = [
                 position
                 for position, entry in enumerate(entries)
-                if isinstance(entry, dict) and entry.get("id") == stored["id"]
+                if isinstance(entry, dict) and entry.get("id") == category.get("id")
             ]
+            if keep_enabled and matches:
+                enabled = entries[matches[0]].get("enabled", True)
+                if isinstance(enabled, bool):
+                    category = {**category, "enabled": enabled}
+            stored = StoredCategory.model_validate(category).model_dump()
             if matches:
                 entries[matches[0]] = stored
                 for position in reversed(matches[1:]):
@@ -372,6 +380,7 @@ class LayerStore:
                 parse_categories(json.loads(data)),
             )
             self._categories_read_error = None
+            return stored
 
     def _read_category_entries(self) -> list:
         """The raw entries of `categories.json`, unvalidated ([] when missing)."""

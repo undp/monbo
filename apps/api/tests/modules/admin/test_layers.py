@@ -658,6 +658,56 @@ def test_a_layer_isnt_published_in_an_unusable_category(
     assert admin_layer(client, admin_headers, 7)["enabled"] is False
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [
+        # Years in a category that isn't temporal...
+        {**GFW, "id": 7, "category_id": "protected_areas", "enabled": False},
+        # ...and none in one that is (both only reachable by a hand edit or by
+        # repairing a rejected category).
+        {**GFW, "id": 7, "enabled": False, "baseline": None, "compared_against": ""},
+    ],
+)
+def test_a_layer_isnt_published_when_its_years_dont_fit_its_category(
+    categories, client, admin_headers, entry
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, entry])
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert "years don't fit" in response.json()["detail"]
+    assert admin_layer(client, admin_headers, 7)["enabled"] is False
+
+
+def test_a_layer_without_years_is_published_in_a_category_without_them(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [
+            *index,
+            {
+                **GFW,
+                "id": 7,
+                "category_id": "protected_areas",
+                "enabled": False,
+                "baseline": None,
+                "compared_against": None,
+            },
+        ]
+    )
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+
 def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
     index = json.loads(categories.store.index_path.read_text())
     categories.write_index([*index, {**GFW, "id": 7, "category_id": "frontier"}])

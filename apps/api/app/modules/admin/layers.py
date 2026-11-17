@@ -29,6 +29,7 @@ from .auth import Session, logger, require_admin
 from .helpers import (
     CountryCategories,
     country_store,
+    has_years,
     index_or_500,
     read_country_categories,
 )
@@ -286,8 +287,8 @@ def set_layer_enabled(
     """
     Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
     public listing but still resolves by id for analyses and tiles. A layer can
-    only be enabled once it has a raster (409), and while its category resolves and
-    is enabled (400).
+    only be enabled once it has a raster (409), and while its category resolves, is
+    enabled and fits its years (400).
     """
     store = country_store(session)
     with store.locked():
@@ -313,6 +314,13 @@ def set_layer_enabled(
                     status_code=400,
                     detail=f"Layer {layer_id} can't be published: its category "
                     f"'{entry['category_id']}' {reason}",
+                )
+            # Also covers layers whose category was repaired or edited by hand.
+            if has_years(entry) != category["temporal"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Layer {layer_id} can't be published: its years don't "
+                    f"fit category '{entry['category_id']}' (edit the layer first)",
                 )
         if entry["enabled"] != body.enabled:
             entry["enabled"] = body.enabled

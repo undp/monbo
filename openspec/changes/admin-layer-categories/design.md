@@ -145,8 +145,8 @@ concurrent publish.
 | `PATCH` category `enabled: false` | the category has published layers |
 | `PUT` category, `polarity` changes | the category has published layers |
 | `PUT` category, `temporal` changes | the category has any layer (its years would stop matching) |
-| `PUT` on a rejected entry (repair) | the category has published layers (its polarity and years can't be read) |
-| `PATCH` layer `enabled: true` | its category is disabled or doesn't resolve (`category_issue`) |
+| `PUT` on a rejected entry (repair) | the category has published layers (its polarity and years can't be read), or a layer's years don't fit the new `temporal` |
+| `PATCH` layer `enabled: true` | its category is disabled or doesn't resolve (`category_issue`), or the layer's years don't fit the category's `temporal` |
 | `PUT` layer, `category_id` changes | the layer is published |
 | `POST`/`PUT` layer | `category_id` doesn't resolve in the session's country (unknown, rejected or file unreadable) |
 | `POST`/`PUT` layer | the category is disabled, unless a `PUT` keeps the layer's current category |
@@ -159,8 +159,13 @@ concurrent publish.
   how a result is labelled, not what it measures. GC-5 can warn before saving.
 - A category of another country is simply unknown in the session's country (400, never a
   hint that it exists elsewhere).
+- Publishing is the only way a layer becomes public, so it re-checks the years
+  against the category: that also covers a repaired category and hand edits.
+- A repair (`PUT` on a rejected entry) keeps the entry's stored `enabled` when it is
+  a boolean (`put_category(keep_enabled=True)`): `enabled` changes only through
+  `PATCH`.
 - Together with GC-1's read-side guard, the admin can no longer produce a published
-  layer in a disabled or broken category. Such a layer can still appear through a hand
+  layer in a disabled or broken category, or with years that don't fit it. Such a layer can still appear through a hand
   edit of the share; `AdminLayer` shows it (decision 5) and the admin fixes it by moving
   the layer (`PUT`, after hiding it) or repairing the category.
 
@@ -187,8 +192,10 @@ No new UI, no new i18n keys.
 
 ## Risks / Trade-offs
 
-- [The admin web form can't create a layer in a non-temporal category before GC-5] →
-  Expected: GC-5 adds the selector. Until then the web only knows `deforestation`.
+- [The admin web form can't create a layer in a non-temporal category before GC-5,
+  nor save an existing one: the form requires years and the API refuses them] →
+  Expected: GC-5 (undp/monbo#121) adds the selector and hides the years for those
+  categories. Until then such layers are edited through the API.
 - [The rules add friction: to fix a polarity the admin hides the layers, edits, and
   publishes again] → Preferred over silently inverting published results (orchestration
   risk "polaridad invertida"). The 400 message lists the layers to hide.

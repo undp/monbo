@@ -425,6 +425,79 @@ def test_a_rejected_entry_with_published_layers_isnt_repaired(
     assert stored(protected_areas)[0]["color"] == "blue"
 
 
+def test_a_repair_cant_change_temporal_under_its_layers(
+    protected_areas, client, admin_headers
+):
+    # Regression (review of #138): repairing a rejected entry skipped the
+    # `temporal` rule, and the hidden layer 6 (no years) could then be published
+    # in a temporal category.
+    client.patch("/admin/layers/6", json={"enabled": False}, headers=admin_headers)
+    rejected = category("protected_areas", icon="river")  # from a later release
+    write_categories(protected_areas, [rejected])
+
+    response = client.put(
+        "/admin/categories/protected_areas",
+        json=category_body(temporal=True),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(6)" in response.json()["detail"]
+    assert stored(protected_areas) == [rejected]
+    published = client.patch(
+        "/admin/layers/6", json={"enabled": True}, headers=admin_headers
+    )
+    assert published.status_code == 400
+    assert all(m["id"] != 6 for m in client.get("/maps?country=CO").json())
+
+
+def test_a_repaired_deforestation_cant_drop_the_years_of_its_layers(
+    colombia_layers, client, admin_headers
+):
+    colombia_layers.write_index([{**GFW, "enabled": False}, HIDDEN])
+    write_categories(colombia_layers, [category("deforestation", icon="river")])
+
+    response = client.put(
+        "/admin/categories/deforestation",
+        json=category_body(temporal=False),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(0, 5)" in response.json()["detail"]
+
+
+def test_a_repair_that_fits_the_years_succeeds(protected_areas, client, admin_headers):
+    client.patch("/admin/layers/6", json={"enabled": False}, headers=admin_headers)
+    write_categories(protected_areas, [category("protected_areas", icon="river")])
+
+    response = client.put(
+        "/admin/categories/protected_areas",
+        json=category_body(temporal=False),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert stored(protected_areas)[0]["icon"] == "shield"
+
+
+def test_a_repair_keeps_the_entry_disabled(colombia_layers, client, admin_headers):
+    # Review of #138: PUT never changes `enabled`, not even when repairing.
+    write_categories(
+        colombia_layers, [category("frontier", icon="river", enabled=False)]
+    )
+
+    response = client.put(
+        "/admin/categories/frontier", json=category_body(), headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert response.json()["enabled"] is False
+    assert stored(colombia_layers)[0]["enabled"] is False
+    assert "frontier" not in public_ids(client)
+    assert by_id(client, admin_headers)["frontier"]["enabled"] is False
+
+
 @pytest.mark.parametrize("category_id", ["snap_ec", "unknown"])
 def test_editing_a_category_the_country_doesnt_have_is_404(
     protected_areas, country_root, client, admin_headers, category_id

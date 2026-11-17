@@ -30,6 +30,7 @@ from .helpers import (
     layers_in,
     published_ids,
     read_country_categories,
+    years_mismatch,
 )
 from .models import (
     AdminCategories,
@@ -96,9 +97,11 @@ def _readable_categories(store: LayerStore) -> CountryCategories:
     return categories
 
 
-def _put(store: LayerStore, category: dict, *, first: bool) -> None:
+def _put(
+    store: LayerStore, category: dict, *, first: bool, keep_enabled: bool = False
+) -> dict:
     try:
-        store.put_category(category, first=first)
+        return store.put_category(category, first=first, keep_enabled=keep_enabled)
     except CategoriesUnreadable as error:
         # Changed on the share between the read and the write.
         raise HTTPException(
@@ -185,12 +188,21 @@ def update_category(
             if category_id not in categories.file.invalid_ids:
                 raise _not_found()
             # A rejected entry: its polarity and years were never readable, so its
-            # layers can only come back once they are hidden.
+            # layers can only come back once they are hidden, and the repair must
+            # fit the years they have.
             if published:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Category '{category_id}' has published layers "
                     f"({describe_ids(published)}): hide them before repairing it",
+                )
+            mismatched = years_mismatch(layers, body.temporal)
+            if mismatched:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Category '{category_id}' has layers "
+                    f"({describe_ids(mismatched)}) whose years don't fit "
+                    f"temporal: {str(body.temporal).lower()}",
                 )
         else:
             if body.polarity != current["polarity"] and published:
@@ -207,9 +219,14 @@ def update_category(
                     f"({describe_ids([entry['id'] for entry in layers])}): "
                     "whether it is temporal can't change",
                 )
+        # `enabled` changes only through PATCH: a repaired entry keeps its own.
         enabled = current["enabled"] if current is not None else True
-        category = _to_stored(category_id, body, enabled=enabled)
-        _put(store, category, first=categories.is_synthesized(category_id))
+        category = _put(
+            store,
+            _to_stored(category_id, body, enabled=enabled),
+            first=categories.is_synthesized(category_id),
+            keep_enabled=current is None,
+        )
     logger.info("Admin updated category %s in %s", category_id, session.country)
     return _to_admin_category(category, index)
 

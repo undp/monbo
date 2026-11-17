@@ -3274,7 +3274,7 @@
     },
     "/admin/layers/{layer_id}": {
       "patch": {
-        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster (409), and while its category resolves and\nis enabled (400).",
+        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster (409), and while its category resolves, is\nenabled and fits its years (400).",
         "operationId": "set_layer_enabled_admin_layers__layer_id__patch",
         "parameters": [
           {
