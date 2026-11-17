@@ -27,6 +27,9 @@ Part of the "Gestor de capas" orchestration (undp/monbo#116), unit GC-6 (undp/mo
   - The analysis starts **only** from the "Analizar" button or after a file is uploaded, never
     on mount. The one exception is recalculating an outdated analysis, which reuses the inputs
     the user already chose.
+  - What the page edits is a draft (`analysisDraft` in `DataContext`): the results and the
+    report keep the choices they were analysed with until a new analysis succeeds, and a layer
+    hidden after it was chosen never enters an analysis.
 - **The analysis modal goes away.** The stage 1 next-stage card and the stepper go straight to
   the stage 2 page, where the subset and the layers are chosen. This closes the back-button path
   for good: no state left by a modal decides the analysis.
@@ -38,7 +41,8 @@ Part of the "Gestor de capas" orchestration (undp/monbo#116), unit GC-6 (undp/mo
   - the results table with a header row grouping the layer columns by category (icon, color,
     name), and cells with the category's result label and, when flagged, the finding percentage;
   - the map view with the selected layer's category labels in its tabs and popup, and the
-    category's color and icon in the layer selector and its counter chip. Tiles stay red.
+    category's color and icon in the layer selector; the counter of farms without findings is
+    green with the category's icon. Tiles stay red.
 - `Table` gains an optional header-group row; `DeforestationResultsTable` keeps its props
   (`tableProps`, `mapsSubset`) so the report stage (GC-7) reuses it unchanged.
 - i18n keys in `es` and `en` for every new text.

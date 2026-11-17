@@ -28,6 +28,17 @@ import {
   ON_DEMAND_REFRESH_MIN_GAP,
 } from "@/config/constants";
 
+/**
+ * What the stage 2 page is editing: the polygon subset and the layers (by id) of
+ * the next analysis. Kept apart from `deforestationAnalysisParams`, which is what
+ * the current results were analysed with: editing never changes the results or the
+ * report until "Analizar" runs a new analysis.
+ */
+export interface AnalysisDraft {
+  polygonsSubset: "all" | "valid";
+  selectedMapIds: number[];
+}
+
 export interface DataContextValue {
   farmsData: FarmData[] | null;
   setFarmsData: Dispatch<SetStateAction<DataContextValue["farmsData"]>>;
@@ -35,6 +46,7 @@ export interface DataContextValue {
   setPolygonsValidationResults: Dispatch<
     SetStateAction<DataContextValue["polygonsValidationResults"]>
   >;
+  /** The subset and layers the current results were analysed with. */
   deforestationAnalysisParams: {
     polygonsSubset: "all" | "valid" | null;
     selectedMaps: MapData[];
@@ -42,6 +54,9 @@ export interface DataContextValue {
   setDeforestationAnalysisParams: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisParams"]>
   >;
+  /** The stage 2 page's choices for the next analysis; null until edited. */
+  analysisDraft: AnalysisDraft | null;
+  setAnalysisDraft: Dispatch<SetStateAction<AnalysisDraft | null>>;
   deforestationAnalysisResults: DeforestationAnalysisMapResults[] | null;
   setDeforestationAnalysisResults: Dispatch<
     SetStateAction<DataContextValue["deforestationAnalysisResults"]>
@@ -148,6 +163,8 @@ export const DataContext = createContext<DataContextValue>({
   setPolygonsValidationResults: () => {},
   deforestationAnalysisParams: initialDeforestationAnalysisParams,
   setDeforestationAnalysisParams: () => {},
+  analysisDraft: null,
+  setAnalysisDraft: () => {},
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: () => {},
   analysisOutdated: false,
@@ -178,6 +195,7 @@ type KeptKey =
   | "farmsData"
   | "polygonsValidationResults"
   | "deforestationAnalysisParams"
+  | "analysisDraft"
   | "deforestationAnalysisResults"
   | "analysisOutdated"
   | "reportGenerationParams";
@@ -227,6 +245,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       "deforestationAnalysisParams",
       initialDeforestationAnalysisParams
     );
+
+  const [analysisDraft, setAnalysisDraft] = useKeptState("analysisDraft", null);
 
   const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
     useKeptState("deforestationAnalysisResults", null);
@@ -300,8 +320,10 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setDeforestationAnalysisResults(null);
     setAnalysisOutdated(false);
     setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
+    setAnalysisDraft(null);
     setReportGenerationParams(initialReportGenerationParams);
   }, [
+    setAnalysisDraft,
     setFarmsData,
     setPolygonsValidationResults,
     setDeforestationAnalysisResults,
@@ -531,6 +553,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         selectedMaps: sortedDeforestationAnalysisParamsSelectedMaps,
       },
       setDeforestationAnalysisParams,
+      analysisDraft,
+      setAnalysisDraft,
       deforestationAnalysisResults,
       setDeforestationAnalysisResults,
       analysisOutdated,
@@ -562,6 +586,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     deforestationAnalysisParams,
     sortedDeforestationAnalysisParamsSelectedMaps,
     setDeforestationAnalysisParams,
+    analysisDraft,
+    setAnalysisDraft,
     deforestationAnalysisResults,
     setDeforestationAnalysisResults,
     analysisOutdated,

@@ -8,12 +8,16 @@ import { localizedText } from "@/utils/localizedText";
 interface DeforestationFreeCounterChipProps {
   /** How many farms are `ok` in the layer; null when none has a result. */
   count: number | null;
-  /** The layer's category: its color, icon and `ok` label. */
+  /** The layer's category: its icon and `ok` label. */
   category: LayerCategory | null;
   sx?: SxProps<Theme>;
 }
 
-/** A layer's `ok` farms, in the color and with the icon of the layer's category. */
+/**
+ * A layer's `ok` farms: green (the theme's success color) with the icon of the
+ * layer's category. The category's color is not used here, so an `ok` count never
+ * reads as a finding (Deforestación is red).
+ */
 export const DeforestationFreeCounterChip: React.FC<
   DeforestationFreeCounterChipProps
 > = ({ count, category, sx }) => {
@@ -21,7 +25,7 @@ export const DeforestationFreeCounterChip: React.FC<
   if (count === null || !category)
     return (
       <Chip
-        label={t("common:na")}
+        label={t("deforestationAnalysis:noDataShortText")}
         sx={{
           backgroundColor: "#D5D5D5",
           color: "#676767",
@@ -44,7 +48,7 @@ export const DeforestationFreeCounterChip: React.FC<
           />
         }
         sx={{
-          backgroundColor: category.color,
+          backgroundColor: "success.main",
           color: "white",
           ...sx,
         }}

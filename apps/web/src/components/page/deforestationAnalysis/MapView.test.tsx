@@ -97,6 +97,8 @@ describe("MapView", () => {
     // A null result is "no data", never deforestation-free.
     fireEvent.click(screen.getByRole("tab", { name: "Sin dato (1)" }));
     expect(listedFarms(screen.getByRole("tabpanel"))).toEqual(["F05"]);
+    // Its chip uses the tab's wording, not "N/D".
+    expect(within(screen.getByRole("tabpanel")).getByText("Sin dato")).toBeTruthy();
   });
 
   it("names and fills the groups with a required layer's category", async () => {

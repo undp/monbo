@@ -1,4 +1,12 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
@@ -90,20 +98,108 @@ describe("DeforestationAnalysisUploadDataPageContent", () => {
     ).toBeTruthy();
   });
 
-  it("adds a ticked layer without starting the analysis", async () => {
+  it("adds a ticked layer to the draft, without starting the analysis", async () => {
     const context = await renderPage({
       farmsData: farms,
       deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [gfw] },
     });
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Frontera agrícola nacional/ }));
-    const update = vi.mocked(context.setDeforestationAnalysisParams).mock.calls[0][0];
-    expect(
-      typeof update === "function" &&
-        update({ polygonsSubset: "valid", selectedMaps: [gfw] }).selectedMaps
-    ).toEqual([gfw, upra]);
+    expect(context.setAnalysisDraft).toHaveBeenLastCalledWith({
+      polygonsSubset: "valid",
+      selectedMapIds: [1, 5],
+    });
+    expect(screen.getByText("3 polígonos · 2 capas en 2 categorías")).toBeTruthy();
     await settle();
     expect(analyzeLayers).not.toHaveBeenCalled();
+    // The analysed choices only change when an analysis succeeds.
+    expect(context.setDeforestationAnalysisParams).not.toHaveBeenCalled();
+  });
+
+  it("opens with the stored draft", async () => {
+    await renderPage({
+      farmsData: farms,
+      polygonsValidationResults: validation,
+      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [gfw] },
+      analysisDraft: { polygonsSubset: "all", selectedMapIds: [5] },
+    });
+
+    expect(
+      screen.getByRole("checkbox", { name: /Frontera agrícola nacional/ })
+    ).toHaveProperty("checked", true);
+    expect(screen.getByRole("checkbox", { name: /Global Forest Watch/ })).toHaveProperty(
+      "checked",
+      false
+    );
+    expect(screen.getByRole("radio", { name: "Todos (3)" })).toHaveProperty(
+      "checked",
+      true
+    );
+  });
+
+  it("leaves the analysed results alone when the choices change without Analizar", async () => {
+    // The review's case: 2 valid polygons analysed with GFW and TMF. On the page,
+    // TMF is unticked and "all" picked, then the user goes back without analysing.
+    const context = await renderPage({
+      farmsData: farms,
+      polygonsValidationResults: validation,
+      deforestationAnalysisParams: {
+        polygonsSubset: "valid",
+        selectedMaps: [gfw, tmf],
+      },
+      deforestationAnalysisResults: [
+        makeMapResults(1, { F01: 0, F02: 0, F03: 0 }),
+        makeMapResults(2, { F01: 0, F02: 0, F03: 0 }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Tropical Moist Forests/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "Todos (3)" }));
+    cleanup();
+    await settle();
+
+    // What the results page and the report read is untouched: the invalid
+    // polygon stays hidden and TMF stays analysed.
+    expect(context.setDeforestationAnalysisParams).not.toHaveBeenCalled();
+    expect(context.setDeforestationAnalysisResults).not.toHaveBeenCalled();
+    expect(analyzeLayers).not.toHaveBeenCalled();
+    expect(context.setAnalysisDraft).toHaveBeenLastCalledWith({
+      polygonsSubset: "all",
+      selectedMapIds: [1],
+    });
+  });
+
+  it("never sends a layer hidden since the analysis", async () => {
+    vi.mocked(analyzeLayers).mockResolvedValue([makeMapResults(1, { F01: 0 })]);
+    sessionStorage.setItem("monbo.selectedCountry", "CO");
+    // TMF was analysed, then its category was disabled: GET /maps no longer lists
+    // it, but the analysed params keep it while results refer to it.
+    const context = await renderPage({
+      availableMaps: [gfw, upra],
+      farmsData: farms,
+      deforestationAnalysisParams: {
+        polygonsSubset: "all",
+        selectedMaps: [gfw, tmf],
+      },
+      deforestationAnalysisResults: [
+        makeMapResults(1, { F01: 0 }),
+        makeMapResults(2, { F01: 0 }),
+      ],
+    });
+
+    // Neither counted nor shown.
+    expect(screen.getByText("3 polígonos · 1 capa en 1 categoría")).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: /Tropical Moist Forests/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }));
+
+    await waitFor(() => expect(analyzeLayers).toHaveBeenCalledWith(farms, [gfw], "CO"));
+    await waitFor(() =>
+      expect(context.setDeforestationAnalysisParams).toHaveBeenCalledWith({
+        polygonsSubset: "all",
+        selectedMaps: [gfw],
+      })
+    );
   });
 
   it("doesn't analyse on opening after a validation (back button), and asks for the subset", async () => {
@@ -127,7 +223,7 @@ describe("DeforestationAnalysisUploadDataPageContent", () => {
     );
   });
 
-  it("analyses when the user presses Analizar", async () => {
+  it("analyses the draft when the user presses Analizar, and only then stores it", async () => {
     vi.mocked(analyzeLayers).mockResolvedValue([makeMapResults(1, { F01: 0 })]);
     const context = await renderPage({
       farmsData: farms,
@@ -143,7 +239,13 @@ describe("DeforestationAnalysisUploadDataPageContent", () => {
     await waitFor(() =>
       expect(context.setDeforestationAnalysisResults).toHaveBeenCalled()
     );
-    expect(router.push).toHaveBeenCalledWith("/es/deforestation-analysis");
+    // The results and the choices they were analysed with change together.
+    expect(context.setDeforestationAnalysisParams).toHaveBeenCalledWith({
+      polygonsSubset: "valid",
+      selectedMaps: [gfw],
+    });
+    expect(context.setAnalysisDraft).toHaveBeenCalledWith(null);
+    expect(router.push).toHaveBeenCalledWith("/deforestation-analysis");
   });
 
   it("stores the subset the user picks", async () => {
@@ -154,11 +256,12 @@ describe("DeforestationAnalysisUploadDataPageContent", () => {
     });
 
     fireEvent.click(screen.getByRole("radio", { name: "Todos (3)" }));
-    const update = vi.mocked(context.setDeforestationAnalysisParams).mock.calls[0][0];
-    expect(
-      typeof update === "function" &&
-        update({ polygonsSubset: "valid", selectedMaps: [gfw] }).polygonsSubset
-    ).toBe("all");
+    expect(context.setAnalysisDraft).toHaveBeenLastCalledWith({
+      polygonsSubset: "all",
+      selectedMapIds: [1],
+    });
+    expect(screen.getByText("Usarás 3 polígonos de la validación.")).toBeTruthy();
+    expect(context.setDeforestationAnalysisParams).not.toHaveBeenCalled();
   });
 
   it("recalculates an outdated analysis on opening", async () => {

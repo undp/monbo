@@ -95,7 +95,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
 
         const deforestationParsedValue: string =
           deforestationValue === null || !rule
-            ? t("common:na")
+            ? t("deforestationAnalysis:noDataShortText")
             : formatDeforestationPercentage(
                 deforestationValue,
                 i18n.language,

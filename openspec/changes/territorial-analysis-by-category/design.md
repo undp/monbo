@@ -90,7 +90,8 @@ finding in one layer is never hidden by another. Pure function
 
 ### 4. Texts of a result
 
-- Cell and map popup, from the category's `resultLabels` in the UI language:
+- Cell and map popup, from the category's `resultLabels` in the UI language
+  (`layerResultText`):
   - `ok` → `resultLabels.ok` (D16: also for `0 < finding ≤ threshold`, without percentage);
   - `flagged` → `"<finding %> · <resultLabels.flagged>"`, where the finding is `value` for
     `avoid` and `1 − value` for `required`;
@@ -105,8 +106,15 @@ finding in one layer is never hidden by another. Pure function
 `formatDeforestationPercentage` and the chip color helpers take the rule as an argument
 (default: `deforestationRule()`, so GC-7's call sites keep compiling).
 
-The finding percentage uses `formatPercentage` with the decimals of the deforestation display
-(`deforestationDecimalPlaces()`), since a flagged finding is above the threshold by definition.
+The finding is formatted with `formatDeforestationPercentage(value, language, rule)`, the same
+helper as the rest of stage 2. Above a threshold it calls `formatFindingPercentage(finding,
+thresholdPercentage, language)`: the threshold's decimals (at least one), and "< 0,1%" for a
+finding too small for them, so a flagged result never reads "0%" (possible with a threshold of 0).
+GC-7 uses `formatFindingPercentage` in the PDF; its contract is documented on the function.
+
+The per-layer counter of farms without findings is green (`success.main`) with the category's
+icon; the category's color identifies the category (headers, cards, picker, legend) and never
+marks an `ok` count (decided at review, 2026-11-17).
 
 ### 5. Grouped table: a header-group row in the generic `Table`
 
@@ -118,7 +126,7 @@ layer id.
 
 `DeforestationResultsTable` keeps its name, file and props (`tableProps`, `mapsSubset`), so the
 report stage (GC-7) shows grouped columns with no change. Its footer counter chip (per layer
-`ok` count) uses the category's color and icon.
+`ok` count) is green with the category's icon.
 
 *Alternative:* a new `LayerResultsTable` component. Rejected for this unit: it forces GC-7 to
 rebase onto a rename that GC-13 will do anyway.
@@ -145,8 +153,21 @@ The page (`/deforestation-analysis/upload-data`) follows `vEtapa2`:
 The analysis starts only from "Analizar", from a successful upload (as today), or to recalculate
 an outdated analysis (`analysisOutdated`, which keeps the subset and layers already chosen).
 Opening the page never starts it, whatever is in `DataContext`, which closes the back-button
-path. `polygonsSubset` is always set by the page before analysing (`"valid"` default with
-validation, `"all"` without).
+path.
+
+**The page edits a draft, not the analysed choices** (found at review). `DataContext` keeps
+`deforestationAnalysisParams` (the subset and layers the current results were analysed with: the
+results page, the map, the summary, the report and the stepper read them) apart from
+`analysisDraft` (`{ polygonsSubset, selectedMapIds }`, what the page is editing). The page starts
+from the stored draft, or else from the analysed choices; each change is stored in the draft so it
+survives a visit to stage 1. Only a successful analysis writes the params, together with the
+results, and clears the draft. "Cambiar capas" clears the draft, so the page opens with the
+choices of the results on screen. `resetAnalysis` and a country change clear it too.
+
+**Only offered layers are analysed.** The draft's ids are resolved against the layers the country
+offers now (listed by `GET /maps` with a listed category). A layer hidden since it was chosen is
+not shown, not counted in the summary and not sent; a recalculation filters the analysed layers
+the same way.
 
 `DeforestationModal` is removed. The stage 1 next-stage card and the stepper (`stageAction`
 `"analysisModal"` → `"navigate"`, `stageHref(2)` → `/deforestation-analysis/upload-data` when
@@ -166,7 +187,7 @@ existing section, then the next-stage card. On 390 px, cards stack, the header w
 table scrolls horizontally inside its section.
 
 `ResultsMapSelector` lists layers grouped by category (`ListSubheader` with icon and name), and
-its counter chip uses the category's color. `MapView`, `FarmsList` and `SelectedPolygonsMap` take
+its counter chip is green with the category's icon. `MapView`, `FarmsList` and `SelectedPolygonsMap` take
 the selected layer's rule and category labels.
 
 ## Risks / Trade-offs

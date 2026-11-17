@@ -11,10 +11,12 @@ import React, {
 import { generateFarmsData } from "@/api/farms";
 import { analyzeLayers } from "@/api/layerAnalysis";
 import {
+  type AnalysisDraft,
   DataContext,
   readFlowGeneration,
   readSelectedCountry,
 } from "@/context/DataContext";
+import { localizedPath } from "@/utils/languageChange";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
@@ -47,12 +49,25 @@ import { groupLayersByCategory } from "@/utils/layerResults";
 // Where "Subir polígonos" scrolls to.
 const UPLOAD_STEP_ID = "territorial-analysis-upload";
 
+type PolygonsSubset = AnalysisDraft["polygonsSubset"];
+
+/**
+ * What starts an analysis: `draft` runs the page's choices ("Analizar", or a file
+ * uploaded here); `recalculate` re-runs the analysed choices after a layer change
+ * invalidated the results.
+ */
+type AnalysisMode = "draft" | "recalculate";
+
 /**
  * Stage 2's selection page: the polygon subset (after a validation), the layers by
- * category and the farms. The analysis starts only from "Analizar", after a file is
- * uploaded here, or to recalculate an analysis a layer change invalidated; never
- * because the page opened with farms and layers loaded (e.g. through the browser's
- * back button), so no analysis runs with choices the user didn't see.
+ * category and the farms. What the user picks here is a draft (`analysisDraft`):
+ * the current results, and the report, keep the subset and layers they were
+ * analysed with (`deforestationAnalysisParams`) until a new analysis succeeds.
+ * The analysis starts only from "Analizar", after a file is uploaded here, or to
+ * recalculate an analysis a layer change invalidated; never because the page
+ * opened with farms and layers loaded (e.g. through the browser's back button).
+ * A layer that isn't offered (hidden, or with no category) never enters an
+ * analysis.
  */
 export function DeforestationAnalysisUploadDataPageContent() {
   const { openSnackbar } = useContext(SnackbarContext);
@@ -66,10 +81,12 @@ export function DeforestationAnalysisUploadDataPageContent() {
     polygonsValidationResults,
     setPolygonsValidationResults,
     deforestationAnalysisParams: {
-      selectedMaps: selectedMapsForDeforestation,
-      polygonsSubset,
+      selectedMaps: analysedMaps,
+      polygonsSubset: analysedSubset,
     },
     setDeforestationAnalysisParams,
+    analysisDraft,
+    setAnalysisDraft,
     setDeforestationAnalysisResults,
     selectedCountry,
     analysisOutdated,
@@ -83,16 +100,33 @@ export function DeforestationAnalysisUploadDataPageContent() {
     refreshAvailableMaps();
   }, [refreshAvailableMaps]);
 
+  // The page's choices: the stored draft, or else the analysed ones. Kept here so
+  // the page shows each change at once, and stored so they survive a visit to
+  // stage 1; never written to the analysed params until an analysis succeeds.
+  const [draft, setDraft] = useState<AnalysisDraft>(
+    () =>
+      analysisDraft ?? {
+        polygonsSubset: analysedSubset ?? "valid",
+        selectedMapIds: analysedMaps.map(({ id }) => id),
+      }
+  );
+  const updateDraft = useCallback(
+    (update: (prev: AnalysisDraft) => AnalysisDraft) => {
+      const next = update(draft);
+      setDraft(next);
+      setAnalysisDraft(next);
+    },
+    [draft, setAnalysisDraft]
+  );
+
   // Only an outdated analysis restarts on its own when the page opens: its subset
   // and layers were already chosen. Anything else waits for "Analizar".
   const recalculateOnOpen =
-    analysisOutdated && !!farmsData && selectedMapsForDeforestation.length > 0;
+    analysisOutdated && !!farmsData && analysedMaps.length > 0;
   const [loading, setLoading] = useState(() => recalculateOnOpen);
-  // Whether the analysis may start: to recalculate an outdated analysis, after a
-  // file is parsed, or from the "Analizar" button. Choosing layers or the subset
-  // never starts it.
-  const [analysisRequested, setAnalysisRequested] = useState(
-    () => recalculateOnOpen
+  // Choosing layers or the subset never starts an analysis.
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode | null>(() =>
+    recalculateOnOpen ? "recalculate" : null
   );
   // The upload step is open when there are no farms; with farms, behind a button.
   const [uploadOpen, setUploadOpen] = useState(() => !farmsData);
@@ -131,16 +165,33 @@ export function DeforestationAnalysisUploadDataPageContent() {
       ),
     [countryLayers, availableCategories]
   );
+  const offeredById = useMemo(
+    () =>
+      new Map(
+        offeredGroups.flatMap(({ layers }) =>
+          layers.map((layer) => [layer.id, layer] as const)
+        )
+      ),
+    [offeredGroups]
+  );
+  // The draft's layers that are offered now, with their current metadata. A layer
+  // hidden since it was chosen drops out: it is not counted, not shown and not
+  // analysed.
+  const draftLayers = useMemo(
+    () =>
+      draft.selectedMapIds.flatMap((id) => {
+        const layer = offeredById.get(id);
+        return layer ? [layer] : [];
+      }),
+    [draft.selectedMapIds, offeredById]
+  );
   const selectedIds = useMemo(
-    () => new Set(selectedMapsForDeforestation.map(({ id }) => id)),
-    [selectedMapsForDeforestation]
+    () => new Set(draftLayers.map(({ id }) => id)),
+    [draftLayers]
   );
   const selectedCategoriesCount = useMemo(
-    () =>
-      new Set(
-        selectedMapsForDeforestation.map(({ categoryId }) => categoryId)
-      ).size,
-    [selectedMapsForDeforestation]
+    () => new Set(draftLayers.map(({ categoryId }) => categoryId)).size,
+    [draftLayers]
   );
 
   const validFarmsCount = useMemo(
@@ -154,34 +205,43 @@ export function DeforestationAnalysisUploadDataPageContent() {
     [farmsData, polygonsValidationResults]
   );
   const hasValidation = !!farmsData && !!polygonsValidationResults;
-  // With a validation, "valid only" is the default until the user picks "all".
-  const subset = polygonsSubset ?? "valid";
+  const subset = draft.polygonsSubset;
   const analysedFarmsCount =
     hasValidation && subset === "valid"
       ? validFarmsCount
       : (farmsData?.length ?? 0);
 
+  // What the next request analyses: the draft, or (to recalculate) the analysed
+  // choices. Either way, only layers that are offered now.
+  const requestedMaps = useMemo(
+    () =>
+      analysisMode === "recalculate"
+        ? analysedMaps.filter(({ id }) => offeredById.has(id))
+        : draftLayers,
+    [analysisMode, analysedMaps, offeredById, draftLayers]
+  );
+  const requestedSubset: PolygonsSubset =
+    analysisMode === "recalculate" ? (analysedSubset ?? "valid") : subset;
+
   const onSubsetChange = useCallback(
-    (value: "all" | "valid") => {
-      setDeforestationAnalysisParams((prev) => ({
-        ...prev,
-        polygonsSubset: value,
-      }));
+    (value: PolygonsSubset) => {
+      updateDraft((prev) => ({ ...prev, polygonsSubset: value }));
     },
-    [setDeforestationAnalysisParams]
+    [updateDraft]
   );
 
   const onMapSelectionChange = useCallback(
     (layer: MapData, checked: boolean) => {
-      setAnalysisRequested(false);
-      setDeforestationAnalysisParams((prev) => ({
-        ...prev,
-        selectedMaps: checked
-          ? [...prev.selectedMaps.filter(({ id }) => id !== layer.id), layer]
-          : prev.selectedMaps.filter(({ id }) => id !== layer.id),
-      }));
+      setAnalysisMode(null);
+      updateDraft((prev) => {
+        const others = prev.selectedMapIds.filter((id) => id !== layer.id);
+        return {
+          ...prev,
+          selectedMapIds: checked ? [...others, layer.id] : others,
+        };
+      });
     },
-    [setDeforestationAnalysisParams]
+    [updateDraft]
   );
 
   const performFarmsGeneration = useCallback(
@@ -206,7 +266,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // A validation of earlier farms doesn't describe these: without it,
         // stage 1 shows as not done and no farm is hidden as invalid.
         setPolygonsValidationResults(null);
-        setAnalysisRequested(true);
+        setAnalysisMode("draft");
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -228,7 +288,12 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   const performDeforestationAnalysis = useCallback(
-    async (data: FarmData[], isCurrent: () => boolean) => {
+    async (
+      data: FarmData[],
+      maps: MapData[],
+      polygonsSubset: PolygonsSubset,
+      isCurrent: () => boolean
+    ) => {
       const request = ++latestRequestRef.current;
       // A stale response turns the loading screen off, unless a newer request
       // is pending.
@@ -237,17 +302,16 @@ export function DeforestationAnalysisUploadDataPageContent() {
       };
       setLoading(true);
       try {
-        const response = await analyzeLayers(
-          data,
-          selectedMapsForDeforestation,
-          selectedCountry!
-        );
+        const response = await analyzeLayers(data, maps, selectedCountry!);
         // A newer request (another country, or a layer that changed again)
         // supersedes this one.
         if (!isCurrent()) return settleStale();
+        // The results and the choices they were analysed with change together.
         setDeforestationAnalysisResults(response);
+        setDeforestationAnalysisParams({ polygonsSubset, selectedMaps: maps });
+        setAnalysisDraft(null);
         setAnalysisOutdated(false);
-        router.push(`/${i18n.language}/deforestation-analysis`);
+        router.push(localizedPath("/deforestation-analysis", i18n.language));
         openSnackbar({
           message: analysisOutdated
             ? t("deforestationAnalysis:uploadDataPage:analysisUpdated")
@@ -262,14 +326,15 @@ export function DeforestationAnalysisUploadDataPageContent() {
         });
         setLoading(false);
         // Back to the form: the "Analizar" button retries.
-        setAnalysisRequested(false);
+        setAnalysisMode(null);
       }
     },
     [
-      selectedMapsForDeforestation,
       selectedCountry,
       router,
       setDeforestationAnalysisResults,
+      setDeforestationAnalysisParams,
+      setAnalysisDraft,
       setAnalysisOutdated,
       analysisOutdated,
       openSnackbar,
@@ -279,11 +344,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
   );
 
   useEffect(() => {
-    if (
-      !analysisRequested ||
-      !farmsData ||
-      !selectedMapsForDeforestation.length
-    ) {
+    if (!analysisMode || !farmsData || !requestedMaps.length) {
       prevDataRef.current = null;
       return;
     }
@@ -291,17 +352,16 @@ export function DeforestationAnalysisUploadDataPageContent() {
     const serializedData = JSON.stringify({
       country: selectedCountry,
       farms: farmsData.map((farm) => [farm.id, farm.country]),
-      // Only an analysis invalidated by a layer change re-runs when the selected
-      // layers' calculation inputs change; ticking maps on the form doesn't.
-      calculationInputs: analysisOutdated
-        ? selectedMapsForDeforestation.map((map) => [
-            map.id,
-            map.version,
-            map.pixelSize,
-            map.baseline,
-            map.comparedAgainst,
-          ])
-        : null,
+      subset: requestedSubset,
+      // A layer whose calculation inputs change while the request is pending
+      // (e.g. replaced again during a recalculation) re-runs it.
+      calculationInputs: requestedMaps.map((map) => [
+        map.id,
+        map.version,
+        map.pixelSize,
+        map.baseline,
+        map.comparedAgainst,
+      ]),
     });
     if (serializedData === prevDataRef.current) return;
 
@@ -311,17 +371,19 @@ export function DeforestationAnalysisUploadDataPageContent() {
     // list refreshed, or Strict Mode replaying the effect) keeps it current.
     void performDeforestationAnalysis(
       farmsData,
+      requestedMaps,
+      requestedSubset,
       () =>
         mountedRef.current &&
         prevDataRef.current === serializedData &&
         readSelectedCountry() === selectedCountry
     );
   }, [
-    analysisRequested,
+    analysisMode,
     farmsData,
     selectedCountry,
-    selectedMapsForDeforestation,
-    analysisOutdated,
+    requestedMaps,
+    requestedSubset,
     performDeforestationAnalysis,
   ]);
 
@@ -337,14 +399,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
     [performFarmsGeneration, setAnalysisOutdated]
   );
 
-  const onAnalyze = useCallback(() => {
-    // The subset on screen is the one analysed, even if none was stored yet.
-    setDeforestationAnalysisParams((prev) => ({
-      ...prev,
-      polygonsSubset: prev.polygonsSubset ?? "valid",
-    }));
-    setAnalysisRequested(true);
-  }, [setDeforestationAnalysisParams]);
+  const onAnalyze = useCallback(() => setAnalysisMode("draft"), []);
 
   const openUpload = useCallback(() => {
     setUploadOpen(true);
@@ -356,7 +411,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
     );
   }, []);
 
-  if (loading && selectedMapsForDeforestation.length > 0)
+  // A recalculation whose layers are all hidden now has nothing to run: the form
+  // shows, so the user can pick others.
+  const nothingToRecalculate =
+    analysisMode === "recalculate" && requestedMaps.length === 0;
+  if (loading && !nothingToRecalculate)
     return (
       <LoadingScreen
         text={t(
@@ -367,7 +426,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       />
     );
 
-  const canAnalyze = !!farmsData && selectedMapsForDeforestation.length > 0;
+  const canAnalyze = !!farmsData && draftLayers.length > 0;
 
   return (
     <Box
@@ -402,7 +461,11 @@ export function DeforestationAnalysisUploadDataPageContent() {
               <Button
                 color="inherit"
                 size="small"
-                onClick={() => router.push("/polygons-validation/upload-data")}
+                onClick={() =>
+                  router.push(
+                    localizedPath("/polygons-validation/upload-data", i18n.language)
+                  )
+                }
               >
                 {t("deforestationAnalysis:uploadDataPage:directEntry.validate")}
               </Button>
@@ -429,7 +492,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
             <RadioGroup
               row
               value={subset}
-              onChange={(_, value) => onSubsetChange(value as "all" | "valid")}
+              onChange={(_, value) => onSubsetChange(value as PolygonsSubset)}
               aria-label={t("deforestationAnalysis:uploadDataPage:subset.label")}
               sx={{ columnGap: 3 }}
             >
@@ -495,7 +558,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
                 "deforestationAnalysis:uploadDataPage:uploadStep:submit"
               )}
               onSubmit={onUpload}
-              disabled={selectedMapsForDeforestation.length === 0}
+              disabled={draftLayers.length === 0}
             />
           ) : (
             <Box
@@ -542,7 +605,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
               count: analysedFarmsCount,
             }),
             layers: t("deforestationAnalysis:results.layerCount", {
-              count: selectedMapsForDeforestation.length,
+              count: draftLayers.length,
             }),
             categories: t("deforestationAnalysis:uploadDataPage:categoryCount", {
               count: selectedCategoriesCount,

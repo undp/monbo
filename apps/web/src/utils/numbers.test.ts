@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
   formatDeforestationPercentage,
+  formatFindingPercentage,
   formatNumber,
   formatOverlapPercentage,
   formatPercentage,
@@ -109,6 +110,21 @@ describe("formatDeforestationPercentage", () => {
     withThresholds(2);
     expect(formatDeforestationPercentage(0.104999, "es")).toBe("10,5%");
     expect(formatDeforestationPercentage(0.0283331208, "en")).toBe("2.8%");
+  });
+});
+
+describe("formatFindingPercentage", () => {
+  it("uses the threshold's decimals, and at least one", () => {
+    expect(formatFindingPercentage(0.18, 5, "es")).toBe("18%");
+    expect(formatFindingPercentage(0.0244, 2, "es")).toBe("2,4%");
+    expect(formatFindingPercentage(0.0244, 2.25, "en")).toBe("2.44%");
+  });
+
+  it("never reads a finding under the display resolution as 0%", () => {
+    expect(formatFindingPercentage(0.0004, 0, "es")).toBe("< 0,1%");
+    expect(formatFindingPercentage(0.0004, 0, "en")).toBe("< 0.1%");
+    expect(formatFindingPercentage(0.001, 0, "es")).toBe("0,1%");
+    expect(formatFindingPercentage(0, 0, "es")).toBe("0%");
   });
 });
 

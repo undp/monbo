@@ -60,6 +60,33 @@ describe("layerResultText", () => {
     expect(layerResultText(null, frontier, t, "en")).toBe("No data");
   });
 
+  it("never shows a flagged finding as 0% with a threshold of 0", async () => {
+    const t = await tFor("es");
+    const strict = makeCategory({ thresholdPercentage: 0 });
+    const strictFrontier = makeFrontierCategory({ thresholdPercentage: 0 });
+    // 0.04% of the farm: flagged, too small for one decimal.
+    expect(layerResultText(0.0004, strict, t, "es")).toBe("< 0,1% · Con deforestación");
+    expect(layerResultText(0.00049, strict, t, "es")).toBe(
+      "< 0,1% · Con deforestación"
+    );
+    // Its required mirror: 0.04% of the farm outside the frontier.
+    expect(layerResultText(0.9996, strictFrontier, t, "es")).toBe(
+      "< 0,1% · Fuera de la frontera agrícola"
+    );
+    // At the display resolution and above, the percentage itself.
+    expect(layerResultText(0.001, strict, t, "es")).toBe("0,1% · Con deforestación");
+    expect(layerResultText(0.0123, strict, t, "es")).toBe("1,2% · Con deforestación");
+    // Nothing at all is ok, not "< 0,1%".
+    expect(layerResultText(0, strict, t, "es")).toBe("Libre de deforestación");
+    expect(layerResultText(1, strictFrontier, t, "es")).toBe(
+      "Dentro de la frontera agrícola"
+    );
+    const en = await tFor("en");
+    expect(layerResultText(0.0004, strict, en, "en")).toBe(
+      "< 0.1% · With deforestation"
+    );
+  });
+
   it("reads every result as no data when the category is missing", async () => {
     const t = await tFor("es");
     expect(layerResultText(0, null, t, "es")).toBe("Sin dato");

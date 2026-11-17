@@ -46,6 +46,8 @@ describe("useCountryChange", () => {
         selectedMaps: [map],
       })
     ).toEqual({ polygonsSubset: "valid", selectedMaps: [] });
+    // The layers being chosen on stage 2 were the other country's.
+    expect(context.setAnalysisDraft).toHaveBeenCalledWith(null);
     expect(
       nextState(context.setFarmsData, [makeFarm({ country: "CR" })])?.map((f) => f.country)
     ).toEqual(["PE"]);

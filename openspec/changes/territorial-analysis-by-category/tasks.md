@@ -38,3 +38,12 @@
 
 - [x] 7.1 Run the app with CO configured with three categories locally (per-country layout with a `categories.json`), check selection and results in the browser at desktop and 390 px, and take screenshots
 - [x] 7.2 Run the web CI checks locally: `pnpm install --frozen-lockfile`, schema check, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test`, `pnpm run build`
+
+## 8. Review of #140 (2026-11-17)
+
+- [x] 8.1 Keep the page's choices in `analysisDraft`, apart from the analysed `deforestationAnalysisParams`; write the params only when an analysis succeeds; test the review's scenario
+- [x] 8.2 Send, show and count only offered layers; test the `maps` sent after a category is disabled
+- [x] 8.3 Format a flagged finding with `formatDeforestationPercentage` ("< 0,1%" with a threshold of 0); make `formatFindingPercentage` never return "0%" for a finding above 0 and document it; edge tests
+- [x] 8.4 "Sin dato" in the map chips and the table counter
+- [x] 8.5 Counter of farms without findings in green with the category's icon
+- [x] 8.6 "Cambiar capas", the stage 1 card and "Ir a validación" keep the language

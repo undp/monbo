@@ -1,12 +1,11 @@
 import type { TFunction } from "i18next";
 import { upperCase } from "lodash";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import { formatFindingPercentage, formatPercentage } from "./numbers";
+import { formatDeforestationPercentage, formatPercentage } from "./numbers";
 import {
   categoryRule,
   classifyResult,
   deforestationRule,
-  findingRatio,
 } from "./layerResults";
 import { localizedText } from "./localizedText";
 
@@ -34,11 +33,9 @@ export const layerResultText = (
     return t("deforestationAnalysis:noDataShortText");
   if (resultClass === "ok")
     return localizedText(category.resultLabels.ok, language);
-  const finding = formatFindingPercentage(
-    findingRatio(value, rule.polarity),
-    rule.thresholdPercentage,
-    language
-  );
+  // The same formatting as the rest of stage 2: with a threshold of 0, a finding
+  // under 0.1% reads "< 0,1%", never "0%" next to the flagged label.
+  const finding = formatDeforestationPercentage(value, language, rule);
   return `${finding} · ${localizedText(category.resultLabels.flagged, language)}`;
 };
 

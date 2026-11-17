@@ -196,8 +196,19 @@ export const formatDeforestationPercentage = (
 };
 
 /**
- * A finding above its threshold, with as many decimals as the threshold has (at
- * least DEFAULT_DECIMAL_PLACES): "18%", "2,4%".
+ * The percentage of a finding that is above its rule's threshold (a `flagged`
+ * result), for the cells and the PDF: "18%", "2,4%".
+ *
+ * - Decimals: as many as the threshold has, and at least DEFAULT_DECIMAL_PLACES,
+ *   so a finding above the threshold never reads as the threshold itself.
+ * - A finding too small for those decimals (only possible with a threshold of 0,
+ *   e.g. 0.0004 → 0.04%) reads "< 0,1%", never "0%": a flagged result must not
+ *   look like no finding at all. 0 itself reads "0%".
+ *
+ * Takes the finding, not `value`: for a `required` rule that is `1 − value`
+ * (`findingRatio`). For a result of any class, use formatDeforestationPercentage
+ * with the rule, which also covers results at or below the threshold.
+ *
  * @param finding - The share of the farm that is a finding (0-1)
  * @param thresholdPercentage - The rule's threshold, in percent (0-100)
  */
@@ -205,9 +216,10 @@ export const formatFindingPercentage = (
   finding: number,
   thresholdPercentage: number,
   language = "es"
-): string =>
-  formatPercentage(
-    finding,
-    getDecimalPlacesForThreshold(thresholdPercentage),
-    language
-  );
+): string => {
+  const decimals = getDecimalPlacesForThreshold(thresholdPercentage);
+  const resolution = Math.pow(10, -decimals);
+  if (finding > 0 && 100 * finding < resolution)
+    return `< ${formatPercentage(resolution / 100, decimals, language)}`;
+  return formatPercentage(finding, decimals, language);
+};

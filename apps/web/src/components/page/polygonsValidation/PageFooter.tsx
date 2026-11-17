@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
 import { getCountryName } from "@/utils/countries";
+import { localizedPath } from "@/utils/languageChange";
 import { NextStageCard } from "@/components/page/flow/NextStageCard";
 
 /**
@@ -25,7 +26,11 @@ export const PageFooter: React.FC = () => {
       stage={2}
       title={t("flow:nextStage.analysis.title")}
       description={t("flow:nextStage.analysis.description", { country })}
-      onContinue={() => router.push("/deforestation-analysis/upload-data")}
+      onContinue={() =>
+        router.push(
+          localizedPath("/deforestation-analysis/upload-data", i18n.language)
+        )
+      }
     />
   );
 };

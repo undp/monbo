@@ -18,6 +18,8 @@ export const makeDataContext = (
   setPolygonsValidationResults: vi.fn(),
   deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
   setDeforestationAnalysisParams: vi.fn(),
+  analysisDraft: null,
+  setAnalysisDraft: vi.fn(),
   deforestationAnalysisResults: null,
   setDeforestationAnalysisResults: vi.fn(),
   analysisOutdated: false,

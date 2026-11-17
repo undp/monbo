@@ -63,7 +63,7 @@ Every page of the three modules shows the **flow header** (`components/page/flow
 
 Each stage's state is a pure function of the route and `DataContext` (`utils/flowStages.ts`):
 - the current stage isn't a control: it opens no dialog;
-- stage 2 can always be opened from another stage, even without validating first. Without results it goes to its selection page (`/deforestation-analysis/upload-data`), which asks for the polygon subset after a validation, shows the layers grouped by category, and starts the analysis only from "Analizar" (or after an upload, or to recalculate an outdated analysis), never just because it opened;
+- stage 2 can always be opened from another stage, even without validating first. Without results it goes to its selection page (`/deforestation-analysis/upload-data`), which asks for the polygon subset after a validation, shows the layers grouped by category, and starts the analysis only from "Analizar" (or after an upload, or to recalculate an outdated analysis), never just because it opened. What the page edits is a draft (`analysisDraft` in `DataContext`): the results, the map and the report keep the subset and layers they were analysed with (`deforestationAnalysisParams`) until a new analysis succeeds, and a layer hidden after it was chosen is never sent;
 - stage 3 needs analysis results. It opens the report layer modal until the report's layers belong to the current analysis and it has farms;
 - uploading farms on module 2's upload page drops the validation of the farms loaded before.
 

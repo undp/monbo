@@ -118,7 +118,8 @@ describe("DeforestationResultsTable", () => {
     });
 
     expect(screen.getByText("Sin categoría")).toBeTruthy();
-    expect(screen.getByText("Sin dato")).toBeTruthy();
+    // The cell and the footer counter both say "Sin dato".
+    expect(screen.getAllByText("Sin dato")).toHaveLength(2);
     expect(screen.queryByText("Dentro de la frontera agrícola")).toBeNull();
   });
 

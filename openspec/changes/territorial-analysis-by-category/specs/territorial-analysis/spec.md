@@ -54,6 +54,41 @@ polygon. The analysis SHALL use the subset shown on the page when it starts.
 - **WHEN** the user chooses all polygons and presses "Analizar"
 - **THEN** the results show the 5 polygons
 
+### Requirement: The page's choices are a draft until analysed
+
+The layers and the polygon subset chosen on the stage 2 selection page SHALL be kept apart from
+the layers and subset the current results were analysed with. Changing them SHALL NOT change the
+results page, the map, the summary or the report until an analysis started from the page
+succeeds; then the results and the choices they were analysed with SHALL change together. The
+page SHALL keep its choices while the user visits another stage, and "Cambiar capas" SHALL open
+it with the choices of the results on screen.
+
+#### Scenario: Choices changed and abandoned
+
+- **WHEN** 6 valid polygons of 10 were analysed with GFW, TMF and IDEAM, and on the selection page
+  the user unticks IDEAM, chooses all polygons and goes back to the results with the browser's
+  back button without pressing "Analizar"
+- **THEN** the results still show the 6 valid polygons and the three layers, no invalid polygon
+  appears as free, and the report offers the same three layers
+
+#### Scenario: Choices analysed
+
+- **WHEN** the user then presses "Analizar" on the selection page and the analysis succeeds
+- **THEN** the results show 10 polygons and two layers
+
+### Requirement: A hidden layer never enters an analysis
+
+An analysis started from the stage 2 selection page SHALL send only layers the country offers
+now (listed by `GET /maps`, with a listed category). A layer hidden after it was chosen or
+analysed SHALL NOT be sent, shown as a choice, or counted in the page's summary. It MAY stay in
+the current results until a new analysis replaces them.
+
+#### Scenario: Category disabled after the analysis
+
+- **WHEN** GFW, TMF and IDEAM were analysed, TMF's category is then disabled, and the user presses
+  "Analizar" on the selection page
+- **THEN** the request's `maps` are GFW and IDEAM, and the page's summary counts two layers
+
 ### Requirement: Direct entry without polygons
 
 When no farms are loaded, the stage 2 selection page SHALL show a notice that the user came in
@@ -121,7 +156,9 @@ The stage 2 results table SHALL show a header row that groups the layer columns 
 the category's icon, color and name over its layers, and layer columns ordered by category. Each
 cell SHALL show the result of its layer for the farm: the category's `ok` label when `ok`; the
 finding percentage and the category's `flagged` label when `flagged`; "Sin dato" when `unknown`.
-The finding SHALL be `value` for `avoid` and `1 − value` for `required`. The table SHALL keep its
+The finding SHALL be `value` for `avoid` and `1 − value` for `required`. A flagged finding SHALL
+never read as "0%": with a threshold of 0, a finding under 0.1% reads "< 0,1%". The table SHALL
+keep its
 search, sorting and per-layer `ok` counter, and SHALL keep the props the report stage uses
 (`tableProps`, `mapsSubset`).
 
@@ -136,6 +173,12 @@ search, sorting and per-layer `ok` counter, and SHALL keep the props the report 
 - **WHEN** Deforestación has a threshold of 2 and a farm's GFW value is `0.005`
 - **THEN** the cell reads "Libre de deforestación", without a percentage
 
+#### Scenario: A tiny finding with a threshold of 0
+
+- **WHEN** Áreas protegidas is `avoid` with a threshold of 0 and a farm's value for its layer is
+  `0.0004`
+- **THEN** the cell reads "< 0,1% · Dentro de un área protegida", not "0% · …"
+
 #### Scenario: Grouped header
 
 - **WHEN** the analysis used GFW and TMF (Deforestación) and UPRA (Frontera agrícola)
@@ -146,8 +189,11 @@ search, sorting and per-layer `ok` counter, and SHALL keep the props the report 
 
 The stage 2 map view SHALL name its farm groups with the selected layer's category labels
 (`flagged`, `ok`, and "Sin dato" when it has farms), classify farms with that category's rule,
-and show the category's color and icon in the layer selector and its counter chip. Layer tiles
-SHALL keep their current color.
+and group the layer selector by category, with the category's color and icon. A layer's counter
+of farms without findings SHALL show the category's icon on the theme's success color (green),
+never on the category's color, so it doesn't read as a finding. A farm with no data SHALL read
+"Sin dato" in its group, its chip and the counters alike. Layer tiles SHALL keep their current
+color.
 
 #### Scenario: Selecting a frontier layer on the map
 
