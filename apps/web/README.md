@@ -338,6 +338,7 @@ pnpm generate:api-types  # Regenerate src/api/schema.d.ts from apps/api/openapi.
 ```sh
 NEXT_PUBLIC_GET_MAPS_URL=                       # URL to get available maps for deforestation analysis
 NEXT_PUBLIC_GET_CONFIG_URL=                     # URL of the API's product settings (GET /config); defaults to NEXT_PUBLIC_API_URL/config
+NEXT_PUBLIC_GET_CATEGORIES_URL=                 # URL of a country's layer categories (GET /categories); defaults to NEXT_PUBLIC_API_URL/categories
 
 NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL=      # URL to parse excel file data into valid Farm objects for polygon validation module
 NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons validation and find inconsistencies

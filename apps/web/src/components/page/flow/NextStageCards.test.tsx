@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DataContext } from "@/context/DataContext";
 import { createTestI18n } from "@/test/i18n";
 import { makeDataContext } from "@/test/renderWithData";
+import { router } from "@/test/navigation";
 import { PageFooter as ValidationPageFooter } from "@/components/page/polygonsValidation/PageFooter";
 import { PageFooter as AnalysisPageFooter } from "@/components/page/deforestationAnalysis/PageFooter";
 
@@ -21,15 +22,16 @@ const renderCard = async (card: React.ReactNode) => {
 const card = () => screen.getByRole("region", { name: "Siguiente etapa" });
 
 describe("next-stage cards", () => {
-  it("closes stage 1 with the territorial analysis, opening its modal", async () => {
+  it("closes stage 1 with the territorial analysis, going to its page", async () => {
     await renderCard(<ValidationPageFooter />);
 
     expect(within(card()).getByRole("heading", { name: "Análisis territorial" })).toBeTruthy();
     expect(within(card()).getByText(/Ecuador/)).toBeTruthy();
 
     fireEvent.click(within(card()).getByRole("button", { name: "Continuar" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Selecciona los polígonos a considerar")).toBeTruthy();
+    // No modal: the stage 2 page asks for the polygon subset and the layers.
+    expect(router.push).toHaveBeenCalledWith("/deforestation-analysis/upload-data");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("closes stage 2 with the report, opening the report layer modal", async () => {

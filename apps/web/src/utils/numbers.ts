@@ -1,9 +1,11 @@
-import {
-  getDeforestationThreshold,
-  getOverlapThreshold,
-} from "@/config/runtime";
+import { getOverlapThreshold } from "@/config/runtime";
 import { isOverlapAboveThreshold } from "./deforestation";
-import { classifyResult, deforestationRule } from "./layerResults";
+import {
+  classifyResult,
+  deforestationRule,
+  findingRatio,
+  type ClassificationRule,
+} from "./layerResults";
 
 const languageLocale = {
   es: "es-CL",
@@ -58,9 +60,6 @@ const formattedBelowThreshold = (threshold: number, language: string): string =>
   `< ${formatThreshold(threshold, language)}`;
 
 // Computed per call: the thresholds come from GET /config at startup.
-const deforestationDecimalPlaces = () =>
-  getDecimalPlacesForThreshold(getDeforestationThreshold());
-
 const overlapDecimalPlaces = () =>
   getDecimalPlacesForThreshold(getOverlapThreshold());
 
@@ -160,34 +159,55 @@ export const formatOverlapPercentage = (
 };
 
 /**
- * Formats a deforestation value as a percentage string.
+ * Formats a layer result as the percentage of the farm that is a finding: `value`
+ * for an `avoid` rule, `1 − value` for a `required` one. Deforestation by default
+ * (the PDF and the exports, until they read categories).
  *
- * If a deforestation threshold is defined (getDeforestationThreshold() > 0),
- * values below the threshold are displayed as "< X%" where X is the threshold.
- * Otherwise, values below DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
+ * If the rule has a threshold (> 0), findings at or below it are displayed as
+ * "< X%" where X is the threshold. Otherwise, findings below
+ * DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
  *
- * Values of 0 are displayed as "0%".
- * All other values are formatted as percentages with deforestationDecimalPlaces decimal places.
+ * A finding of 0 is displayed as "0%". All other findings are formatted with the
+ * threshold's decimal places (at least DEFAULT_DECIMAL_PLACES).
  *
- * @param value - The deforestation value to format (between 0 and 1)
+ * @param value - The layer result to format (between 0 and 1)
  * @returns The formatted percentage string
  */
 export const formatDeforestationPercentage = (
   value: number,
-  language = "es"
+  language = "es",
+  rule: ClassificationRule = deforestationRule()
 ): string => {
-  if (value === 0) return "0%";
+  const finding = findingRatio(value, rule.polarity);
+  if (finding === 0) return "0%";
 
-  // No threshold defined by user, so we use the default threshold for displaying deforestation
-  if (getDeforestationThreshold() === 0) {
-    if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
+  // No threshold defined by user, so we use the default threshold for displaying the finding
+  if (rule.thresholdPercentage === 0) {
+    if (100 * finding < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
+    return formatPercentage(finding, DEFAULT_DECIMAL_PLACES, language);
   }
 
-  // Threshold defined by user, so we use it for displaying deforestation
-  if (classifyResult(value, deforestationRule()) === "ok")
-    return formattedBelowThreshold(getDeforestationThreshold(), language);
+  // Threshold defined by user, so we use it for displaying the finding
+  if (classifyResult(value, rule) === "ok")
+    return formattedBelowThreshold(rule.thresholdPercentage, language);
 
-  return formatPercentage(value, deforestationDecimalPlaces(), language);
+  return formatFindingPercentage(finding, rule.thresholdPercentage, language);
 };
+
+/**
+ * A finding above its threshold, with as many decimals as the threshold has (at
+ * least DEFAULT_DECIMAL_PLACES): "18%", "2,4%".
+ * @param finding - The share of the farm that is a finding (0-1)
+ * @param thresholdPercentage - The rule's threshold, in percent (0-100)
+ */
+export const formatFindingPercentage = (
+  finding: number,
+  thresholdPercentage: number,
+  language = "es"
+): string =>
+  formatPercentage(
+    finding,
+    getDecimalPlacesForThreshold(thresholdPercentage),
+    language
+  );

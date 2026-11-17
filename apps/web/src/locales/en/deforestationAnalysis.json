@@ -1,31 +1,43 @@
 {
-  "title": "Deforestation Analysis",
   "searchPlaceholder": "Search by polygon or producer",
-  "deforestation": "Deforestation",
   "deforestationMapFooter": "{{baselineYear}} baseline compared to {{comparedToYear}} data",
   "uploadDataPage": {
     "loadingText": "Loading the data",
     "recalculatingText": "A map layer changed. Recalculating the analysis…",
     "analysisUpdated": "The analysis was recalculated with the updated map layer.",
-    "title": "Upload Polygons or Points",
+    "title": "Territorial analysis",
     "mapSelectionStep": {
-      "stepTitle": "Step 1: Select the map layers for the analysis",
+      "stepTitle": "Step 1: Choose the layers",
       "noMapsAvailable": "No layers available for {{country}}",
-      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again."
+      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again.",
+      "subtitle": "Grouped by category, as defined by the {{country}} team."
     },
     "uploadStep": {
-      "stepTitle": "Step 2: Add your farms",
-      "loadedFarms": "You already loaded {{count}} polygons and/or points. Choose the layers and analyze them, or upload another file.",
+      "stepTitle": "Step 2: Add your polygons",
+      "loadedFarms": "You already loaded {{count}} polygons and/or points.",
       "analyzeLoadedFarms": "Analyze",
-      "submit": "Analyze deforestation"
-    }
+      "submit": "Upload and analyze",
+      "uploadAnother": "Upload another file"
+    },
+    "subtitle": "Choose which {{country}} layers to cross your polygons with.",
+    "directEntry": {
+      "message": "You came in directly: you have no polygons loaded yet. Upload them here, or start with the validation to check them for errors first.",
+      "upload": "Upload polygons",
+      "validate": "Go to validation"
+    },
+    "subset": {
+      "label": "Polygons to analyze",
+      "message_one": "You will use {{count}} polygon from the validation.",
+      "message_other": "You will use {{count}} polygons from the validation.",
+      "valid": "Valid only ({{count}})",
+      "all": "All ({{count}})"
+    },
+    "summary": "{{polygons}} · {{layers}} in {{categories}}",
+    "categoryCount_one": "{{count}} category",
+    "categoryCount_other": "{{count}} categories"
   },
-  "deforestationFreeShortText": "Def. Free",
   "noDataShortText": "No data",
-  "deforestationFreeLongText": "Deforestation Free",
-  "withDeforestation": "Deforested",
   "map": "Map",
-  "deforestationLevel": "Def. Level",
   "mapsInfoModal": {
     "title": "Map details",
     "coverage": "Coverage",
@@ -37,5 +49,27 @@
     "references": "References",
     "considerations": "Considerations"
   },
-  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not represent the deforestation"
+  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not represent the deforestation",
+  "categories": {
+    "uncategorized": "No category"
+  },
+  "results": {
+    "summaryLabel": "Summary by category",
+    "layerCount_one": "{{count}} layer",
+    "layerCount_other": "{{count}} layers",
+    "okOfTotal": "{{ok}} of {{total}}",
+    "flaggedAndNoData": "{{flagged}} with findings · {{unknown}} no data",
+    "title": "Territorial analysis results",
+    "subtitle": "{{polygons}} crossed with {{layers}} of {{country}}.",
+    "polygonCount_one": "{{count}} polygon",
+    "polygonCount_other": "{{count}} polygons",
+    "changeLayers": "Change layers",
+    "flagged": "With findings",
+    "ok": "No findings",
+    "layerResult": "Result"
+  },
+  "layerPicker": {
+    "tickedOfTotal_one": "{{ticked}} of {{count}} layer",
+    "tickedOfTotal_other": "{{ticked}} of {{count}} layers"
+  }
 }

@@ -100,16 +100,15 @@ describe("FlowHeader", () => {
     expect(router.push).toHaveBeenLastCalledWith("/polygons-validation");
   });
 
-  it("after a validation, opens the analysis modal instead of skipping it", async () => {
+  it("after a validation, goes to the stage 2 page, which asks for the subset", async () => {
     await renderHeader("/polygons-validation", {
       polygonsValidationResults: makeValidationResults({}),
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Análisis territorial/ }));
 
-    expect(router.push).not.toHaveBeenCalled();
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Selecciona los polígonos a considerar")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(router.push).toHaveBeenLastCalledWith("/deforestation-analysis/upload-data");
   });
 
   it("on stage 2 itself, the stage opens no dialog, even after a validation", async () => {

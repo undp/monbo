@@ -116,18 +116,14 @@ describe("stageHref", () => {
 describe("stageAction", () => {
   const READY = { reportMapIds: [1], analysisMapIds: [1, 2], selectedFarmsCount: 3 };
 
-  it("opens the analysis modal for stage 2 from another stage, after a validation", () => {
-    expect(stageAction(2, 1, VALIDATED, READY)).toBe("analysisModal");
-    expect(stageAction(2, 3, VALIDATED, READY)).toBe("analysisModal");
-  });
-
-  it("goes straight to stage 2 without a validation, or with results", () => {
-    expect(stageAction(2, 1, NOTHING, READY)).toBe("navigate");
-    expect(stageAction(2, 1, BOTH, READY)).toBe("navigate");
+  it("goes straight to stage 2: no modal after a validation", () => {
+    // The stage 2 page asks for the polygon subset itself (GC-6).
+    expect(stageAction(2, 1, READY)).toBe("navigate");
+    expect(stageAction(2, 3, READY)).toBe("navigate");
   });
 
   it("opens the report only when its choices are ready", () => {
-    expect(stageAction(3, 2, BOTH, READY)).toBe("navigate");
+    expect(stageAction(3, 2, READY)).toBe("navigate");
   });
 
   it.each([
@@ -135,18 +131,18 @@ describe("stageAction", () => {
     ["layers ticked but no farm confirmed", { ...READY, selectedFarmsCount: 0 }],
     ["a report layer from an earlier analysis", { ...READY, reportMapIds: [3] }],
   ])("asks for the report's choices with %s", (_, selection) => {
-    expect(stageAction(3, 2, BOTH, selection)).toBe("reportModal");
+    expect(stageAction(3, 2, selection)).toBe("reportModal");
   });
 
   it("navigates for stage 1", () => {
-    expect(stageAction(1, 2, VALIDATED, READY)).toBe("navigate");
+    expect(stageAction(1, 2, READY)).toBe("navigate");
   });
 
   it("does nothing for the current stage, and opens no dialog", () => {
     // On stage 2 while the analysis runs or after it fails: no analysis modal.
-    expect(stageAction(2, 2, VALIDATED, READY)).toBe("none");
+    expect(stageAction(2, 2, READY)).toBe("none");
     // On the report with no farm chosen: no report modal.
-    expect(stageAction(3, 3, BOTH, { ...READY, selectedFarmsCount: 0 })).toBe("none");
-    expect(stageAction(1, 1, NOTHING, READY)).toBe("none");
+    expect(stageAction(3, 3, { ...READY, selectedFarmsCount: 0 })).toBe("none");
+    expect(stageAction(1, 1, READY)).toBe("none");
   });
 });

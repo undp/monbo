@@ -25,14 +25,6 @@
     },
     "tableHeader": "Validación manual"
   },
-  "deforestationModal": {
-    "title": "Análisis deforestación",
-    "polygonSelection": "Selecciona los polígonos a considerar",
-    "all": "Todos",
-    "valid": "Polígonos validados",
-    "mapsSelection": "Selecciona capas de mapas",
-    "continue": "Continuar"
-  },
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
     "title": "Carga de polígonos o puntos",

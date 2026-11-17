@@ -2,6 +2,7 @@ import { alpha } from "@mui/material/styles";
 import {
   classifyResult,
   deforestationRule,
+  type ClassificationRule,
   type ResultClass,
 } from "./layerResults";
 
@@ -23,13 +24,14 @@ export const resultClassColor = (resultClass: ResultClass) =>
 export const resultClassBackgroundColor = (resultClass: ResultClass) =>
   RESULT_CLASS_BACKGROUND_COLORS[resultClass];
 
+// The rule defaults to deforestation (the PDF and the exports); stage 2 passes each
+// layer's category rule, and a null rule (category missing) reads as no data.
 export const getDeforestationPercentageChipColor = (
-  deforestationValue: number | null | undefined
-) => resultClassColor(classifyResult(deforestationValue, deforestationRule()));
+  deforestationValue: number | null | undefined,
+  rule: ClassificationRule | null = deforestationRule()
+) => resultClassColor(classifyResult(deforestationValue, rule));
 
 export const getDeforestationPercentageChipBackgroundColor = (
-  deforestationValue: number | null | undefined
-) =>
-  resultClassBackgroundColor(
-    classifyResult(deforestationValue, deforestationRule())
-  );
+  deforestationValue: number | null | undefined,
+  rule: ClassificationRule | null = deforestationRule()
+) => resultClassBackgroundColor(classifyResult(deforestationValue, rule));

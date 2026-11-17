@@ -3,6 +3,7 @@ import type {
   DeforestationAnalysisMapResults,
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
   FarmValidationStatus,
   ValidateFarmsResponse,
@@ -136,3 +137,54 @@ export const makeValidationResults = (
   })),
   inconsistencies: [],
 });
+
+/** The built-in deforestation category, as `GET /categories` returns it. */
+export const makeCategory = (
+  overrides: Partial<LayerCategory> = {}
+): LayerCategory => ({
+  id: "deforestation",
+  name: { es: "Deforestación", en: "Deforestation" },
+  description: {
+    es: "Pérdida de bosque después de la línea base.",
+    en: "Forest loss after the baseline.",
+  },
+  icon: "forest",
+  color: "#c62828",
+  polarity: "avoid",
+  thresholdPercentage: 0,
+  resultLabels: {
+    ok: { es: "Libre de deforestación", en: "Deforestation-free" },
+    flagged: { es: "Con deforestación", en: "With deforestation" },
+  },
+  temporal: true,
+  ...overrides,
+});
+
+/** An agricultural frontier category: being outside the layer is the finding. */
+export const makeFrontierCategory = (
+  overrides: Partial<LayerCategory> = {}
+): LayerCategory =>
+  makeCategory({
+    id: "agricultural_frontier",
+    name: { es: "Frontera agrícola", en: "Agricultural frontier" },
+    description: {
+      es: "Zonas donde se permite la producción agropecuaria.",
+      en: "Areas where farming is allowed.",
+    },
+    icon: "agriculture",
+    color: "#a8741a",
+    polarity: "required",
+    thresholdPercentage: 5,
+    resultLabels: {
+      ok: {
+        es: "Dentro de la frontera agrícola",
+        en: "Inside the agricultural frontier",
+      },
+      flagged: {
+        es: "Fuera de la frontera agrícola",
+        en: "Outside the agricultural frontier",
+      },
+    },
+    temporal: false,
+    ...overrides,
+  });

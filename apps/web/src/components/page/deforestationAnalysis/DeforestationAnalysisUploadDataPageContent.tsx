@@ -4,10 +4,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { analyzeLayers } from "@/api/layerAnalysis";
 import {
@@ -23,24 +23,52 @@ import { useUploadSources } from "@/components/page/uploadData/useUploadSources"
 import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
-import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
-import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
+import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import { MessageBox } from "@/components/reusable/MessageBox";
-import { Box, Button } from "@mui/material";
+import { Text } from "@/components/reusable/Text";
+import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
+import {
+  Alert,
+  Box,
+  Button,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+} from "@mui/material";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { getCountryName } from "@/utils/countries";
 import { FarmRow } from "@/interfaces/FarmRow";
+import { LayerCategoryPicker } from "./LayerCategoryPicker";
+import { groupLayersByCategory } from "@/utils/layerResults";
 
+// Where "Subir polígonos" scrolls to.
+const UPLOAD_STEP_ID = "territorial-analysis-upload";
+
+/**
+ * Stage 2's selection page: the polygon subset (after a validation), the layers by
+ * category and the farms. The analysis starts only from "Analizar", after a file is
+ * uploaded here, or to recalculate an analysis a layer change invalidated; never
+ * because the page opened with farms and layers loaded (e.g. through the browser's
+ * back button), so no analysis runs with choices the user didn't see.
+ */
 export function DeforestationAnalysisUploadDataPageContent() {
-  // const [file, setFile] = useState<File | null>(null);
   const { openSnackbar } = useContext(SnackbarContext);
   const router = useRouter();
   const {
     availableMaps,
+    availableCategories,
     availableMapsError,
     farmsData,
     setFarmsData,
+    polygonsValidationResults,
     setPolygonsValidationResults,
-    deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
+    deforestationAnalysisParams: {
+      selectedMaps: selectedMapsForDeforestation,
+      polygonsSubset,
+    },
     setDeforestationAnalysisParams,
     setDeforestationAnalysisResults,
     selectedCountry,
@@ -54,18 +82,20 @@ export function DeforestationAnalysisUploadDataPageContent() {
   useEffect(() => {
     refreshAvailableMaps();
   }, [refreshAvailableMaps]);
-  // With farms already loaded the analysis starts right away, unless no map is
-  // selected yet: then the form is shown so the user can pick one.
-  const [loading, setLoading] = useState(
-    () => !!farmsData && selectedMapsForDeforestation.length > 0
-  );
-  // Whether the analysis may start: when the page opens with farms and layers
-  // (from the deforestation modal, or to recalculate an outdated analysis),
-  // after a file is parsed, or from the "Analyze" button. Choosing layers on
-  // the form never starts it, so the user can tick more than one.
+
+  // Only an outdated analysis restarts on its own when the page opens: its subset
+  // and layers were already chosen. Anything else waits for "Analizar".
+  const recalculateOnOpen =
+    analysisOutdated && !!farmsData && selectedMapsForDeforestation.length > 0;
+  const [loading, setLoading] = useState(() => recalculateOnOpen);
+  // Whether the analysis may start: to recalculate an outdated analysis, after a
+  // file is parsed, or from the "Analizar" button. Choosing layers or the subset
+  // never starts it.
   const [analysisRequested, setAnalysisRequested] = useState(
-    () => !!farmsData && selectedMapsForDeforestation.length > 0
+    () => recalculateOnOpen
   );
+  // The upload step is open when there are no farms; with farms, behind a button.
+  const [uploadOpen, setUploadOpen] = useState(() => !farmsData);
   // The inputs of the latest analysis request, and whether the page is mounted:
   // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
@@ -85,30 +115,73 @@ export function DeforestationAnalysisUploadDataPageContent() {
       selectedCountry)
     : "";
 
-  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
-    selectedMaps: selectedMapsForDeforestation,
-    availableMaps,
-  });
+  // The country's layers that can be offered: listed for it, with a category.
+  const countryLayers = useMemo(
+    () =>
+      availableMaps.filter(
+        ({ availableCountriesCodes }) =>
+          !!selectedCountry && availableCountriesCodes.includes(selectedCountry)
+      ),
+    [availableMaps, selectedCountry]
+  );
+  const offeredGroups = useMemo(
+    () =>
+      groupLayersByCategory(countryLayers, availableCategories).filter(
+        ({ category }) => category !== null
+      ),
+    [countryLayers, availableCategories]
+  );
+  const selectedIds = useMemo(
+    () => new Set(selectedMapsForDeforestation.map(({ id }) => id)),
+    [selectedMapsForDeforestation]
+  );
+  const selectedCategoriesCount = useMemo(
+    () =>
+      new Set(
+        selectedMapsForDeforestation.map(({ categoryId }) => categoryId)
+      ).size,
+    [selectedMapsForDeforestation]
+  );
+
+  const validFarmsCount = useMemo(
+    () =>
+      farmsData?.filter(
+        (farm) =>
+          polygonsValidationResults?.farmResults.find(
+            ({ farmId }) => farmId === farm.id
+          )?.status !== FarmValidationStatus.NOT_VALID
+      ).length ?? 0,
+    [farmsData, polygonsValidationResults]
+  );
+  const hasValidation = !!farmsData && !!polygonsValidationResults;
+  // With a validation, "valid only" is the default until the user picks "all".
+  const subset = polygonsSubset ?? "valid";
+  const analysedFarmsCount =
+    hasValidation && subset === "valid"
+      ? validFarmsCount
+      : (farmsData?.length ?? 0);
+
+  const onSubsetChange = useCallback(
+    (value: "all" | "valid") => {
+      setDeforestationAnalysisParams((prev) => ({
+        ...prev,
+        polygonsSubset: value,
+      }));
+    },
+    [setDeforestationAnalysisParams]
+  );
 
   const onMapSelectionChange = useCallback(
-    (id: string, checked: boolean) => {
+    (layer: MapData, checked: boolean) => {
       setAnalysisRequested(false);
-      if (checked) {
-        setDeforestationAnalysisParams((prev) => ({
-          ...prev,
-          selectedMaps: [
-            ...prev.selectedMaps,
-            availableMaps.find((m) => m.id === Number(id))!,
-          ],
-        }));
-      } else {
-        setDeforestationAnalysisParams((prev) => ({
-          ...prev,
-          selectedMaps: prev.selectedMaps.filter((m) => m.id !== Number(id)),
-        }));
-      }
+      setDeforestationAnalysisParams((prev) => ({
+        ...prev,
+        selectedMaps: checked
+          ? [...prev.selectedMaps.filter(({ id }) => id !== layer.id), layer]
+          : prev.selectedMaps.filter(({ id }) => id !== layer.id),
+      }));
     },
-    [availableMaps, setDeforestationAnalysisParams]
+    [setDeforestationAnalysisParams]
   );
 
   const performFarmsGeneration = useCallback(
@@ -187,10 +260,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
           message: t("common:snackbarAlerts:performingAnalysisError"),
           type: "error",
         });
-        // TODO: we should navigate back to polygons validation page only if coming from there
-        // router.push("/polygons-validation");
         setLoading(false);
-        // Back to the form: the "Analyze" button retries.
+        // Back to the form: the "Analizar" button retries.
         setAnalysisRequested(false);
       }
     },
@@ -266,6 +337,25 @@ export function DeforestationAnalysisUploadDataPageContent() {
     [performFarmsGeneration, setAnalysisOutdated]
   );
 
+  const onAnalyze = useCallback(() => {
+    // The subset on screen is the one analysed, even if none was stored yet.
+    setDeforestationAnalysisParams((prev) => ({
+      ...prev,
+      polygonsSubset: prev.polygonsSubset ?? "valid",
+    }));
+    setAnalysisRequested(true);
+  }, [setDeforestationAnalysisParams]);
+
+  const openUpload = useCallback(() => {
+    setUploadOpen(true);
+    // After the step renders.
+    setTimeout(() =>
+      document
+        .getElementById(UPLOAD_STEP_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  }, []);
+
   if (loading && selectedMapsForDeforestation.length > 0)
     return (
       <LoadingScreen
@@ -277,19 +367,109 @@ export function DeforestationAnalysisUploadDataPageContent() {
       />
     );
 
+  const canAnalyze = !!farmsData && selectedMapsForDeforestation.length > 0;
+
   return (
-    <UploadPageContent title={t("deforestationAnalysis:uploadDataPage:title")}>
+    <Box
+      sx={{
+        padding: 1.5,
+        paddingTop: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      <Box sx={{ marginLeft: 1.5 }}>
+        <StageEyebrow />
+        <Text variant="h3" bold>
+          {t("deforestationAnalysis:uploadDataPage:title")}
+        </Text>
+        <Text sx={{ color: "text.secondary", marginTop: 0.5 }}>
+          {t("deforestationAnalysis:uploadDataPage:subtitle", {
+            country: countryName,
+          })}
+        </Text>
+      </Box>
+
+      {!farmsData && (
+        <Alert
+          severity="warning"
+          action={
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Button color="inherit" size="small" onClick={openUpload}>
+                {t("deforestationAnalysis:uploadDataPage:directEntry.upload")}
+              </Button>
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => router.push("/polygons-validation/upload-data")}
+              >
+                {t("deforestationAnalysis:uploadDataPage:directEntry.validate")}
+              </Button>
+            </Box>
+          }
+          sx={{
+            alignItems: "center",
+            flexWrap: { xs: "wrap", sm: "nowrap" },
+            "& .MuiAlert-action": { marginLeft: { xs: 0, sm: "auto" } },
+          }}
+        >
+          {t("deforestationAnalysis:uploadDataPage:directEntry.message")}
+        </Alert>
+      )}
+
+      {hasValidation && (
+        <Alert severity="info" icon={false} sx={{ alignItems: "center" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <span>
+              {t("deforestationAnalysis:uploadDataPage:subset.message", {
+                count: analysedFarmsCount,
+              })}
+            </span>
+            <RadioGroup
+              row
+              value={subset}
+              onChange={(_, value) => onSubsetChange(value as "all" | "valid")}
+              aria-label={t("deforestationAnalysis:uploadDataPage:subset.label")}
+              sx={{ columnGap: 3 }}
+            >
+              <FormControlLabel
+                value="valid"
+                control={<Radio size="small" />}
+                label={t("deforestationAnalysis:uploadDataPage:subset.valid", {
+                  count: validFarmsCount,
+                })}
+              />
+              <FormControlLabel
+                value="all"
+                control={<Radio size="small" />}
+                label={t("deforestationAnalysis:uploadDataPage:subset.all", {
+                  count: farmsData.length,
+                })}
+              />
+            </RadioGroup>
+          </Box>
+        </Alert>
+      )}
+
       <TextHeaderStepContainer
         title={t(
           "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
         )}
+        subtitle={t(
+          "deforestationAnalysis:uploadDataPage:mapSelectionStep:subtitle",
+          { country: countryName }
+        )}
+        icon={<LayersOutlinedIcon />}
       >
-        <MultiSelectionStep
-          selectedOptions={selectedMapsOptions}
-          options={mapOptions}
-          onChange={onMapSelectionChange}
-        />
-        {!mapOptions.length && (
+        {offeredGroups.length > 0 ? (
+          <LayerCategoryPicker
+            layers={countryLayers}
+            categories={availableCategories}
+            selectedIds={selectedIds}
+            onChange={onMapSelectionChange}
+          />
+        ) : (
           <MessageBox
             message={t(
               availableMapsError
@@ -300,44 +480,85 @@ export function DeforestationAnalysisUploadDataPageContent() {
           />
         )}
       </TextHeaderStepContainer>
-      <TextHeaderStepContainer
-        title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
-        subtitle={t("common:farmsUpload:intro")}
+
+      <Box id={UPLOAD_STEP_ID} sx={{ scrollMarginTop: 16 }}>
+        <TextHeaderStepContainer
+          title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
+          subtitle={t("common:farmsUpload:intro")}
+          icon={<FileUploadOutlinedIcon />}
+        >
+          {uploadOpen ? (
+            <FarmsUploadStep
+              upload={upload}
+              country={selectedCountry}
+              submitLabel={t(
+                "deforestationAnalysis:uploadDataPage:uploadStep:submit"
+              )}
+              onSubmit={onUpload}
+              disabled={selectedMapsForDeforestation.length === 0}
+            />
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
+              <span>
+                {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
+                  count: farmsData?.length ?? 0,
+                })}
+              </span>
+              <Button variant="outlined" onClick={openUpload}>
+                {t("deforestationAnalysis:uploadDataPage:uploadStep:uploadAnother")}
+              </Button>
+            </Box>
+          )}
+        </TextHeaderStepContainer>
+      </Box>
+
+      <Box
         sx={{
-          flexGrow: 1,
-          opacity: selectedMapsForDeforestation.length === 0 ? 0.4 : 1,
+          position: "sticky",
+          bottom: 0,
+          zIndex: 2,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 2,
+          padding: "12px 16px",
+          borderRadius: 3,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #DEDEDE",
+          boxShadow: "0 -6px 18px rgba(11, 37, 69, 0.08)",
         }}
       >
-        <FarmsUploadStep
-          upload={upload}
-          country={selectedCountry}
-          submitLabel={t("deforestationAnalysis:uploadDataPage:uploadStep:submit")}
-          onSubmit={onUpload}
-          disabled={selectedMapsForDeforestation.length === 0}
-        />
-        {farmsData && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
-              marginTop: 2,
-            }}
-          >
-            {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
-              count: farmsData.length,
-            })}
-            <Button
-              variant="contained"
-              onClick={() => setAnalysisRequested(true)}
-              disabled={selectedMapsForDeforestation.length === 0}
-            >
-              {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
-            </Button>
-          </Box>
-        )}
-      </TextHeaderStepContainer>
-    </UploadPageContent>
+        <Text sx={{ color: "text.secondary" }}>
+          {t("deforestationAnalysis:uploadDataPage:summary", {
+            polygons: t("deforestationAnalysis:results.polygonCount", {
+              count: analysedFarmsCount,
+            }),
+            layers: t("deforestationAnalysis:results.layerCount", {
+              count: selectedMapsForDeforestation.length,
+            }),
+            categories: t("deforestationAnalysis:uploadDataPage:categoryCount", {
+              count: selectedCategoriesCount,
+            }),
+          })}
+        </Text>
+        <Button
+          variant="contained"
+          endIcon={<ArrowForwardRoundedIcon />}
+          disabled={!canAnalyze}
+          onClick={onAnalyze}
+          sx={{ marginLeft: "auto" }}
+        >
+          {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
+        </Button>
+      </Box>
+    </Box>
   );
 }

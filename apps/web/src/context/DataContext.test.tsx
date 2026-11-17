@@ -2,6 +2,7 @@ import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCountries } from "@/api/countries";
 import { getMaps } from "@/api/layerAnalysis";
+import { getLayerCategories } from "@/api/layerCategories";
 import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
   ON_DEMAND_REFRESH_MIN_GAP,
@@ -9,11 +10,18 @@ import {
 import type { MapData } from "@/interfaces/DeforestationAnalysis";
 import { deferred } from "@/test/deferred";
 import { createTestI18n } from "@/test/i18n";
-import { makeFarm, makeMap, makeMapResults } from "@/test/factories";
+import {
+  makeCategory,
+  makeFarm,
+  makeFrontierCategory,
+  makeMap,
+  makeMapResults,
+} from "@/test/factories";
 import { renderWithDataProvider } from "@/test/renderWithDataProvider";
 import { readFlowGeneration } from "./DataContext";
 
 vi.mock("@/api/countries", () => ({ getCountries: vi.fn() }));
+vi.mock("@/api/layerCategories", () => ({ getLayerCategories: vi.fn() }));
 vi.mock("@/api/layerAnalysis", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/layerAnalysis")>()),
   getMaps: vi.fn(),
@@ -52,6 +60,9 @@ beforeEach(async () => {
   });
   vi.mocked(getCountries).mockResolvedValue([{ code: "CR" }, { code: "PE" }]);
   mapsByCountry();
+  vi.mocked(getLayerCategories).mockImplementation(async (country) =>
+    country === "PE" ? [makeCategory(), makeFrontierCategory()] : [makeCategory()]
+  );
 });
 
 /** A mounted provider with the countries loaded and `country` selected. */
@@ -183,6 +194,30 @@ describe("DataProvider layers", () => {
     await poll();
     expect(result.current.availableMapsError).toBe(false);
     expect(result.current.availableMaps).toEqual([gfw]);
+  });
+
+  it("loads the country's categories with its layers", async () => {
+    const { result } = await withCountry("CR");
+    expect(getLayerCategories).toHaveBeenCalledWith("CR");
+    expect(result.current.availableCategories).toEqual([makeCategory()]);
+
+    act(() => result.current.setSelectedCountry("PE"));
+    await flush();
+    expect(result.current.availableMaps).toEqual([tmf]);
+    expect(result.current.availableCategories).toEqual([
+      makeCategory(),
+      makeFrontierCategory(),
+    ]);
+  });
+
+  it("shows no layers when the categories can't be loaded", async () => {
+    vi.mocked(getLayerCategories).mockRejectedValue(new Error("offline"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { result } = await withCountry("CR");
+
+    expect(result.current.availableMaps).toEqual([]);
+    expect(result.current.availableCategories).toEqual([]);
+    expect(result.current.availableMapsError).toBe(true);
   });
 
   it("ignores a response for the previous country", async () => {

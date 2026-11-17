@@ -1,31 +1,43 @@
 {
-  "title": "Análisis de deforestación",
   "searchPlaceholder": "Buscar por polígono o productor",
-  "deforestation": "Deforestación",
   "deforestationMapFooter": "Línea base de {{baselineYear}} comparada con datos de {{comparedToYear}}",
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
     "recalculatingText": "Cambió una capa de mapa. Recalculando el análisis…",
     "analysisUpdated": "El análisis se recalculó con la capa de mapa actualizada.",
-    "title": "Carga de polígonos y/o puntos",
+    "title": "Análisis territorial",
     "mapSelectionStep": {
-      "stepTitle": "Paso 1: Selecciona las capas de mapas para el análisis",
+      "stepTitle": "Paso 1: Elige las capas",
       "noMapsAvailable": "No hay capas disponibles para {{country}}",
-      "mapsLoadError": "No se pudieron cargar las capas de {{country}}. Recarga la página para intentarlo de nuevo."
+      "mapsLoadError": "No se pudieron cargar las capas de {{country}}. Recarga la página para intentarlo de nuevo.",
+      "subtitle": "Agrupadas por categoría. Las define el equipo de {{country}}."
     },
     "uploadStep": {
-      "stepTitle": "Paso 2: Agrega tus fincas",
-      "loadedFarms": "Ya tienes {{count}} polígonos y/o puntos cargados. Elige las capas y analízalos, o carga otro archivo.",
+      "stepTitle": "Paso 2: Agrega tus polígonos",
+      "loadedFarms": "Ya tienes {{count}} polígonos y/o puntos cargados.",
       "analyzeLoadedFarms": "Analizar",
-      "submit": "Analizar deforestación"
-    }
+      "submit": "Subir y analizar",
+      "uploadAnother": "Cargar otro archivo"
+    },
+    "subtitle": "Elige con qué capas de {{country}} quieres cruzar tus polígonos.",
+    "directEntry": {
+      "message": "Llegaste directo: aún no tienes polígonos cargados. Súbelos aquí o empieza por la validación para revisar errores antes.",
+      "upload": "Subir polígonos",
+      "validate": "Ir a validación"
+    },
+    "subset": {
+      "label": "Polígonos que se analizan",
+      "message_one": "Usarás {{count}} polígono de la validación.",
+      "message_other": "Usarás {{count}} polígonos de la validación.",
+      "valid": "Solo los válidos ({{count}})",
+      "all": "Todos ({{count}})"
+    },
+    "summary": "{{polygons}} · {{layers}} en {{categories}}",
+    "categoryCount_one": "{{count}} categoría",
+    "categoryCount_other": "{{count}} categorías"
   },
-  "deforestationFreeShortText": "Libre Def.",
   "noDataShortText": "Sin dato",
-  "deforestationFreeLongText": "Libre de deforestación",
-  "withDeforestation": "Deforestados",
   "map": "Mapa",
-  "deforestationLevel": "Nivel def.",
   "mapsInfoModal": {
     "title": "Detalles de mapas",
     "coverage": "Cobertura",
@@ -37,5 +49,27 @@
     "references": "Referencias",
     "considerations": "Consideraciones"
   },
-  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no representa la deforestación"
+  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no representa la deforestación",
+  "categories": {
+    "uncategorized": "Sin categoría"
+  },
+  "results": {
+    "summaryLabel": "Resumen por categoría",
+    "layerCount_one": "{{count}} capa",
+    "layerCount_other": "{{count}} capas",
+    "okOfTotal": "{{ok}} de {{total}}",
+    "flaggedAndNoData": "{{flagged}} con observaciones · {{unknown}} sin dato",
+    "title": "Resultados del análisis territorial",
+    "subtitle": "{{polygons}} cruzados con {{layers}} de {{country}}.",
+    "polygonCount_one": "{{count}} polígono",
+    "polygonCount_other": "{{count}} polígonos",
+    "changeLayers": "Cambiar capas",
+    "flagged": "Con observaciones",
+    "ok": "Sin observaciones",
+    "layerResult": "Resultado"
+  },
+  "layerPicker": {
+    "tickedOfTotal_one": "{{ticked}} de {{count}} capa",
+    "tickedOfTotal_other": "{{ticked}} de {{count}} capas"
+  }
 }

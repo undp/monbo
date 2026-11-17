@@ -12,10 +12,14 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { useSearchParams } from "next/navigation";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
-import { deforestationRule, groupFarmsByResult } from "@/utils/layerResults";
+import { groupFarmsByResult } from "@/utils/layerResults";
+import { useLayerReading } from "@/hooks/useLayerRules";
+import { localizedText } from "@/utils/localizedText";
+import { categoryTints } from "@/utils/categoryColors";
+import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 
 export const MapView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedPolygonIdAtList, setSelectedPolygonIdAtList] =
     useState<string>("all");
   const [selectedPolygonIdAtMap, setSelectedPolygonIdAtMap] = useState<
@@ -28,6 +32,7 @@ export const MapView: React.FC = () => {
     baseline,
     comparedAgainst,
   } = useSelectedMap();
+  const { category, rule } = useLayerReading(selectedMapId);
 
   const { farmsData, deforestationAnalysisResults } =
     useVisibleDataForDeforestationPage();
@@ -35,8 +40,8 @@ export const MapView: React.FC = () => {
   const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
 
-  // A farm without a result for this layer (or with a null one) is "no data", never
-  // deforestation-free.
+  // A farm without a result for this layer (or with a null one, or a layer whose
+  // category is missing) is "no data", never ok.
   const {
     flagged: deforestedFarms,
     ok: freeDeforestationFarms,
@@ -48,10 +53,18 @@ export const MapView: React.FC = () => {
         deforestationAnalysisResults?.find(
           (result) => result.mapId === selectedMapId
         ),
-        deforestationRule()
+        rule
       ),
-    [farmsData, deforestationAnalysisResults, selectedMapId]
+    [farmsData, deforestationAnalysisResults, selectedMapId, rule]
   );
+
+  // The groups are named with the layer's category labels.
+  const flaggedLabel = category
+    ? localizedText(category.resultLabels.flagged, i18n.language)
+    : t("deforestationAnalysis:results.flagged");
+  const okLabel = category
+    ? localizedText(category.resultLabels.ok, i18n.language)
+    : t("deforestationAnalysis:results.ok");
 
   const onPolygonListClick = useCallback(
     (id: string) => {
@@ -75,9 +88,7 @@ export const MapView: React.FC = () => {
     return [
       {
         id: 1,
-        title: `${t("deforestationAnalysis:withDeforestation")} (${
-          deforestedFarms.length
-        })`,
+        title: `${flaggedLabel} (${deforestedFarms.length})`,
         content: (
           <FarmsList
             farmsData={deforestedFarms}
@@ -88,9 +99,7 @@ export const MapView: React.FC = () => {
       },
       {
         id: 2,
-        title: `${t("deforestationAnalysis:deforestationFreeShortText")} (${
-          freeDeforestationFarms.length
-        })`,
+        title: `${okLabel} (${freeDeforestationFarms.length})`,
         content: (
           <FarmsList
             farmsData={freeDeforestationFarms}
@@ -124,6 +133,8 @@ export const MapView: React.FC = () => {
     noDataFarms,
     onPolygonListClick,
     selectedPolygonIdAtList,
+    flaggedLabel,
+    okLabel,
     t,
   ]);
 
@@ -228,16 +239,22 @@ export const MapView: React.FC = () => {
           <Text
             sx={{
               display: "flex",
+              flexWrap: "wrap",
               alignItems: "center",
             }}
           >
             {selectedMapName}
+            {baseline !== null && comparedAgainst !== null && (
+              <>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                {t("deforestationAnalysis:deforestationMapFooter", {
+                  baselineYear: baseline,
+                  comparedToYear: comparedAgainst,
+                })}
+              </>
+            )}
             &nbsp;&nbsp;|&nbsp;&nbsp;
-            {t("deforestationAnalysis:deforestationMapFooter", {
-              baselineYear: baseline,
-              comparedToYear: comparedAgainst,
-            })}
-            &nbsp;&nbsp;|&nbsp;&nbsp;
+            {/* Tiles are red for every category; the legend names the category. */}
             <FiberManualRecordIcon
               sx={{
                 width: 18,
@@ -246,7 +263,21 @@ export const MapView: React.FC = () => {
                 mr: 1,
               }}
             />
-            {t("deforestationAnalysis:deforestation")}
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                color: categoryTints(category?.color).color,
+                fontWeight: 500,
+              }}
+            >
+              <LayerCategoryIcon icon={category?.icon} sx={{ fontSize: 18 }} />
+              {category
+                ? localizedText(category.name, i18n.language)
+                : t("deforestationAnalysis:categories.uncategorized")}
+            </Box>
           </Text>
           <Text
             sx={{

@@ -31,6 +31,7 @@ export const makeDataContext = (
   },
   setReportGenerationParams: vi.fn(),
   availableMaps: [],
+  availableCategories: [],
   availableMapsError: false,
   setAvailableMaps: vi.fn(),
   refreshAvailableMaps: vi.fn(),
