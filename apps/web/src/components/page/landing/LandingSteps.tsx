@@ -105,7 +105,7 @@ export const LandingSteps: React.FC<LandingStepsProps> = memo(function LandingSt
           description={t("home:landing:steps:analysis:description")}
           link={{
             label: t("home:landing:steps:analysis:link"),
-            href: localizedPath("/documentation#deforestation", locale),
+            href: localizedPath("/documentation#layers", locale),
             kind: "page",
           }}
           onOpen={() => onOpenStage(2)}

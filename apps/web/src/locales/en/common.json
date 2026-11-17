@@ -20,12 +20,6 @@
     "es": "Spanish",
     "en": "English"
   },
-  "documentation": {
-    "title": "Documentation",
-    "subtitle": "How to upload farms, and how Monbo validates polygons, measures farm areas and calculates deforestation.",
-    "contents": "On this page",
-    "summary": "In short"
-  },
   "cancel": "Cancel",
   "close": "Close",
   "all": "All",

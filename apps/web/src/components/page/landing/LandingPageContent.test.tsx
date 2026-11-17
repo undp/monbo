@@ -135,6 +135,6 @@ describe("LandingPageContent", () => {
     );
     expect(
       screen.getByRole("link", { name: "See layers by country" }).getAttribute("href")
-    ).toBe("/en/documentation#deforestation");
+    ).toBe("/en/documentation#layers");
   });
 });

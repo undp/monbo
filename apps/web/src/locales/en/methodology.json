@@ -1,0 +1,42 @@
+{
+  "eyebrow": "Methodology",
+  "title": "How Monbo works",
+  "subtitle": "Which layers we use in each country, how we calculate the results, what limits each source has and how we upload, validate and measure farms.",
+  "contents": "On this page",
+  "summary": "In short",
+  "countries": {
+    "label": "Countries",
+    "loading": "Loading countries…",
+    "error": "We couldn't load the countries.",
+    "empty": "There are no countries with published layers yet."
+  },
+  "catalog": {
+    "loading": "Loading the layers of {{country}}…",
+    "error": "We couldn't load the layers of {{country}}.",
+    "retry": "Try again",
+    "empty": "{{country}} has no published layers yet."
+  },
+  "category": {
+    "avoid": "Marks what to avoid: coinciding with the layer is a finding.",
+    "required": "Marks what is allowed: falling outside the layer is a finding.",
+    "threshold": "Threshold: {{threshold}}",
+    "okRule": "{{threshold}} or less",
+    "flaggedRule": "above {{threshold}}",
+    "noLayers": "There are no published layers in this category yet.",
+    "others": "Other layers",
+    "othersDescription": "Layers whose category isn't published in this country."
+  },
+  "layer": {
+    "name": "Layer",
+    "coverage": "Coverage",
+    "source": "Source",
+    "period": "Period",
+    "resolution": "Resolution",
+    "updateFrequency": "Update frequency"
+  },
+  "limits": {
+    "country": "Layers of {{country}}",
+    "noConsiderations": "This layer has no published considerations.",
+    "references": "References"
+  }
+}
