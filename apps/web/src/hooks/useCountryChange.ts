@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
 
 interface CountryChangeOptions {
-  // Where to go once the country is set (the landing page goes to /home).
+  // Where to go once the country is set.
   navigateTo?: string;
 }
 
@@ -11,7 +11,7 @@ interface CountryChangeOptions {
  * The one way to change the analysis country. Before a deforestation analysis the
  * change applies at once: farms and validation results stay, chosen layers are
  * cleared. After an analysis it waits for the user to confirm a restart
- * (`pendingCountry`), which drops every loaded result and goes to /home.
+ * (`pendingCountry`), which drops every loaded result and goes to the start page.
  */
 export function useCountryChange() {
   const {
@@ -67,7 +67,7 @@ export function useCountryChange() {
     resetAnalysis();
     setSelectedCountry(pendingCountry);
     setPendingCountry(null);
-    router.push("/home");
+    router.push("/");
   }, [pendingCountry, resetAnalysis, setSelectedCountry, router]);
 
   const cancelRestart = useCallback(() => setPendingCountry(null), []);

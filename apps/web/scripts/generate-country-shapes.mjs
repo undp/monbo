@@ -1,6 +1,6 @@
 // Regenerates src/utils/countryShapes.json: each country's silhouette as an SVG path
 // fitted to a 100×100 box (Mercator), keyed by ISO 3166-1 numeric code (the id
-// world-atlas uses). The landing page's country cards draw them.
+// world-atlas uses). The start page's country pills draw them.
 //
 // The shapes only change if the source data does, so the app ships the JSON and none
 // of these libraries. To regenerate (from apps/web/):

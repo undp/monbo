@@ -2,12 +2,18 @@
   "validatedManually": "Validado manualmente",
   "header": {
     "home": "Inicio",
-    "documentation": "Documentación",
+    "analysis": "Análisis",
+    "methodology": "Metodología",
     "admin": {
       "layers": "Capas",
       "usage": "Uso",
       "navigation": "Administración"
-    }
+    },
+    "navigation": "Navegación principal",
+    "menu": "Abrir el menú de navegación",
+    "brandMarkTop": "PN",
+    "brandMarkBottom": "UD",
+    "logoLabel": "Monbo, del PNUD: ir al inicio"
   },
   "language": {
     "select": "Idioma",
@@ -23,7 +29,6 @@
   "cancel": "Cancelar",
   "close": "Cerrar",
   "all": "Todos",
-  "step": "Paso",
   "surface": "Área",
   "devWarning": "Estás en un ambiente de pruebas, los análisis podrían no ser los oficiales",
   "polygon": "Polígono",

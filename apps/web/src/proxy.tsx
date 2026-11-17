@@ -1,8 +1,21 @@
 import { i18nRouter } from "next-i18n-router";
 import i18nConfig from "./i18nConfig";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+// `/home` and `/{locale}/home`: the start page shows the three steps now, so the old
+// module cards' route only keeps links working. Redirected here, before the locale
+// router: a redirect in next.config.ts loops in the standalone server.
+const HOME = new RegExp(`^(/(?:${i18nConfig.locales.join("|")}))?/home/?$`);
 
 export function proxy(request: NextRequest) {
+  const home = request.nextUrl.pathname.match(HOME);
+  if (home) {
+    const url = request.nextUrl.clone();
+    // The default locale has no prefix: /es/home goes straight to /.
+    url.pathname =
+      home[1] && home[1] !== `/${i18nConfig.defaultLocale}` ? home[1] : "/";
+    return NextResponse.redirect(url);
+  }
   return i18nRouter(request, i18nConfig);
 }
 

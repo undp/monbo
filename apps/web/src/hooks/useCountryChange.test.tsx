@@ -22,9 +22,9 @@ describe("useCountryChange", () => {
       context: beforeAnalysis(),
     });
 
-    act(() => result.current.requestCountryChange("CR", { navigateTo: "/home" }));
+    act(() => result.current.requestCountryChange("CR", { navigateTo: "/polygons-validation" }));
 
-    expect(router.push).toHaveBeenCalledWith("/home");
+    expect(router.push).toHaveBeenCalledWith("/polygons-validation");
     expect(context.setSelectedCountry).not.toHaveBeenCalled();
   });
 
@@ -65,9 +65,9 @@ describe("useCountryChange", () => {
       context: beforeAnalysis(),
     });
 
-    act(() => result.current.requestCountryChange("PE", { navigateTo: "/home" }));
+    act(() => result.current.requestCountryChange("PE", { navigateTo: "/polygons-validation" }));
 
-    expect(router.push).toHaveBeenCalledWith("/home");
+    expect(router.push).toHaveBeenCalledWith("/polygons-validation");
   });
 
   describe("after an analysis", () => {
@@ -79,7 +79,7 @@ describe("useCountryChange", () => {
         context: afterAnalysis(),
       });
 
-      act(() => result.current.requestCountryChange("PE", { navigateTo: "/home" }));
+      act(() => result.current.requestCountryChange("PE", { navigateTo: "/polygons-validation" }));
 
       expect(result.current.pendingCountry).toBe("PE");
       expect(context.setSelectedCountry).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("useCountryChange", () => {
       expect(router.push).not.toHaveBeenCalled();
     });
 
-    it("restarts on confirmation and goes home", async () => {
+    it("restarts on confirmation and goes to the start page", async () => {
       const { result, context } = await renderHookWithData(useCountryChange, {
         context: afterAnalysis(),
       });
@@ -97,7 +97,7 @@ describe("useCountryChange", () => {
 
       expect(context.resetAnalysis).toHaveBeenCalledOnce();
       expect(context.setSelectedCountry).toHaveBeenCalledWith("PE");
-      expect(router.push).toHaveBeenCalledWith("/home");
+      expect(router.push).toHaveBeenCalledWith("/");
       expect(result.current.pendingCountry).toBeNull();
     });
 

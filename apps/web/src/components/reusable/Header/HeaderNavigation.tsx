@@ -8,8 +8,7 @@ import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { getCountryName } from "@/utils/countries";
 import { localizedPath } from "@/utils/languageChange";
-
-const ADMIN_PATH = /^\/(?:[a-z]{2}\/)?admin(?:\/|$)/;
+import { isAdminPath } from "@/utils/paths";
 
 const ADMIN_SECTIONS = [
   { path: "/admin/layers", label: "common:header:admin:layers" },
@@ -82,7 +81,7 @@ export const HeaderNavigation: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const pathname = usePathname();
-  return ADMIN_PATH.test(pathname) ? (
+  return isAdminPath(pathname) ? (
     <>
       <AdminNavigation />
       <AdminCountry />

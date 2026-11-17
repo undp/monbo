@@ -1,14 +1,11 @@
 import TranslationsProvider from "@/context/TranslationProvider";
 import initTranslations from "@/utils/i18n";
-import { Box } from "@mui/material";
 import { BasePageProps } from "@/interfaces";
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { LandingPageContent } from "@/components/page/landing/LandingPageContent";
 
 const namespaces = ["common", "home"];
 
-// Landing page: the analysis country is chosen here, on a map.
+// The start page: the three steps of the flow and the choice of country.
 export default async function LandingPage({ params }: BasePageProps) {
   const { locale } = await params;
   const { resources } = await initTranslations(locale, namespaces);
@@ -19,19 +16,6 @@ export default async function LandingPage({ params }: BasePageProps) {
       namespaces={namespaces}
       resources={resources}
     >
-      {SHOW_TESTING_ENVIRONMENT_WARNING && (
-        <Box
-          sx={{
-            maxWidth: 1280,
-            margin: "0px auto",
-            display: "flex",
-            justifyContent: "flex-end",
-            padding: "16px 24px 0 0",
-          }}
-        >
-          <DevEnvWarning />
-        </Box>
-      )}
       <LandingPageContent />
     </TranslationsProvider>
   );

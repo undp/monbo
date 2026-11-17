@@ -1,21 +1,4 @@
 {
-  "title": "Application for Sustainable Production",
-  "subtitle": "Analyze, validate, and document that your production is deforestation-free and comply with local regulations and EUDR.",
-  "validation": {
-    "title": "Polygon and Point Validation",
-    "description": "Download the template, fill in the data, and upload it to automatically validate overlaps or duplicates.",
-    "button": "Validate Polygons"
-  },
-  "deforestation": {
-    "title": "Deforestation Analysis",
-    "description": "Identify if there is deforestation in one or more farms, compare with global and local map sources.",
-    "button": "Analyze Deforestation"
-  },
-  "report": {
-    "title": "Report Generation",
-    "description": "Download production details and deforestation analysis in PDF or GeoJSON format to present in Due Diligence.",
-    "button": "Generate Report"
-  },
   "sameDataModal": {
     "polygonValidation": {
       "title": "The same data will be used for validation",
@@ -29,13 +12,51 @@
     "sameData": "Continue with the same data"
   },
   "landing": {
-    "title": "Where is your production?",
-    "subtitle": "Choose the country for the deforestation analysis. Only countries with available maps can be chosen.",
-    "noCountries": "No country has maps available right now.",
-    "loadError": "We couldn't load the available countries. Reload the page to try again.",
-    "continueWith": "Continue with {{country}}",
-    "continue": "Continue",
-    "inviteTitle": "Your country could be next",
-    "inviteLink": "Contact us"
+    "badges": {
+      "free": "Free and open access",
+      "noSignUp": "No sign-up",
+      "noStorage": "We don't keep your polygons"
+    },
+    "eyebrow": "Monbo · Sustainable production",
+    "title": "Check your production in <highlight>3 steps</highlight>.",
+    "lead": "Upload your polygons, cross them with official maps and download a report for your due diligence.",
+    "howItWorks": "How it works",
+    "stepsTitle": "Step by step",
+    "stepsSubtitle": "Start with step 1. If your polygons are already validated, you can go straight to step 2.",
+    "stepNumber": "Step {{step}}:",
+    "steps": {
+      "validation": {
+        "title": "Validate your polygons",
+        "description": "Upload them as Excel or a geographic file, or draw them on the map. We check for errors and overlaps.",
+        "link": "Download template"
+      },
+      "analysis": {
+        "title": "Territorial analysis",
+        "description": "Cross them with official and global layers. The layers available depend on your country.",
+        "link": "See layers by country"
+      },
+      "report": {
+        "title": "Download your report",
+        "description": "As PDF or GeoJSON, ready for your due diligence process (EUDR).",
+        "link": "See a sample report"
+      }
+    },
+    "categories": {
+      "deforestation": "Deforestation",
+      "protectedAreas": "Protected areas",
+      "agriculturalFrontier": "Agricultural frontier"
+    },
+    "where": "Where do you produce?",
+    "start": "Start in {{country}}",
+    "startWithoutCountry": "Start",
+    "contact": "Is your country missing? Write to us",
+    "noCountries": "No countries are available yet.",
+    "loadError": "We couldn't load the countries. Reload the page to try again.",
+    "trust": {
+      "undp": "Developed by UNDP",
+      "layers": "Global and official layers for each country",
+      "languages": "Available in Spanish and English"
+    },
+    "opensInNewTab": "(opens in a new tab)"
   }
 }

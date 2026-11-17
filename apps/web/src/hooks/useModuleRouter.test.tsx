@@ -14,7 +14,7 @@ describe("useModuleRouter", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it.each(["/", "/home"])("goes to %s directly", async (path) => {
+  it.each(["/"])("goes to %s directly", async (path) => {
     const { result } = await renderHookWithData(() => useModuleRouter(path));
 
     act(() => result.current());
