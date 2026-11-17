@@ -86,8 +86,16 @@ describe("sectionTitle", () => {
 });
 
 describe("documentation content", () => {
-  it("has the upload, validation, area and deforestation sections, in that order", () => {
-    expect(DOCUMENTATION_SECTIONS).toEqual(["upload", "validation", "area", "deforestation"]);
+  it("has the methodology's sections, in the mockup's order", () => {
+    expect(DOCUMENTATION_SECTIONS).toEqual([
+      "calculation",
+      "categories",
+      "layers",
+      "limits",
+      "upload",
+      "validation",
+      "area",
+    ]);
   });
 
   it("has the same sections in both languages, none empty", async () => {
@@ -118,7 +126,19 @@ describe("documentation content", () => {
     const es = await readDocumentation("es");
 
     expect(findPlaceholders(es.validation)).toContain("overlapThreshold");
-    expect(findPlaceholders(es.deforestation)).toContain("deforestationThreshold");
+    expect(findPlaceholders(es.calculation)).toContain("deforestationThreshold");
+    expect(findPlaceholders(es.categories)).toContain("deforestationThreshold");
+  });
+
+  it("keeps the Spanish text within 1,400 words with every detail closed", async () => {
+    const es = await readDocumentation("es");
+    const words = DOCUMENTATION_SECTIONS.reduce(
+      (total, section) => total + countVisibleWords(es[section]),
+      0
+    );
+
+    expect(words).toBeGreaterThan(0);
+    expect(words).toBeLessThanOrEqual(1400);
   });
 });
 
@@ -134,6 +154,22 @@ const containerDirectives = (markdown: string) => {
   const tree = unified().use(remarkParse).use(remarkDirective).parse(markdown);
   visit(tree);
   return { tree, found };
+};
+
+/**
+ * The words a reader sees with every "More detail" block closed: the text outside
+ * those blocks and outside the fenced formulas.
+ */
+const countVisibleWords = (markdown: string) => {
+  const texts: string[] = [];
+  const visit = (node: Root | RootContent) => {
+    if (node.type === "containerDirective" && node.name === "details") return;
+    if (node.type === "code") return;
+    if (node.type === "text" || node.type === "inlineCode") texts.push(node.value);
+    if ("children" in node) node.children.forEach(visit);
+  };
+  visit(unified().use(remarkParse).use(remarkDirective).parse(markdown));
+  return texts.join(" ").match(/[\p{L}\p{N}]+(?:[.,'’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
 };
 
 const label = (directive: ContainerDirective) => {

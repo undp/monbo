@@ -7,13 +7,13 @@ import { readDocumentation } from "@/utils/documentationContent";
 // No RequireCountry: the page can be read from the landing, before choosing one.
 export default async function DocumentationPage({ params }: BasePageProps) {
   const { locale } = await params;
-  const { resources } = await initTranslations(locale, ["common"]);
+  const { resources } = await initTranslations(locale, ["common", "methodology"]);
   const content = await readDocumentation(locale);
 
   return (
     <TranslationsProvider
       locale={locale}
-      namespaces={["common"]}
+      namespaces={["common", "methodology"]}
       resources={resources}
     >
       <MethodologyDocument content={content} />

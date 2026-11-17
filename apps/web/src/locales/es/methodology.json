@@ -1,0 +1,50 @@
+{
+  "eyebrow": "Metodología",
+  "title": "Cómo funciona Monbo",
+  "subtitle": "Qué capas usamos en cada país, cómo calculamos los resultados, qué límites tiene cada fuente y cómo cargamos, validamos y medimos las fincas.",
+  "contents": "En esta página",
+  "summary": "En resumen",
+  "countries": {
+    "label": "Países",
+    "loading": "Cargando países…",
+    "error": "No pudimos cargar los países.",
+    "empty": "Todavía no hay países con capas publicadas."
+  },
+  "catalog": {
+    "loading": "Cargando las capas de {{country}}…",
+    "error": "No pudimos cargar las capas de {{country}}.",
+    "retry": "Reintentar",
+    "empty": "{{country}} todavía no tiene capas publicadas."
+  },
+  "category": {
+    "avoid": "Marca lo que se debe evitar: coincidir con la capa es una observación.",
+    "required": "Marca lo permitido: quedar fuera de la capa es una observación.",
+    "threshold": "Umbral: {{threshold}}",
+    "rules": {
+      "avoid": {
+        "ok": "dentro de la capa: {{threshold}} o menos",
+        "flagged": "dentro de la capa: más de {{threshold}}"
+      },
+      "required": {
+        "ok": "fuera de la capa: {{threshold}} o menos",
+        "flagged": "fuera de la capa: más de {{threshold}}"
+      }
+    },
+    "noLayers": "Todavía no hay capas publicadas en esta categoría.",
+    "others": "Otras capas",
+    "othersDescription": "Capas cuya categoría no está publicada en este país."
+  },
+  "layer": {
+    "name": "Capa",
+    "coverage": "Cobertura",
+    "source": "Fuente",
+    "period": "Período",
+    "resolution": "Resolución",
+    "updateFrequency": "Actualización"
+  },
+  "limits": {
+    "country": "Capas de {{country}}",
+    "noConsiderations": "Esta capa no tiene consideraciones publicadas.",
+    "references": "Referencias"
+  }
+}
