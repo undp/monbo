@@ -56,3 +56,4 @@
 - [x] 8.7 A list item that opens a sublist is kept with it
 - [x] 8.8 After the rebase: category colors through `categoryTints` (green and red only for the result class, D23); a real PDF reviewed in the browser
 - [x] 8.9 Second review: references printed in lines react-pdf never breaks (D10); a heading, a sublist's opening item and the considerations' title stay with what follows; `layerResultText` built from `layerResult`, with one key per text
+- [x] 8.10 Third review: only short considerations go in unbreakable blocks (D11); a paragraph longer than a page prints whole, checked with react-pdf's layout and in the real PDF

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 import { setRuntimeConfig } from "@/config/runtime";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
+import { layoutPages, printedLines, type PrintedLine } from "@/test/pdfLayout";
 import {
   makeCategory,
   makeFarm,
@@ -399,4 +400,79 @@ describe("a sublist or a heading in the considerations", () => {
     expect(textOf(block.children)).toBe("Scope • Kinds: • One");
     expect(textOf([rest])).toBe("• Two");
   });
+});
+
+describe("considerations longer than a page", () => {
+  // 30 sentences, about 4,500 characters: more than a page under a heading
+  const sentences = Array.from(
+    { length: 30 },
+    (_, i) =>
+      `Sentence ${i + 1} of the long section explains a limit of the layer in enough words to fill a line or two of the report.`
+  );
+  const considerations = [
+    "### Long section",
+    sentences.join(" "),
+    "### Closing",
+    "- Last item",
+  ].join("\n");
+  const scopePages = async () =>
+    LayerScopePages({
+      groups: [
+        {
+          category: makeCategory(),
+          layers: [
+            {
+              id: 3,
+              categoryId: "deforestation",
+              map: makeMap({ id: 3, considerations }),
+              category: makeCategory(),
+              results: makeMapResults(3, {}),
+            },
+          ],
+        },
+      ],
+      t: await tFor("es"),
+      language: "es",
+    });
+
+  it("lets a long list item break, and keeps a short one whole", () => {
+    const long = "word ".repeat(200).trim();
+    const items = findAll(
+      pdfTree(Considerations({ considerations: `- ${long}\n- Short item` })),
+      "VIEW"
+    );
+    expect(items.map(({ props }) => props.wrap)).toEqual([true, false]);
+  });
+
+  it("never puts a long paragraph in an unbreakable block", async () => {
+    const unbreakable = findAll(pdfTree(await scopePages()), "VIEW").filter(
+      ({ props }) => props.wrap === false
+    );
+    for (const block of unbreakable)
+      expect(textOf(block.children)).not.toContain("Sentence 1 ");
+  });
+
+  it("prints all of it, above the footer, with the heading on its first page", async () => {
+    const lines = printedLines(await layoutPages(await scopePages()));
+    const isFooter = ({ text }: PrintedLine) =>
+      /^Página \d+ de \d+$|Análisis realizado por/.test(text.trim());
+    const content = lines.filter((line) => !isFooter(line));
+    const printed = content.map(({ text }) => text).join(" ").replace(/\s+/g, " ");
+
+    for (const sentence of sentences) expect(printed).toContain(sentence);
+    expect(printed).toContain("Closing");
+    expect(printed).toContain("Last item");
+    // The page's content area ends at its bottom padding (60 pt), above the footer
+    const contentBottom = 841.89 - 60;
+    for (const line of content)
+      expect(line.bottom).toBeLessThanOrEqual(contentBottom + 0.5);
+    // The paragraph breaks across pages, and its heading stays with its beginning
+    const pages = new Set(
+      content.filter(({ text }) => text.includes("Sentence")).map(({ page }) => page)
+    );
+    expect(pages.size).toBeGreaterThan(1);
+    const heading = content.find(({ text }) => text.trim() === "Long section")!;
+    const firstSentence = content.find(({ text }) => text.includes("Sentence 1 "))!;
+    expect(heading.page).toBe(firstSentence.page);
+  }, 30_000);
 });

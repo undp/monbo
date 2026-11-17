@@ -88,13 +88,17 @@ The formula is "share of the polygon = area that coincides with the layer / tota
 
 Shown under a map only when `satelliteBackground` is true. Its text becomes generic ("The satellite image from Google Maps is for reference only and does not show the layer's result"). This resolves the note in `public/files/examples/README.md`, whose step 7 is updated.
 
+### D9. The large-report count includes the sheets
+
+`countFarmPages` counts one sheet per selected farm plus one map page per (farm, layer) pair with a result, which is what the complete PDF has. Counting only the map pages would let a report of 2600 farms, of which 1000 have a result, render 3600 pages at once. The threshold stays at 1000: a complete PDF then has at most 1000 farm pages, fewer than 1000 of them with an image, below the 2000 image pages measured as safe. Some reports between 1000 map pages and 1000 farm pages move from the complete PDF to the ZIP.
+
 ### D10. Reference URLs print exactly
 
 react-pdf prints a "-" wherever it breaks a word, so a URL it breaks no longer reads as the URL. The report keeps words of up to 30 characters whole (Spanish words are shorter) and prints each reference in lines of up to 30 characters, cut after its separators (`referenceLines`), one under the other, each linking to the whole URL. react-pdf breaks none of them, so the lines, read in order, are exactly the URL. A longer word elsewhere (an id in a text field) is still split as a last resort, so it doesn't run off the page.
 
-### D9. The large-report count includes the sheets
+### D11. Only short considerations are kept whole
 
-`countFarmPages` counts one sheet per selected farm plus one map page per (farm, layer) pair with a result, which is what the complete PDF has. Counting only the map pages would let a report of 2600 farms, of which 1000 have a result, render 3600 pages at once. The threshold stays at 1000: a complete PDF then has at most 1000 farm pages, fewer than 1000 of them with an image, below the 2000 image pages measured as safe. Some reports between 1000 map pages and 1000 farm pages move from the complete PDF to the ZIP.
+react-pdf can't move a block taller than a page: it prints it where it is and cuts it off, losing text. Considerations go up to 20,000 characters, and a page holds about 2,800. So a heading, an item that opens a sublist, or the "Considerations" title goes in one unbreakable block with what follows only when that is short (lines up to 600 characters, blocks up to 1,500). Before a long line they ask react-pdf to keep the beginning of it on the same page (`minPresenceAhead`), and the long line breaks across pages; a long list item breaks too. A layout test (`test/pdfLayout.tsx`, from react-pdf's own layout) checks that a paragraph longer than a page prints whole and above the footer.
 
 ## Risks / Trade-offs
 

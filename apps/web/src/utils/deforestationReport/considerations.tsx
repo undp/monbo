@@ -12,27 +12,46 @@ interface Segment {
 const leadingSpaces = (line: string) => line.match(/^(\s*)/)?.[1]?.length ?? 0;
 const isListLine = (line: string) =>
   line.trim().startsWith("- ") || /^\d+\./.test(line.trim());
+const isHeadingLine = (line: string) => line.trim().startsWith("### ");
+
+// What may go in an unbreakable block. react-pdf can't move a block taller than a
+// page to the next one: it prints it where it is and cuts it off, so text is lost.
+// A page holds about 2,800 characters of considerations (and an admin may write up
+// to 20,000), so only what is short by construction is ever kept whole.
+/** A line this short (about 7 lines in print) may be kept whole. */
+const SHORT_LINE_CHARS = 600;
+/** An unbreakable block (with the section's title) stays well under a page. */
+const MAX_BLOCK_CHARS = 1500;
+
+const isShort = (line: string) => line.trim().length <= SHORT_LINE_CHARS;
+
+/** The index of the next non-empty line after `index`, or -1. */
+const nextLineIndex = (lines: string[], index: number) =>
+  lines.findIndex((line, i) => i > index && line.trim() !== "");
 
 /**
- * Whether line `index` must stay on the same page as the next non-empty line: a
- * heading, or a list item that opens a sublist (the next line is indented deeper, or
- * the item ends in ":").
+ * Whether line `index` introduces the next non-empty line: a heading, or a list
+ * item that opens a sublist (the next line is indented deeper, or the item ends in
+ * ":"). It must not end a page alone.
  */
-const keepsWithNext = (lines: string[], index: number): boolean => {
+const introducesNext = (lines: string[], index: number): boolean => {
   const line = lines[index];
-  if (line.trim().startsWith("### ")) return true;
-  if (!isListLine(line)) return false;
-  const next = lines.slice(index + 1).find((l) => l.trim() !== "");
+  const next = nextLineIndex(lines, index);
+  if (next === -1) return false;
+  if (isHeadingLine(line)) return true;
   return (
-    line.trim().endsWith(":") ||
-    (next !== undefined && leadingSpaces(next) > leadingSpaces(line))
+    isListLine(line) &&
+    (line.trim().endsWith(":") || leadingSpaces(lines[next]) > leadingSpaces(line))
   );
 };
 
 /**
- * A layer's considerations. A heading, or an item that opens a sublist, goes in one
- * unbreakable block with the line it introduces, so it never ends a page alone; so
- * does `title` (the section's title) with the first block.
+ * A layer's considerations. A heading, or an item that opens a sublist, never ends a
+ * page alone, and neither does `title` (the section's title):
+ * - when what follows is short, they go in one unbreakable block with it;
+ * - when it is long (a paragraph can be longer than a page), they only ask react-pdf
+ *   to keep the beginning of it on the same page (`minPresenceAhead`), and the long
+ *   line breaks across pages as any text does.
  */
 export const Considerations = ({
   considerations,
@@ -42,26 +61,53 @@ export const Considerations = ({
   title?: React.ReactNode;
 }) => {
   const lines = considerations.split("\n");
-  // Each block: the line indexes that must stay on one page
+  // Each block: the line indexes that go together on one page
   const blocks: number[][] = [];
   for (let i = 0; i < lines.length; i++) {
-    let end = i;
-    // Up to the next non-empty line, and on while that one also keeps with its next
-    while (end < lines.length - 1 && keepsWithNext(lines, end)) {
-      end++;
-      while (end < lines.length - 1 && lines[end].trim() === "") end++;
+    const block = [i];
+    let chars = lines[i].trim().length;
+    let last = i;
+    // On to the next non-empty line while the last one introduces it and the block
+    // stays short; empty lines in between go with it.
+    while (isShort(lines[last]) && introducesNext(lines, last)) {
+      const next = nextLineIndex(lines, last);
+      chars += lines[next].trim().length;
+      if (!isShort(lines[next]) || chars > MAX_BLOCK_CHARS) break;
+      for (let k = last + 1; k <= next; k++) block.push(k);
+      last = next;
     }
-    blocks.push(Array.from({ length: end - i + 1 }, (_, k) => i + k));
-    i = end;
+    blocks.push(block);
+    i = last;
   }
+  // The title joins the first block when that block is unbreakable and short
+  const firstBlockChars = (blocks[0] ?? []).reduce(
+    (sum, index) => sum + lines[index].trim().length,
+    0
+  );
+  const titleJoinsFirst =
+    title !== undefined &&
+    firstBlockChars <= MAX_BLOCK_CHARS &&
+    (blocks[0] ?? []).every((index) => isShort(lines[index]));
   return (
     <>
+      {title !== undefined && !titleJoinsFirst && (
+        // Keeps the beginning of the first line under it on the same page
+        <View minPresenceAhead={40}>{title}</View>
+      )}
       {blocks.map((block, b) => {
+        const last = block[block.length - 1];
+        // A line that introduces a long one: keep its beginning on the same page
+        const keepAhead = introducesNext(lines, last);
+        const withTitle = b === 0 && titleJoinsFirst;
+        if (block.length === 1 && !withTitle)
+          return renderLine(lines[last], last, keepAhead);
         const nodes = block.map((index) => renderLine(lines[index], index));
-        const withTitle = b === 0 && title !== undefined;
-        if (block.length === 1 && !withTitle) return nodes[0];
         return (
-          <View key={`block-${block[0]}`} wrap={false}>
+          <View
+            key={`block-${block[0]}`}
+            wrap={false}
+            minPresenceAhead={keepAhead ? 40 : undefined}
+          >
             {withTitle && title}
             {nodes}
           </View>
@@ -71,8 +117,11 @@ export const Considerations = ({
   );
 };
 
-/** One markdown line as a react-pdf element. */
-const renderLine = (line: string, index: number) => {
+/**
+ * One markdown line as a react-pdf element. `keepAhead`: the line introduces a long
+ * one, whose beginning must stay on the same page.
+ */
+const renderLine = (line: string, index: number, keepAhead = false) => {
   // TODO: refactor to simplify or modularize this
   // Check if the line is a heading (starts with ###)
   const isHeading = line.trim().startsWith("### ");
@@ -215,6 +264,7 @@ const renderLine = (line: string, index: number) => {
     return (
       <Text
         key={index}
+        minPresenceAhead={keepAhead ? 40 : undefined}
         style={{
           fontWeight: 700,
           fontSize: 12,
@@ -230,8 +280,10 @@ const renderLine = (line: string, index: number) => {
     return (
       <View
         key={index}
-        // A bullet never stays alone at the bottom of a page
-        wrap={false}
+        // A short item never breaks, so its bullet never stays alone at the bottom of
+        // a page; a long one breaks as any text does (it may not fit a page)
+        wrap={!isShort(line)}
+        minPresenceAhead={keepAhead ? 40 : undefined}
         style={{
           flexDirection: "row",
           marginBottom: 3,
