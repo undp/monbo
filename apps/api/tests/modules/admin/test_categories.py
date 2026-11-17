@@ -271,6 +271,68 @@ def test_the_same_id_in_another_country(protected_areas, country_root, client):
     assert stored(protected_areas) == colombia_before
 
 
+WETLANDS = {**GFW, "id": 8, "category_id": "wetlands"}  # a hand edit: no category
+
+
+def test_creating_a_category_doesnt_publish_its_orphan_layers(
+    colombia_layers, client, admin_headers
+):
+    # Regression (re-review of #138): layer 8 is enabled but hidden by
+    # `unknown_category`; creating `wetlands` published it with years that don't
+    # fit and a polarity it was never published with.
+    colombia_layers.write_index([GFW, HIDDEN, WETLANDS])
+    assert all(m["id"] != 8 for m in client.get("/maps?country=CO").json())
+
+    response = client.post(
+        "/admin/categories",
+        json=category_body("wetlands", temporal=False, polarity="required"),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(8)" in response.json()["detail"]
+    assert not (colombia_layers.root / "categories.json").exists()
+    assert all(m["id"] != 8 for m in client.get("/maps?country=CO").json())
+
+
+def test_creating_a_category_over_hidden_layers_needs_their_years_to_fit(
+    colombia_layers, client, admin_headers
+):
+    colombia_layers.write_index([GFW, HIDDEN, {**WETLANDS, "enabled": False}])
+
+    response = client.post(
+        "/admin/categories",
+        json=category_body("wetlands", temporal=False),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(8)" in response.json()["detail"]
+    assert not (colombia_layers.root / "categories.json").exists()
+
+
+def test_a_category_created_over_hidden_layers_publishes_them_through_patch(
+    colombia_layers, client, admin_headers
+):
+    colombia_layers.write_index([GFW, HIDDEN, {**WETLANDS, "enabled": False}])
+
+    created = client.post(
+        "/admin/categories",
+        json=category_body("wetlands", temporal=True),
+        headers=admin_headers,
+    )
+
+    assert created.status_code == 201
+    assert created.json()["layerCount"] == 1
+    assert created.json()["publishedLayerCount"] == 0
+    assert all(m["id"] != 8 for m in client.get("/maps?country=CO").json())
+    published = client.patch(
+        "/admin/layers/8", json={"enabled": True}, headers=admin_headers
+    )
+    assert published.status_code == 200
+    assert any(m["id"] == 8 for m in client.get("/maps?country=CO").json())
+
+
 # --- Edit ------------------------------------------------------------------------
 
 
@@ -465,6 +527,24 @@ def test_a_repaired_deforestation_cant_drop_the_years_of_its_layers(
 
     assert response.status_code == 400
     assert "(0, 5)" in response.json()["detail"]
+
+
+def test_a_repair_needs_both_years_on_a_temporal_category(
+    colombia_layers, client, admin_headers
+):
+    colombia_layers.write_index(
+        [{**GFW, "enabled": False, "compared_against": None}, HIDDEN]
+    )
+    write_categories(colombia_layers, [category("deforestation", icon="river")])
+
+    response = client.put(
+        "/admin/categories/deforestation",
+        json=category_body(temporal=True),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(0)" in response.json()["detail"]
 
 
 def test_a_repair_that_fits_the_years_succeeds(protected_areas, client, admin_headers):

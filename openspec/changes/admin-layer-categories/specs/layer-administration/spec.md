@@ -26,7 +26,7 @@
 
 ### Requirement: Create a category
 
-`POST /admin/categories` SHALL create a category in the country of the admin's session from an `id` and the fields `name`, `description`, `icon`, `color`, `polarity`, `thresholdPercentage` (optional, `null` for the global threshold), `resultLabels` and `temporal`, validated with the rules of the per-country category file. The new category SHALL start enabled and SHALL be added at the end of the country's `categories.json`. When the `id` is already used in the country, by a valid or a rejected entry, or is `deforestation`, the request SHALL be rejected with 409 and nothing SHALL be written, so category ids are never reused. Invalid fields SHALL be rejected with 422. When the country's `categories.json` can't be read, the request SHALL be rejected with 409 and the file SHALL NOT be changed. The request SHALL NOT accept a country.
+`POST /admin/categories` SHALL create a category in the country of the admin's session from an `id` and the fields `name`, `description`, `icon`, `color`, `polarity`, `thresholdPercentage` (optional, `null` for the global threshold), `resultLabels` and `temporal`, validated with the rules of the per-country category file. The new category SHALL start enabled and SHALL be added at the end of the country's `categories.json`. When the `id` is already used in the country, by a valid or a rejected entry, or is `deforestation`, the request SHALL be rejected with 409 and nothing SHALL be written, so category ids are never reused. Invalid fields SHALL be rejected with 422. When layers of the country already point at the `id` (for example after a hand edit), the request SHALL be rejected with 400, naming those layers, while any of them is published or has years that don't fit the new `temporal` (a temporal category needs both years, any other none); those layers SHALL become public only by being enabled afterwards. When the country's `categories.json` can't be read, the request SHALL be rejected with 409 and the file SHALL NOT be changed. The request SHALL NOT accept a country.
 
 #### Scenario: Create protected areas
 
@@ -42,6 +42,16 @@
 
 - **WHEN** an admin posts `polarity: "inside"`
 - **THEN** the response is 422 and nothing is written
+
+#### Scenario: Create a category that published layers already point at
+
+- **WHEN** CO's layer 8 is enabled with `category_id: "wetlands"`, CO has no `wetlands` category, and a CO admin posts `id: "wetlands"`
+- **THEN** the response is 400 naming layer 8, nothing is written, and `GET /maps?country=CO` still doesn't list layer 8
+
+#### Scenario: Create a category over hidden layers
+
+- **WHEN** CO's hidden layer 8 has `category_id: "wetlands"` and both years, and a CO admin posts `id: "wetlands"` with `temporal: true`
+- **THEN** the category is created, layer 8 stays hidden, and enabling it publishes it
 
 #### Scenario: Same id in another country
 

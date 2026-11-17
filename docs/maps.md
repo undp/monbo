@@ -228,11 +228,12 @@ message names the layers to hide first, when:
 | Disable a category | it has published layers |
 | Change a category's polarity | it has published layers |
 | Change whether a category is temporal | it has any layer |
-| Repair a rejected category | it has published layers, or its layers' years don't fit the repaired `temporal` |
+| Repair a rejected category, or create one whose id layers already use | any of those layers is published, or their years don't fit its `temporal` |
 | Publish a layer | its category is disabled or doesn't resolve, or the layer's years don't fit it |
 | Move a layer to another category | the layer is published |
 
-Thresholds, texts, icon and color can change at any time. A repair keeps the entry's
+Years fit when a temporal category's layers have both years and the others have
+none. Thresholds, texts, icon and color can change at any time. A repair keeps the entry's
 `enabled`: only `PATCH` publishes or hides a category.
 
 Writes change one entry of `categories.json` and keep the others as they are stored,

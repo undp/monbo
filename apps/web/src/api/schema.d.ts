@@ -49,7 +49,8 @@ export interface paths {
          * Create Category
          * @description Create a category in the session's country, enabled and at the end of the
          *     list. Its `id` is permanent: an id the country already uses (or used, in a
-         *     rejected entry), and `deforestation`, answer 409.
+         *     rejected entry), and `deforestation`, answer 409. Layers that already point at
+         *     the id must be hidden and have years that fit `temporal` (400).
          */
         post: operations["create_category_admin_categories_post"];
         delete?: never;

@@ -111,6 +111,31 @@ def _put(
         ) from error
 
 
+def _check_adopted_layers(
+    category_id: str, layers: list[dict], temporal: bool, action: str
+) -> None:
+    """A category that comes to exist over layers already pointing at it (a
+    repaired rejected entry, or a new category whose id hand-edited layers use)
+    gives them a meaning they were never published with. 400 unless they are all
+    hidden and their years fit `temporal`; they are then published through
+    `PATCH /admin/layers/{id}`, which checks them again."""
+    published = published_ids(layers)
+    if published:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_id}' has published layers "
+            f"({describe_ids(published)}): hide them before {action} it",
+        )
+    mismatched = years_mismatch(layers, temporal)
+    if mismatched:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_id}' has layers "
+            f"({describe_ids(mismatched)}) whose years don't fit "
+            f"temporal: {str(temporal).lower()}",
+        )
+
+
 def _not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Category not found")
 
@@ -141,7 +166,8 @@ def create_category(body: CategoryCreate, session: Session = Depends(require_adm
     """
     Create a category in the session's country, enabled and at the end of the
     list. Its `id` is permanent: an id the country already uses (or used, in a
-    rejected entry), and `deforestation`, answer 409.
+    rejected entry), and `deforestation`, answer 409. Layers that already point at
+    the id must be hidden and have years that fit `temporal` (400).
     """
     store = country_store(session)
     with store.locked():
@@ -158,6 +184,10 @@ def create_category(body: CategoryCreate, session: Session = Depends(require_adm
                 detail=f"The category id '{body.id}' is already used in "
                 f"{session.country}: ids are never reused",
             )
+        # Layers may already point at this id (`unknown_category`, by a hand edit).
+        _check_adopted_layers(
+            body.id, layers_in(index, body.id), body.temporal, "creating"
+        )
         category = _to_stored(body.id, body, enabled=True)
         _put(store, category, first=False)
     logger.info("Admin created category %s in %s", body.id, session.country)
@@ -187,23 +217,8 @@ def update_category(
         if current is None:
             if category_id not in categories.file.invalid_ids:
                 raise _not_found()
-            # A rejected entry: its polarity and years were never readable, so its
-            # layers can only come back once they are hidden, and the repair must
-            # fit the years they have.
-            if published:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Category '{category_id}' has published layers "
-                    f"({describe_ids(published)}): hide them before repairing it",
-                )
-            mismatched = years_mismatch(layers, body.temporal)
-            if mismatched:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Category '{category_id}' has layers "
-                    f"({describe_ids(mismatched)}) whose years don't fit "
-                    f"temporal: {str(body.temporal).lower()}",
-                )
+            # A rejected entry: its polarity and years were never readable.
+            _check_adopted_layers(category_id, layers, body.temporal, "repairing")
         else:
             if body.polarity != current["polarity"] and published:
                 raise HTTPException(

@@ -29,9 +29,9 @@ from .auth import Session, logger, require_admin
 from .helpers import (
     CountryCategories,
     country_store,
-    has_years,
     index_or_500,
     read_country_categories,
+    years_fit,
 )
 from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
 
@@ -316,7 +316,7 @@ def set_layer_enabled(
                     f"'{entry['category_id']}' {reason}",
                 )
             # Also covers layers whose category was repaired or edited by hand.
-            if has_years(entry) != category["temporal"]:
+            if not years_fit(entry, category["temporal"]):
                 raise HTTPException(
                     status_code=400,
                     detail=f"Layer {layer_id} can't be published: its years don't "

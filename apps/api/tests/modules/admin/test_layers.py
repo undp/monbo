@@ -666,6 +666,15 @@ def test_a_layer_isnt_published_in_an_unusable_category(
         # ...and none in one that is (both only reachable by a hand edit or by
         # repairing a rejected category).
         {**GFW, "id": 7, "enabled": False, "baseline": None, "compared_against": ""},
+        # One year only, in either kind of category.
+        {**GFW, "id": 7, "enabled": False, "compared_against": None},
+        {
+            **GFW,
+            "id": 7,
+            "category_id": "protected_areas",
+            "enabled": False,
+            "baseline": None,
+        },
     ],
 )
 def test_a_layer_isnt_published_when_its_years_dont_fit_its_category(

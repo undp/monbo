@@ -2941,7 +2941,7 @@
         ]
       },
       "post": {
-        "description": "Create a category in the session's country, enabled and at the end of the\nlist. Its `id` is permanent: an id the country already uses (or used, in a\nrejected entry), and `deforestation`, answer 409.",
+        "description": "Create a category in the session's country, enabled and at the end of the\nlist. Its `id` is permanent: an id the country already uses (or used, in a\nrejected entry), and `deforestation`, answer 409. Layers that already point at\nthe id must be hidden and have years that fit `temporal` (400).",
         "operationId": "create_category_admin_categories_post",
         "requestBody": {
           "content": {

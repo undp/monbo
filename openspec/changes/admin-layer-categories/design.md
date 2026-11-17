@@ -146,6 +146,7 @@ concurrent publish.
 | `PUT` category, `polarity` changes | the category has published layers |
 | `PUT` category, `temporal` changes | the category has any layer (its years would stop matching) |
 | `PUT` on a rejected entry (repair) | the category has published layers (its polarity and years can't be read), or a layer's years don't fit the new `temporal` |
+| `POST` category whose id layers already use | any of those layers is published, or its years don't fit `temporal` |
 | `PATCH` layer `enabled: true` | its category is disabled or doesn't resolve (`category_issue`), or the layer's years don't fit the category's `temporal` |
 | `PUT` layer, `category_id` changes | the layer is published |
 | `POST`/`PUT` layer | `category_id` doesn't resolve in the session's country (unknown, rejected or file unreadable) |
@@ -161,6 +162,12 @@ concurrent publish.
   hint that it exists elsewhere).
 - Publishing is the only way a layer becomes public, so it re-checks the years
   against the category: that also covers a repaired category and hand edits.
+  "Years fit" means both years for a temporal category and none for the others.
+- A category can come to exist over layers that already point at it: repairing a
+  rejected entry, or creating an id that hand-edited layers use (their
+  `category_issue` was `unknown_category`). Both go through one check
+  (`_check_adopted_layers`): the layers must be hidden and their years must fit, so
+  they only become public through `PATCH`, never by the category appearing.
 - A repair (`PUT` on a rejected entry) keeps the entry's stored `enabled` when it is
   a boolean (`put_category(keep_enabled=True)`): `enabled` changes only through
   `PATCH`.
