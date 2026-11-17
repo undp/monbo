@@ -18,8 +18,9 @@ from app.modules.layers.categories import (
     effective_categories,
     is_temporal,
     parse_categories,
+    years_fit,
 )
-from app.modules.layers.store import CategoriesUnreadable
+from app.modules.layers.store import CategoriesUnreadable, LayerStore
 from app.modules.maps.helpers import get_map_by_id
 from tests.modules.layers.test_countries_layout import layer
 
@@ -649,6 +650,15 @@ def test_put_category_can_keep_the_stored_enabled(co, stored_enabled, kept):
         },
         {"raster_filename": "missing.tif"},
         {"raster_filename": None},
+        # Years `LayerInput` would refuse (re-review 3 of #138).
+        {"baseline": "2023", "compared_against": "2020"},
+        {"baseline": "1", "compared_against": "99999"},
+        {"baseline": True, "compared_against": True},
+        {"baseline": 2020.5, "compared_against": "2023"},
+        # Only `enabled: true` is published.
+        {"enabled": "false"},
+        {"enabled": "true"},
+        {"enabled": 1},
     ],
 )
 def test_a_hand_edited_inconsistent_layer_is_never_public(co, overrides):
@@ -685,3 +695,26 @@ def test_a_layer_without_raster_is_logged_once(co, caplog):
             assert listed("CO") == {}
 
     assert caplog.text.count("its raster is missing") == 1
+
+
+def test_valid_years_fit():
+    assert years_fit({"baseline": "2020", "compared_against": "2020"}, True)
+    assert years_fit({"baseline": 1900, "compared_against": "2100"}, True)
+    assert years_fit({}, False)
+    assert years_fit({"baseline": "", "compared_against": None}, False)
+    assert not years_fit({"baseline": "1899", "compared_against": "2020"}, True)
+    assert not years_fit({"baseline": "2020", "compared_against": "2101"}, True)
+
+
+def test_maps_of_a_country_only_check_that_countrys_rasters(co, monkeypatch):
+    checked = []
+    real_has_raster = LayerStore.has_raster
+
+    def recording_has_raster(store, filename):
+        checked.append(store.root.name)
+        return real_has_raster(store, filename)
+
+    monkeypatch.setattr(LayerStore, "has_raster", recording_has_raster)
+
+    assert listed("CO") == {0: "deforestation", 1: "protected_areas"}
+    assert set(checked) == {"CO"}

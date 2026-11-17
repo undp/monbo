@@ -12,7 +12,7 @@ from app.modules.layers.categories import (
     resolve_category,
     years_fit,
 )
-from app.modules.layers.store import LayerStore, get_layers_root
+from app.modules.layers.store import LayerStore, get_layers_root, is_enabled
 
 from .auth import Session
 
@@ -60,7 +60,7 @@ def layers_in(index: list[dict], category_id: str) -> list[dict]:
 
 
 def published_ids(layers: list[dict]) -> list[int]:
-    return [entry["id"] for entry in layers if entry["enabled"]]
+    return [entry["id"] for entry in layers if is_enabled(entry)]
 
 
 def describe_ids(ids: list[int]) -> str:

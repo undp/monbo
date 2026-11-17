@@ -27,11 +27,14 @@ from app.modules.layers.categories import (
     NAME_MAX_LENGTH,
     THRESHOLD_MAX,
     THRESHOLD_MIN,
+    YEAR_MAX,
+    YEAR_MIN,
     CategoryIssue,
     LayerIssue,
+    years_problem,
 )
 
-YEAR = Field(default=None, ge=1900, le=2100)
+YEAR = Field(default=None, ge=YEAR_MIN, le=YEAR_MAX)
 SHORT_TEXT = Field(default=None, max_length=500)
 
 
@@ -99,14 +102,10 @@ class LayerInput(_Strict):
 
     @model_validator(mode="after")
     def _years(self) -> "LayerInput":
-        if (self.baseline is None) != (self.compared_against is None):
-            raise ValueError("baseline and compared_against go together")
-        if (
-            self.baseline is not None
-            and self.compared_against is not None
-            and self.baseline > self.compared_against
-        ):
-            raise ValueError("baseline must not be later than compared_against")
+        # The same rule the public listing applies to the index (`years_fit`).
+        problem = years_problem(self.baseline, self.compared_against)
+        if problem is not None:
+            raise ValueError(problem)
         return self
 
 

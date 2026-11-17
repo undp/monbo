@@ -233,15 +233,18 @@ message names the layers to hide first, when:
 | Move a layer to another category | the layer is published |
 
 Years fit when a temporal category's layers have both years and the others have
-none.
+none, each year is an integer from 1900 to 2100 and the baseline is not after the
+comparison year (the same rules as creating a layer). Thresholds, texts, icon and
+color can change at any time. A repair keeps the entry's `enabled`: only `PATCH`
+publishes or hides a category.
 
 **What the public app offers, whatever edited the share.** `GET /maps` and
-`GET /countries` only offer a layer that is enabled, whose category resolves and is
-enabled, whose years fit that category and whose raster file exists. Any other layer
-is hidden, logged once as an error, and shown in the admin with `category_issue` or
-`layer_issue` (`years_mismatch`, `missing_raster`). Like any hidden layer, it still
-resolves by id for analyses already open. Thresholds, texts, icon and color can change at any time. A repair keeps the entry's
-`enabled`: only `PATCH` publishes or hides a category.
+`GET /countries` only offer a layer whose `enabled` is `true` (a string like
+`"false"` doesn't count), whose category resolves and is enabled, whose years fit
+that category and whose raster file exists. Any other layer is hidden, logged once
+as an error, and shown in the admin with `category_issue` or `layer_issue`
+(`years_mismatch`, `missing_raster`). Like any hidden layer, it still resolves by id
+for analyses already open.
 
 Writes change one entry of `categories.json` and keep the others as they are stored,
 rejected ones included, so nothing the API can't validate (a hand edit, a file from a

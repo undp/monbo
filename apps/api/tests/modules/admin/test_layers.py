@@ -733,6 +733,63 @@ def test_list_shows_why_a_layer_cant_be_public(categories, client, admin_headers
     assert {m["id"] for m in client.get("/maps?country=CO").json()} == {0}
 
 
+def test_an_unreadable_year_doesnt_break_the_listing(categories, client, admin_headers):
+    # Re-review 3 of #138: `GET /admin/layers` answered 500 for the whole country.
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "baseline": "2020a"}])
+
+    response = client.get("/admin/layers", headers=admin_headers)
+
+    assert response.status_code == 200
+    layer = next(entry for entry in response.json() if entry["id"] == 7)
+    assert layer["baseline"] is None
+    assert layer["compared_against"] == 2023
+    assert layer["layer_issue"] == "years_mismatch"
+
+
+@pytest.mark.parametrize("stored, shown", [("false", False), ("true", False)])
+def test_only_a_boolean_true_is_published(
+    categories, client, admin_headers, stored, shown
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "enabled": stored}])
+
+    # The admin and the public listing read it the same way.
+    assert admin_layer(client, admin_headers, 7)["enabled"] is shown
+    assert 7 not in {m["id"] for m in client.get("/maps?country=CO").json()}
+
+
+def test_a_string_true_still_goes_through_the_publish_checks(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [*index, {**GFW, "id": 7, "category_id": "frontier", "enabled": "true"}]
+    )
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert "is disabled" in response.json()["detail"]
+
+
+def test_hiding_rewrites_a_hand_edited_enabled_as_a_boolean(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "enabled": "false"}])
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": False}, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    stored = json.loads(categories.store.index_path.read_text())
+    assert next(e for e in stored if e["id"] == 7)["enabled"] is False
+
+
 def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
     index = json.loads(categories.store.index_path.read_text())
     categories.write_index([*index, {**GFW, "id": 7, "category_id": "frontier"}])

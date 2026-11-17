@@ -164,6 +164,11 @@
 - **WHEN** CO's layer 7 is in `deforestation` with only a baseline year, and layer 8 has no raster file
 - **THEN** layer 7 appears with `layer_issue: "years_mismatch"` and layer 8 with `layer_issue: "missing_raster"`
 
+#### Scenario: Year that can't be read
+
+- **WHEN** a hand edit leaves CO's layer 7 with `baseline: "2020a"`
+- **THEN** `GET /admin/layers` answers 200 and shows layer 7 with `baseline: null` and `layer_issue: "years_mismatch"`
+
 #### Scenario: Legacy layer
 
 - **WHEN** CO's layer 0 has no `category_id` in the index

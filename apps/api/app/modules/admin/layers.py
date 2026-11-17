@@ -17,14 +17,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from rasterio import open as rasterio_open
 from rasterio.errors import RasterioIOError
 
-from app.modules.layers.categories import LayerIssue, years_fit
+from app.modules.layers.categories import LayerIssue, stored_year, years_fit
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
     raster_pixel_size_range_m,
 )
-from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore
-from app.utils.maps import parse_year
+from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, is_enabled
 
 from .auth import Session, logger, require_admin
 from .helpers import (
@@ -72,10 +71,10 @@ def _to_admin_layer(
         category_enabled=bool(category and category["enabled"]),
         layer_issue=layer_issue,
         pixel_size=entry["pixel_size"],
-        baseline=parse_year(entry.get("baseline")),
-        compared_against=parse_year(entry.get("compared_against")),
+        baseline=_shown_year(entry.get("baseline")),
+        compared_against=_shown_year(entry.get("compared_against")),
         references=entry.get("references", []),
-        enabled=entry["enabled"],
+        enabled=is_enabled(entry),
         version=entry["version"],
         raster_filename=entry.get("raster_filename"),
         has_raster=has_raster,
@@ -113,6 +112,16 @@ def _apply_input(store: LayerStore, entry: dict, body: LayerInput) -> None:
     )
 
 
+def _shown_year(value: object) -> int | None:
+    """A stored year for the admin; null when the index holds something that isn't
+    a valid year (a hand edit), which `layer_issue` then reports as
+    `years_mismatch` instead of failing the whole listing."""
+    try:
+        return stored_year(value)
+    except ValueError:
+        return None
+
+
 def _year(year: int | None) -> str | None:
     return None if year is None else str(year)
 
@@ -136,7 +145,7 @@ def _check_category(
     temporal. Checked before anything is written."""
     category_id = body.category_id
     moved = current is None or current["category_id"] != category_id
-    if current is not None and moved and current["enabled"]:
+    if current is not None and moved and is_enabled(current):
         raise HTTPException(
             status_code=400,
             detail=f"Layer {current['id']} is published: hide it before moving it "
@@ -307,7 +316,7 @@ def set_layer_enabled(
             raise HTTPException(
                 status_code=409, detail="Upload a raster before enabling the layer"
             )
-        if body.enabled and not entry["enabled"]:
+        if body.enabled and not is_enabled(entry):
             category, issue = categories.resolve(entry["category_id"])
             if category is None or not category["enabled"]:
                 reason = (
@@ -329,7 +338,8 @@ def set_layer_enabled(
                     detail=f"Layer {layer_id} can't be published: its years don't "
                     f"fit category '{entry['category_id']}' (edit the layer first)",
                 )
-        if entry["enabled"] != body.enabled:
+        # A hand-edited non-boolean (`"false"`) is rewritten as a boolean.
+        if entry["enabled"] is not body.enabled:
             entry["enabled"] = body.enabled
             store.write_index(index)
             logger.info(

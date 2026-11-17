@@ -2,7 +2,7 @@
 
 ### Requirement: Public listing returns enabled layers with version
 
-`GET /maps` SHALL return only the layers that are consistent enough to be analyzed: enabled, whose category resolves and is enabled, whose years fit that category (both `baseline` and `compared_against` for a temporal category, neither for any other; a value that is not a year never fits), and whose raster file exists. This SHALL hold whatever produced the index, including a hand edit of the share. A layer left out for its years or its raster SHALL be logged once as an error naming the country, the layer, and the reason, SHALL be readable from the storage module (`layer_issue`), and SHALL still resolve by id for analysis, tiles, and images, like a disabled layer. It SHALL accept an optional `country` query parameter. When the parameter is given, it SHALL return only that country's layers, and it SHALL return an empty list for a country that is unknown or disabled. When the parameter is omitted, it SHALL return the enabled layers of every enabled country. Each returned layer SHALL include its `version`, `availableCountriesCodes`, and `categoryId`. In the per-country layout, `availableCountriesCodes` SHALL contain exactly the layer's country.
+`GET /maps` SHALL return only the layers that are consistent enough to be analyzed: enabled (`enabled` is the boolean `true`; a missing key counts as `true`, any other value as not enabled), whose category resolves and is enabled, whose years fit that category (both `baseline` and `compared_against` for a temporal category, neither for any other; each year valid by the rules of creating a layer: an integer from 1900 to 2100, not a boolean, and the baseline not after the comparison year), and whose raster file exists. This SHALL hold whatever produced the index, including a hand edit of the share. A layer left out for its years or its raster SHALL be logged once as an error naming the country, the layer, and the reason, SHALL be readable from the storage module (`layer_issue`), and SHALL still resolve by id for analysis, tiles, and images, like a disabled layer. It SHALL accept an optional `country` query parameter. When the parameter is given, it SHALL return only that country's layers, and it SHALL return an empty list for a country that is unknown or disabled. When the parameter is omitted, it SHALL return the enabled layers of every enabled country. Each returned layer SHALL include its `version`, `availableCountriesCodes`, and `categoryId`. In the per-country layout, `availableCountriesCodes` SHALL contain exactly the layer's country.
 
 #### Scenario: Disabled layer hidden from listing
 
@@ -18,6 +18,16 @@
 
 - **WHEN** a hand edit leaves CO's layer 3 enabled in `deforestation` with `baseline: "2020"` and `compared_against: null`, or with `baseline: "2020a"`
 - **THEN** `GET /maps?country=CO` doesn't list layer 3 and answers 200, and an error names CO, layer 3, and the reason
+
+#### Scenario: Hand-edited years that creating a layer would refuse
+
+- **WHEN** a hand edit leaves CO's layer 3 enabled in `deforestation` with `baseline: "2023"` and `compared_against: "2020"`, with years out of range, or with `true` as years
+- **THEN** `GET /maps?country=CO` doesn't list layer 3
+
+#### Scenario: Hand-edited enabled that isn't a boolean
+
+- **WHEN** a hand edit leaves CO's layer 3 with `enabled: "false"`
+- **THEN** `GET /maps?country=CO` doesn't list layer 3, and `GET /admin/layers` shows it with `enabled: false`
 
 #### Scenario: Hand-edited layer without raster
 

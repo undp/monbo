@@ -102,6 +102,13 @@ def _with_defaults(entry: dict) -> dict:
     }
 
 
+def is_enabled(entry: dict) -> bool:
+    """Whether a layer is published: only `enabled: true` (or no key, for entries
+    that predate it) counts, never a truthy string like "false" from a hand edit.
+    The admin, its guards and the public listing all read it this way."""
+    return entry.get("enabled", True) is True
+
+
 class LayerStore:
     def __init__(
         self, root: str | os.PathLike[str], lock: "threading.RLock | None" = None
@@ -726,7 +733,7 @@ class LayersRoot:
                     f"its category '{layer['category_id']}' doesn't resolve "
                     f"({issue})",
                 )
-            elif layer["layer_issue"] and layer["enabled"]:
+            elif layer["layer_issue"] and is_enabled(layer):
                 self._log_hidden(
                     layer, f"its years don't fit category '{layer['category_id']}'"
                 )
@@ -741,7 +748,7 @@ class LayersRoot:
         images resolve layers by id regardless (a browser may hold an older list).
         Only listings call it, so tiles don't pay for the raster check."""
         if not (
-            layer["enabled"]
+            is_enabled(layer)
             and layer.get("category_issue") is None
             and layer.get("category_enabled")
             and layer.get("layer_issue") is None

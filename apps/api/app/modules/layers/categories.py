@@ -26,6 +26,10 @@ from app.models.categories import CategoryIcon, CategoryPolarity
 CATEGORIES_FILENAME = "categories.json"
 DEFAULT_CATEGORY_ID = "deforestation"
 CATEGORY_ID_PATTERN = r"^[a-z][a-z0-9_]{0,49}$"
+# A layer's years, as `LayerInput` accepts them and as the public listing requires
+# them of the index (`years_fit`).
+YEAR_MIN = 1900
+YEAR_MAX = 2100
 # Limits of a stored category, shared with the admin's input models.
 COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
 NAME_MAX_LENGTH = 100
@@ -193,23 +197,44 @@ def is_temporal(category_id: Any, file: CategoriesFile) -> bool:
     return bool(category and category["temporal"])
 
 
-def _year_state(value: Any) -> bool | None:
-    """True for a year, False for none (missing, null or ""), None when the index
-    holds something that isn't a year (a hand edit)."""
+def years_problem(baseline: int | None, compared_against: int | None) -> str | None:
+    """Why a layer's pair of years is not valid, or None: they go together, and the
+    baseline is not after the comparison year. Each year's range is checked on its
+    own (`YEAR_MIN`..`YEAR_MAX`)."""
+    if (baseline is None) != (compared_against is None):
+        return "baseline and compared_against go together"
+    if (
+        baseline is not None
+        and compared_against is not None
+        and baseline > compared_against
+    ):
+        return "baseline must not be later than compared_against"
+    return None
+
+
+def stored_year(value: Any) -> int | None:
+    """A year as the index stores it ("2020"), or None when the layer has none
+    (missing, null or ""). Raises `ValueError` when it isn't a year `LayerInput`
+    would accept: not an integer (a boolean or "2020a" included), or out of range."""
     if value in (None, ""):
-        return False
-    try:
-        int(value)
-    except (TypeError, ValueError):
         return None
-    return True
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{value!r} is not a year")
+    year = int(value)  # ValueError for "2020a"
+    if not YEAR_MIN <= year <= YEAR_MAX:
+        raise ValueError(f"{year} is out of range")
+    return year
 
 
 def years_fit(entry: dict, temporal: bool) -> bool:
-    """Whether an index entry's years fit a category that is (or isn't) temporal:
-    temporal categories need both years, the others none. A year that can't be
-    read never fits."""
-    years = [_year_state(entry.get(key)) for key in ("baseline", "compared_against")]
-    if None in years:
+    """Whether an index entry's years are valid by the rules of `LayerInput` and fit
+    a category that is (or isn't) temporal: temporal categories need both years,
+    the others none."""
+    try:
+        baseline = stored_year(entry.get("baseline"))
+        compared_against = stored_year(entry.get("compared_against"))
+    except ValueError:
         return False
-    return all(years) if temporal else not any(years)
+    if years_problem(baseline, compared_against) is not None:
+        return False
+    return (baseline is not None) == temporal

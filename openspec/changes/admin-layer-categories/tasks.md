@@ -56,3 +56,4 @@
 - [x] 9.3 `years_fit`: both years for a temporal category, none otherwise
 - [x] 9.4 Enabling a category with published layers answers 400
 - [x] 9.5 Read-side invariant: `LayersRoot.is_public` also requires years that fit and the raster; `layer_issue` tag and `AdminLayer.layer_issue`; tests with hand-edited indexes
+- [x] 9.6 Years fit by the rules of `LayerInput` (shared `YEAR_MIN`/`YEAR_MAX`, `years_problem`); `enabled` counts only as the boolean `true` everywhere (`is_enabled`); `GET /maps` filters by country before checking rasters; `GET /admin/layers` shows an unreadable year as `null` with `years_mismatch`

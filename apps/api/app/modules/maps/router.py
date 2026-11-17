@@ -65,12 +65,13 @@ def get_maps(
     maps = [
         map
         for map in get_all_maps()
-        if root.is_public(map)
-        and (country is None or country in map["available_countries_codes"])
+        if (country is None or country in map["available_countries_codes"])
         and (
             enabled_countries is None
             or enabled_countries & set(map["available_countries_codes"])
         )
+        # Last: it checks the raster on the share, only for layers to be listed.
+        and root.is_public(map)
     ]
 
     parsed_maps = []

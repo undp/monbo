@@ -77,7 +77,11 @@ def colombia_layers(colombia, country_root):
     colombia.write_raster("gfw.tif")
     colombia.write_raster("hidden-v2.tif")
     ecuador = country_root.country("EC")
-    ecuador.write_index([{**GFW, "category_id": "snap_ec", "baseline": None}])
+    # A public layer of its own (not temporal: no years), so EC is offered.
+    ecuador.write_index(
+        [{**GFW, "category_id": "snap_ec", "baseline": None, "compared_against": None}]
+    )
+    ecuador.write_raster("gfw.tif")
     write_categories(ecuador, [category("snap_ec")])
     return colombia
 
@@ -799,7 +803,5 @@ def test_colombia_creates_protected_areas_and_agricultural_frontier(
 
     assert set(by_id(client, ecuador_headers(client))) == {"deforestation", "snap_ec"}
     assert "protected_areas" not in public_ids(client, "EC")
-    assert all(
-        m["categoryId"] in ("snap_ec", "deforestation")
-        for m in client.get("/maps?country=EC").json()
-    )
+    ecuador_maps = client.get("/maps?country=EC").json()
+    assert [(m["id"], m["categoryId"]) for m in ecuador_maps] == [(0, "snap_ec")]
