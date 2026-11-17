@@ -11,6 +11,8 @@ import {
 } from "@/utils/styling";
 import { Box, Chip, FormControlLabel, Radio } from "@mui/material";
 import { orderBy } from "lodash";
+import { useLayerReading } from "@/hooks/useLayerRules";
+import { findingRatio } from "@/utils/layerResults";
 import { useSearchParams } from "next/navigation";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +38,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
   });
 
   const { id: selectedMapId } = useSelectedMap();
+  const { rule } = useLayerReading(selectedMapId);
 
   const deforestationMapResults = useMemo(
     () =>
@@ -45,6 +48,7 @@ export const FarmsList: React.FC<FarmsListProps> = ({
     [deforestationAnalysisResults, selectedMapId]
   );
 
+  // Largest finding first (`1 − value` for a required layer).
   const sortedData = useMemo(() => {
     return orderBy(
       filteredData,
@@ -53,11 +57,13 @@ export const FarmsList: React.FC<FarmsListProps> = ({
           deforestationMapResults?.farmResults.find(
             ({ farmId }) => farmId === farm.id
           )?.value ?? null;
-        return deforestationValue;
+        return deforestationValue === null || !rule
+          ? null
+          : findingRatio(deforestationValue, rule.polarity);
       },
       "desc"
     );
-  }, [filteredData, deforestationMapResults]);
+  }, [filteredData, deforestationMapResults, rule]);
 
   return (
     <Box
@@ -88,9 +94,13 @@ export const FarmsList: React.FC<FarmsListProps> = ({
           )?.value ?? null;
 
         const deforestationParsedValue: string =
-          deforestationValue === null
-            ? t("common:na")
-            : formatDeforestationPercentage(deforestationValue, i18n.language);
+          deforestationValue === null || !rule
+            ? t("deforestationAnalysis:noDataShortText")
+            : formatDeforestationPercentage(
+                deforestationValue,
+                i18n.language,
+                rule
+              );
         return (
           <FormControlLabel
             key={farm.id}
@@ -128,11 +138,14 @@ export const FarmsList: React.FC<FarmsListProps> = ({
                     textTransform: "uppercase",
                     fontSize: 12,
                     minWidth: 60,
-                    color:
-                      getDeforestationPercentageChipColor(deforestationValue),
+                    color: getDeforestationPercentageChipColor(
+                      deforestationValue,
+                      rule
+                    ),
                     backgroundColor:
                       getDeforestationPercentageChipBackgroundColor(
-                        deforestationValue
+                        deforestationValue,
+                        rule
                       ),
                   }}
                 />

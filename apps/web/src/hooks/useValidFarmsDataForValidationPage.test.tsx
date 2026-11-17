@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
-import { makeFarm, makeMap, makeMapResults, makeValidationResults } from "@/test/factories";
+import {
+  makeCategory,
+  makeFarm,
+  makeMap,
+  makeMapResults,
+  makeValidationResults,
+} from "@/test/factories";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
 import { useDeforestationFreeResultsCountByMap } from "./useDeforestationFreeResultsCountByMap";
 import { useValidFarmsDataForValidationPage } from "./useValidFarmsDataForValidationPage";
@@ -29,8 +35,10 @@ describe("useValidFarmsDataForValidationPage", () => {
 });
 
 describe("useDeforestationFreeResultsCountByMap", () => {
-  it("counts the farms at or below the threshold per layer, and null when a layer has no data", async () => {
-    setRuntimeConfig({ deforestationThresholdPercentage: 1, overlapThresholdPercentage: 1 });
+  it("counts the farms at or below the category's threshold per layer, and null when a layer has no data", async () => {
+    // The category's threshold (1), not the global one, decides.
+    setRuntimeConfig({ deforestationThresholdPercentage: 50, overlapThresholdPercentage: 1 });
+    const category = makeCategory({ thresholdPercentage: 1 });
     const { result } = await renderHookWithData(useDeforestationFreeResultsCountByMap, {
       context: makeDataContext({
         farmsData: [
@@ -48,12 +56,13 @@ describe("useDeforestationFreeResultsCountByMap", () => {
           makeMapResults(1, { F01: 0, F02: 0.004, F03: 0.05, F04: null }),
           makeMapResults(2, { F01: null, F02: null, F03: null, F04: null }),
         ],
+        availableCategories: [category],
       }),
     });
 
     expect(result.current).toEqual([
-      { mapId: 1, attr: "map_1", count: 2 },
-      { mapId: 2, attr: "map_2", count: null },
+      { mapId: 1, attr: "map_1", category, count: 2 },
+      { mapId: 2, attr: "map_2", category, count: null },
     ]);
   });
 });

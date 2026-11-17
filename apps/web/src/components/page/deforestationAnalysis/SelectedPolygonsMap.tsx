@@ -10,8 +10,9 @@ import { DeforestationMapOverlay } from "./DeforestationMapOverlay";
 import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
 import { FarmData } from "@/interfaces/Farm";
-import { deforestationResultShortText } from "@/utils/resultLabels";
+import { layerResultText } from "@/utils/resultLabels";
 import { getDeforestationPercentageChipColor } from "@/utils/styling";
+import { useLayerReading } from "@/hooks/useLayerRules";
 
 interface SelectedPolygonsMapProps {
   farmsData: FarmData[];
@@ -31,6 +32,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const { id: selectedMapId, alias: selectedMapAlias } = useSelectedMap();
+  const { category, rule } = useLayerReading(selectedMapId);
 
   const selectedFarmData = useMemo(
     () => farmsData?.find((d) => d.id === selectedPolygonIdAtMap) || null,
@@ -159,7 +161,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Text variant="body1">
-              {t("deforestationAnalysis:deforestationLevel")} (
+              {t("deforestationAnalysis:results.layerResult")} (
               {selectedMapAlias}):
             </Text>
             <Text
@@ -169,15 +171,13 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
               sx={{
                 marginLeft: 1,
                 textAlign: "right",
-                textTransform: "uppercase",
-                color: getDeforestationPercentageChipColor(deforestationLevel),
+                color: getDeforestationPercentageChipColor(
+                  deforestationLevel,
+                  rule
+                ),
               }}
             >
-              {deforestationResultShortText(
-                deforestationLevel,
-                t,
-                i18n.language
-              )}
+              {layerResultText(deforestationLevel, category, t, i18n.language)}
             </Text>
           </Box>
         </Paper>

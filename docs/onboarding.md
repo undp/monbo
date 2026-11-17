@@ -63,11 +63,11 @@ Every page of the three modules shows the **flow header** (`components/page/flow
 
 Each stage's state is a pure function of the route and `DataContext` (`utils/flowStages.ts`):
 - the current stage isn't a control: it opens no dialog;
-- stage 2 can always be opened from another stage, even without validating first. After a validation and before an analysis, it opens the analysis modal, so the user chooses the polygon subset and the layers;
+- stage 2 can always be opened from another stage, even without validating first. Without results it goes to its selection page (`/deforestation-analysis/upload-data`), which asks for the polygon subset after a validation, shows the layers grouped by category, and starts the analysis only from "Analizar" (or after an upload, or to recalculate an outdated analysis), never just because it opened. What the page edits is a draft (`analysisDraft` in `DataContext`): the results, the map and the report keep the subset and layers they were analysed with (`deforestationAnalysisParams`) until a new analysis succeeds, and a layer hidden after it was chosen is never sent;
 - stage 3 needs analysis results. It opens the report layer modal until the report's layers belong to the current analysis and it has farms;
 - uploading farms on module 2's upload page drops the validation of the farms loaded before.
 
-The results pages of modules 1 and 2 end with a "Next stage" card. It opens the modal that moves to the next stage: the polygon subset and layers for module 2, and the report layers for module 3. The application header has no module buttons.
+The results pages of modules 1 and 2 end with a "Next stage" card: module 1's goes to module 2's selection page, and module 2's opens the report layer modal. The application header has no module buttons.
 
 **Module 1 — Validation**
 1. The upload step (`components/page/uploadData/`, shared by modules 1 and 2) offers four ways to bring the farms, one card each, and builds **one list of sources** from any mix of them (`useUploadSources` + `utils/uploadSources.ts`):
@@ -83,6 +83,7 @@ The results pages of modules 1 and 2 end with a "Next stage" card. It opens the 
 **Module 2 — Deforestation analysis**
 4. With the farms + the chosen maps, the frontend calls **`POST /layer_analysis/analyze`** with `{country, farms:[{id,type,details}], maps:[ids]}` (layer ids are numbered within each country).
 5. The backend iterates **per map × per farm** and returns `[{mapId, version, farmResults:[{farmId, value}]}]`, where `version` is the layer's raster version the results were computed on, and `value` is a **ratio between 0 and 1** (or `null` if that farm failed). The "valid farms only" filter is **cosmetic on the frontend**: the backend always analyzes all farms.
+   The web loads the country's categories (`GET /categories`) together with its layers (`availableCategories` in `DataContext`) and reads each layer's results with its category's rule (polarity and threshold, `categoryRule` in `utils/layerResults.ts`). The results page summarises each category, groups the table's layer columns by category and names the map groups with the category's labels. A layer whose category is no longer listed shows "Sin dato": the web never guesses its rule. The PDF report and the Excel and GeoJSON exports still read every layer with the deforestation rule (`deforestationRule()`).
 6. The interactive map paints the rasters as PNG tiles generated on the fly via **`GET /layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`**, over a Google Maps base layer.
    If an admin replaces a selected raster or changes its calculation fields while
    the page is open, the browser discards the earlier percentages and recalculates

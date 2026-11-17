@@ -15,7 +15,6 @@ import {
   type FlowStageView,
 } from "@/utils/flowStages";
 import { MapSelectionModal } from "@/components/page/deforestationAnalysis/MapSelectionModal";
-import { DeforestationModal } from "@/components/page/polygonsValidation/DeforestationModal";
 import { FLOW_COLORS, HEADING_FONT, REDUCED_MOTION, fill, rise } from "./flowStyles";
 
 // Entrance delays, in seconds: the stages one after another, each bar after the
@@ -93,9 +92,9 @@ const ProgressBar: React.FC<{ value: number; delay: number }> = ({ value, delay 
 
 /**
  * The flow's three stages, each with its state. Stages 1 and 2 can always be
- * opened; stage 3 only with analysis results (D5). Stage 2 after a validation,
- * and stage 3 without its choices, go through the same modals as the next-stage
- * cards.
+ * opened; stage 3 only with analysis results (D5). Stage 2 goes to its page,
+ * where the polygon subset and the layers are chosen; stage 3 without its choices
+ * goes through the report layer modal, as the next-stage card does.
  */
 export const FlowStepper: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -105,7 +104,6 @@ export const FlowStepper: React.FC = () => {
     reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
     deforestationAnalysisParams: { selectedMaps: analysisMaps },
   } = useContext(DataContext);
-  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const goToReport = useCallback(
@@ -115,13 +113,12 @@ export const FlowStepper: React.FC = () => {
 
   const openStage = useCallback(
     (stage: FlowStage) => {
-      const action = stageAction(stage, current, flags, {
+      const action = stageAction(stage, current, {
         reportMapIds: reportMaps.map(({ id }) => id),
         analysisMapIds: analysisMaps.map(({ id }) => id),
         selectedFarmsCount: reportFarms.length,
       });
-      if (action === "analysisModal") setAnalysisModalOpen(true);
-      else if (action === "reportModal") setReportModalOpen(true);
+      if (action === "reportModal") setReportModalOpen(true);
       else if (action === "navigate")
         router.push(localizedPath(stageHref(stage, flags), i18n.language));
     },
@@ -224,10 +221,6 @@ export const FlowStepper: React.FC = () => {
           })}
         </Box>
       </Box>
-      <DeforestationModal
-        isOpen={analysisModalOpen}
-        handleClose={() => setAnalysisModalOpen(false)}
-      />
       <MapSelectionModal
         isOpen={reportModalOpen}
         handleClose={() => setReportModalOpen(false)}

@@ -18,6 +18,8 @@ import { DownloadPageData } from "@/components/page/deforestationAnalysis/Downlo
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
 import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
 import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
+import { CategorySummaryCards } from "@/components/page/deforestationAnalysis/CategorySummaryCards";
+import { ChangeLayersButton } from "@/components/page/deforestationAnalysis/ChangeLayersButton";
 
 const namespaces = ["common", "deforestationAnalysis", "reportGeneration", "flow"];
 
@@ -55,20 +57,34 @@ export default async function DeforestationAnalysis({
           <Box
             sx={{
               display: "flex",
+              flexWrap: "wrap",
               justifyContent: "space-between",
               alignItems: "flex-end",
+              gap: 2,
             }}
           >
             <Box>
               <StageEyebrow />
               <PageTitle />
             </Box>
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <ChangeLayersButton />
+          </Box>
+          <CategorySummaryCards />
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 2,
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
               {selectedView === "table" && (
                 <Suspense>
                   <SearchBar
                     placeholder={t("deforestationAnalysis:searchPlaceholder")}
-                    style={{ minWidth: "400px" }}
+                    style={{ minWidth: { xs: "100%", sm: "400px" } }}
                   />
                 </Suspense>
               )}

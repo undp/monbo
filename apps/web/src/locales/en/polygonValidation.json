@@ -25,14 +25,6 @@
     },
     "tableHeader": "Manual validation"
   },
-  "deforestationModal": {
-    "title": "Deforestation Analysis",
-    "polygonSelection": "Select the polygons to consider",
-    "all": "All",
-    "valid": "Validated polygons",
-    "mapsSelection": "Select map layers",
-    "continue": "Continue"
-  },
   "uploadDataPage": {
     "loadingText": "Loading the data",
     "title": "Upload Polygons or Points",

@@ -21,6 +21,7 @@ export function useCountryChange() {
     resetAnalysis,
     setFarmsData,
     setDeforestationAnalysisParams,
+    setAnalysisDraft,
     setReportGenerationParams,
   } = useContext(DataContext);
   const router = useRouter();
@@ -37,6 +38,8 @@ export function useCountryChange() {
         return;
       }
       setDeforestationAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
+      // Another country's layers: the next analysis starts from none.
+      setAnalysisDraft(null);
       setFarmsData(
         (prev) => prev?.map((farm) => ({ ...farm, country: code })) ?? null
       );
@@ -57,6 +60,7 @@ export function useCountryChange() {
       setFarmsData,
       setSelectedCountry,
       setDeforestationAnalysisParams,
+      setAnalysisDraft,
       setReportGenerationParams,
       router,
     ]

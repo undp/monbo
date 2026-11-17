@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
   formatDeforestationPercentage,
+  formatFindingPercentage,
   formatNumber,
   formatOverlapPercentage,
   formatPercentage,
@@ -109,6 +110,45 @@ describe("formatDeforestationPercentage", () => {
     withThresholds(2);
     expect(formatDeforestationPercentage(0.104999, "es")).toBe("10,5%");
     expect(formatDeforestationPercentage(0.0283331208, "en")).toBe("2.8%");
+  });
+});
+
+describe("formatFindingPercentage", () => {
+  it("uses the threshold's decimals, and at least one", () => {
+    expect(formatFindingPercentage(0.18, 5, "es")).toBe("18%");
+    expect(formatFindingPercentage(0.0244, 2, "es")).toBe("2,4%");
+    expect(formatFindingPercentage(0.0244, 2.25, "en")).toBe("2.44%");
+  });
+
+  it("never reads a finding above the threshold as the threshold", () => {
+    // 5.04% and 5.049% round to 5% with one decimal.
+    expect(formatFindingPercentage(0.0504, 5, "es")).toBe("> 5%");
+    expect(formatFindingPercentage(0.05049, 5, "es")).toBe("> 5%");
+    expect(formatFindingPercentage(0.0504, 5, "en")).toBe("> 5%");
+    // Far enough above, the percentage itself.
+    expect(formatFindingPercentage(0.0551, 5, "es")).toBe("5,5%");
+    expect(formatFindingPercentage(0.051, 5, "es")).toBe("5,1%");
+    // A threshold with decimals: 2.2504% rounds to 2.25%.
+    expect(formatFindingPercentage(0.022504, 2.25, "es")).toBe("> 2,25%");
+    expect(formatFindingPercentage(0.0226, 2.25, "es")).toBe("2,26%");
+  });
+
+  it("never reads a finding below the threshold as the threshold", () => {
+    expect(formatFindingPercentage(0.0496, 5, "es")).toBe("< 5%");
+    expect(formatFindingPercentage(0.049, 5, "es")).toBe("4,9%");
+  });
+
+  it("reads a finding on the threshold as the threshold", () => {
+    // 100 × 0.05 is a hair above 5 in floating point: still "on" it.
+    expect(formatFindingPercentage(0.05, 5, "es")).toBe("5%");
+    expect(formatFindingPercentage(1 - 0.95, 5, "es")).toBe("5%");
+  });
+
+  it("never reads a finding under the display resolution as 0%", () => {
+    expect(formatFindingPercentage(0.0004, 0, "es")).toBe("< 0,1%");
+    expect(formatFindingPercentage(0.0004, 0, "en")).toBe("< 0.1%");
+    expect(formatFindingPercentage(0.001, 0, "es")).toBe("0,1%");
+    expect(formatFindingPercentage(0, 0, "es")).toBe("0%");
   });
 });
 

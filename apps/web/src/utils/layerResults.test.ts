@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
-import { makeFarm, makeMapResults } from "@/test/factories";
 import {
+  makeCategory,
+  makeFarm,
+  makeFrontierCategory,
+  makeMap,
+  makeMapResults,
+} from "@/test/factories";
+import {
+  categoryRule,
+  classifyFarmInCategory,
   classifyResult,
   countResults,
   deforestationRule,
   findingRatio,
   groupFarmsByResult,
+  groupLayersByCategory,
+  layerCategory,
+  layerRule,
+  summarizeCategories,
   type ClassificationRule,
 } from "./layerResults";
 
@@ -135,5 +147,128 @@ describe("groupFarmsByResult", () => {
     const groups = groupFarmsByResult(farms, undefined, avoid(2));
     expect(groups.unknown).toHaveLength(4);
     expect(groups.ok).toHaveLength(0);
+  });
+});
+
+describe("categoryRule and layerRule", () => {
+  const frontier = makeFrontierCategory();
+  const deforestation = makeCategory({ thresholdPercentage: 10 });
+  const categories = [deforestation, frontier];
+
+  it("takes the polarity and threshold of the category", () => {
+    expect(categoryRule(frontier)).toEqual({
+      polarity: "required",
+      thresholdPercentage: 5,
+    });
+  });
+
+  it("reads a frontier layer with the required rule", () => {
+    const rule = layerRule(makeMap({ categoryId: frontier.id }), categories);
+    expect(classifyResult(0.9, rule)).toBe("flagged");
+    expect(classifyResult(0.96, rule)).toBe("ok");
+  });
+
+  it("uses the category's threshold, not the global one", () => {
+    setRuntimeConfig({
+      overlapThresholdPercentage: 5,
+      deforestationThresholdPercentage: 2,
+    });
+    const rule = layerRule(makeMap({ categoryId: "deforestation" }), categories);
+    expect(classifyResult(0.05, rule)).toBe("ok");
+  });
+
+  it("gives no rule for a category that is not listed, and unknown results", () => {
+    const layer = makeMap({ categoryId: "protected-areas" });
+    expect(layerCategory(layer, categories)).toBeNull();
+    expect(layerRule(layer, categories)).toBeNull();
+    expect(classifyResult(0, null)).toBe("unknown");
+    expect(classifyResult(0.9, null)).toBe("unknown");
+    expect(countResults([0, 0.5, null], null)).toEqual({
+      ok: 0,
+      flagged: 0,
+      unknown: 3,
+    });
+  });
+});
+
+describe("classifyFarmInCategory", () => {
+  it("is flagged when any layer is flagged", () => {
+    expect(classifyFarmInCategory(["ok", "flagged"])).toBe("flagged");
+    expect(classifyFarmInCategory(["unknown", "flagged"])).toBe("flagged");
+  });
+
+  it("is unknown when a layer has no data and none is flagged", () => {
+    expect(classifyFarmInCategory(["ok", "unknown"])).toBe("unknown");
+    expect(classifyFarmInCategory([])).toBe("unknown");
+  });
+
+  it("is ok only when every layer is ok", () => {
+    expect(classifyFarmInCategory(["ok", "ok"])).toBe("ok");
+  });
+});
+
+describe("groupLayersByCategory", () => {
+  const frontier = makeFrontierCategory();
+  const protectedAreas = makeCategory({ id: "protected-areas" });
+  const categories = [makeCategory(), protectedAreas, frontier];
+
+  it("groups in the categories' order, layers by id, and leaves empty ones out", () => {
+    const upra = makeMap({ id: 5, categoryId: frontier.id });
+    const tmf = makeMap({ id: 2 });
+    const gfw = makeMap({ id: 1 });
+    const groups = groupLayersByCategory([upra, tmf, gfw], categories);
+    expect(groups.map(({ category }) => category?.id)).toEqual([
+      "deforestation",
+      "agricultural_frontier",
+    ]);
+    expect(groups[0].layers.map(({ id }) => id)).toEqual([1, 2]);
+  });
+
+  it("puts layers of a missing category last, with no category", () => {
+    const orphan = makeMap({ id: 3, categoryId: "gone" });
+    const groups = groupLayersByCategory([orphan, makeMap({ id: 1 })], categories);
+    expect(groups.at(-1)).toEqual({ category: null, layers: [orphan] });
+  });
+});
+
+describe("summarizeCategories", () => {
+  const frontier = makeFrontierCategory();
+  const categories = [makeCategory({ thresholdPercentage: 2 }), frontier];
+  const layers = [
+    makeMap({ id: 1 }),
+    makeMap({ id: 2 }),
+    makeMap({ id: 5, categoryId: frontier.id }),
+    makeMap({ id: 9, categoryId: "gone" }),
+  ];
+  const farms = ["A", "B", "C", "D"].map((id) => makeFarm({ id }));
+  const results = [
+    makeMapResults(1, { A: 0, B: 0, C: 0, D: 0.001 }),
+    makeMapResults(2, { A: 0, B: 0.3, C: null, D: 0 }),
+    makeMapResults(5, { A: 1, B: 0.82, C: 0.96, D: null }),
+    makeMapResults(9, { A: 0, B: 0, C: 0, D: 0 }),
+  ];
+
+  it("counts each farm once per category, from all its layers", () => {
+    const summary = summarizeCategories(farms, results, layers, categories);
+    expect(summary.map(({ category }) => category.id)).toEqual([
+      "deforestation",
+      "agricultural_frontier",
+    ]);
+    // B is flagged in TMF only; C has no data in TMF; D is under the threshold.
+    expect(summary[0]).toMatchObject({
+      layerIds: [1, 2],
+      counts: { ok: 2, flagged: 1, unknown: 1 },
+    });
+    // 18 % of B is outside the frontier (above 5); D has no data.
+    expect(summary[1]).toMatchObject({
+      layerIds: [5],
+      counts: { ok: 2, flagged: 1, unknown: 1 },
+    });
+  });
+
+  it("only summarises analysed layers", () => {
+    const summary = summarizeCategories(farms, results.slice(0, 1), layers, categories);
+    expect(summary).toHaveLength(1);
+    expect(summary[0].layerIds).toEqual([1]);
   });
 });
