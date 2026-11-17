@@ -47,3 +47,8 @@
 - [x] 8.4 "Sin dato" in the map chips and the table counter
 - [x] 8.5 Counter of farms without findings in green with the category's icon
 - [x] 8.6 "Cambiar capas", the stage 1 card and "Ir a validación" keep the language
+
+## 9. Re-review of #140 (2026-11-17)
+
+- [x] 9.1 `formatFindingPercentage`: a finding above the threshold that rounds to it reads "> 5%", one below it that rounds to it reads "< 5%"; contract in the docstring; edge tests
+- [x] 9.2 A recalculation keeps a pending draft; test

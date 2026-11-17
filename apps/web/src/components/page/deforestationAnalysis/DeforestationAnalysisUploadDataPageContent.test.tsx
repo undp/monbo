@@ -275,6 +275,30 @@ describe("DeforestationAnalysisUploadDataPageContent", () => {
     await waitFor(() => expect(analyzeLayers).toHaveBeenCalledTimes(1));
   });
 
+  it("keeps a pending draft through a recalculation", async () => {
+    vi.mocked(analyzeLayers).mockResolvedValue([makeMapResults(1, { F01: 0 })]);
+    sessionStorage.setItem("monbo.selectedCountry", "CO");
+    // GFW was analysed; on the page the user had picked TMF instead without
+    // analysing; then GFW changed and the results were invalidated.
+    const context = await renderPage({
+      farmsData: farms,
+      analysisOutdated: true,
+      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [gfw] },
+      analysisDraft: { polygonsSubset: "all", selectedMapIds: [2] },
+    });
+
+    // The recalculation re-runs what was analysed, not the draft...
+    await waitFor(() => expect(analyzeLayers).toHaveBeenCalledWith(farms, [gfw], "CO"));
+    await waitFor(() =>
+      expect(context.setDeforestationAnalysisParams).toHaveBeenCalledWith({
+        polygonsSubset: "valid",
+        selectedMaps: [gfw],
+      })
+    );
+    // ...and leaves the draft for the next visit to the page.
+    expect(context.setAnalysisDraft).not.toHaveBeenCalled();
+  });
+
   it("guides a direct entry without polygons, without blocking it", async () => {
     await renderPage({
       deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },

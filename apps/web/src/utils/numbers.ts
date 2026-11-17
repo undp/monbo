@@ -195,22 +195,35 @@ export const formatDeforestationPercentage = (
   return formatFindingPercentage(finding, rule.thresholdPercentage, language);
 };
 
+// The tolerance for "on the threshold": floating point puts 100 × 0.05 a hair above
+// 5. The same idea as the classification's (layerResults.ts), so a finding the
+// classification calls equal to the threshold is not shown as above or below it.
+const THRESHOLD_ROUNDING_ULPS = 8;
+
 /**
- * The percentage of a finding that is above its rule's threshold (a `flagged`
- * result), for the cells and the PDF: "18%", "2,4%".
+ * A finding as a percentage next to its rule's threshold, for the stage 2 cells and
+ * the PDF. Meant for a `flagged` result; for a result of any class, use
+ * formatDeforestationPercentage with the rule, which also covers results at or
+ * below the threshold.
  *
- * - Decimals: as many as the threshold has, and at least DEFAULT_DECIMAL_PLACES,
- *   so a finding above the threshold never reads as the threshold itself.
- * - A finding too small for those decimals (only possible with a threshold of 0,
- *   e.g. 0.0004 → 0.04%) reads "< 0,1%", never "0%": a flagged result must not
- *   look like no finding at all. 0 itself reads "0%".
+ * Contract (the text always agrees with the classification against the threshold):
+ * - Decimals: as many as the threshold has, and at least DEFAULT_DECIMAL_PLACES:
+ *   "18%", "2,4%", "2,44%" with a 2,25 threshold.
+ * - 0 reads "0%".
+ * - A finding above 0 that rounds to 0 (only possible with a threshold of 0, e.g.
+ *   0.0004 → 0.04%) reads "< 0,1%", never "0%".
+ * - A finding above the threshold that rounds to the threshold or below it reads
+ *   "> 5%" (the threshold, with its own decimals), never "5%": with a threshold of
+ *   5, 0.0504 reads "> 5%" and 0.0551 reads "5,5%".
+ * - A finding below the threshold that rounds to the threshold or above it reads
+ *   "< 5%" (e.g. 0.0496). A finding on the threshold reads "5%".
  *
  * Takes the finding, not `value`: for a `required` rule that is `1 − value`
- * (`findingRatio`). For a result of any class, use formatDeforestationPercentage
- * with the rule, which also covers results at or below the threshold.
+ * (`findingRatio`).
  *
  * @param finding - The share of the farm that is a finding (0-1)
  * @param thresholdPercentage - The rule's threshold, in percent (0-100)
+ * @param language - "es" (default) or "en"
  */
 export const formatFindingPercentage = (
   finding: number,
@@ -219,7 +232,23 @@ export const formatFindingPercentage = (
 ): string => {
   const decimals = getDecimalPlacesForThreshold(thresholdPercentage);
   const resolution = Math.pow(10, -decimals);
-  if (finding > 0 && 100 * finding < resolution)
+  const percent = 100 * finding;
+  if (finding > 0 && percent < resolution)
     return `< ${formatPercentage(resolution / 100, decimals, language)}`;
+
+  // The value as displayed, rounded exactly as formatPercentage rounds it.
+  const shown = Number(
+    formatPercentage(finding, decimals, "en").replace(/[%,]/g, "")
+  );
+  const tolerance =
+    THRESHOLD_ROUNDING_ULPS *
+    Number.EPSILON *
+    Math.max(Math.abs(percent), Math.abs(thresholdPercentage), 100);
+  const above = percent - thresholdPercentage > tolerance;
+  const below = thresholdPercentage - percent > tolerance;
+  if (above && shown <= thresholdPercentage)
+    return `> ${formatThreshold(thresholdPercentage, language)}`;
+  if (below && shown >= thresholdPercentage)
+    return `< ${formatThreshold(thresholdPercentage, language)}`;
   return formatPercentage(finding, decimals, language);
 };

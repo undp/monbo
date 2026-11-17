@@ -108,8 +108,10 @@ finding in one layer is never hidden by another. Pure function
 
 The finding is formatted with `formatDeforestationPercentage(value, language, rule)`, the same
 helper as the rest of stage 2. Above a threshold it calls `formatFindingPercentage(finding,
-thresholdPercentage, language)`: the threshold's decimals (at least one), and "< 0,1%" for a
-finding too small for them, so a flagged result never reads "0%" (possible with a threshold of 0).
+thresholdPercentage, language)`: the threshold's decimals (at least one), "< 0,1%" for a
+finding too small for them, so a flagged result never reads "0%" (possible with a threshold of 0),
+and "> 5%" for a finding above a threshold of 5 that rounds to it (5,04%), so the text always
+agrees with the classification.
 GC-7 uses `formatFindingPercentage` in the PDF; its contract is documented on the function.
 
 The per-layer counter of farms without findings is green (`success.main`) with the category's
@@ -161,7 +163,8 @@ results page, the map, the summary, the report and the stepper read them) apart 
 `analysisDraft` (`{ polygonsSubset, selectedMapIds }`, what the page is editing). The page starts
 from the stored draft, or else from the analysed choices; each change is stored in the draft so it
 survives a visit to stage 1. Only a successful analysis writes the params, together with the
-results, and clears the draft. "Cambiar capas" clears the draft, so the page opens with the
+results; an analysis of the draft also clears it, while a recalculation (which re-runs the
+analysed choices) keeps a pending draft. "Cambiar capas" clears the draft, so the page opens with the
 choices of the results on screen. `resetAnalysis` and a country change clear it too.
 
 **Only offered layers are analysed.** The draft's ids are resolved against the layers the country

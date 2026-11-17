@@ -60,8 +60,9 @@ The layers and the polygon subset chosen on the stage 2 selection page SHALL be 
 the layers and subset the current results were analysed with. Changing them SHALL NOT change the
 results page, the map, the summary or the report until an analysis started from the page
 succeeds; then the results and the choices they were analysed with SHALL change together. The
-page SHALL keep its choices while the user visits another stage, and "Cambiar capas" SHALL open
-it with the choices of the results on screen.
+page SHALL keep its choices while the user visits another stage, including through a
+recalculation of the analysed choices, and "Cambiar capas" SHALL open it with the choices of the
+results on screen.
 
 #### Scenario: Choices changed and abandoned
 
@@ -70,6 +71,12 @@ it with the choices of the results on screen.
   back button without pressing "Analizar"
 - **THEN** the results still show the 6 valid polygons and the three layers, no invalid polygon
   appears as free, and the report offers the same three layers
+
+#### Scenario: A recalculation keeps the draft
+
+- **WHEN** GFW and IDEAM were analysed, the user picked GFW and TMF on the page without analysing,
+  and a change to GFW triggered a recalculation
+- **THEN** the recalculation sends GFW and IDEAM, and the page still shows GFW and TMF afterwards
 
 #### Scenario: Choices analysed
 
@@ -157,7 +164,8 @@ the category's icon, color and name over its layers, and layer columns ordered b
 cell SHALL show the result of its layer for the farm: the category's `ok` label when `ok`; the
 finding percentage and the category's `flagged` label when `flagged`; "Sin dato" when `unknown`.
 The finding SHALL be `value` for `avoid` and `1 − value` for `required`. A flagged finding SHALL
-never read as "0%": with a threshold of 0, a finding under 0.1% reads "< 0,1%". The table SHALL
+never read as "0%" nor as the threshold itself: with a threshold of 0, a finding under 0.1% reads
+"< 0,1%"; with a threshold of 5, a finding of 5.04% reads "> 5%". The table SHALL
 keep its
 search, sorting and per-layer `ok` counter, and SHALL keep the props the report stage uses
 (`tableProps`, `mapsSubset`).
@@ -178,6 +186,11 @@ search, sorting and per-layer `ok` counter, and SHALL keep the props the report 
 - **WHEN** Áreas protegidas is `avoid` with a threshold of 0 and a farm's value for its layer is
   `0.0004`
 - **THEN** the cell reads "< 0,1% · Dentro de un área protegida", not "0% · …"
+
+#### Scenario: A finding just above the threshold
+
+- **WHEN** Frontera agrícola is `required` with a threshold of 5 and a farm's value is `0.9496`
+- **THEN** the cell reads "> 5% · Fuera de la frontera agrícola", not "5% · …"
 
 #### Scenario: Grouped header
 

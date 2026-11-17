@@ -52,6 +52,17 @@ describe("layerResultText", () => {
     );
   });
 
+  it("never shows a flagged finding as the threshold", async () => {
+    const t = await tFor("es");
+    // 1 − 0.9496 = 5.04% outside the frontier: above 5, but 5% with one decimal.
+    expect(layerResultText(0.9496, frontier, t, "es")).toBe(
+      "> 5% · Fuera de la frontera agrícola"
+    );
+    expect(layerResultText(0.94, frontier, t, "es")).toBe(
+      "6% · Fuera de la frontera agrícola"
+    );
+  });
+
   it("uses the category's English texts", async () => {
     const t = await tFor("en");
     expect(layerResultText(0.82, frontier, t, "en")).toBe(

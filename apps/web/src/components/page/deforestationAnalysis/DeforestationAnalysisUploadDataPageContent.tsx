@@ -292,6 +292,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       data: FarmData[],
       maps: MapData[],
       polygonsSubset: PolygonsSubset,
+      mode: AnalysisMode,
       isCurrent: () => boolean
     ) => {
       const request = ++latestRequestRef.current;
@@ -309,7 +310,9 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // The results and the choices they were analysed with change together.
         setDeforestationAnalysisResults(response);
         setDeforestationAnalysisParams({ polygonsSubset, selectedMaps: maps });
-        setAnalysisDraft(null);
+        // The draft was analysed: the page now starts from the results. A
+        // recalculation re-ran the analysed choices, so a pending draft stays.
+        if (mode === "draft") setAnalysisDraft(null);
         setAnalysisOutdated(false);
         router.push(localizedPath("/deforestation-analysis", i18n.language));
         openSnackbar({
@@ -373,6 +376,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
       farmsData,
       requestedMaps,
       requestedSubset,
+      analysisMode,
       () =>
         mountedRef.current &&
         prevDataRef.current === serializedData &&
