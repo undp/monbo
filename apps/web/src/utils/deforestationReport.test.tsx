@@ -403,19 +403,12 @@ describe("a sublist or a heading in the considerations", () => {
 });
 
 describe("considerations longer than a page", () => {
-  // 30 sentences, about 4,500 characters: more than a page under a heading
-  const sentences = Array.from(
-    { length: 30 },
-    (_, i) =>
-      `Sentence ${i + 1} of the long section explains a limit of the layer in enough words to fill a line or two of the report.`
-  );
-  const considerations = [
-    "### Long section",
-    sentences.join(" "),
-    "### Closing",
-    "- Last item",
-  ].join("\n");
-  const scopePages = async () =>
+  const sentence = (tag: string, i: number) =>
+    `[${tag}${i}] This sentence explains a limit of the layer in enough words to fill a line or two of the report.`;
+  const paragraph = (tag: string, count: number) =>
+    Array.from({ length: count }, (_, i) => sentence(tag, i + 1)).join(" ");
+
+  const scopePages = async (considerations: string) =>
     LayerScopePages({
       groups: [
         {
@@ -435,44 +428,90 @@ describe("considerations longer than a page", () => {
       language: "es",
     });
 
-  it("lets a long list item break, and keeps a short one whole", () => {
-    const long = "word ".repeat(200).trim();
-    const items = findAll(
-      pdfTree(Considerations({ considerations: `- ${long}\n- Short item` })),
-      "VIEW"
-    );
-    expect(items.map(({ props }) => props.wrap)).toEqual([true, false]);
-  });
-
-  it("never puts a long paragraph in an unbreakable block", async () => {
-    const unbreakable = findAll(pdfTree(await scopePages()), "VIEW").filter(
-      ({ props }) => props.wrap === false
-    );
-    for (const block of unbreakable)
-      expect(textOf(block.children)).not.toContain("Sentence 1 ");
-  });
-
-  it("prints all of it, above the footer, with the heading on its first page", async () => {
-    const lines = printedLines(await layoutPages(await scopePages()));
+  /** The printed lines of the considerations' pages, without the footer. */
+  const printedContent = async (considerations: string) => {
     const isFooter = ({ text }: PrintedLine) =>
       /^Página \d+ de \d+$|Análisis realizado por/.test(text.trim());
+    const lines = printedLines(await layoutPages(await scopePages(considerations)));
     const content = lines.filter((line) => !isFooter(line));
-    const printed = content.map(({ text }) => text).join(" ").replace(/\s+/g, " ");
-
-    for (const sentence of sentences) expect(printed).toContain(sentence);
-    expect(printed).toContain("Closing");
-    expect(printed).toContain("Last item");
     // The page's content area ends at its bottom padding (60 pt), above the footer
     const contentBottom = 841.89 - 60;
     for (const line of content)
       expect(line.bottom).toBeLessThanOrEqual(contentBottom + 0.5);
-    // The paragraph breaks across pages, and its heading stays with its beginning
-    const pages = new Set(
-      content.filter(({ text }) => text.includes("Sentence")).map(({ page }) => page)
+    return content;
+  };
+  const allText = (lines: PrintedLine[]) =>
+    lines.map(({ text }) => text).join(" ").replace(/\s+/g, " ");
+  const lineWith = (lines: PrintedLine[], text: string) =>
+    lines.find((line) => line.text.includes(text))!;
+
+  it("never puts a long paragraph in an unbreakable block", async () => {
+    const unbreakable = findAll(
+      pdfTree(await scopePages(`### Long section\n${paragraph("L", 30)}`)),
+      "VIEW"
+    ).filter(({ props }) => props.wrap === false);
+    for (const block of unbreakable) expect(textOf(block.children)).not.toContain("[L1]");
+  });
+
+  it.each([30, 38, 45])(
+    "prints a paragraph of %i sentences whole, above the footer, its heading on its first page",
+    async (count) => {
+      const content = await printedContent(
+        [
+          "### Long section",
+          paragraph("L", count),
+          "### Closing",
+          "- Last item",
+        ].join("\n")
+      );
+      const text = allText(content);
+      for (let i = 1; i <= count; i++) expect(text).toContain(sentence("L", i));
+      expect(text).toContain("Last item");
+      expect(new Set(content.filter(({ text }) => text.includes("[L")).map(({ page }) => page)).size).toBeGreaterThan(1);
+      expect(lineWith(content, "Long section").page).toBe(lineWith(content, "[L1]").page);
+    },
+    30_000
+  );
+
+  it("keeps the Considerations title with a long first paragraph, which breaks", async () => {
+    const content = await printedContent(paragraph("P", 38));
+    const text = allText(content);
+    for (let i = 1; i <= 38; i++) expect(text).toContain(sentence("P", i));
+    expect(lineWith(content, "Consideraciones").page).toBe(lineWith(content, "[P1]").page);
+  }, 30_000);
+
+  it("never leaves a heading alone at the bottom, wherever the text before puts it", async () => {
+    // Pushes the heading down a line at a time, across the bottom of a page (the
+    // attributes' table puts the considerations on the page's second half)
+    const headingTops: number[] = [];
+    for (let before = 34; before <= 46; before++) {
+      const content = await printedContent(
+        [paragraph("B", before), "### Near the bottom", paragraph("N", 8)].join("\n")
+      );
+      const heading = lineWith(content, "Near the bottom");
+      expect(heading.page).toBe(lineWith(content, "[N1]").page);
+      headingTops.push(heading.top);
+    }
+    // The sweep did reach the bottom: at some point the heading moved to the top of
+    // the next page instead of staying alone where it would have fallen
+    expect(Math.min(...headingTops)).toBeLessThan(60);
+  }, 60_000);
+
+  it("splits a long chain of short items ending in ':', printing them all in order", async () => {
+    const items = Array.from({ length: 60 }, (_, i) => `- [G${i + 1}] Field ${i + 1}:`);
+    const content = await printedContent(items.join("\n"));
+    const order = content
+      .map(({ text }) => text.match(/\[G(\d+)\]/)?.[1])
+      .filter(Boolean)
+      .map(Number);
+    expect(order).toEqual(Array.from({ length: 60 }, (_, i) => i + 1));
+  }, 30_000);
+
+  it("prints what follows a heading after many empty lines, on the heading's page", async () => {
+    const content = await printedContent(
+      ["### Heading H", ...Array(149).fill(""), "- [H1] The item under it"].join("\n")
     );
-    expect(pages.size).toBeGreaterThan(1);
-    const heading = content.find(({ text }) => text.trim() === "Long section")!;
-    const firstSentence = content.find(({ text }) => text.includes("Sentence 1 "))!;
-    expect(heading.page).toBe(firstSentence.page);
+    expect(lineWith(content, "[H1]")).toBeDefined();
+    expect(lineWith(content, "Heading H").page).toBe(lineWith(content, "[H1]").page);
   }, 30_000);
 });

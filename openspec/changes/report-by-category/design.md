@@ -98,7 +98,9 @@ react-pdf prints a "-" wherever it breaks a word, so a URL it breaks no longer r
 
 ### D11. Only short considerations are kept whole
 
-react-pdf can't move a block taller than a page: it prints it where it is and cuts it off, losing text. Considerations go up to 20,000 characters, and a page holds about 2,800. So a heading, an item that opens a sublist, or the "Considerations" title goes in one unbreakable block with what follows only when that is short (lines up to 600 characters, blocks up to 1,500). Before a long line they ask react-pdf to keep the beginning of it on the same page (`minPresenceAhead`), and the long line breaks across pages; a long list item breaks too. A layout test (`test/pdfLayout.tsx`, from react-pdf's own layout) checks that a paragraph longer than a page prints whole and above the footer.
+react-pdf can't move a block taller than a page: it prints it where it is and cuts it off, losing text. Considerations go up to 20,000 characters, and a page holds about 2,800 characters or 30 lines. So a heading, an item that opens a sublist, or the "Considerations" title goes in one unbreakable block with what follows only when that is short: lines up to 600 characters, and blocks up to 1,500 characters and 12 lines (short lines add height too). A run of empty lines reads as one, as in markdown. Before anything longer they ask react-pdf to keep the beginning of it on the same page (`minPresenceAhead` of 60 pt: react-pdf moves a paragraph with fewer than two lines left on a page, so a smaller presence would leave the heading alone), and the long line breaks across pages; a long list item breaks too.
+
+Tests read react-pdf's own layout (`test/pdfLayout.tsx`, through the document's `onRender`, with the report's Roboto): every line of a paragraph of 30 to 45 sentences prints, above the footer; a heading swept across the bottom of a page never ends it alone; 60 items ending in ":" and a heading followed by 149 empty lines print whole. Each of these fails if its rule is removed.
 
 ## Risks / Trade-offs
 

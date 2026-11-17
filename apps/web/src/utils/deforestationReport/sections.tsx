@@ -836,7 +836,7 @@ export const LayerScopePages = ({
             </AppendixPageTableRow>
           ))}
 
-          {/* The title travels with the first block, so it never ends a page alone */}
+          {/* The title never ends a page alone (see Considerations) */}
           <View style={styles.appendixPageBodyText}>
             {map.considerations ? (
               <Considerations

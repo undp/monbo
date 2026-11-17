@@ -22,6 +22,19 @@ const isHeadingLine = (line: string) => line.trim().startsWith("### ");
 const SHORT_LINE_CHARS = 600;
 /** An unbreakable block (with the section's title) stays well under a page. */
 const MAX_BLOCK_CHARS = 1500;
+/**
+ * And at most this many lines: short lines add height too (an empty one is drawn
+ * with its margin), and a page holds about 30.
+ */
+const MAX_BLOCK_LINES = 12;
+
+/**
+ * What must fit under a line that introduces another, in points: two lines of
+ * considerations (23 pt each, see appendixPageBodyText) and their margins. react-pdf
+ * moves a paragraph with fewer than two lines left on the page (its orphans), so a
+ * smaller presence would let the heading stay alone at the bottom.
+ */
+const KEEP_AHEAD = 60;
 
 const isShort = (line: string) => line.trim().length <= SHORT_LINE_CHARS;
 
@@ -60,7 +73,10 @@ export const Considerations = ({
   considerations: string;
   title?: React.ReactNode;
 }) => {
-  const lines = considerations.split("\n");
+  // A run of empty lines reads as one, as in markdown: it would only add height
+  const lines = considerations
+    .split("\n")
+    .filter((line, i, all) => line.trim() !== "" || all[i - 1]?.trim() !== "");
   // Each block: the line indexes that go together on one page
   const blocks: number[][] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -72,7 +88,12 @@ export const Considerations = ({
     while (isShort(lines[last]) && introducesNext(lines, last)) {
       const next = nextLineIndex(lines, last);
       chars += lines[next].trim().length;
-      if (!isShort(lines[next]) || chars > MAX_BLOCK_CHARS) break;
+      if (
+        !isShort(lines[next]) ||
+        chars > MAX_BLOCK_CHARS ||
+        next - i + 1 > MAX_BLOCK_LINES
+      )
+        break;
       for (let k = last + 1; k <= next; k++) block.push(k);
       last = next;
     }
@@ -87,12 +108,13 @@ export const Considerations = ({
   const titleJoinsFirst =
     title !== undefined &&
     firstBlockChars <= MAX_BLOCK_CHARS &&
+    (blocks[0]?.length ?? 0) < MAX_BLOCK_LINES &&
     (blocks[0] ?? []).every((index) => isShort(lines[index]));
   return (
     <>
       {title !== undefined && !titleJoinsFirst && (
         // Keeps the beginning of the first line under it on the same page
-        <View minPresenceAhead={40}>{title}</View>
+        <View minPresenceAhead={KEEP_AHEAD}>{title}</View>
       )}
       {blocks.map((block, b) => {
         const last = block[block.length - 1];
@@ -106,7 +128,7 @@ export const Considerations = ({
           <View
             key={`block-${block[0]}`}
             wrap={false}
-            minPresenceAhead={keepAhead ? 40 : undefined}
+            minPresenceAhead={keepAhead ? KEEP_AHEAD : undefined}
           >
             {withTitle && title}
             {nodes}
@@ -264,7 +286,7 @@ const renderLine = (line: string, index: number, keepAhead = false) => {
     return (
       <Text
         key={index}
-        minPresenceAhead={keepAhead ? 40 : undefined}
+        minPresenceAhead={keepAhead ? KEEP_AHEAD : undefined}
         style={{
           fontWeight: 700,
           fontSize: 12,
@@ -283,7 +305,7 @@ const renderLine = (line: string, index: number, keepAhead = false) => {
         // A short item never breaks, so its bullet never stays alone at the bottom of
         // a page; a long one breaks as any text does (it may not fit a page)
         wrap={!isShort(line)}
-        minPresenceAhead={keepAhead ? 40 : undefined}
+        minPresenceAhead={keepAhead ? KEEP_AHEAD : undefined}
         style={{
           flexDirection: "row",
           marginBottom: 3,

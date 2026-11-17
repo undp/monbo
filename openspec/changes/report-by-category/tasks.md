@@ -57,3 +57,4 @@
 - [x] 8.8 After the rebase: category colors through `categoryTints` (green and red only for the result class, D23); a real PDF reviewed in the browser
 - [x] 8.9 Second review: references printed in lines react-pdf never breaks (D10); a heading, a sublist's opening item and the considerations' title stay with what follows; `layerResultText` built from `layerResult`, with one key per text
 - [x] 8.10 Third review: only short considerations go in unbreakable blocks (D11); a paragraph longer than a page prints whole, checked with react-pdf's layout and in the real PDF
+- [x] 8.11 Fourth review: the layout tests measure with Roboto and place lines right after a page break; tests for the keep-ahead and the title; blocks also capped in lines; keep-ahead of two lines
