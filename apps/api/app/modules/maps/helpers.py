@@ -1,5 +1,7 @@
 from fastapi import HTTPException
 
+from app.config import env
+from app.models.categories import LayerCategory, LocalizedText, ResultLabels
 from app.modules.layers.store import get_layers_root, is_layer
 
 
@@ -15,8 +17,12 @@ def get_all_maps() -> list[dict]:
     - `country`: the layer's country, or None in the legacy flat layout;
     - `available_countries_codes`: `[country]`, or the layer's own list in the
       flat layout.
-    Callers that list layers publicly must filter on `enabled`; analysis, tiles
-    and image generation resolve layers by id regardless of it.
+    - `category_id`: the layer's category (`deforestation` when the entry has
+      none), and `category_issue` / `category_enabled`: whether that category
+      resolves and is enabled (see `LayersRoot._with_categories`).
+    Callers that list layers publicly must filter with `is_public_layer` (enabled,
+    and its category resolves and is enabled); analysis, tiles and image generation
+    resolve layers by id regardless of it.
     Returns:
         list[dict]: The layers.
     Raises:
@@ -72,4 +78,27 @@ def get_map_by_id(mapId: int, country: str | None = None) -> dict | None:
     return next(
         (map for map in get_country_maps(country) if is_layer(map, country, mapId)),
         None,
+    )
+
+
+def to_public_category(category: dict) -> LayerCategory:
+    """A stored category (snake_case) as `GET /categories` returns it, with the
+    threshold resolved: the category's own, or the global one."""
+    threshold = category["threshold_percentage"]
+    labels = category["result_labels"]
+    return LayerCategory(
+        id=category["id"],
+        name=LocalizedText(**category["name"]),
+        description=LocalizedText(**category["description"]),
+        icon=category["icon"],
+        color=category["color"],
+        polarity=category["polarity"],
+        thresholdPercentage=(
+            env.DEFORESTATION_THRESHOLD_PERCENTAGE if threshold is None else threshold
+        ),
+        resultLabels=ResultLabels(
+            ok=LocalizedText(**labels["ok"]),
+            flagged=LocalizedText(**labels["flagged"]),
+        ),
+        temporal=category["temporal"],
     )

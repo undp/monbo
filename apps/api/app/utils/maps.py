@@ -4,6 +4,12 @@ from app.modules.layers.store import get_layers_root
 # says which folder holds its files.
 
 
+def parse_year(value) -> int | None:
+    """A year from the index, where years are stored as strings. Layers without
+    years (categories that are not temporal) have none: missing, null or ""."""
+    return int(value) if value not in (None, "") else None
+
+
 def read_attributes(layer: dict, language: str) -> dict | None:
     store = get_layers_root().store_for(layer)
     return store.read_attributes(layer["attributes_filename"], language)

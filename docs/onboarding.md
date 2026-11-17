@@ -98,6 +98,7 @@ This is the core concept worth understanding clearly.
 
 - **Each "map" is a GeoTIFF raster that acts as a binary mask:** a pixel is `1` if that cell of terrain **lost forest after the baseline year**, and `0`/NoData otherwise. A pixel represents a real square of terrain (30×30 m in most layers, 10×10 m in Costa Rica; see `apps/api/app/maps/index.json`).
 - Those masks are produced by the **offline pipeline** `tools/update-gfw-tmf/run.py` using Google Earth Engine (`data.gt(baseline_year).selfMask()` = "loss year > baseline → 1"). This script **does not run at runtime**; it is only used to regenerate the `.tif` files.
+- Each layer belongs to a **category** of its country, which says how its result reads (polarity, threshold, wording). Every layer in the repo is in the built-in `deforestation` category. See `docs/maps.md`, "Categories".
 - **To cross-reference a polygon (vector, lat/lng) with a raster (pixel grid)**, in `layer_analysis/helpers.py`:
   1. Reproject the polygon to the raster's CRS.
   2. Crop the raster to the polygon's shape with `rasterio.mask.mask(..., all_touched=True)`. *(`all_touched=True` includes any pixel the polygon touches, even partially, so that the next step sees every pixel the farm overlaps.)*

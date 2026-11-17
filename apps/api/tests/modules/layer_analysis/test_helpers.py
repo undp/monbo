@@ -39,14 +39,20 @@ def test_get_all_maps(maps_root):
             "name": "Deforestation Map A",
             "enabled": True,
             "version": 1,
+            "category_id": "deforestation",
             "country": None,
+            "category_issue": None,
+            "category_enabled": True,
         },
         {
             "id": 2,
             "name": "Deforestation Map B",
             "enabled": False,
             "version": 4,
+            "category_id": "deforestation",
             "country": None,
+            "category_issue": None,
+            "category_enabled": True,
         },
     ]
 

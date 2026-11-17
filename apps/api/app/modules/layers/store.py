@@ -3,12 +3,14 @@
 The root has one of two layouts:
 
 - per country: ``countries.json`` (the country registry) and one folder per country
-  (``CO/``, ``EC/``...), each holding its own ``index.json``, metadata and rasters.
+  (``CO/``, ``EC/``...), each holding its own ``index.json``, ``categories.json``
+  (optional, see `app.modules.layers.categories`), metadata and rasters.
   Every layer belongs to one country, and ids are numbered within each country, so a
   layer is identified by its country and its id.
 - flat (legacy, like the Git-tracked ``app/maps``): one ``index.json`` at the root
   whose layers list their countries in ``available_countries_codes``. It is served
-  read-only: the layers admin needs the per-country layout.
+  read-only: the layers admin needs the per-country layout. It has no categories
+  file, so its only category is the built-in ``deforestation``.
 
 `LayerStore` handles one flat directory (the legacy root, or one country folder);
 `LayersRoot` handles the whole root. Ingestion jobs live at the root in both.
@@ -39,6 +41,14 @@ from typing import Any
 
 from app.config import env
 from app.config.logger import get_logger
+from app.modules.layers.categories import (
+    CATEGORIES_FILENAME,
+    DEFAULT_CATEGORY_ID,
+    CategoriesFile,
+    effective_categories,
+    parse_categories,
+    resolve_category,
+)
 
 logger = get_logger("modules.layers.store")
 
@@ -74,12 +84,26 @@ def _is_safe_filename(name: str) -> bool:
 
 
 def _with_defaults(entry: dict) -> dict:
-    """Index entries written before `enabled`/`version` existed stay valid."""
+    """Index entries written before `enabled`/`version`/`category_id` existed stay
+    valid."""
+    category_id = entry.get("category_id")
     return {
         **entry,
         "enabled": entry.get("enabled", True),
         "version": entry.get("version", 1),
+        "category_id": DEFAULT_CATEGORY_ID if category_id is None else category_id,
     }
+
+
+def is_public_layer(entry: dict) -> bool:
+    """Whether a layer from `LayersRoot.layers()` may be listed publicly: enabled,
+    and its category resolves and is enabled. Analysis, tiles and images resolve
+    layers by id regardless."""
+    return bool(
+        entry["enabled"]
+        and entry.get("category_issue") is None
+        and entry.get("category_enabled")
+    )
 
 
 class LayerStore:
@@ -90,12 +114,20 @@ class LayerStore:
         # Shared by every store under one layers root: one lock per process.
         self._lock = lock or threading.RLock()
         self._index_cache: tuple[tuple[int, int], list[dict]] | None = None
+        self._categories_cache: tuple[tuple[int, int], CategoriesFile] | None = None
+        # The last I/O error logged for `categories.json`, so a persistent one is
+        # logged once instead of on every request (tiles included).
+        self._categories_read_error: str | None = None
 
     # --- Paths ---------------------------------------------------------------
 
     @property
     def index_path(self) -> Path:
         return self.root / INDEX_FILENAME
+
+    @property
+    def categories_path(self) -> Path:
+        return self.root / CATEGORIES_FILENAME
 
     @property
     def rasters_dir(self) -> Path:
@@ -159,6 +191,56 @@ class LayerStore:
                     return None
                 self._index_cache = (key, [_with_defaults(entry) for entry in content])
             return copy.deepcopy(self._index_cache[1])
+
+    def read_categories(self) -> CategoriesFile:
+        """The stored categories (`categories.json`), validated one by one. A missing
+        file is readable and empty.
+
+        What the file holds (valid or not) is cached while the file is unchanged, and
+        each problem is logged once per version of the file. An I/O error is not
+        cached: it may be transient (SMB), so the next read retries. Until then the
+        file counts as unreadable."""
+        with self._lock:
+            path = self.categories_path
+            try:
+                stat = path.stat()
+            except FileNotFoundError:
+                self._categories_cache = None
+                self._categories_read_error = None
+                return CategoriesFile()
+            except OSError as e:
+                return self._categories_io_error(path, e)
+            key = (stat.st_mtime_ns, stat.st_size)
+            if self._categories_cache is None or self._categories_cache[0] != key:
+                try:
+                    with open(path, "r", encoding="utf-8") as file:
+                        content = json.load(file)
+                except OSError as e:
+                    return self._categories_io_error(path, e)
+                except ValueError as e:  # not JSON, or not UTF-8
+                    categories = CategoriesFile(
+                        readable=False,
+                        errors=[f"{CATEGORIES_FILENAME} is not valid JSON: {e}"],
+                    )
+                else:
+                    categories = parse_categories(content)
+                for error in categories.errors:
+                    logger.error("Invalid categories at '%s': %s", path, error)
+                self._categories_cache = (key, categories)
+            self._categories_read_error = None
+            return copy.deepcopy(self._categories_cache[1])
+
+    def _categories_io_error(self, path: Path, error: OSError) -> CategoriesFile:
+        message = str(error)
+        if message != self._categories_read_error:
+            logger.error("Cannot read categories at '%s': %s", path, error)
+            self._categories_read_error = message
+        # `errors` may reach the country's admin: only the cause, never the share's
+        # path (the log above has it).
+        return CategoriesFile(
+            readable=False,
+            errors=[f"{CATEGORIES_FILENAME} can't be read: {error.strerror or error}"],
+        )
 
     def read_attributes(self, filename: str, language: str) -> dict | None:
         path = self.attributes_path(filename, language)
@@ -230,6 +312,23 @@ class LayerStore:
             self._index_cache = (
                 (stat.st_mtime_ns, stat.st_size),
                 [_with_defaults(entry) for entry in copy.deepcopy(entries)],
+            )
+
+    def write_categories(self, categories: list[dict]) -> None:
+        """Replace `categories.json`. Refuses a list with any invalid or repeated
+        category: readers would drop it, and its layers with it."""
+        parsed = parse_categories(categories)
+        if parsed.errors:
+            raise ValueError("Invalid categories: " + "; ".join(parsed.errors))
+        data = json.dumps(parsed.categories, indent=2, ensure_ascii=False) + "\n"
+        with self._lock:
+            self._atomic_write(self.categories_path, data.encode("utf-8"))
+            stat = self.categories_path.stat()
+            # Like `write_index`: a rewrite in the same mtime tick with the same size
+            # would otherwise be read back from the stale cache.
+            self._categories_cache = (
+                (stat.st_mtime_ns, stat.st_size),
+                CategoriesFile(categories=copy.deepcopy(parsed.categories)),
             )
 
     def _atomic_write(self, target: Path, data: bytes) -> None:
@@ -392,6 +491,8 @@ class LayersRoot:
         self.flat = LayerStore(self.root, self._lock)
         self._country_stores: dict[str, LayerStore] = {}
         self._registry_cache: tuple[tuple[int, int], list[dict]] | None = None
+        # Category issues already logged, so a broken layer doesn't log on every tile.
+        self._logged_issues: set[tuple] = set()
 
     # --- Layout --------------------------------------------------------------
 
@@ -484,20 +585,32 @@ class LayersRoot:
                 index = self.flat.read_index()
                 if index is None:
                     return None
-                return [{**entry, "country": None} for entry in index]
+                return self._with_categories(
+                    [{**entry, "country": None} for entry in index], CategoriesFile()
+                )
             registry = self.read_registry()
             if registry is None:
                 return None
             layers = []
             for country in registry:
                 code = country["code"]
-                index = self.country_store(code).read_index()
+                store = self.country_store(code)
+                index = store.read_index()
                 if index is None:
                     return None
-                for entry in index:
-                    layers.append(
-                        {**entry, "country": code, "available_countries_codes": [code]}
+                layers.extend(
+                    self._with_categories(
+                        [
+                            {
+                                **entry,
+                                "country": code,
+                                "available_countries_codes": [code],
+                            }
+                            for entry in index
+                        ],
+                        store.read_categories(),
                     )
+                )
             return layers
 
     def country_layers(self, code: str) -> list[dict] | None:
@@ -508,13 +621,76 @@ class LayersRoot:
         with self._lock:
             if self.registered_country(code) is None:
                 return []
-            index = self.country_store(code).read_index()
+            store = self.country_store(code)
+            index = store.read_index()
             if index is None:
                 return None
-            return [
-                {**entry, "country": code, "available_countries_codes": [code]}
-                for entry in index
-            ]
+            return self._with_categories(
+                [
+                    {**entry, "country": code, "available_countries_codes": [code]}
+                    for entry in index
+                ],
+                store.read_categories(),
+            )
+
+    def _with_categories(
+        self, layers: list[dict], categories_file: CategoriesFile
+    ) -> list[dict]:
+        """Tag each layer (of one country, or of the flat root) with:
+        - `category_issue`: None when its `category_id` resolves, else why not
+          (`unknown_category`, `invalid_category`, `unreadable_categories`);
+        - `category_enabled`: whether the resolved category is enabled (False when
+          it doesn't resolve).
+        The tags only exist on what this class returns: `LayerStore.read_index()`
+        returns entries as stored, so they are never written back."""
+        by_id = {c["id"]: c for c in effective_categories(categories_file)}
+        for layer in layers:
+            category, issue = resolve_category(
+                layer["category_id"], categories_file, by_id
+            )
+            layer["category_issue"] = issue
+            layer["category_enabled"] = bool(category and category["enabled"])
+            if issue is not None:
+                self._log_issue(layer, issue)
+        return layers
+
+    def _log_issue(self, layer: dict, issue: str) -> None:
+        key = (layer["country"], layer["id"], str(layer["category_id"]), issue)
+        if key in self._logged_issues:
+            return
+        self._logged_issues.add(key)
+        logger.error(
+            "Layer %s of %s is hidden: its category '%s' doesn't resolve (%s)",
+            layer["id"],
+            layer["country"] or "the flat root",
+            layer["category_id"],
+            issue,
+        )
+
+    def country_categories(self, code: str) -> list[dict] | None:
+        """The enabled categories a visitor of `code` can see (the built-in
+        `deforestation` first, then the stored ones in file order). [] for a country
+        that isn't registered or is disabled; in the flat layout, the built-in one
+        for a country some public layer lists. Invalid categories are left out. None
+        only if the country's index can't be read."""
+        if not self.is_per_country():
+            countries = self.public_countries()
+            if countries is None:
+                return None
+            if code not in countries:
+                return []
+            return effective_categories(CategoriesFile())
+        if code not in (self.enabled_countries() or set()):
+            return []
+        if self.country_layers(code) is None:
+            return None
+        return [
+            category
+            for category in effective_categories(
+                self.country_store(code).read_categories()
+            )
+            if category["enabled"]
+        ]
 
     def find_layer(self, country: str | None, layer_id: int) -> dict | None:
         return next(
@@ -539,12 +715,13 @@ class LayersRoot:
 
     def public_countries(self) -> list[str] | None:
         """Countries a visitor can pick: in the per-country layout, those enabled in
-        the registry with at least one enabled layer; in the flat layout, the
-        countries of the enabled layers. None if any index cannot be read."""
+        the registry with at least one public layer (`is_public_layer`); in the flat
+        layout, the countries of the public layers. None if any index cannot be
+        read."""
         layers = self.layers()
         if layers is None:
             return None
-        enabled_layers = [entry for entry in layers if entry["enabled"]]
+        enabled_layers = [entry for entry in layers if is_public_layer(entry)]
         codes = {
             code
             for entry in enabled_layers
