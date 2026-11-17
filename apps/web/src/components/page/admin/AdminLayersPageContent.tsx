@@ -30,6 +30,7 @@ import { CategoryChip } from "@/components/reusable/CategoryChip";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminCategories, AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { localizedPath } from "@/utils/languageChange";
 import { localizedText } from "@/utils/localizedText";
 import { apiRefusalReason } from "./adminErrors";
@@ -54,6 +55,7 @@ const LayerCategoryCell: React.FC<{
           layer.category_issue
             ? t(`admin:layers:categoryIssue:${layer.category_issue}`, {
                 category: layer.category_id,
+                ...AS_TEXT,
               })
             : layer.category_id
         }
@@ -107,6 +109,7 @@ export const AdminLayersPageContent: React.FC = () => {
               t
             ),
             fix: blockerFix(blocker, false, t),
+            ...AS_TEXT,
           }),
           type: "warning",
         });
@@ -134,7 +137,7 @@ export const AdminLayersPageContent: React.FC = () => {
           message: needsRaster
             ? t("admin:layers:needsRaster")
             : reason
-              ? `${t("admin:layers:toggleError")} ${t("admin:layers:refused", { detail: reason })}`
+              ? `${t("admin:layers:toggleError")} ${t("admin:layers:refused", { detail: reason, ...AS_TEXT })}`
               : t("admin:layers:toggleError"),
           type: needsRaster ? "warning" : "error",
         });
@@ -255,6 +258,7 @@ export const AdminLayersPageContent: React.FC = () => {
                                 categoryName(categories, layer.category_id, language),
                                 t
                               ),
+                              ...AS_TEXT,
                             })}{" "}
                             {blockerFix(visibility.reason, true, t)}
                           </Alert>

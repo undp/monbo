@@ -3,7 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listAdminCategories, setAdminCategoryEnabled } from "@/api/adminCategories";
-import { listAdminLayers } from "@/api/adminLayers";
+import { AdminApiError, listAdminLayers } from "@/api/adminLayers";
 import { setRuntimeConfig } from "@/config/runtime";
 import theme from "@/config/theme";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
@@ -125,5 +125,45 @@ describe("AdminCategoriesPageContent", () => {
     expect(
       (screen.getByRole("button", { name: "New category" }) as HTMLButtonElement).disabled
     ).toBe(true);
+  });
+
+  it("shows the API's reason as text when a switch is refused", async () => {
+    vi.mocked(setAdminCategoryEnabled).mockRejectedValue(
+      new AdminApiError(400, "Category 'frontier' has published layers (A & B): hide them before disabling it")
+    );
+    await renderPage({ categories: [makeAdminCategory(), frontier], readable: true, errors: [] });
+    fireEvent.click(
+      await screen.findByRole("switch", { name: "Enable the category Agricultural frontier" })
+    );
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message:
+          "The category's state couldn't be changed. The server refused the change: Category 'frontier' has published layers (A & B): hide them before disabling it",
+        type: "error",
+      })
+    );
+  });
+
+  it("shows names with ' and & as typed, and never as HTML", async () => {
+    await renderPage({
+      categories: [
+        makeAdminCategory({
+          id: "ana",
+          name: { es: "<b>Ríos</b>", en: "Forests & Ana's <b>rivers</b>" },
+          description: { es: "<img src=x onerror=alert(1)>", en: "<img src=x onerror=alert(1)>" },
+        }),
+      ],
+      readable: true,
+      errors: [],
+    });
+    const article = await screen.findByRole("article", { name: "Forests & Ana's <b>rivers</b>" });
+    expect(
+      within(article).getByRole("switch", {
+        name: "Enable the category Forests & Ana's <b>rivers</b>",
+      })
+    ).toBeTruthy();
+    expect(within(article).getByText("<img src=x onerror=alert(1)>")).toBeTruthy();
+    // React and MUI render it as text: no element comes out of a name or description.
+    expect(article.querySelector("b, img")).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listAdminCategories } from "@/api/adminCategories";
 import {
+  AdminApiError,
   createAdminLayer,
   listAdminLayers,
   setAdminLayerEnabled,
@@ -162,5 +163,72 @@ describe("layer form", () => {
       await screen.findByText("A published layer can't change category: hide it first.")
     ).toBeTruthy();
     expect(screen.getByLabelText(/Baseline year/)).toBeTruthy();
+  });
+});
+
+describe("admin texts with ' and &", () => {
+  const ana = makeAdminCategory({
+    id: "ana",
+    name: { es: "Bosques & ríos d'Ana", en: "Forests & Ana's rivers" },
+    temporal: false,
+    enabled: false,
+  });
+
+  it("names a disabled category as typed in the list, without escaping it twice", async () => {
+    mockApi(
+      [makeAdminLayer({ id: 4, category_id: "ana", category_enabled: false, baseline: null, compared_against: null })],
+      [makeAdminCategory(), ana]
+    );
+    await withProviders(<AdminLayersPageContent />);
+    expect(
+      await screen.findByText(/its category “Forests & Ana's rivers” is disabled\./)
+    ).toBeTruthy();
+    expect(document.body.innerHTML).not.toMatch(/&amp;amp;|&amp;#39;/);
+  });
+
+  it("shows the API's reason when publishing is refused", async () => {
+    mockApi(
+      [makeAdminLayer({ id: 5, enabled: false })],
+      [makeAdminCategory()]
+    );
+    vi.mocked(setAdminLayerEnabled).mockRejectedValue(
+      new AdminApiError(400, "Layer 5 can't be published: its category 'deforestation' is disabled & hidden")
+    );
+    await withProviders(<AdminLayersPageContent />);
+    await screen.findByText("IDEAM 2020-2023");
+    fireEvent.click(screen.getByRole("switch", { name: /Published/ }));
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message:
+          "The layer's state could not be changed. The server refused the change: Layer 5 can't be published: its category 'deforestation' is disabled & hidden",
+        type: "error",
+      })
+    );
+  });
+
+  it("names the category as typed in the editor's notice", async () => {
+    const layer = makeAdminLayer({ id: 4, category_id: "ana", category_enabled: false, baseline: null, compared_against: null });
+    mockApi([layer], [makeAdminCategory(), ana]);
+    await withProviders(<AdminLayerEditorPageContent layerId={4} />);
+    expect(
+      await screen.findByText(/its category “Forests & Ana's rivers” is disabled\./)
+    ).toBeTruthy();
+  });
+
+  it("shows the API's reason for a 409 when saving a layer", async () => {
+    const layer = makeAdminLayer({ id: 6, enabled: false });
+    mockApi([layer], [makeAdminCategory()]);
+    vi.mocked(updateAdminLayer).mockRejectedValue(
+      new AdminApiError(409, "Layer raster is unreadable: 'layer-6-v1.tif' & its copy")
+    );
+    await withProviders(<AdminLayerEditorPageContent layerId={6} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message:
+          "The layer could not be saved. The server refused the change: Layer raster is unreadable: 'layer-6-v1.tif' & its copy",
+        type: "error",
+      })
+    );
   });
 });

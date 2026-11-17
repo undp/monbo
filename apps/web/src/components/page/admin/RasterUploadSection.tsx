@@ -38,6 +38,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { Text } from "@/components/reusable/Text";
 import { AdminLayer, JobIssue } from "@/interfaces/AdminLayer";
 import { formatNumber } from "@/utils/numbers";
+import { AS_TEXT } from "@/utils/asText";
 import {
   dropKept,
   keepForLanguageChange,
@@ -431,6 +432,7 @@ export const RasterUploadSection: React.FC<Props> = ({
         message: t("admin:layers:cannotPublish", {
           reason: blockerReason(blocker, categoryName, t),
           fix: blockerFix(blocker, false, t),
+          ...AS_TEXT,
         }),
         type: "warning",
       });
@@ -445,7 +447,7 @@ export const RasterUploadSection: React.FC<Props> = ({
       const reason = apiRefusalReason(e);
       openSnackbar({
         message: reason
-          ? `${t("admin:raster:publishError")} ${t("admin:layers:refused", { detail: reason })}`
+          ? `${t("admin:raster:publishError")} ${t("admin:layers:refused", { detail: reason, ...AS_TEXT })}`
           : t("admin:raster:publishError"),
         type: "error",
       });

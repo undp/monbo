@@ -9,6 +9,7 @@ import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { ResultChip } from "@/components/reusable/ResultChip";
 import { Text } from "@/components/reusable/Text";
 import { AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { categoryTints } from "@/utils/categoryColors";
 import { localizedText } from "@/utils/localizedText";
 import { formatThreshold } from "@/utils/numbers";
@@ -49,9 +50,11 @@ export const CategoryCard: React.FC<Props> = ({
     category.thresholdPercentage === null
       ? t("admin:categories:card:globalThreshold", {
           threshold: formatThreshold(globalThreshold, language),
+          ...AS_TEXT,
         })
       : t("admin:categories:card:threshold", {
           threshold: formatThreshold(category.thresholdPercentage, language),
+          ...AS_TEXT,
         });
 
   return (
@@ -176,7 +179,7 @@ export const CategoryCard: React.FC<Props> = ({
               onChange={(_, checked) => onToggle(checked)}
               slotProps={{
                 input: {
-                  "aria-label": t("admin:categories:card:enabledLabel", { name }),
+                  "aria-label": t("admin:categories:card:enabledLabel", { name, ...AS_TEXT }),
                 },
               }}
             />

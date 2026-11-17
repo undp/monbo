@@ -10,6 +10,7 @@ import { getDeforestationThreshold } from "@/config/runtime";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminCategories, AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { localizedText } from "@/utils/localizedText";
 import { apiRefusalReason } from "./adminErrors";
 import { adminLanguage } from "./adminLayerText";
@@ -68,7 +69,7 @@ export const AdminCategoriesPageContent: React.FC = () => {
         openSnackbar({
           message: t(
             enabled ? "admin:categories:enabledDone" : "admin:categories:disabledDone",
-            { name: localizedText(updated.name, language) }
+            { name: localizedText(updated.name, language), ...AS_TEXT }
           ),
           type: "success",
         });
@@ -76,7 +77,7 @@ export const AdminCategoriesPageContent: React.FC = () => {
         const reason = apiRefusalReason(e);
         openSnackbar({
           message: reason
-            ? `${t("admin:categories:toggleError")} ${t("admin:layers:refused", { detail: reason })}`
+            ? `${t("admin:categories:toggleError")} ${t("admin:layers:refused", { detail: reason, ...AS_TEXT })}`
             : t("admin:categories:toggleError"),
           type: "error",
         });

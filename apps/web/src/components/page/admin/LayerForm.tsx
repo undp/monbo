@@ -39,6 +39,7 @@ import {
   OPTIONAL_ATTRIBUTE_KEYS,
 } from "@/interfaces/AdminLayer";
 import { categoryTints } from "@/utils/categoryColors";
+import { AS_TEXT } from "@/utils/asText";
 import { localizedText } from "@/utils/localizedText";
 import {
   categoryValidators,
@@ -252,6 +253,7 @@ export const LayerForm: React.FC<LayerFormProps> = ({ categories, layer }) => {
                 <MenuItem value={broken.category_id}>
                   {t(`admin:layers:categoryIssue:${broken.category_issue}`, {
                     category: broken.category_id,
+                    ...AS_TEXT,
                   })}
                 </MenuItem>
               )}
@@ -268,7 +270,7 @@ export const LayerForm: React.FC<LayerFormProps> = ({ categories, layer }) => {
                       <ListItemText>
                         {category.enabled
                           ? name
-                          : t("admin:form:categoryDisabledOption", { name })}
+                          : t("admin:form:categoryDisabledOption", { name, ...AS_TEXT })}
                       </ListItemText>
                     </Box>
                   </MenuItem>

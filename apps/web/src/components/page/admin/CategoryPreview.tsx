@@ -9,6 +9,7 @@ import { ResultChip } from "@/components/reusable/ResultChip";
 import { Text } from "@/components/reusable/Text";
 import { ADMIN_LANGUAGES, AdminLanguage } from "@/interfaces/AdminLayer";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
+import { AS_TEXT } from "@/utils/asText";
 import { NO_CATEGORY_COLOR } from "@/utils/categoryColors";
 import { layerResult } from "@/utils/layerCategories";
 import type { Polarity } from "@/utils/layerResults";
@@ -92,6 +93,7 @@ export const CategoryPreview: React.FC<Props> = ({ values, globalThreshold }) =>
         <Text variant="body2" color="secondary">
           {t(`admin:categories:form:preview:${category.polarity}`, {
             finding: formatThreshold(finding, i18n.language),
+            ...AS_TEXT,
           })}
         </Text>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>

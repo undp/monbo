@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createAdminCategory, updateAdminCategory } from "@/api/adminCategories";
+import {
+  createAdminCategory,
+  listAdminCategories,
+  updateAdminCategory,
+} from "@/api/adminCategories";
+import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import type { AdminCategory } from "@/interfaces/AdminLayer";
@@ -14,11 +19,13 @@ import { toCategoryFormValues } from "./categoryFormState";
 
 vi.mock("@/api/adminCategories", () => ({
   createAdminCategory: vi.fn(),
+  listAdminCategories: vi.fn(),
   updateAdminCategory: vi.fn(),
 }));
 
 const session = { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "CO" };
 const onSaved = vi.fn();
+const openSnackbar = vi.fn();
 
 const renderPanel = async (
   category: AdminCategory | null,
@@ -36,7 +43,7 @@ const renderPanel = async (
           withToken: (call) => call("token"),
         }}
       >
-        <SnackbarContext.Provider value={{ openSnackbar: vi.fn() }}>
+        <SnackbarContext.Provider value={{ openSnackbar }}>
           <CategoryPanel
             open
             category={category}
@@ -143,6 +150,103 @@ describe("CategoryPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(updateAdminCategory).toHaveBeenCalled());
     expect(vi.mocked(updateAdminCategory).mock.calls[0][1]).toEqual("deforestation");
+  });
+});
+
+// i18next escapes interpolated values as HTML by default: the API's reasons and the
+// admin's names must reach the screen as typed, with their ' and &.
+describe("CategoryPanel texts with ' and &", () => {
+  const createFrontier = () => {
+    fillFrontier();
+    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
+    save();
+  };
+
+  it("shows a 409's reason as text and marks the id when the file is readable", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(409, "The category id 'frontera_agricola' is already used in CO: ids are never reused")
+    );
+    vi.mocked(listAdminCategories).mockResolvedValue({ categories: [], readable: true, errors: [] });
+    await renderPanel(null);
+    createFrontier();
+    expect(
+      await screen.findByText(
+        "The category couldn't be saved. The server refused the change: The category id 'frontera_agricola' is already used in CO: ids are never reused"
+      )
+    ).toBeTruthy();
+    expect(screen.getByText("That identifier is already used in your country.")).toBeTruthy();
+    expect(document.body.innerHTML).not.toContain("&amp;#39;");
+  });
+
+  it("doesn't blame the id for a 409 caused by an unreadable categories file", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(409, "The country's categories file can't be read (not valid JSON) & must be fixed")
+    );
+    vi.mocked(listAdminCategories).mockResolvedValue({
+      categories: [],
+      readable: false,
+      errors: ["not valid JSON"],
+    });
+    await renderPanel(null);
+    createFrontier();
+    expect(
+      await screen.findByText(
+        "The category couldn't be saved. The server refused the change: The country's categories file can't be read (not valid JSON) & must be fixed"
+      )
+    ).toBeTruthy();
+    expect(screen.queryByText("That identifier is already used in your country.")).toBeNull();
+  });
+
+  it("shows a 400's reason as text (layers that already use the id)", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(400, "Category 'frontera_agricola' has published layers (8 & 9): hide them before creating it")
+    );
+    await renderPanel(null);
+    createFrontier();
+    expect(
+      await screen.findByText(
+        /Category 'frontera_agricola' has published layers \(8 & 9\): hide them before creating it/
+      )
+    ).toBeTruthy();
+  });
+
+  it("shows a 422's details as text", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(422, [
+        { loc: ["body", "name", "es"], msg: "Value error, can't contain '<' & '>'" },
+      ])
+    );
+    await renderPanel(null);
+    createFrontier();
+    expect(
+      await screen.findByText(/name\.es: Value error, can't contain '<' & '>'/)
+    ).toBeTruthy();
+  });
+
+  it("names a new category as typed", async () => {
+    await renderPanel(null);
+    type(/^ES/, "Bosques & ríos d'Ana", 0);
+    type(/^EN/, "Forests & Ana's rivers", 0);
+    type("No findings · ES *", "Sin observaciones");
+    type("No findings · EN *", "No findings");
+    type("With findings · ES *", "Con observaciones");
+    type("With findings · EN *", "With findings");
+    fireEvent.click(screen.getByRole("radio", { name: /What must be avoided/ }));
+    save();
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message: "Category Forests & Ana's rivers created.",
+        type: "success",
+      })
+    );
+  });
+
+  it("names the layers of a lock as typed", async () => {
+    const category = makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 });
+    const layer = makeAdminLayer();
+    layer.attributes.en = { ...layer.attributes.en!, alias: "R&D's layer" };
+    await renderPanel(category, { layers: [layer] });
+    expect(screen.getByText(/while layers are published \(R&D's layer\)/)).toBeTruthy();
   });
 });
 

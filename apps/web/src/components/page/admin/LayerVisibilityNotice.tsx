@@ -5,11 +5,12 @@ import { Alert, AlertTitle } from "@mui/material";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import type { AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { LayerBlocker, layerVisibility } from "./layerVisibility";
 
 /** Why a layer can't be public, in a sentence ("its category … is disabled."). */
 export const blockerReason = (reason: LayerBlocker, category: string, t: TFunction) =>
-  t(`admin:layers:status:reasons:${reason}`, { category });
+  t(`admin:layers:status:reasons:${reason}`, { category, ...AS_TEXT });
 
 /** How to fix it; a published layer must be hidden first for some fixes. */
 export const blockerFix = (reason: LayerBlocker, published: boolean, t: TFunction) =>

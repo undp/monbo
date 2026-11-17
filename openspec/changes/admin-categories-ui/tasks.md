@@ -40,3 +40,11 @@
 - [x] 6.1 Run the app with a test per-country layout (scratchpad, no passkeys in the repo) and a real admin session; check the categories page, the panel, the layer form and the list on desktop and at 390 px; create "Frontera agrícola" (`required`), assign a layer, publish it, and see it in `GET /maps` and `GET /categories`
 - [x] 6.2 Run the web checks of `CLAUDE.md` locally: schema check, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test`, `pnpm run build`
 - [x] 6.3 `openspec validate admin-categories-ui --strict`
+
+## 7. Review of #142
+
+- [x] 7.1 Show interpolated API reasons and admin texts as text (`AS_TEXT`, moved to `utils/asText.ts`) in every new `t()` that interpolates them; regression tests with `'` and `&` in 400, 409 and 422 reasons and in a category name
+- [x] 7.2 A 409 on create marks the id as taken only when the categories file is still readable (asked to the API, not read from its message)
+- [x] 7.3 The layer editor shows the API's reason for any refusal (`apiRefusalReason`), as the other admin pages do
+- [x] 7.4 The spec says the admin header keeps "Methodology" (`site-navigation`)
+- [x] 7.5 The raster steps stack below 600 px, so the layer editor fits 390 px

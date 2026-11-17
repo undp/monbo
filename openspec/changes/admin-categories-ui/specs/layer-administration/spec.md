@@ -73,7 +73,7 @@ The layer form SHALL require choosing the layer's category: a new layer SHALL st
 
 The layers list and the layer editor SHALL say why a layer that is enabled is not public, and how to fix it: its category doesn't exist, is invalid in the categories file, or the file can't be read (`category_issue`); its category is disabled; its years don't fit the category (`layer_issue: years_mismatch`); or it has no raster (`layer_issue: missing_raster`). When an admin tries to publish a layer that one of these reasons blocks, the UI SHALL show that reason instead of a generic error.
 
-Every admin page SHALL show the name of the country the session administers in the header. The layer and category pages SHALL also show it in their title, under a "Layers admin" overline; the usage page covers every country, so its title has neither. On the admin pages the header SHALL show only the language selector and, once logged in, the administered country's name as plain text and a navigation with three items, "Layers", "Categories" and "Usage", that marks the current one. Below 900 px wide, the administered country and the three items SHALL move into the header's menu, so the admin pages fit a 390 px screen without horizontal scrolling. It SHALL NOT show the public navigation or the country selector. All UI text SHALL be translated in `en` and `es`. The admin pages SHALL NOT be linked from the public home page or header.
+Every admin page SHALL show the name of the country the session administers in the header. The layer and category pages SHALL also show it in their title, under a "Layers admin" overline; the usage page covers every country, so its title has neither. On the admin pages the header SHALL show only the language selector, the "Methodology" link of the site navigation (`site-navigation`), and, once logged in, the administered country's name as plain text and a navigation with three items, "Layers", "Categories" and "Usage", that marks the current one. Below 900 px wide, the administered country and the three items SHALL move into the header's menu, before "Methodology", so the admin pages fit a 390 px screen without horizontal scrolling. It SHALL NOT show the other public links ("Home", "Analysis") or the country selector. All UI text SHALL be translated in `en` and `es`. The admin pages SHALL NOT be linked from the public home page or header.
 
 #### Scenario: Create and publish a layer from the UI
 
@@ -133,7 +133,12 @@ Every admin page SHALL show the name of the country the session administers in t
 #### Scenario: Navigation on a phone
 
 - **WHEN** a logged-in CO admin opens the categories page on a 390 px wide screen and opens the header's menu
-- **THEN** the menu shows "Colombia", then "Layers", "Categories" (marked as current) and "Usage", and the page doesn't scroll horizontally
+- **THEN** the menu shows "Colombia", then "Layers", "Categories" (marked as current), "Usage" and "Methodology", and the page doesn't scroll horizontally
+
+#### Scenario: Layer editor on a phone
+
+- **WHEN** a CO admin opens a layer's editor, raster steps included, on a 390 px wide screen
+- **THEN** the page doesn't scroll horizontally
 
 #### Scenario: No navigation before login
 

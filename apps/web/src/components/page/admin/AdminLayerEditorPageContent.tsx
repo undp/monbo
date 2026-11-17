@@ -17,6 +17,7 @@ import {
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminCategories, AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import {
   dropKept,
   keepForLanguageChange,
@@ -24,7 +25,7 @@ import {
   localizedPath,
   takeOverOnLanguageChange,
 } from "@/utils/languageChange";
-import { describeValidationError } from "./adminErrors";
+import { apiRefusalReason, describeValidationError } from "./adminErrors";
 import { categoryName } from "./adminLayerText";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { LayerForm, Section } from "./LayerForm";
@@ -158,11 +159,12 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
           issue?.code === "resolution_unavailable"
             ? t(`admin:raster:issues:${issue.code}`, issue.params)
             : null;
-        // A rule of the API the form didn't foresee (e.g. another admin's change).
-        const refusal =
-          e instanceof AdminApiError && e.status === 400 && typeof e.detail === "string"
-            ? t("admin:layers:refused", { detail: e.detail })
-            : null;
+        // Any other refusal says why, as on the other admin pages: a rule the form
+        // didn't foresee (another admin's change) or a 409 such as an unreadable raster.
+        const reason = validationDetails || issueDetails ? null : apiRefusalReason(e);
+        const refusal = reason
+          ? t("admin:layers:refused", { detail: reason, ...AS_TEXT })
+          : null;
         const details = validationDetails ?? issueDetails ?? refusal;
         openSnackbar({
           message: details

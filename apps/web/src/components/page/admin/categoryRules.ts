@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { AdminCategory, AdminLanguage, AdminLayer } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { adminLayerText } from "./adminLayerText";
 
 // The API's rules that keep a published layer's meaning stable (GC-2, design §4),
@@ -83,4 +84,5 @@ export const describeLock = (
         layers: lock.layers.length
           ? lock.layers.join(", ")
           : t("admin:categories:locks:layerCount", { count: lock.count }),
+        ...AS_TEXT,
       });

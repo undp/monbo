@@ -33,6 +33,7 @@ import {
 } from "react-hook-form";
 import {
   createAdminCategory,
+  listAdminCategories,
   updateAdminCategory,
 } from "@/api/adminCategories";
 import { AdminApiError } from "@/api/adminLayers";
@@ -44,6 +45,7 @@ import { Text } from "@/components/reusable/Text";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { ADMIN_LANGUAGES, AdminCategory } from "@/interfaces/AdminLayer";
+import { AS_TEXT } from "@/utils/asText";
 import { localizedText } from "@/utils/localizedText";
 import type { Polarity } from "@/utils/layerResults";
 import { formatThreshold } from "@/utils/numbers";
@@ -168,7 +170,7 @@ const CategoryForm: React.FC<FormProps> = ({
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { control, handleSubmit, setValue, setError, formState } = form;
+  const { control, handleSubmit, getValues, setValue, setError, formState } = form;
   const values = useWatch({ control }) as CategoryFormValues;
   const [refusal, setRefusal] = useState<string | null>(null);
 
@@ -177,10 +179,12 @@ const CategoryForm: React.FC<FormProps> = ({
   const nameEs = values.name.es;
   useEffect(() => {
     if (!isNew || idEdited) return;
-    setValue("id", suggestCategoryId(nameEs), {
-      shouldValidate: formState.isSubmitted,
-    });
-  }, [isNew, idEdited, nameEs, setValue, formState.isSubmitted]);
+    const suggested = suggestCategoryId(nameEs);
+    // Only when the suggestion changes: re-validating an unchanged id would clear
+    // an error the API gave it (a taken id).
+    if (getValues("id") === suggested) return;
+    setValue("id", suggested, { shouldValidate: formState.isSubmitted });
+  }, [isNew, idEdited, nameEs, getValues, setValue, formState.isSubmitted]);
 
   const taken = takenCategoryIds(categories);
   const thresholdText = formatThreshold(globalThreshold, i18n.language);
@@ -198,6 +202,7 @@ const CategoryForm: React.FC<FormProps> = ({
           message: isNew
             ? t("admin:categories:form:created", {
                 name: localizedText(saved.name, i18n.language),
+                ...AS_TEXT,
               })
             : t("admin:categories:form:saved"),
           type: "success",
@@ -205,15 +210,18 @@ const CategoryForm: React.FC<FormProps> = ({
         onSaved(saved, isNew);
       } catch (e) {
         const reason = apiRefusalReason(e);
-        // A 409 on create is almost always an id held by an entry the list doesn't
-        // show (a rejected one); the API's reason below covers the other case (the
-        // categories file stopped being readable).
+        // A 409 on create is an id held by an entry the list doesn't show (a rejected
+        // one), or a categories file that stopped being readable. Ask the API which,
+        // rather than reading its message: only the first is the id's fault.
         if (isNew && e instanceof AdminApiError && e.status === 409) {
-          setError("id", { message: "admin:categories:form:errors:idTaken" });
+          const fresh = await withToken(listAdminCategories).catch(() => null);
+          if (fresh?.readable) {
+            setError("id", { message: "admin:categories:form:errors:idTaken" });
+          }
         }
         setRefusal(
           reason
-            ? `${t("admin:categories:form:saveError")} ${t("admin:layers:refused", { detail: reason })}`
+            ? `${t("admin:categories:form:saveError")} ${t("admin:layers:refused", { detail: reason, ...AS_TEXT })}`
             : t("admin:categories:form:saveError")
         );
       }
@@ -294,7 +302,7 @@ const CategoryForm: React.FC<FormProps> = ({
             />
           ) : (
             <Text variant="body2" color="secondary">
-              {t("admin:categories:form:idReadOnly", { id: category.id })}
+              {t("admin:categories:form:idReadOnly", { id: category.id, ...AS_TEXT })}
             </Text>
           )}
 
@@ -348,7 +356,7 @@ const CategoryForm: React.FC<FormProps> = ({
                   return (
                     <Tooltip key={swatch} title={swatch}>
                       <IconButton
-                        aria-label={t("admin:categories:form:swatch", { color: swatch })}
+                        aria-label={t("admin:categories:form:swatch", { color: swatch, ...AS_TEXT })}
                         aria-pressed={selected}
                         onClick={() =>
                           setValue("color", swatch, {
@@ -492,6 +500,7 @@ const CategoryForm: React.FC<FormProps> = ({
                   }
                   label={t("admin:categories:form:useGlobalThreshold", {
                     threshold: thresholdText,
+                    ...AS_TEXT,
                   })}
                 />
               )}
