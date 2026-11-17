@@ -171,3 +171,12 @@ def resolve_category(
     if isinstance(category_id, str) and category_id in file.invalid_ids:
         return None, "invalid_category"
     return None, "unknown_category"
+
+
+def is_temporal(category_id: Any, file: CategoriesFile) -> bool:
+    """Whether a layer's category resolves and is `temporal` (its layers have a
+    baseline). A category that doesn't resolve is not: whether the layer has a
+    baseline can't be told."""
+    by_id = {category["id"]: category for category in effective_categories(file)}
+    category, _ = resolve_category(category_id, file, by_id)
+    return bool(category and category["temporal"])
