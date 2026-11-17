@@ -113,51 +113,6 @@ export const makeMap = (overrides: Partial<MapData> = {}): MapData => ({
   ...overrides,
 });
 
-/** The built-in deforestation category of every country, with a 2% threshold. */
-export const makeCategory = (
-  overrides: Partial<LayerCategory> = {}
-): LayerCategory => ({
-  id: "deforestation",
-  name: { es: "Deforestación", en: "Deforestation" },
-  description: {
-    es: "Pérdida de bosque después de la línea base.",
-    en: "Forest loss after the baseline.",
-  },
-  icon: "forest",
-  color: "#c62828",
-  polarity: "avoid",
-  thresholdPercentage: 2,
-  resultLabels: {
-    ok: { es: "Libre de deforestación", en: "Deforestation free" },
-    flagged: { es: "Con deforestación", en: "With deforestation" },
-  },
-  temporal: true,
-  ...overrides,
-});
-
-/** The agricultural frontier: a `required` category (outside it is the finding). */
-export const makeFrontierCategory = (
-  overrides: Partial<LayerCategory> = {}
-): LayerCategory =>
-  makeCategory({
-    id: "agricultural_frontier",
-    name: { es: "Frontera agrícola", en: "Agricultural frontier" },
-    description: {
-      es: "Superficie fuera de la frontera agrícola.",
-      en: "Area outside the agricultural frontier.",
-    },
-    icon: "agriculture",
-    color: "#2e7d32",
-    polarity: "required",
-    thresholdPercentage: 5,
-    resultLabels: {
-      ok: { es: "Dentro de la frontera", en: "Inside the frontier" },
-      flagged: { es: "Fuera de la frontera", en: "Outside the frontier" },
-    },
-    temporal: false,
-    ...overrides,
-  });
-
 /** One layer's results: `values` maps each farm id to its deforestation (0-1). */
 export const makeMapResults = (
   mapId: number,

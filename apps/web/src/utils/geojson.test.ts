@@ -83,7 +83,7 @@ describe("generateGeoJsonFarmsDataWithPolygonsValidation", () => {
 describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
   const tFor = async (locale: "es" | "en") =>
     (await createTestI18n(locale)).getFixedT(locale) as TFunction;
-  const categories = [makeCategory(), makeFrontierCategory()];
+  const categories = [makeCategory({ thresholdPercentage: 2 }), makeFrontierCategory()];
 
   it("adds each layer's finding and result, named after its category, in Spanish", async () => {
     setRuntimeConfig({
@@ -123,7 +123,7 @@ describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
     );
     expect(data.features[0].properties).toMatchObject({
       "Agricultural frontier · UPRA — % finding": "18%",
-      "Agricultural frontier · UPRA — Result": "Outside the frontier",
+      "Agricultural frontier · UPRA — Result": "Outside the agricultural frontier",
     });
   });
 

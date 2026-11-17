@@ -3,65 +3,21 @@ import type {
   DeforestationAnalysisMapResults,
   MapData,
 } from "@/interfaces/DeforestationAnalysis";
-import type { LayerCategory, LocalizedText } from "@/interfaces/LayerCategory";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import {
   categoryRule,
   classifyResult,
   findingRatio,
+  groupLayersByCategory,
   type ResultClass,
 } from "./layerResults";
-import { formatFindingPercentage } from "./numbers";
+import { formatDeforestationPercentage } from "./numbers";
 import { layerLabel } from "./layerLabel";
+import { localizedText } from "./localizedText";
 
-// How a layer result reads once its layer's category is known: shared by the PDF
-// report and the Excel and GeoJSON exports, so the four say the same thing. The
-// class always comes from layerResults (the one classifier).
-
-/** A category's text in `language`, falling back to Spanish (the default locale). */
-export const localizedText = (text: LocalizedText, language?: string): string =>
-  language === "en" ? text.en : text.es;
-
-/** The selected layers of one category, or of no known category (`category: null`). */
-export interface CategoryGroup<Layer> {
-  category: LayerCategory | null;
-  layers: Layer[];
-}
-
-/**
- * The layers grouped by category, in the order of GET /categories (deforestation
- * first) and by layer id within each. Categories without a layer are left out. Layers
- * whose category is not in `categories` (disabled or broken after the analysis) go
- * in a last group with `category: null`: nothing classifies them with another rule.
- */
-export const groupLayersByCategory = <
-  Layer extends Pick<MapData, "id" | "categoryId">,
->(
-  layers: Layer[],
-  categories: LayerCategory[]
-): CategoryGroup<Layer>[] => {
-  const byId = (a: Layer, b: Layer) => a.id - b.id;
-  const known = new Set(categories.map(({ id }) => id));
-  const groups: CategoryGroup<Layer>[] = categories
-    .map((category) => ({
-      category,
-      layers: layers
-        .filter(({ categoryId }) => categoryId === category.id)
-        .sort(byId),
-    }))
-    .filter(({ layers }) => layers.length > 0);
-  const unknown = layers
-    .filter(({ categoryId }) => !known.has(categoryId))
-    .sort(byId);
-  if (unknown.length) groups.push({ category: null, layers: unknown });
-  return groups;
-};
-
-/** The category a layer belongs to, or null when it isn't among `categories`. */
-export const categoryOf = (
-  layer: Pick<MapData, "categoryId">,
-  categories: LayerCategory[]
-): LayerCategory | null =>
-  categories.find(({ id }) => id === layer.categoryId) ?? null;
+// How a layer result reads in the PDF report and the Excel and GeoJSON exports, so
+// the three say the same thing. The class, the grouping by category and the
+// formatting come from the shared modules (layerResults, numbers, localizedText).
 
 export interface LayerResult {
   resultClass: ResultClass;
@@ -82,7 +38,7 @@ export const layerResult = (
   value: number | null | undefined,
   category: LayerCategory | null,
   t: TFunction,
-  language?: string
+  language = "es"
 ): LayerResult => {
   if (!category || value === null || value === undefined) {
     const noData = t("common:layerResults:noData");
@@ -100,19 +56,9 @@ export const layerResult = (
   return {
     resultClass,
     finding: findingRatio(value, rule.polarity),
-    findingText: formatFindingPercentage(value, rule, language),
+    findingText: formatDeforestationPercentage(value, language, rule),
     label: localizedText(category.resultLabels[labelClass], language),
   };
-};
-
-/**
- * The class of a category for one farm, from its layers' classes: flagged when any
- * layer is flagged, otherwise unknown when any has no data, otherwise ok.
- */
-export const categoryClass = (classes: ResultClass[]): ResultClass => {
-  if (classes.includes("flagged")) return "flagged";
-  if (!classes.length || classes.includes("unknown")) return "unknown";
-  return "ok";
 };
 
 /** "Category · Layer": a layer named with its category, for export headers. */
@@ -120,7 +66,7 @@ export const categoryLayerName = (
   layer: Pick<MapData, "id" | "name" | "alias">,
   category: LayerCategory | null,
   t: TFunction,
-  language?: string
+  language = "es"
 ): string =>
   t("common:layerResults:categoryLayer", {
     category: category
@@ -160,7 +106,7 @@ export const layerResultColumns = (
   maps: MapData[],
   categories: LayerCategory[],
   t: TFunction,
-  language?: string
+  language = "es"
 ): LayerResultColumns[] => {
   const layers = results.flatMap((layerResults) => {
     const map = maps.find(({ id }) => id === layerResults.mapId);

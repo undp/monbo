@@ -18,7 +18,7 @@ This change is unit GC-7 of the layer-manager project (undp/monbo#116, sub-issue
 - **Generic methodology page**: the formula (share of the polygon that coincides with the layer), what the finding is for each polarity, the threshold rule, what "No data" means, a table with each category of the report (what counts as a finding, its threshold and its two labels) and a table with the layers used.
 - **"Scope and limits" pages per layer**: today's map description pages (attributes and considerations), with the layer's category. They are shown for every selected layer, also when all its results are `null`.
 - **Excel and GeoJSON exports** with headers through i18n that name the category and the layer, a finding-percentage column and a result-label column per layer, "No data" for `null`, and a localized sheet name.
-- **Categories in the web**: `GET /categories?country=CC` is fetched with the country's layers and kept in `DataContext`; `categoryRule(category)` in `utils/layerResults.ts` turns a category into the classification rule. If GC-6 lands these first, this change uses GC-6's instead (see design).
+- **Categories in the web**: the report and the exports use GC-6's shared pieces (`availableCategories`, `categoryRule`, the grouping and the formatting): see design D1 and D2.
 - The report worker receives the categories and whether the maps have the satellite background.
 - The sample reports of the start page (`public/files/examples/{es,en}/`) are regenerated, and their README updated.
 
@@ -35,8 +35,8 @@ This change is unit GC-7 of the layer-manager project (undp/monbo#116, sub-issue
 
 ## Impact
 
-- Web only (`apps/web/src`): `utils/deforestationReport.tsx`, `utils/deforestationReport/sections.tsx` and `styles.ts`, `workers/reportPdf.worker.tsx` and `reportPdfProtocol.ts`, `context/ReportContext.tsx`, `context/DataContext.tsx`, `utils/layerResults.ts`, `utils/resultLabels.ts`, `utils/resultsExport.ts`, `utils/geojson.ts`, `components/page/deforestationAnalysis/DownloadPageData.tsx`; new `api/layerCategories.ts`, `interfaces/LayerCategory.ts`, `utils/layerCategories.ts`.
-- The module 3 results table (`components/page/reportGeneration/DeforestationResultsTable.tsx`) is adapted to GC-6's table after GC-6 merges.
+- Web only (`apps/web/src`): `utils/deforestationReport.tsx`, `utils/deforestationReport/sections.tsx`, `considerations.tsx` and `styles.ts`, `workers/reportPdf.worker.tsx` and `reportPdfProtocol.ts`, `context/ReportContext.tsx`, `utils/reportSize.ts`, `utils/resultLabels.ts`, `utils/resultsExport.ts`, `utils/geojson.ts`, `components/page/deforestationAnalysis/DownloadPageData.tsx`; new `utils/layerCategories.ts`.
+- The module 3 results table (`components/page/reportGeneration/DeforestationResultsTable.tsx`) uses GC-6's table, grouped by category, with the report's layers.
 - i18n: new keys in `reportGeneration` and `common` (`es` and `en`); obsolete report keys removed.
 - `config/env.ts`: `GET_CATEGORIES_URL`, a per-endpoint build-time override that falls back to `NEXT_PUBLIC_API_URL` (no runtime placeholder needed).
 - No API, contract, ratio, image or tile change. The large-report threshold stays at 1000 farm pages, now counting each farm's sheet as well as its map pages (`report-generation`).

@@ -34,24 +34,22 @@ The reference design is stage 3 of the mockup v2 (cover "sin resultados", "Ficha
 
 ## Decisions
 
-### D1. Categories reach the report through `DataContext`, fetched with the layers
+### D1. Categories come from GC-6's shared pieces
 
-`api/layerCategories.ts` (`getLayerCategories(country)`) is called together with `getMaps` in `DataContext`'s existing fetch and poll, and stored as `availableCategories` with the same "belongs to this country" guard as the maps. `interfaces/LayerCategory.ts` re-exports `components["schemas"]["LayerCategory"]`. `utils/layerResults.ts` gains `categoryRule(category): ClassificationRule`.
-
-Coordination with GC-6: these are the pieces GC-6 needs too. If GC-6 merges first with its own client, hook or rule helper, this change drops its copy on rebase and uses GC-6's; only the report, exports and their tests depend on the names. The names above are proposed to GC-6 through the orchestrator.
+The report and the exports use the pieces GC-6 (#140) made for every unit (D21 of #116): `getLayerCategories(country)` in `api/layerCategories.ts`, `LayerCategory` in `interfaces/LayerCategory.ts`, `availableCategories` in `DataContext` (fetched with the country's layers and polled with them) and `categoryRule(category)` in `utils/layerResults.ts`. This change had its own copies with the same names until GC-6 merged; the rebase dropped them.
 
 *Alternative:* the report fetches categories itself. Rejected: two sources for the same country data, and the exports in stage 2 need them as well.
 
 ### D2. One view-model helper shared by the PDF and the exports
 
-`utils/layerCategories.ts` holds pure helpers, with no React:
+The grouping, the classification and the texts come from the modules stage 2 uses, so the report and stage 2 cannot disagree: `groupLayersByCategory`, `layerCategory`, `classifyResult` and `classifyFarmInCategory` (flagged > unknown > ok) from `utils/layerResults.ts`, `localizedText` from `utils/localizedText.ts`, `formatDeforestationPercentage(value, language, rule)` (which uses `formatFindingPercentage` for a finding above the threshold: "18%", "> 5%") from `utils/numbers.ts`, and `categoryTints` from `utils/categoryColors.ts` for the category colors.
 
-- `localizedText(text, language)`: picks `es`/`en`, falling back to `es`.
-- `groupLayersByCategory(maps, categories)`: the selected layers grouped in the order of `GET /categories`, then by layer id; layers whose category is unknown go to a trailing group with no category.
-- `layerResult(value, map, category, language)`: `{ resultClass, findingRatio, label }` where `resultClass` comes from `classifyResult(value, categoryRule(category))`, `label` from the category's `resultLabels` (or "No data"), and `findingRatio` from `findingRatio(value, polarity)`. Without a category, the class is `unknown`.
-- `categoryClass(classes)`: flagged > unknown > ok.
+`utils/layerCategories.ts` keeps only what the report and the exports add on top:
 
-The sheet, the methodology, the Excel and the GeoJSON all go through it, so the four cannot disagree. `resultLabels.ts`'s `deforestationResultReportText` (PDF only) is removed; `deforestationResultShortText` stays for the stage 2 table until GC-6 replaces it.
+- `layerResult(value, category, t, language)`: `{ resultClass, finding, findingText, label }`, with the class from `classifyResult(value, categoryRule(category))`, the label from the category's `resultLabels` (or "No data"), and the finding from `findingRatio`. Without a category, the class is `unknown`.
+- `categoryLayerName`, `findingPercentCell` and `layerResultColumns` for the exports.
+
+The sheet, the methodology, the Excel and the GeoJSON all go through it. `resultLabels.ts`'s `deforestationResultReportText` (the old PDF farm page) is removed.
 
 ### D3. Layer without a known category is "No data"
 

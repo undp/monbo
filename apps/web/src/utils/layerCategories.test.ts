@@ -7,65 +7,16 @@ import {
   makeMap,
 } from "@/test/factories";
 import {
-  categoryClass,
   categoryLayerName,
-  categoryOf,
   findingPercentCell,
-  groupLayersByCategory,
   layerResult,
-  localizedText,
 } from "./layerCategories";
 
 const tFor = async (locale: "es" | "en") =>
   (await createTestI18n(locale)).getFixedT(locale) as TFunction;
 
-const deforestation = makeCategory();
+const deforestation = makeCategory({ thresholdPercentage: 2 });
 const frontier = makeFrontierCategory();
-const protectedAreas = makeCategory({
-  id: "protected_areas",
-  name: { es: "Áreas protegidas", en: "Protected areas" },
-  polarity: "avoid",
-  thresholdPercentage: 0,
-});
-
-describe("localizedText", () => {
-  it("picks the language, and Spanish by default", () => {
-    expect(localizedText(frontier.name, "en")).toBe("Agricultural frontier");
-    expect(localizedText(frontier.name, "es")).toBe("Frontera agrícola");
-    expect(localizedText(frontier.name)).toBe("Frontera agrícola");
-  });
-});
-
-describe("groupLayersByCategory", () => {
-  const gfw = makeMap({ id: 2, categoryId: "deforestation" });
-  const tmf = makeMap({ id: 1, categoryId: "deforestation" });
-  const upra = makeMap({ id: 5, categoryId: "agricultural_frontier" });
-  const orphan = makeMap({ id: 9, categoryId: "disabled_category" });
-
-  it("follows the categories' order, then the layers' ids", () => {
-    const groups = groupLayersByCategory(
-      [upra, gfw, tmf],
-      [deforestation, protectedAreas, frontier]
-    );
-    expect(groups).toEqual([
-      { category: deforestation, layers: [tmf, gfw] },
-      { category: frontier, layers: [upra] },
-    ]);
-  });
-
-  it("puts layers of an unknown category last, without a category", () => {
-    const groups = groupLayersByCategory([orphan, gfw], [deforestation]);
-    expect(groups).toEqual([
-      { category: deforestation, layers: [gfw] },
-      { category: null, layers: [orphan] },
-    ]);
-  });
-
-  it("finds a layer's category", () => {
-    expect(categoryOf(upra, [deforestation, frontier])).toBe(frontier);
-    expect(categoryOf(orphan, [deforestation, frontier])).toBeNull();
-  });
-});
 
 describe("layerResult", () => {
   it("reads a required category by what lies outside its layer", async () => {
@@ -74,12 +25,12 @@ describe("layerResult", () => {
     expect(result.resultClass).toBe("flagged");
     expect(result.finding).toBeCloseTo(0.18);
     expect(result.findingText).toBe("18%");
-    expect(result.label).toBe("Fuera de la frontera");
+    expect(result.label).toBe("Fuera de la frontera agrícola");
 
     expect(layerResult(1, frontier, t, "es")).toMatchObject({
       resultClass: "ok",
       findingText: "0%",
-      label: "Dentro de la frontera",
+      label: "Dentro de la frontera agrícola",
     });
   });
 
@@ -88,7 +39,7 @@ describe("layerResult", () => {
     expect(layerResult(0.01, deforestation, t, "en")).toMatchObject({
       resultClass: "ok",
       findingText: "< 2%",
-      label: "Deforestation free",
+      label: "Deforestation-free",
     });
     expect(layerResult(0.05, deforestation, t, "en")).toMatchObject({
       resultClass: "flagged",
@@ -117,15 +68,6 @@ describe("layerResult", () => {
       findingText: "No data",
       label: "No data",
     });
-  });
-});
-
-describe("categoryClass", () => {
-  it("is flagged when any layer is, then unknown, then ok", () => {
-    expect(categoryClass(["ok", "unknown", "flagged"])).toBe("flagged");
-    expect(categoryClass(["ok", "unknown"])).toBe("unknown");
-    expect(categoryClass(["ok", "ok"])).toBe("ok");
-    expect(categoryClass([])).toBe("unknown");
   });
 });
 

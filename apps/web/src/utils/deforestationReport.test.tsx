@@ -23,7 +23,7 @@ import { Considerations } from "./deforestationReport/considerations";
 const tFor = async (locale: TestLocale) =>
   (await createTestI18n(locale)).getFixedT(locale) as TFunction;
 
-const deforestation = makeCategory();
+const deforestation = makeCategory({ thresholdPercentage: 2 });
 const frontier = makeFrontierCategory();
 const protectedAreas = makeCategory({
   id: "protected_areas",
@@ -160,7 +160,7 @@ describe("a farm's sheet", () => {
     );
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // 18% outside the agricultural frontier (required, threshold 5)
-    expect(sheet).toMatch(/UPRA\) 2023 Hallazgo 18% FUERA DE LA FRONTERA/);
+    expect(sheet).toMatch(/UPRA\) 2023 Hallazgo 18% FUERA DE LA FRONTERA AGRÍCOLA/);
     expect(sheet).toContain("1 de 3 categorías sin observaciones");
   });
 
@@ -186,7 +186,7 @@ describe("a farm's sheet", () => {
     const pages = pagesText(await renderReport({ locale: "en" }));
     const sheet = pages.find((page) => page.startsWith("POLYGON SHEET"))!;
     expect(sheet).toContain("Results by category");
-    expect(sheet).toContain("OUTSIDE THE FRONTIER");
+    expect(sheet).toContain("OUTSIDE THE AGRICULTURAL FRONTIER");
     expect(sheet).toContain("NO DATA");
   });
 });
@@ -223,7 +223,7 @@ describe("the methodology", () => {
     )!;
     expect(page).toContain("Área total del polígono");
     expect(page).toMatch(
-      /Frontera agrícola No coincidir con la capa Superficie fuera de la frontera agrícola\. 5% DENTRO DE LA FRONTERA FUERA DE LA FRONTERA/
+      /Frontera agrícola No coincidir con la capa Zonas donde se permite la producción agropecuaria\. 5% DENTRO DE LA FRONTERA AGRÍCOLA FUERA DE LA FRONTERA AGRÍCOLA/
     );
     expect(page).toMatch(/Deforestación Coincidir con la capa/);
     expect(page).toContain("RUNAP Áreas protegidas");

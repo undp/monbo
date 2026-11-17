@@ -36,7 +36,6 @@ export const makeDataContext = (
   availableCategories: [],
   availableMapsError: false,
   setAvailableMaps: vi.fn(),
-  availableCategories: [],
   refreshAvailableMaps: vi.fn(),
   availableCountries: [],
   availableCountriesLoaded: false,

@@ -1,4 +1,4 @@
-## 1. Categories in the web (adopt GC-6's pieces if it merged first)
+## 1. Categories in the web (replaced by GC-6's pieces in 6.1)
 
 - [x] 1.1 `interfaces/LayerCategory.ts` re-exporting the schema's `LayerCategory`; `GET_CATEGORIES_URL` in `config/env.ts`; `api/layerCategories.ts` with `getLayerCategories(country)`
 - [x] 1.2 `DataContext`: fetch the categories with the country's layers (fetch and poll), expose `availableCategories` for the selected country only; tests in `DataContext.test.tsx`
@@ -35,8 +35,8 @@
 
 ## 6. Module 3 table (after GC-6 merges)
 
-- [ ] 6.1 Rebase on `origin/feat/layer-manager` and adopt GC-6's pieces, deleting this change's copies: the four of D21 (`api/layerCategories.ts`, `interfaces/LayerCategory.ts`, `availableCategories`, `categoryRule`), `formatFindingPercentage` (GC-6's signature: the finding and the threshold), and from `utils/layerCategories.ts` `localizedText`, `groupLayersByCategory`, `categoryOf` (→ `layerCategory`) and `categoryClass` (→ `classifyFarmInCategory`); `layerCategories.ts` keeps only the report's own helpers
-- [ ] 6.2 Adapt `components/page/reportGeneration/DeforestationResultsTable.tsx` to GC-6's table
+- [x] 6.1 Rebase on `origin/feat/layer-manager` and adopt GC-6's pieces, deleting this change's copies: the four of D21 (`api/layerCategories.ts`, `interfaces/LayerCategory.ts`, `availableCategories`, `categoryRule`), `formatFindingPercentage` (GC-6's signature: the finding and the threshold), and from `utils/layerCategories.ts` `localizedText`, `groupLayersByCategory`, `categoryOf` (→ `layerCategory`) and `categoryClass` (→ `classifyFarmInCategory`); `layerCategories.ts` keeps only the report's own helpers
+- [x] 6.2 Adapt `components/page/reportGeneration/DeforestationResultsTable.tsx` to GC-6's table
 
 ## 7. Verification and samples
 
@@ -54,3 +54,4 @@
 - [x] 8.5 Worker test loads the worker once and reads only its own responses
 - [x] 8.6 Sample reports link their GeoJSON to a public API, not localhost; README updated
 - [x] 8.7 A list item that opens a sublist is kept with it
+- [x] 8.8 After the rebase: category colors through `categoryTints` (green and red only for the result class, D23); a real PDF reviewed in the browser

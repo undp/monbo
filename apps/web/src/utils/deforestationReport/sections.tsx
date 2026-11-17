@@ -19,14 +19,14 @@ import { generateGeoJsonFarmsDataWithDeforestationAnalysis } from "../geojson";
 import { parseAreaToHectares } from "../polygons";
 import { longFormatDateByLanguage, shortFormatDateByLanguage } from "../dates";
 import { formatThreshold } from "../numbers";
+import { layerResult, type LayerResult } from "../layerCategories";
 import {
-  categoryClass,
-  layerResult,
-  localizedText,
-  type CategoryGroup,
-  type LayerResult,
-} from "../layerCategories";
-import type { ResultClass } from "../layerResults";
+  classifyFarmInCategory,
+  type LayerGroup,
+  type ResultClass,
+} from "../layerResults";
+import { localizedText } from "../localizedText";
+import { categoryTints } from "../categoryColors";
 import { layerLabel } from "../layerLabel";
 import { styles } from "./styles";
 import { assetUrl } from "./assets";
@@ -62,15 +62,24 @@ const valueOf = (layer: ReportLayer, farm: FarmData) =>
 const categoryName = (
   category: LayerCategory | null,
   t: TFunction,
-  language?: string
+  language: string
 ) =>
   category
     ? localizedText(category.name, language)
     : t("common:layerResults:noCategory");
 
-/** Grey for a layer without a known category. */
+// A category's color goes only on its name, dot, border and header (D23): results
+// are green, red or grey by class, whatever the category's color.
+
+/** A category's color (grey for a layer without a known category, as in stage 2). */
 const categoryColor = (category: LayerCategory | null) =>
-  category?.color ?? resultClassColor("unknown");
+  categoryTints(category?.color).color;
+
+/** A category's header: the faint tint stage 2 uses for its cards. */
+const categoryHeaderStyle = (category: LayerCategory | null) => [
+  styles.categoryCardHeader,
+  { backgroundColor: categoryTints(category?.color).faintBackground },
+];
 
 /** Baseline–comparison year, or the content date for a non-temporal layer. */
 const layerPeriod = (map: MapData, t: TFunction) =>
@@ -145,9 +154,9 @@ export const CoverPage = ({
   language,
 }: {
   farmsData: FarmData[];
-  groups: CategoryGroup<ReportLayer>[];
+  groups: LayerGroup<ReportLayer>[];
   t: TFunction;
-  language?: string;
+  language: string;
 }) => {
   const associationText = getCommaSeparatedUniqueTexts(
     pluck(farmsData, "association")
@@ -259,7 +268,7 @@ const DataItem = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-const farmArea = (farm: FarmData, t: TFunction, language?: string) =>
+const farmArea = (farm: FarmData, t: TFunction, language: string) =>
   // -1 (or null) means the area could not be computed: never print it as a value.
   farm.polygon.area && farm.polygon.area > 0
     ? parseAreaToHectares(farm.polygon.area, 2, false, language)
@@ -303,10 +312,10 @@ export const FarmSheetPage = ({
   anchor = false,
 }: {
   farm: FarmData;
-  groups: CategoryGroup<ReportLayer>[];
+  groups: LayerGroup<ReportLayer>[];
   categories: LayerCategory[];
   t: TFunction;
-  language?: string;
+  language: string;
   showLinks?: boolean;
   /** The first farm's sheet: the target of the cover's index. */
   anchor?: boolean;
@@ -319,7 +328,7 @@ export const FarmSheetPage = ({
     })),
   }));
   const classes = results.map(({ layers }) =>
-    categoryClass(layers.map(({ result }) => result.resultClass))
+    classifyFarmInCategory(layers.map(({ result }) => result.resultClass))
   );
   const okCategories = classes.filter((c) => c === "ok").length;
 
@@ -372,7 +381,7 @@ export const FarmSheetPage = ({
             label={t("reportGeneration:attributes:productionDate")}
             value={
               farm.productionDate
-                ? shortFormatDateByLanguage(farm.productionDate, language ?? "en")
+                ? shortFormatDateByLanguage(farm.productionDate, language)
                 : t("common:na")
             }
           />
@@ -462,7 +471,7 @@ export const FarmSheetPage = ({
             ]}
             wrap={false}
           >
-            <View style={styles.categoryCardHeader}>
+            <View style={categoryHeaderStyle(category)}>
               <CategoryDot category={category} />
               <Text style={styles.sectionTitleText}>
                 {categoryName(category, t, language)}
@@ -499,7 +508,7 @@ export const MapPage = ({
   farm: FarmData;
   layer: ReportLayer;
   t: TFunction;
-  language?: string;
+  language: string;
   imageBlobUrl: string | null;
   satelliteBackground: boolean;
 }) => {
@@ -515,7 +524,7 @@ export const MapPage = ({
           { borderLeftColor: categoryColor(layer.category) },
         ]}
       >
-        <View style={styles.categoryCardHeader}>
+        <View style={categoryHeaderStyle(layer.category)}>
           <CategoryDot category={layer.category} />
           <Text style={styles.sectionTitleText}>
             {categoryName(layer.category, t, language)}
@@ -611,9 +620,9 @@ export const MethodologyPage = ({
   t,
   language,
 }: {
-  groups: CategoryGroup<ReportLayer>[];
+  groups: LayerGroup<ReportLayer>[];
   t: TFunction;
-  language?: string;
+  language: string;
 }) => {
   const m = (key: string) => t(`reportGeneration:methodology:${key}`);
   const categoryWidths = ["24%", "30%", "14%", "32%"];
@@ -682,7 +691,7 @@ export const MethodologyPage = ({
                 m("noCategoryText")
               ),
               category
-                ? formatThreshold(category.thresholdPercentage, language ?? "es")
+                ? formatThreshold(category.thresholdPercentage, language)
                 : t("common:na"),
               category ? (
                 <View key="labels" style={styles.labelsCell}>
@@ -753,9 +762,9 @@ export const LayerScopePages = ({
   language,
   showLinks = true,
 }: {
-  groups: CategoryGroup<ReportLayer>[];
+  groups: LayerGroup<ReportLayer>[];
   t: TFunction;
-  language?: string;
+  language: string;
   showLinks?: boolean;
 }) =>
   groups

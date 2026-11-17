@@ -235,7 +235,7 @@ const deforestationSheets = async (locale: TestLocale) => {
       },
     ],
     [LAYER, FRONTIER_LAYER],
-    [makeCategory(), makeFrontierCategory()],
+    [makeCategory({ thresholdPercentage: 2 }), makeFrontierCategory()],
     t,
     locale
   );
@@ -324,8 +324,8 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     // The finding is a number in percent, the same in both languages
     expect(results(firstFarm)).toEqual(
       {
-        es: [10, "Con deforestación", 18, "Fuera de la frontera"],
-        en: [10, "With deforestation", 18, "Outside the frontier"],
+        es: [10, "Con deforestación", 18, "Fuera de la frontera agrícola"],
+        en: [10, "With deforestation", 18, "Outside the agricultural frontier"],
       }[locale]
     );
     const sheet = workbook.Sheets[sheetName];

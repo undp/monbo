@@ -360,6 +360,8 @@ export function Table<T>({
             sx={{ position: "sticky", bottom: 0, ...props.footerStyle }}
           >
             <TableRow>
+              {/* The selection checkbox's column, as in the header and the rows */}
+              {selectable ? <TableCell sx={{ border: "unset" }} /> : null}
               {headers.map((header) => (
                 <TableCell
                   key={header.attr}

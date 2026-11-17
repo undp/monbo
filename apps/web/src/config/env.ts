@@ -9,11 +9,6 @@ export const GET_MAPS_URL =
   process.env.NEXT_PUBLIC_GET_MAPS_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/maps`;
 
-// A country's layer categories (polarity, threshold, result labels).
-export const GET_CATEGORIES_URL =
-  process.env.NEXT_PUBLIC_GET_CATEGORIES_URL ||
-  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/categories`;
-
 export const GET_COUNTRIES_URL =
   process.env.NEXT_PUBLIC_GET_COUNTRIES_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/countries`;

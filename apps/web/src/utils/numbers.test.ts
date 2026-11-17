@@ -35,27 +35,6 @@ describe("formatPercentage", () => {
   });
 });
 
-describe("formatFindingPercentage", () => {
-  const required = { polarity: "required", thresholdPercentage: 5 } as const;
-
-  it("formats what lies outside a required layer", () => {
-    expect(formatFindingPercentage(0.82, required, "es")).toBe("18%");
-    expect(formatFindingPercentage(1, required, "en")).toBe("0%");
-  });
-
-  it("writes a finding at or below the category's threshold with it", () => {
-    expect(formatFindingPercentage(0.97, required, "es")).toBe("< 5%");
-    expect(formatFindingPercentage(0.95, required, "en")).toBe("< 5%");
-  });
-
-  it("uses the category's threshold, not the deforestation one", () => {
-    withThresholds(0);
-    const avoid = { polarity: "avoid", thresholdPercentage: 0.25 } as const;
-    expect(formatFindingPercentage(0.002, avoid, "es")).toBe("< 0,25%");
-    expect(formatFindingPercentage(0.0123, avoid, "en")).toBe("1.23%");
-  });
-});
-
 describe("formatDeforestationPercentage", () => {
   describe("without a threshold", () => {
     it("shows 0 as 0%", () => {

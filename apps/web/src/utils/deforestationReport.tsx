@@ -14,7 +14,7 @@ import {
   MethodologyPage,
   type ReportLayer,
 } from "./deforestationReport/sections";
-import { categoryOf, groupLayersByCategory } from "./layerCategories";
+import { groupLayersByCategory, layerCategory } from "./layerResults";
 import { styles } from "./deforestationReport/styles";
 import { assetUrl } from "./deforestationReport/assets";
 
@@ -99,7 +99,7 @@ export const reportLayerGroups = (
       id: map.id,
       categoryId: map.categoryId,
       map,
-      category: categoryOf(map, categories),
+      category: layerCategory(map, categories),
       results: layerResults,
     };
   });
@@ -114,7 +114,7 @@ export const DeforestationReportDocument = ({
   images,
   satelliteBackground,
   t,
-  language,
+  language = "es",
   onRender,
   showLinks = true,
 }: {

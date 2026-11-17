@@ -47,9 +47,10 @@ Then, for each language:
    step 1.
 2. Upload `ejemplo-fincas-con-coordenadas.xlsx` (or `example-farms-with-coordinates.xlsx`)
    in the Excel option and validate the polygons.
-3. Press "Continuar" in the next-stage card, select every layer (GFW, TMF and MOCUPP)
-   and continue.
-4. In stage 2, press "Continuar", keep every polygon, select every layer and continue.
+3. Press "Continuar" to go to stage 2, tick every layer (GFW, TMF and MOCUPP) and press
+   "Analizar".
+4. Press "Continuar" in the next-stage card, keep every polygon, select every layer and
+   continue.
 5. Press "Generar reporte", then "Descargar" and choose one PDF with every polygon.
 6. Save the file as `es/ejemplo-reporte.pdf` (or `en/example-report.pdf`).
 7. Check that no farm map has a satellite photo behind it (they show a plain dark
