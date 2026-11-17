@@ -226,7 +226,7 @@ Its "More detail" SHALL work out one farm with a 30% percentage under each polar
 
 ### Requirement: The layers by country section lists each country's layers by category
 
-The layers by country section SHALL show one tab per country that `GET /countries` returns, with the country's silhouette and its name in the page's language, sorted by name. The selected tab SHALL show the country's enabled categories from `GET /categories?country=<code>`, in the API's order, and under each category the country's layers from `GET /maps?country=<code>&language=<page language>` whose `categoryId` is that category, in the API's order. Each category SHALL show its icon, color, name and description in the page's language; its polarity in words ("what to avoid" or "what is allowed"); its threshold; and its two result labels, each with its rule stated on what is compared with the threshold: the share of the farm inside the layer for "what to avoid", and the share outside it for "what is allowed". Each layer SHALL show its name and alias, coverage, source, period, resolution and update frequency. The period SHALL be the analysis window, `baseline → comparedAgainst` ("2020 → 2023"), with `contentDate` (the dataset's own range) below it when there is one; a layer without years shows its `contentDate` alone. A missing value SHALL show "—". On screens 900 px wide or more the layers SHALL be a table; on narrower screens, one card per layer with the same fields.
+The layers by country section SHALL show one tab per country that `GET /countries` returns, with the country's silhouette and its name in the page's language, sorted by name. The selected tab SHALL show the country's enabled categories from `GET /categories?country=<code>`, in the API's order, and under each category the country's layers from `GET /maps?country=<code>&language=<page language>` whose `categoryId` is that category, in the API's order. Each category SHALL show its icon, color, name and description in the page's language; its polarity in words ("what to avoid" or "what is allowed"); its threshold; and its two result labels, each with its rule stated on what is compared with the threshold: the share of the farm inside the layer for "what to avoid", and the share outside it for "what is allowed". Each layer SHALL show its name and alias, coverage, source, period, resolution and update frequency. The period SHALL be the analysis window, `baseline → comparedAgainst` ("2020 → 2023"), with `contentDate` (the dataset's own range) below it when there is one; a layer without years shows its `contentDate` alone. A missing value SHALL show "—". On screens 1100 px wide or more the layers SHALL be a table that fits its column without scrolling; on narrower screens, one card per layer with the same fields.
 
 A category with no published layer SHALL say so. A layer whose `categoryId` is not among the categories SHALL be listed under "Other layers", with no polarity or threshold. The section SHALL show a loading state while either request is pending, and a message with a retry button when one fails; a failure SHALL affect only this section and the scope and limits section.
 
@@ -271,6 +271,11 @@ The first selected tab SHALL be the session's analysis country when it is among 
 
 - **WHEN** `GET /maps?country=CO` fails
 - **THEN** the section shows an error message with a retry button, and the Markdown sections are shown as usual
+
+#### Scenario: Between the side index and the table
+
+- **WHEN** a user opens the Colombia tab on a 920 px wide screen
+- **THEN** each layer is a card, and neither the page nor the category's block scrolls horizontally
 
 #### Scenario: Phone layout
 

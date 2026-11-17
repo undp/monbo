@@ -7,8 +7,15 @@ import { TABLE_HEADER_BACKGROUND } from "./methodologyStyles";
 
 const COLUMNS = ["name", "coverage", "source", "period", "resolution", "updateFrequency"] as const;
 
+// Below this width the six columns don't fit beside the side index without
+// scrolling: from 900 px the index takes 254 px, and the widest table needs about
+// 1060 px of window. So each layer becomes a card below it.
+const TABLE_MIN_WIDTH = 1100;
+const TABLE_MEDIA = `@media (min-width: ${TABLE_MIN_WIDTH}px)`;
+const CARDS_MEDIA = `@media (max-width: ${TABLE_MIN_WIDTH - 0.05}px)`;
+
 /**
- * A category's layers: a table from 900 px; below, the same rows as cards, each
+ * A category's layers: a table from 1100 px; below, the same rows as cards, each
  * cell with its column's name (one DOM for both, so nothing is read twice).
  */
 export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
@@ -18,7 +25,7 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
   const cell = (map: MapData, column: (typeof COLUMNS)[number]): LayerCellText => {
     switch (column) {
       case "name":
-        return { main: map.name ?? null, detail: map.alias ?? null, strong: true };
+        return { main: map.name ?? null, detail: map.alias ?? null, strong: true, nowrapDetail: true };
       case "period": {
         const { window, dataRange } = layerPeriod(map);
         return window ? { main: window, detail: dataRange, nowrap: true } : { main: dataRange };
@@ -32,9 +39,8 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
     <Box
       sx={{
         mt: 1.5,
-        border: { md: `1px solid ${colors.line}` },
+        [TABLE_MEDIA]: { border: `1px solid ${colors.line}`, overflowX: "auto" },
         borderRadius: "12px",
-        overflowX: { md: "auto" },
       }}
     >
       <Box
@@ -64,7 +70,7 @@ export const LayerTable: React.FC<{ layers: MapData[] }> = ({ layers }) => {
           },
           "& tbody tr:last-of-type td": { borderBottom: 0 },
           // Phones: each row is a card, each cell "Column: value".
-          "@media (max-width: 899.95px)": {
+          [CARDS_MEDIA]: {
             "& thead": { display: "none" },
             "& tbody, & tr, & td": { display: "block" },
             "& tr": {

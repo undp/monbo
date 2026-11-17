@@ -42,3 +42,4 @@
 - [x] 6.5 Scroll to the anchor again once the country's catalog settles, unless the reader scrolled
 - [x] 6.6 Run the web checks again
 - [x] 6.7 Rebase on GC-6 (#140) and drop this unit's copies: the categories client, `CategoryIcon`, `localizedText`, `categoryTint`, the result colors and the category factory
+- [x] 6.8 Show the layers as cards below 1100 px, so the table never scrolls beside the side index; keep the alias on one line

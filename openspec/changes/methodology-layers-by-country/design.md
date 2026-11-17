@@ -132,7 +132,7 @@ color is never the only signal.
 - `MethodologyDocument` gets the mockup's hero (eyebrow, title, subtitle) and a two-column
   grid from `md` (900 px): a sticky index (`position: sticky`, below the 64 px header) and
   the content (max 880 px). Below `md` the index is the existing box above the content.
-- Layer table from `md`; below it, one bordered card per layer with label/value rows.
+- Layer table from 1100 px; below it, one bordered card per layer with label/value rows. Between 900 and 1100 px the side index leaves the content too narrow for six columns without scrolling (review of #139), so the cards start at 1100 px rather than at `md`.
   The table sits in a horizontally scrollable container as a last resort so long sources
   never widen the page.
 - Considerations: one MUI `Accordion` per layer, closed, rendering the Markdown with the
