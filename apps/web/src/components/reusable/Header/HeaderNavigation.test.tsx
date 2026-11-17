@@ -56,11 +56,28 @@ describe("admin header navigation", () => {
     expect(router.push).toHaveBeenCalledWith("/en/admin/usage");
   });
 
+  it("goes to the categories page", async () => {
+    setPathname("/en/admin/layers");
+    await renderNavigation(true);
+    fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+    expect(router.push).toHaveBeenCalledWith("/en/admin/categories");
+  });
+
+  it("marks categories on the categories page", async () => {
+    setPathname("/en/admin/categories");
+    await renderNavigation(true);
+    expect(
+      screen.getByRole("button", { name: "Categories" }).getAttribute("aria-current")
+    ).toBe("page");
+    expect(screen.getByRole("button", { name: "Layers" }).getAttribute("aria-current")).toBeNull();
+  });
+
   it("shows no sections before login", async () => {
     setPathname("/en/admin");
     await renderNavigation(false);
     expect(screen.queryByRole("button", { name: "Usage" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Categories" })).toBeNull();
   });
 
   it("keeps the public navigation outside the admin", async () => {

@@ -7,6 +7,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { FormProvider, useForm } from "react-hook-form";
+import { listAdminCategories } from "@/api/adminCategories";
 import {
   AdminApiError,
   createAdminLayer,
@@ -15,7 +16,7 @@ import {
 } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { AdminLayer } from "@/interfaces/AdminLayer";
+import { AdminCategories, AdminLayer } from "@/interfaces/AdminLayer";
 import {
   dropKept,
   keepForLanguageChange,
@@ -23,8 +24,11 @@ import {
   localizedPath,
   takeOverOnLanguageChange,
 } from "@/utils/languageChange";
+import { describeValidationError } from "./adminErrors";
+import { categoryName } from "./adminLayerText";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { LayerForm, Section } from "./LayerForm";
+import { LayerVisibilityAlert } from "./LayerVisibilityNotice";
 import { LayerFormValues, toFormValues, toLayerInput } from "./layerFormState";
 import { RasterUploadSection } from "./RasterUploadSection";
 
@@ -32,16 +36,6 @@ interface Props {
   // Omitted to create a new layer.
   layerId?: number;
 }
-
-/** FastAPI 422 details as readable lines (the API's own English messages). */
-const describeValidationError = (error: AdminApiError) =>
-  Array.isArray(error.detail)
-    ? error.detail
-        .map((d: { loc?: unknown[]; msg?: string }) =>
-          [d.loc?.slice(1).join("."), d.msg].filter(Boolean).join(": ")
-        )
-        .join("; ")
-    : null;
 
 // The Raster section's anchor: creating a layer leads there, its next step.
 export const RASTER_SECTION_ID = "raster";
@@ -54,6 +48,10 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   const isNew = layerId === undefined;
   const [layer, setLayer] = useState<AdminLayer | null>(null);
   const [notFound, setNotFound] = useState(false);
+  // The country's categories: the form's choices, and whether a category has years.
+  // The form waits for them, because its rules are registered when it mounts.
+  const [categories, setCategories] = useState<AdminCategories | null>(null);
+  const [categoriesError, setCategoriesError] = useState(false);
   // Errors show up on the first save attempt and then follow every edit.
   const form = useForm<LayerFormValues>({
     defaultValues: toFormValues(),
@@ -89,6 +87,13 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
 
   useEffect(() => {
     if (!session) return;
+    withToken(listAdminCategories)
+      .then(setCategories)
+      .catch(() => setCategoriesError(true));
+  }, [session, withToken]);
+
+  useEffect(() => {
+    if (!session) return;
     load()
       .then((found) => {
         if (found) reset(toFormValues(found));
@@ -116,7 +121,9 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
 
   const save = handleSubmit(
     async (values) => {
-      const input = toLayerInput(values);
+      const category =
+        categories?.categories.find(({ id }) => id === values.category_id) ?? null;
+      const input = toLayerInput(values, category);
       try {
         if (isNew) {
           const created = await withToken((token) => createAdminLayer(token, input));
@@ -151,9 +158,15 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
           issue?.code === "resolution_unavailable"
             ? t(`admin:raster:issues:${issue.code}`, issue.params)
             : null;
+        // A rule of the API the form didn't foresee (e.g. another admin's change).
+        const refusal =
+          e instanceof AdminApiError && e.status === 400 && typeof e.detail === "string"
+            ? t("admin:layers:refused", { detail: e.detail })
+            : null;
+        const details = validationDetails ?? issueDetails ?? refusal;
         openSnackbar({
-          message: validationDetails || issueDetails
-            ? `${t("admin:form:saveError")} ${validationDetails ?? issueDetails}`
+          message: details
+            ? `${t("admin:form:saveError")} ${details}`
             : t("admin:form:saveError"),
           type: "error",
         });
@@ -183,7 +196,8 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     );
   }
 
-  if (!isNew && !layer) {
+  const categoriesReady = categories !== null || categoriesError;
+  if ((!isNew && !layer) || !categoriesReady) {
     return (
       <AdminPageContainer title={title} actions={back}>
         <Box sx={{ display: "flex", justifyContent: "center", padding: 6 }}>
@@ -195,9 +209,25 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
 
   return (
     <AdminPageContainer title={title} actions={back}>
+      {categoriesError && (
+        <Alert severity="error" sx={{ marginBottom: 3 }}>
+          {t("admin:form:categoriesLoadError")}
+        </Alert>
+      )}
+      {categories && !categories.readable && (
+        <Alert severity="error" sx={{ marginBottom: 3 }}>
+          {t("admin:form:categoriesUnreadable")}
+        </Alert>
+      )}
+      {layer && (
+        <LayerVisibilityAlert
+          layer={layer}
+          categoryName={categoryName(categories, layer.category_id, i18n.language)}
+        />
+      )}
       <FormProvider {...form}>
         <form onSubmit={save} noValidate>
-          <LayerForm />
+          <LayerForm categories={categories?.categories ?? []} layer={layer} />
           <Box sx={{ display: "flex", justifyContent: "flex-end", marginBottom: 3 }}>
             <Button
               type="submit"
@@ -212,7 +242,11 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
       </FormProvider>
       {layer && (
         <Section id={RASTER_SECTION_ID} title={t("admin:form:sections:raster")}>
-          <RasterUploadSection layer={layer} onLayerChanged={reload} />
+          <RasterUploadSection
+            layer={layer}
+            categoryName={categoryName(categories, layer.category_id, i18n.language)}
+            onLayerChanged={reload}
+          />
         </Section>
       )}
     </AdminPageContainer>

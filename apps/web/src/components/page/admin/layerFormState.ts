@@ -1,8 +1,8 @@
 import {
   ADMIN_LANGUAGES,
+  AdminCategory,
   AdminLanguage,
   AdminLayer,
-  DEFAULT_CATEGORY_ID,
   LayerAttributes,
   LayerInput,
   OPTIONAL_ATTRIBUTE_KEYS,
@@ -11,7 +11,7 @@ import {
 
 // The form's values: what the user types, converted to LayerInput on save.
 export interface LayerFormValues {
-  // Not editable yet: the layer's category is kept as is (GC-5 adds the selector)
+  // Empty until the admin chooses one: a new layer has no default category
   category_id: string;
   pixel_size: string;
   baseline: string;
@@ -45,7 +45,7 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
     considerations[language] = layer?.considerations[language] ?? "";
   }
   return {
-    category_id: layer?.category_id ?? DEFAULT_CATEGORY_ID,
+    category_id: layer?.category_id ?? "",
     pixel_size: layer ? String(layer.pixel_size) : "30",
     // New layers start at 2020, the baseline most layers use
     baseline: layer?.baseline != null ? String(layer.baseline) : "2020",
@@ -57,7 +57,15 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
   };
 };
 
-export const toLayerInput = (values: LayerFormValues): LayerInput => {
+/**
+ * The layer to save. Years go only with a temporal category, as numbers, and as
+ * `null` for any other: the API refuses years on a non-temporal category. The typed
+ * years stay in the form, so choosing another category and back keeps them.
+ */
+export const toLayerInput = (
+  values: LayerFormValues,
+  category: Pick<AdminCategory, "temporal"> | null
+): LayerInput => {
   const attributes = {} as LayerInput["attributes"];
   const considerations = {} as NonNullable<LayerInput["considerations"]>;
   for (const language of ADMIN_LANGUAGES) {
@@ -75,8 +83,8 @@ export const toLayerInput = (values: LayerFormValues): LayerInput => {
   return {
     category_id: values.category_id,
     pixel_size: Number(values.pixel_size),
-    baseline: Number(values.baseline),
-    compared_against: Number(values.compared_against),
+    baseline: category?.temporal ? Number(values.baseline) : null,
+    compared_against: category?.temporal ? Number(values.compared_against) : null,
     references: values.references.map((r) => r.url.trim()).filter(Boolean),
     attributes,
     considerations,
@@ -87,6 +95,44 @@ export const toLayerInput = (values: LayerFormValues): LayerInput => {
 // the translation key of the problem.
 const isYear = (value: string) =>
   /^\d{4}$/.test(value.trim()) && Number(value) >= 1900 && Number(value) <= 2100;
+
+/**
+ * The categories a layer can be saved in: the enabled ones, and its current one
+ * while disabled (the API lets an edit keep it). A category that doesn't resolve
+ * is not in the API's list, so it can't be chosen.
+ */
+export const usableCategories = (
+  categories: AdminCategory[],
+  currentCategoryId: string | null
+) =>
+  categories.filter(
+    (category) => category.enabled || category.id === currentCategoryId
+  );
+
+/** Whether the chosen category has a baseline and a comparison year. */
+const isTemporal = (categories: AdminCategory[], categoryId: string) =>
+  categories.find(({ id }) => id === categoryId)?.temporal ?? false;
+
+/**
+ * The rules that depend on the country's categories: the category itself, and the
+ * years, which only count for a temporal category (they aren't shown otherwise).
+ */
+export const categoryValidators = (
+  categories: AdminCategory[],
+  currentCategoryId: string | null
+) => ({
+  category: (value: string) => {
+    if (!value) return "admin:form:errors:category";
+    return (
+      usableCategories(categories, currentCategoryId).some(({ id }) => id === value) ||
+      "admin:form:errors:categoryInvalid"
+    );
+  },
+  baseline: (value: string, values: LayerFormValues) =>
+    !isTemporal(categories, values.category_id) || validators.baseline(value, values),
+  comparedAgainst: (value: string, values: LayerFormValues) =>
+    !isTemporal(categories, values.category_id) || validators.year(value),
+});
 
 export const validators = {
   required: (value: string) => value.trim() !== "" || "admin:form:errors:required",

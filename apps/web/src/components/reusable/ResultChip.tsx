@@ -1,8 +1,13 @@
 import { Box, useTheme } from "@mui/material";
 import { resultClassBackgroundColor, resultClassColor } from "@/utils/styling";
-import { NEUTRAL_CHIP_BACKGROUND } from "./methodologyStyles";
 
-/** A chip of a category's block: its threshold (neutral) or one of its results. */
+// A neutral chip (a category's threshold).
+const NEUTRAL_CHIP_BACKGROUND = "#eef2f6";
+
+/**
+ * A category's threshold (neutral) or one of its results, in the result colors of
+ * D23: "ok" green and "flagged" red whatever the category color (methodology and admin).
+ */
 export const ResultChip: React.FC<{ kind: "ok" | "flagged" | "neutral"; children: React.ReactNode }> = ({
   kind,
   children,

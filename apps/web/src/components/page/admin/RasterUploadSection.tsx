@@ -44,6 +44,9 @@ import {
   settleLanguageChange,
   takeOverOnLanguageChange,
 } from "@/utils/languageChange";
+import { apiRefusalReason } from "./adminErrors";
+import { layerBlocker } from "./layerVisibility";
+import { blockerFix, blockerReason } from "./LayerVisibilityNotice";
 import { RasterDropZone } from "./RasterDropZone";
 import { RasterStep, RasterSteps } from "./RasterSteps";
 import { rasterButtonSx } from "./rasterStyles";
@@ -238,10 +241,16 @@ interface HandedOver {
 
 interface Props {
   layer: AdminLayer;
+  /** The layer's category as the admin knows it, to explain why it can't be published. */
+  categoryName: string;
   onLayerChanged: () => void;
 }
 
-export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) => {
+export const RasterUploadSection: React.FC<Props> = ({
+  layer,
+  categoryName,
+  onLayerChanged,
+}) => {
   const { t, i18n } = useTranslation();
   const { withToken } = useContext(AdminSessionContext);
   const { openSnackbar } = useContext(SnackbarContext);
@@ -414,13 +423,32 @@ export const RasterUploadSection: React.FC<Props> = ({ layer, onLayerChanged }) 
   };
 
   const publish = async () => {
+    // Its category or its years stop it: say so instead of asking the API. The raster
+    // was just validated, so a stale "missing raster" doesn't count.
+    const blocker = layerBlocker(layer);
+    if (blocker && blocker !== "missing_raster") {
+      openSnackbar({
+        message: t("admin:layers:cannotPublish", {
+          reason: blockerReason(blocker, categoryName, t),
+          fix: blockerFix(blocker, false, t),
+        }),
+        type: "warning",
+      });
+      return;
+    }
     setPublishing(true);
     try {
       await withToken((token) => setAdminLayerEnabled(token, layer.id, true));
       dispatch({ type: "published" });
       onLayerChanged();
-    } catch {
-      openSnackbar({ message: t("admin:raster:publishError"), type: "error" });
+    } catch (e) {
+      const reason = apiRefusalReason(e);
+      openSnackbar({
+        message: reason
+          ? `${t("admin:raster:publishError")} ${t("admin:layers:refused", { detail: reason })}`
+          : t("admin:raster:publishError"),
+        type: "error",
+      });
     } finally {
       setPublishing(false);
     }

@@ -22,6 +22,9 @@ const ICONS: Record<IconName, React.ComponentType<SvgIconProps>> = {
   layers: LayersOutlinedIcon,
 };
 
+/** The icons an admin can give a category, in the catalogue's order. */
+export const CATEGORY_ICON_NAMES = Object.keys(ICONS) as IconName[];
+
 interface Props extends SvgIconProps {
   /** Null for a layer whose category is missing. */
   icon: IconName | null | undefined;

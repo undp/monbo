@@ -3,7 +3,7 @@
   "logout": "Cerrar sesión",
   "login": {
     "title": "Acceso de administración",
-    "subtitle": "Ingresa la clave de administración para gestionar las capas de deforestación.",
+    "subtitle": "Ingresa la clave de administración para gestionar las capas y categorías de tu país.",
     "passkeyLabel": "Clave de administración",
     "submit": "Ingresar",
     "errors": {
@@ -16,7 +16,7 @@
   },
   "layers": {
     "title": "Capas",
-    "subtitle": "Las capas publicadas aparecen en el análisis de deforestación. Las capas ocultas no se muestran, pero los análisis anteriores que las usan siguen funcionando.",
+    "subtitle": "Las capas publicadas aparecen en el análisis territorial. Las capas ocultas no se muestran, pero los análisis anteriores que las usan siguen funcionando.",
     "new": "Nueva capa",
     "edit": "Editar",
     "empty": "No hay capas.",
@@ -25,6 +25,7 @@
       "id": "ID",
       "name": "Nombre",
       "alias": "Alias",
+      "category": "Categoría",
       "raster": "Raster",
       "version": "Versión",
       "published": "Publicada"
@@ -33,7 +34,155 @@
     "published": "Capa {{alias}} publicada.",
     "hidden": "Capa {{alias}} oculta.",
     "needsRaster": "Sube un raster antes de publicar la capa.",
-    "toggleError": "No se pudo cambiar el estado de la capa."
+    "toggleError": "No se pudo cambiar el estado de la capa.",
+    "categoryIssue": {
+      "unknown_category": "{{category}} · no existe",
+      "invalid_category": "{{category}} · con error",
+      "unreadable_categories": "{{category}} · no se puede leer"
+    },
+    "status": {
+      "blocked": "{{alias}} está publicada, pero no aparece en el análisis: {{reason}}",
+      "reasons": {
+        "unknown_category": "su categoría «{{category}}» no existe en tu país.",
+        "invalid_category": "su categoría «{{category}}» tiene un error en el archivo de categorías.",
+        "unreadable_categories": "el archivo de categorías de tu país no se puede leer.",
+        "category_disabled": "su categoría «{{category}}» está deshabilitada.",
+        "years_mismatch": "sus años no calzan con su categoría.",
+        "missing_raster": "no tiene raster."
+      },
+      "fixes": {
+        "unknown_category": "Edítala y elige otra categoría.",
+        "invalid_category": "Edítala y elige otra categoría, o pide a operaciones que corrijan el archivo de categorías.",
+        "unreadable_categories": "Pide a operaciones que corrijan el archivo de categorías.",
+        "category_disabled": "Habilita su categoría en Categorías, o edítala y elige otra.",
+        "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
+        "missing_raster": "Sube su raster."
+      },
+      "fixesPublished": {
+        "unknown_category": "Ocúltala y edítala para elegir otra categoría.",
+        "invalid_category": "Ocúltala y edítala para elegir otra categoría, o pide a operaciones que corrijan el archivo de categorías.",
+        "unreadable_categories": "Pide a operaciones que corrijan el archivo de categorías.",
+        "category_disabled": "Ocúltala; después habilita su categoría y vuelve a publicarla, o edítala y elige otra categoría.",
+        "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
+        "missing_raster": "Sube su raster."
+      }
+    },
+    "cannotPublish": "No se puede publicar: {{reason}} {{fix}}",
+    "refused": "El servidor no permitió el cambio: {{detail}}"
+  },
+  "categories": {
+    "title": "Categorías",
+    "subtitle": "Agrupa las capas de tu país en categorías. Cada una define qué cuenta como observación, su umbral y cómo se ven los resultados. Quienes usan Monbo las ven al elegir capas, en los resultados, en el reporte y en la metodología.",
+    "new": "Nueva categoría",
+    "edit": "Editar",
+    "loadError": "No se pudieron cargar las categorías.",
+    "unreadable": "El archivo de categorías de tu país no se puede leer, así que no puedes crear ni editar categorías. Pide a operaciones que lo corrijan:",
+    "rejected": "Algunas categorías del archivo tienen errores y no se muestran. Sus capas quedan ocultas hasta que operaciones corrija el archivo:",
+    "card": {
+      "enabled": "Habilitada",
+      "disabled": "Deshabilitada",
+      "enabledLabel": "Habilitar la categoría {{name}}",
+      "threshold": "Umbral: {{threshold}}",
+      "globalThreshold": "Umbral global: {{threshold}}",
+      "temporal": "Compara dos años",
+      "ok": "Sin observaciones",
+      "flagged": "Con observaciones",
+      "layers_one": "{{count}} capa",
+      "layers_other": "{{count}} capas",
+      "published_one": "{{count}} publicada",
+      "published_other": "{{count}} publicadas",
+      "noLayers": "Todavía no tiene capas."
+    },
+    "polarity": {
+      "avoid": "Marca lo que se debe evitar: coincidir con la capa es una observación.",
+      "required": "Marca lo permitido: quedar fuera de la capa es una observación."
+    },
+    "locks": {
+      "enabled": "Tiene capas publicadas ({{layers}}). Ocúltalas para habilitar o deshabilitar la categoría.",
+      "polarity": "No se puede cambiar mientras haya capas publicadas ({{layers}}): sus resultados se leerían al revés. Ocúltalas primero.",
+      "temporal": "No se puede cambiar porque la categoría tiene capas ({{layers}}): sus años dejarían de calzar.",
+      "unreadable": "El archivo de categorías no se puede leer.",
+      "layerCount_one": "{{count}} capa",
+      "layerCount_other": "{{count}} capas"
+    },
+    "enabledDone": "Categoría {{name}} habilitada.",
+    "disabledDone": "Categoría {{name}} deshabilitada.",
+    "toggleError": "No se pudo cambiar el estado de la categoría.",
+    "form": {
+      "createTitle": "Nueva categoría",
+      "editTitle": "Editar categoría",
+      "close": "Cerrar",
+      "name": "Nombre",
+      "description": "Descripción corta",
+      "descriptionHelp": "Se muestra en el análisis, en el reporte y en la metodología.",
+      "languages": {
+        "es": "ES",
+        "en": "EN"
+      },
+      "id": "Identificador",
+      "idHelp": "Es permanente: identifica la categoría en las capas y no se puede cambiar ni reutilizar.",
+      "idReadOnly": "Identificador: {{id}}",
+      "iconAndColor": "Ícono y color",
+      "icons": {
+        "forest": "Bosque",
+        "shield": "Escudo",
+        "agriculture": "Agricultura",
+        "water": "Agua",
+        "mountain": "Montaña",
+        "wetland": "Humedal",
+        "fire": "Fuego",
+        "layers": "Capas"
+      },
+      "icon": "Ícono",
+      "color": "Color",
+      "swatch": "Color {{color}}",
+      "customColor": "Otro color",
+      "polarity": "¿Qué marcan las capas de esta categoría?",
+      "polarityOptions": {
+        "avoid": {
+          "title": "Lo que se debe evitar",
+          "help": "Por ejemplo, pérdida de bosque o áreas protegidas. Un polígono que coincide con la capa tiene una observación."
+        },
+        "required": {
+          "title": "Lo permitido",
+          "help": "Por ejemplo, la frontera agrícola. Un polígono que queda fuera de la capa tiene una observación."
+        }
+      },
+      "temporal": "Las capas comparan dos años",
+      "temporalHelp": "Actívalo si cada capa tiene un año base y uno de comparación, como la pérdida de bosque. Déjalo apagado para capas sin período, como áreas protegidas o frontera agrícola.",
+      "threshold": "Umbral",
+      "useGlobalThreshold": "Usar el umbral global ({{threshold}})",
+      "ownThreshold": "Umbral de la categoría (%)",
+      "thresholdHelp": "Un polígono tiene observaciones cuando su hallazgo supera el umbral.",
+      "resultLabels": "Cómo se ve el resultado",
+      "ok": "Sin observaciones",
+      "flagged": "Con observaciones",
+      "publishedNote": "Esta categoría tiene capas publicadas: si cambias el umbral o los textos, cambia cómo se leen sus resultados desde ahora.",
+      "preview": {
+        "title": "Vista previa",
+        "choosePolarity": "Elige qué marcan las capas para ver la vista previa.",
+        "unnamed": "Sin nombre",
+        "avoid": "Polígono que coincide {{finding}} con la capa",
+        "required": "Polígono que queda {{finding}} fuera de la capa",
+        "nothingFlagged": "Con un umbral de 100 % ningún polígono tiene observaciones."
+      },
+      "cancel": "Cancelar",
+      "create": "Crear categoría",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "created": "Categoría {{name}} creada.",
+      "saved": "Cambios guardados.",
+      "saveError": "No se pudo guardar la categoría.",
+      "errors": {
+        "required": "Obligatorio",
+        "id": "Usa minúsculas sin tildes, números y _, empezando con una letra (máximo 50).",
+        "idTaken": "Ese identificador ya se usa en tu país.",
+        "color": "Usa un color #rrggbb",
+        "threshold": "Un número entre 0 y 100",
+        "polarity": "Elige qué marcan las capas de esta categoría.",
+        "invalid": "Revisa los campos marcados."
+      }
+    }
   },
   "form": {
     "createTitle": "Nueva capa",
@@ -109,7 +258,20 @@
       "year": "Año entre 1900 y 2100",
       "baselineAfterComparison": "El año base no puede ser posterior al de comparación",
       "reference": "Debe empezar con http:// o https://",
-      "invalid": "Revisa los campos marcados."
+      "invalid": "Revisa los campos marcados.",
+      "category": "Elige una categoría",
+      "categoryInvalid": "Elige una categoría válida"
+    },
+    "category": "Categoría",
+    "categoryHelp": "Define qué cuenta como observación y cómo se leen los resultados de la capa.",
+    "categoryLocked": "Una capa publicada no cambia de categoría: ocúltala primero.",
+    "categoryDisabledOption": "{{name}} (deshabilitada)",
+    "noYears": "Esta categoría no compara años: la capa no lleva año base ni año de comparación.",
+    "categoriesLoadError": "No se pudieron cargar las categorías. Recarga la página para elegir la categoría de la capa.",
+    "categoriesUnreadable": "El archivo de categorías de tu país no se puede leer. No vas a poder guardar la capa hasta que operaciones lo corrija.",
+    "visibility": {
+      "blocked": "La capa está publicada, pero no aparece en el análisis",
+      "hidden": "Antes de publicar esta capa"
     }
   },
   "raster": {
@@ -167,7 +329,7 @@
       "title": "Raster validado y activo",
       "text": "{{filename}} · todos los píxeles tienen valores 0 o 1."
     },
-    "publishNotice": "Falta publicar. Hasta entonces, la capa no aparece en el análisis de deforestación.",
+    "publishNotice": "Falta publicar. Hasta entonces, la capa no aparece en el análisis territorial.",
     "publish": "Publicar capa",
     "publishing": "Publicando…",
     "publishError": "No se pudo publicar la capa.",

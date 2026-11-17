@@ -9,7 +9,7 @@ import { localizedText } from "@/utils/localizedText";
 import { formatThreshold } from "@/utils/numbers";
 import { LayerTable } from "./LayerTable";
 import { HEADING_FONT } from "./methodologyStyles";
-import { ResultChip } from "./ResultChip";
+import { ResultChip } from "@/components/reusable/ResultChip";
 
 /** One category of the country: what it marks, its threshold and results, and its layers. */
 export const CategoryBlock: React.FC<{ category: LayerCategory | null; layers: MapData[] }> = ({

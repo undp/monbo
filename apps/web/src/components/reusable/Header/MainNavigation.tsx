@@ -1,15 +1,25 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { Box, IconButton, Menu, MenuItem, useTheme } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListSubheader,
+  Menu,
+  MenuItem,
+  useTheme,
+} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { DataContext } from "@/context/DataContext";
 import { useIsStartPage } from "@/hooks/useIsStartPage";
 import { localizedPath } from "@/utils/languageChange";
+import { getCountryName } from "@/utils/countries";
 import { isAdminPath, isSamePath } from "@/utils/paths";
+import { ADMIN_SECTIONS, isInAdminSection } from "./adminSections";
 
 const FLOW_PATH =
   /^\/(?:[a-z]{2}\/)?(?:polygons-validation|deforestation-analysis|report-generation)(?:\/|$)/;
@@ -37,7 +47,7 @@ const useAnalysisPath = () => {
 /**
  * The header's main links: Home, Analysis and Methodology. The admin pages show
  * their own sections instead of the first two. Below 900 px the links move into a
- * menu.
+ * menu, which on the admin pages also holds the admin's sections and country.
  */
 export const MainNavigation: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -47,6 +57,18 @@ export const MainNavigation: React.FC = () => {
   const analysisPath = useAnalysisPath();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const locale = i18n.language;
+  const { session } = useContext(AdminSessionContext);
+  // Logged in to the admin: its sections, in the menu only (the header shows them
+  // as buttons from 900 px, HeaderNavigation).
+  const adminLinks: NavLink[] =
+    isAdminPath(pathname) && session
+      ? ADMIN_SECTIONS.map(({ path, label }) => ({
+          key: path,
+          label: t(label),
+          href: localizedPath(path, locale),
+          current: isInAdminSection(pathname, path),
+        }))
+      : [];
 
   const links: NavLink[] = [
     ...(isAdminPath(pathname)
@@ -124,7 +146,12 @@ export const MainNavigation: React.FC = () => {
           open={!!anchorEl}
           onClose={() => setAnchorEl(null)}
         >
-          {links.map(({ key, label, href, current }) => (
+          {session && adminLinks.length > 0 && (
+            <ListSubheader>
+              {getCountryName(session.country, locale as "en" | "es") ?? session.country}
+            </ListSubheader>
+          )}
+          {[...adminLinks, ...links].map(({ key, label, href, current }) => (
             <MenuItem
               key={key}
               component={Link}

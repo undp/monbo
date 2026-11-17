@@ -28,8 +28,7 @@ export type AdminLayer = components["schemas"]["AdminLayer"];
 // Why a layer's category doesn't resolve in its country (the layer is then hidden)
 export type LayerCategoryIssue = NonNullable<AdminLayer["category_issue"]>;
 
-// Every country has this category; until the admin picks categories (GC-5), new
-// layers go in it.
+// Every country has this built-in category, so no new category can take its id.
 export const DEFAULT_CATEGORY_ID = "deforestation";
 
 // A country's categories as the admin sees them (camelCase, like GET /categories)
