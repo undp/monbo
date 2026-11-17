@@ -1,6 +1,129 @@
 {
   "components": {
     "schemas": {
+      "AdminCategories": {
+        "description": "Body of `GET /admin/categories`.",
+        "properties": {
+          "categories": {
+            "description": "Every category of the session's country, enabled or not, in the order `GET /categories` uses. Rejected entries are not listed.",
+            "items": {
+              "$ref": "#/components/schemas/AdminCategory"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "errors": {
+            "description": "The problems of the country's categories file, one per entry",
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "readable": {
+            "description": "False when the country's categories file can't be read or parsed",
+            "title": "Readable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "categories",
+          "readable",
+          "errors"
+        ],
+        "title": "AdminCategories",
+        "type": "object"
+      },
+      "AdminCategory": {
+        "description": "A category as the admin sees it: like `LayerCategory`, with its own threshold\n(not resolved), its state and how many layers use it.",
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "layerCount": {
+            "description": "Layers of the country in this category",
+            "title": "Layercount",
+            "type": "integer"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "polarity": {
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "publishedLayerCount": {
+            "description": "Of those, the enabled ones",
+            "title": "Publishedlayercount",
+            "type": "integer"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/ResultLabels"
+          },
+          "temporal": {
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null when it uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "icon",
+          "color",
+          "polarity",
+          "thresholdPercentage",
+          "resultLabels",
+          "temporal",
+          "enabled",
+          "layerCount",
+          "publishedLayerCount"
+        ],
+        "title": "AdminCategory",
+        "type": "object"
+      },
       "AdminLayer": {
         "properties": {
           "attributes": {
@@ -27,6 +150,32 @@
               }
             ],
             "title": "Baseline"
+          },
+          "category_enabled": {
+            "description": "Whether the layer's category resolves and is enabled",
+            "title": "Category Enabled",
+            "type": "boolean"
+          },
+          "category_id": {
+            "title": "Category Id",
+            "type": "string"
+          },
+          "category_issue": {
+            "anyOf": [
+              {
+                "enum": [
+                  "unknown_category",
+                  "invalid_category",
+                  "unreadable_categories"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the layer's category doesn't resolve in its country (the layer is then hidden from the public app), or null when it does.",
+            "title": "Category Issue"
           },
           "compared_against": {
             "anyOf": [
@@ -94,6 +243,9 @@
         },
         "required": [
           "id",
+          "category_id",
+          "category_issue",
+          "category_enabled",
           "pixel_size",
           "baseline",
           "compared_against",
@@ -446,6 +598,243 @@
           "farms"
         ],
         "title": "BrowserEventBody",
+        "type": "object"
+      },
+      "CategoryCreate": {
+        "additionalProperties": false,
+        "description": "Body of `POST /admin/categories`.",
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/CategoryDescriptionInput"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable slug, unique in the country and never reused",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CategoryNameInput"
+          },
+          "polarity": {
+            "description": "`avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/CategoryResultLabelsInput"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "name",
+          "icon",
+          "color",
+          "polarity",
+          "resultLabels",
+          "temporal",
+          "id"
+        ],
+        "title": "CategoryCreate",
+        "type": "object"
+      },
+      "CategoryDescriptionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "title": "CategoryDescriptionInput",
+        "type": "object"
+      },
+      "CategoryInput": {
+        "additionalProperties": false,
+        "description": "Body of `PUT /admin/categories/{id}`: every editable field of a category.\n`enabled` changes only through `PATCH`.",
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/CategoryDescriptionInput"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CategoryNameInput"
+          },
+          "polarity": {
+            "description": "`avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/CategoryResultLabelsInput"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "name",
+          "icon",
+          "color",
+          "polarity",
+          "resultLabels",
+          "temporal"
+        ],
+        "title": "CategoryInput",
+        "type": "object"
+      },
+      "CategoryLabelInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "CategoryLabelInput",
+        "type": "object"
+      },
+      "CategoryNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "CategoryNameInput",
+        "type": "object"
+      },
+      "CategoryResultLabelsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "flagged": {
+            "$ref": "#/components/schemas/CategoryLabelInput",
+            "description": "Result with findings"
+          },
+          "ok": {
+            "$ref": "#/components/schemas/CategoryLabelInput",
+            "description": "Result without findings"
+          }
+        },
+        "required": [
+          "ok",
+          "flagged"
+        ],
+        "title": "CategoryResultLabelsInput",
         "type": "object"
       },
       "ConfigData": {
@@ -1556,16 +1945,36 @@
             "$ref": "#/components/schemas/LocalizedAttributes"
           },
           "baseline": {
-            "maximum": 2100.0,
-            "minimum": 1900.0,
-            "title": "Baseline",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1900.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "category_id": {
+            "description": "A category of the session's country. Its `temporal` decides the years: both required when it is temporal, both null when it isn't.",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Category Id",
+            "type": "string"
           },
           "compared_against": {
-            "maximum": 2100.0,
-            "minimum": 1900.0,
-            "title": "Compared Against",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1900.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compared Against"
           },
           "considerations": {
             "$ref": "#/components/schemas/LocalizedConsiderations"
@@ -1587,9 +1996,8 @@
           }
         },
         "required": [
+          "category_id",
           "pixel_size",
-          "baseline",
-          "compared_against",
           "attributes"
         ],
         "title": "LayerInput",
@@ -2506,6 +2914,194 @@
         "summary": "Root"
       }
     },
+    "/admin/categories": {
+      "get": {
+        "description": "Every category of the session's country, enabled or not, with its own threshold\n(null: the global one) and how many layers use it. `readable` and `errors`\nreport the problems of the country's categories file: a rejected entry is not\nlisted, and its layers show `category_issue` in `GET /admin/layers`.",
+        "operationId": "list_categories_admin_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategories"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Categories",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "post": {
+        "description": "Create a category in the session's country, enabled and at the end of the\nlist. Its `id` is permanent: an id the country already uses (or used, in a\nrejected entry), and `deforestation`, answer 409.",
+        "operationId": "create_category_admin_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Category",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/categories/{category_id}": {
+      "patch": {
+        "description": "Enable or disable a category. A disabled category is left out of\n`GET /categories`, and its layers out of `GET /maps`. A category with published\nlayers can't be disabled (400): hide the layers first.",
+        "operationId": "set_category_enabled_admin_categories__category_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{0,49}$",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Category Enabled",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "put": {
+        "description": "Replace a category's editable fields. The id and `enabled` don't change here.\nThe polarity can't change while the category has published layers, and\n`temporal` can't change while it has any layer (400). Editing the built-in\n\"deforestation\" stores it, first in the list. Editing a rejected entry repairs\nit, once its layers are hidden.",
+        "operationId": "update_category_admin_categories__category_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{0,49}$",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Category",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
     "/admin/jobs/{job_id}": {
       "delete": {
         "description": "Cancel a queued or running job of the session's country. A 202 guarantees the\nlayer keeps its raster; the job reports `cancelled` once it stops (at the\nlatest when a running conversion returns). 409 when the job has ended or its\nactivation has begun.",
@@ -2678,7 +3274,7 @@
     },
     "/admin/layers/{layer_id}": {
       "patch": {
-        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster.",
+        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster (409), and while its category resolves and\nis enabled (400).",
         "operationId": "set_layer_enabled_admin_layers__layer_id__patch",
         "parameters": [
           {

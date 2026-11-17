@@ -204,6 +204,42 @@ A stored `deforestation` that fails validation is not replaced by the built-in o
 layers are hidden rather than judged with the global threshold instead of the
 country's.
 
+### Managing categories in the admin
+
+The admin API manages the session's country's categories (`/admin/categories`; the
+admin UI comes with GC-5):
+
+- `GET /admin/categories` lists them, enabled or not, with their own threshold (`null`:
+  the global one) and how many layers, and published layers, each has. It also says
+  whether `categories.json` can be read (`readable`) and lists the problems of its
+  entries (`errors`). A rejected entry is not listed.
+- `POST /admin/categories` creates one, enabled, with an `id` the admin chooses. An id
+  already used in the country, even by a rejected entry, and `deforestation` answer
+  409.
+- `PUT /admin/categories/{id}` replaces its fields. Editing the built-in
+  `deforestation` stores it, first in the file. Editing a rejected entry repairs it.
+- `PATCH /admin/categories/{id}` enables or disables it.
+
+**A published layer never changes meaning in place.** The admin answers 400, and the
+message names the layers to hide first, when:
+
+| Action | Refused when |
+|---|---|
+| Disable a category | it has published layers |
+| Change a category's polarity | it has published layers |
+| Change whether a category is temporal | it has any layer |
+| Repair a rejected category | it has published layers |
+| Publish a layer | its category is disabled or doesn't resolve |
+| Move a layer to another category | the layer is published |
+
+Thresholds, texts, icon and color can change at any time.
+
+Writes change one entry of `categories.json` and keep the others as they are stored,
+rejected ones included, so nothing the API can't validate (a hand edit, a file from a
+later release) is lost. When the file can't be read at all, every category write
+answers 409 and the file is left alone: fix it on the share (it is in the share's
+daily snapshot).
+
 ### Rolling back to a release before categories
 
 Releases without categories ignore `category_id` and
@@ -229,18 +265,24 @@ rolling back**:
 Log in at `/admin` with your country's admin passkey (see [Countries](#countries)).
 The admin shows and changes only that country's layers. Then:
 
-- **Create a layer**: fill in the layer fields and the metadata in both languages. It
-  belongs to your country, and starts unpublished and without a raster.
+- **Create a layer**: choose its category and fill in the layer fields and the
+  metadata in both languages. It belongs to your country, and starts unpublished and
+  without a raster. The category must be enabled. A temporal category needs both
+  years; any other takes none.
 - **Upload its raster**, in the Raster section of the layer's page: choose the file,
   then "Upload and validate". The section shows each phase (uploading, validating
   pixels, converting) and can cancel it. The layer keeps its current raster until
   the new one has been fully processed. See the requirements below.
-- **Publish or hide it**: a layer can only be published once it has a raster. An
+- **Publish or hide it**: a layer can only be published once it has a raster and while
+  its category is enabled and valid. An
   unpublished layer's Raster section ends with a "Publish layer" step; the layers
   list also publishes and hides layers.
 - **Edit it**: fields and metadata can be changed at any time, and the change is live
   immediately. Changing `pixel_size` is rejected if it disagrees with the current
-  raster. The id, raster, version and published state are not edited there.
+  raster. A published layer can't move to another category: hide it first. The id,
+  raster, version and published state are not edited there. The admin shows a
+  layer whose category doesn't resolve (`category_issue`) so you can move it or
+  repair the category.
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 

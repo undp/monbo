@@ -19,6 +19,7 @@ from app.modules.layers.categories import (
     is_temporal,
     parse_categories,
 )
+from app.modules.layers.store import CategoriesUnreadable
 from app.modules.maps.helpers import get_map_by_id
 from tests.modules.layers.test_countries_layout import layer
 
@@ -489,3 +490,123 @@ def test_an_analysis_still_resolves_a_hidden_layer(co):
     )
     assert response.status_code == 200
     assert [result["mapId"] for result in response.json()] == [1]
+
+
+# --- put_category: one-entry writes that keep the rest of the file -----------------
+
+
+def raw_categories(root, code):
+    return json.loads((root.root / code / "categories.json").read_text())
+
+
+def test_put_category_adds_at_the_end_or_first(co):
+    store = co.store("CO")
+    store.put_category(category("frontier", polarity="required"))
+    store.put_category(category(DEFAULT_CATEGORY["id"]), first=True)
+
+    assert [c["id"] for c in raw_categories(co, "CO")] == [
+        "deforestation",
+        "protected_areas",
+        "frontier",
+    ]
+
+
+def test_put_category_replaces_in_place_and_collapses_copies(co):
+    write_categories(
+        co,
+        "CO",
+        [
+            category("frontier"),
+            category("protected_areas"),
+            category("frontier", color="#000000"),
+        ],
+    )
+    store = co.store("CO")
+    assert store.read_categories().invalid_ids == {"frontier"}
+
+    store.put_category(category("frontier", color="#2e7d32"))
+
+    stored = raw_categories(co, "CO")
+    assert [c["id"] for c in stored] == ["frontier", "protected_areas"]
+    assert stored[0]["color"] == "#2e7d32"
+    file = store.read_categories()
+    assert file.invalid_ids == frozenset() and file.errors == []
+
+
+def test_put_category_keeps_rejected_and_unknown_entries_verbatim(co):
+    rejected = category("frontier", polarity="inside")
+    without_id = {"name": "no id", "from": "a later release"}
+    later = category("rivers", icon="river")  # an icon a later release may add
+    write_categories(
+        co, "CO", [rejected, category("protected_areas"), without_id, later]
+    )
+
+    co.store("CO").put_category(category("protected_areas", color="#123456"))
+
+    stored = raw_categories(co, "CO")
+    assert stored[0] == rejected
+    assert stored[1]["color"] == "#123456"
+    assert stored[2] == without_id
+    assert stored[3] == later
+
+
+@pytest.mark.parametrize("content", ["{ not json", '{"id": "frontier"}'])
+def test_put_category_never_overwrites_an_unreadable_file(co, content):
+    write_categories(co, "CO", content)
+    path = co.root / "CO" / "categories.json"
+
+    with pytest.raises(CategoriesUnreadable):
+        co.store("CO").put_category(category("frontier"))
+
+    assert path.read_text() == content
+
+
+def test_put_category_never_overwrites_a_file_it_cant_read(co, monkeypatch):
+    path = co.root / "CO" / "categories.json"
+    before = path.read_text()
+    real_open = builtins.open
+
+    def failing_open(file, mode="r", *args, **kwargs):
+        if str(file) == str(path) and "r" in mode:
+            raise OSError(5, "Input/output error")
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", failing_open)
+    with pytest.raises(CategoriesUnreadable) as error:
+        co.store("CO").put_category(category("frontier"))
+
+    monkeypatch.undo()
+    assert path.read_text() == before
+    assert str(co.root) not in str(error.value)
+
+
+def test_put_category_refuses_an_invalid_category(co):
+    path = co.root / "CO" / "categories.json"
+    before = path.read_text()
+
+    with pytest.raises(ValueError):
+        co.store("CO").put_category(category("frontier", threshold_percentage=120))
+
+    assert path.read_text() == before
+
+
+def test_put_category_creates_a_missing_file(co):
+    (co.root / "CO" / "categories.json").unlink()
+
+    co.store("CO").put_category(category("frontier"))
+
+    assert [c["id"] for c in raw_categories(co, "CO")] == ["frontier"]
+
+
+def test_put_category_refreshes_the_cache(co):
+    store = co.store("CO")
+    path = co.root / "CO" / "categories.json"
+    store.put_category(category("protected_areas", color="#111111"))
+    assert store.read_categories().categories[0]["color"] == "#111111"
+    first = path.stat()
+
+    store.put_category(category("protected_areas", color="#222222"))
+    os.utime(path, ns=(first.st_atime_ns, first.st_mtime_ns))
+
+    assert path.stat().st_size == first.st_size
+    assert store.read_categories().categories[0]["color"] == "#222222"

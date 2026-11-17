@@ -29,6 +29,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Categories
+         * @description Every category of the session's country, enabled or not, with its own threshold
+         *     (null: the global one) and how many layers use it. `readable` and `errors`
+         *     report the problems of the country's categories file: a rejected entry is not
+         *     listed, and its layers show `category_issue` in `GET /admin/layers`.
+         */
+        get: operations["list_categories_admin_categories_get"];
+        put?: never;
+        /**
+         * Create Category
+         * @description Create a category in the session's country, enabled and at the end of the
+         *     list. Its `id` is permanent: an id the country already uses (or used, in a
+         *     rejected entry), and `deforestation`, answer 409.
+         */
+        post: operations["create_category_admin_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Category
+         * @description Replace a category's editable fields. The id and `enabled` don't change here.
+         *     The polarity can't change while the category has published layers, and
+         *     `temporal` can't change while it has any layer (400). Editing the built-in
+         *     "deforestation" stores it, first in the list. Editing a rejected entry repairs
+         *     it, once its layers are hidden.
+         */
+        put: operations["update_category_admin_categories__category_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set Category Enabled
+         * @description Enable or disable a category. A disabled category is left out of
+         *     `GET /categories`, and its layers out of `GET /maps`. A category with published
+         *     layers can't be disabled (400): hide the layers first.
+         */
+        patch: operations["set_category_enabled_admin_categories__category_id__patch"];
+        trace?: never;
+    };
     "/admin/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -107,7 +166,8 @@ export interface paths {
          * Set Layer Enabled
          * @description Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
          *     public listing but still resolves by id for analyses and tiles. A layer can
-         *     only be enabled once it has a raster.
+         *     only be enabled once it has a raster (409), and while its category resolves and
+         *     is enabled (400).
          */
         patch: operations["set_layer_enabled_admin_layers__layer_id__patch"];
         trace?: never;
@@ -581,6 +641,70 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdminCategories
+         * @description Body of `GET /admin/categories`.
+         */
+        AdminCategories: {
+            /**
+             * Categories
+             * @description Every category of the session's country, enabled or not, in the order `GET /categories` uses. Rejected entries are not listed.
+             */
+            categories: components["schemas"]["AdminCategory"][];
+            /**
+             * Errors
+             * @description The problems of the country's categories file, one per entry
+             */
+            errors: string[];
+            /**
+             * Readable
+             * @description False when the country's categories file can't be read or parsed
+             */
+            readable: boolean;
+        };
+        /**
+         * AdminCategory
+         * @description A category as the admin sees it: like `LayerCategory`, with its own threshold
+         *     (not resolved), its state and how many layers use it.
+         */
+        AdminCategory: {
+            /** Color */
+            color: string;
+            description: components["schemas"]["LocalizedText"];
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            /** Id */
+            id: string;
+            /**
+             * Layercount
+             * @description Layers of the country in this category
+             */
+            layerCount: number;
+            name: components["schemas"]["LocalizedText"];
+            /**
+             * Polarity
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            /**
+             * Publishedlayercount
+             * @description Of those, the enabled ones
+             */
+            publishedLayerCount: number;
+            resultLabels: components["schemas"]["ResultLabels"];
+            /** Temporal */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null when it uses the global one
+             */
+            thresholdPercentage: number | null;
+        };
         /** AdminLayer */
         AdminLayer: {
             /** Attributes */
@@ -589,6 +713,18 @@ export interface components {
             };
             /** Baseline */
             baseline: number | null;
+            /**
+             * Category Enabled
+             * @description Whether the layer's category resolves and is enabled
+             */
+            category_enabled: boolean;
+            /** Category Id */
+            category_id: string;
+            /**
+             * Category Issue
+             * @description Why the layer's category doesn't resolve in its country (the layer is then hidden from the public app), or null when it does.
+             */
+            category_issue: ("unknown_category" | "invalid_category" | "unreadable_categories") | null;
             /** Compared Against */
             compared_against: number | null;
             /** Considerations */
@@ -699,6 +835,116 @@ export interface components {
              * @enum {string}
              */
             type: "report_requested" | "report_downloaded";
+        };
+        /**
+         * CategoryCreate
+         * @description Body of `POST /admin/categories`.
+         */
+        CategoryCreate: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description?: components["schemas"]["CategoryDescriptionInput"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            /**
+             * Id
+             * @description Stable slug, unique in the country and never reused
+             */
+            id: string;
+            name: components["schemas"]["CategoryNameInput"];
+            /**
+             * Polarity
+             * @description `avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["CategoryResultLabelsInput"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null uses the global one
+             */
+            thresholdPercentage?: number | null;
+        };
+        /** CategoryDescriptionInput */
+        CategoryDescriptionInput: {
+            /**
+             * En
+             * @default
+             */
+            en: string;
+            /**
+             * Es
+             * @default
+             */
+            es: string;
+        };
+        /**
+         * CategoryInput
+         * @description Body of `PUT /admin/categories/{id}`: every editable field of a category.
+         *     `enabled` changes only through `PATCH`.
+         */
+        CategoryInput: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description?: components["schemas"]["CategoryDescriptionInput"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            name: components["schemas"]["CategoryNameInput"];
+            /**
+             * Polarity
+             * @description `avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["CategoryResultLabelsInput"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null uses the global one
+             */
+            thresholdPercentage?: number | null;
+        };
+        /** CategoryLabelInput */
+        CategoryLabelInput: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
+        /** CategoryNameInput */
+        CategoryNameInput: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
+        /** CategoryResultLabelsInput */
+        CategoryResultLabelsInput: {
+            /** @description Result with findings */
+            flagged: components["schemas"]["CategoryLabelInput"];
+            /** @description Result without findings */
+            ok: components["schemas"]["CategoryLabelInput"];
         };
         /** ConfigData */
         ConfigData: {
@@ -1103,9 +1349,14 @@ export interface components {
         LayerInput: {
             attributes: components["schemas"]["LocalizedAttributes"];
             /** Baseline */
-            baseline: number;
+            baseline?: number | null;
+            /**
+             * Category Id
+             * @description A category of the session's country. Its `temporal` decides the years: both required when it is temporal, both null when it isn't.
+             */
+            category_id: string;
             /** Compared Against */
-            compared_against: number;
+            compared_against?: number | null;
             considerations?: components["schemas"]["LocalizedConsiderations"];
             /**
              * Pixel Size
@@ -1451,6 +1702,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_categories_admin_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategories"];
+                };
+            };
+        };
+    };
+    create_category_admin_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_category_admin_categories__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_category_enabled_admin_categories__category_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

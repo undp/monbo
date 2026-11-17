@@ -45,6 +45,7 @@ from app.modules.layers.categories import (
     CATEGORIES_FILENAME,
     DEFAULT_CATEGORY_ID,
     CategoriesFile,
+    StoredCategory,
     effective_categories,
     parse_categories,
     resolve_category,
@@ -72,6 +73,11 @@ class LayoutError(Exception):
 def is_country_folder_name(code: str) -> bool:
     """An uppercase two-letter code: safe as a folder name under the root."""
     return bool(_COUNTRY_CODE_PATTERN.match(code))
+
+
+class CategoriesUnreadable(Exception):
+    """A country's `categories.json` can't be read or parsed, so it can't be safely
+    rewritten. The message names the cause, never the share's path."""
 
 
 class ReadBackMismatch(OSError):
@@ -330,6 +336,63 @@ class LayerStore:
                 (stat.st_mtime_ns, stat.st_size),
                 CategoriesFile(categories=copy.deepcopy(parsed.categories)),
             )
+
+    def put_category(self, category: dict, *, first: bool = False) -> None:
+        """Store one category: replace the entry with its id (dropping any other copy
+        of that id), or add it, at the start when `first`, else at the end. Every
+        other entry is written back exactly as stored, rejected ones included, so an
+        admin edit never loses what this release can't validate (a hand edit, or a
+        file written by a later release).
+
+        Raises `ValueError` when `category` is not a valid category, and
+        `CategoriesUnreadable` when the file can't be read or parsed: it is then never
+        overwritten."""
+        stored = StoredCategory.model_validate(category).model_dump()
+        with self._lock:
+            entries = self._read_category_entries()
+            matches = [
+                position
+                for position, entry in enumerate(entries)
+                if isinstance(entry, dict) and entry.get("id") == stored["id"]
+            ]
+            if matches:
+                entries[matches[0]] = stored
+                for position in reversed(matches[1:]):
+                    del entries[position]
+            elif first:
+                entries.insert(0, stored)
+            else:
+                entries.append(stored)
+            data = json.dumps(entries, indent=2, ensure_ascii=False) + "\n"
+            self._atomic_write(self.categories_path, data.encode("utf-8"))
+            stat = self.categories_path.stat()
+            # Like `write_categories`: never read back a stale cached version.
+            self._categories_cache = (
+                (stat.st_mtime_ns, stat.st_size),
+                parse_categories(json.loads(data)),
+            )
+            self._categories_read_error = None
+
+    def _read_category_entries(self) -> list:
+        """The raw entries of `categories.json`, unvalidated ([] when missing)."""
+        path = self.categories_path
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                content = json.load(file)
+        except FileNotFoundError:
+            return []
+        except OSError as e:
+            logger.error("Cannot read categories at '%s': %s", path, e)
+            raise CategoriesUnreadable(
+                f"{CATEGORIES_FILENAME} can't be read: {e.strerror or e}"
+            ) from e
+        except ValueError as e:
+            raise CategoriesUnreadable(
+                f"{CATEGORIES_FILENAME} is not valid JSON"
+            ) from e
+        if not isinstance(content, list):
+            raise CategoriesUnreadable(f"{CATEGORIES_FILENAME} is not a JSON list")
+        return content
 
     def _atomic_write(self, target: Path, data: bytes) -> None:
         """Write `data` to a temporary file next to `target`, then rename it over.

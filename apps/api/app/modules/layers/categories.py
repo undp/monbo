@@ -26,6 +26,13 @@ from app.models.categories import CategoryIcon, CategoryPolarity
 CATEGORIES_FILENAME = "categories.json"
 DEFAULT_CATEGORY_ID = "deforestation"
 CATEGORY_ID_PATTERN = r"^[a-z][a-z0-9_]{0,49}$"
+# Limits of a stored category, shared with the admin's input models.
+COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
+NAME_MAX_LENGTH = 100
+DESCRIPTION_MAX_LENGTH = 1000
+LABEL_MAX_LENGTH = 60
+THRESHOLD_MIN = 0
+THRESHOLD_MAX = 100
 
 # Why a layer's category doesn't resolve. Stable codes: the admin translates them.
 CategoryIssue = Literal["unknown_category", "invalid_category", "unreadable_categories"]
@@ -38,18 +45,18 @@ class _Stored(BaseModel):
 
 
 class _Name(_Stored):
-    es: str = Field(min_length=1, max_length=100)
-    en: str = Field(min_length=1, max_length=100)
+    es: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
+    en: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
 
 
 class _Description(_Stored):
-    es: str = Field(max_length=1000)
-    en: str = Field(max_length=1000)
+    es: str = Field(max_length=DESCRIPTION_MAX_LENGTH)
+    en: str = Field(max_length=DESCRIPTION_MAX_LENGTH)
 
 
 class _Label(_Stored):
-    es: str = Field(min_length=1, max_length=60)
-    en: str = Field(min_length=1, max_length=60)
+    es: str = Field(min_length=1, max_length=LABEL_MAX_LENGTH)
+    en: str = Field(min_length=1, max_length=LABEL_MAX_LENGTH)
 
 
 class _ResultLabels(_Stored):
@@ -62,10 +69,12 @@ class StoredCategory(_Stored):
     name: _Name
     description: _Description
     icon: CategoryIcon
-    color: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+    color: str = Field(pattern=COLOR_PATTERN)
     polarity: CategoryPolarity
     # None: the global DEFORESTATION_THRESHOLD_PERCENTAGE.
-    threshold_percentage: float | None = Field(default=None, ge=0, le=100)
+    threshold_percentage: float | None = Field(
+        default=None, ge=THRESHOLD_MIN, le=THRESHOLD_MAX
+    )
     result_labels: _ResultLabels
     temporal: bool
     enabled: bool = True

@@ -4,6 +4,11 @@ Every route acts on the country of the admin session: another country's layer
 answers 404, like an unknown one. Ids are numbered within each country. Layers are
 never deleted and ids are never reused, because saved analyses and reports refer to
 layers by id. Rasters are uploaded separately (raster ingestion).
+
+Each layer belongs to a category of its country, which decides whether it has years.
+A layer is only created in, moved to or published in an enabled category that
+resolves, and a published layer never changes category: its results would change
+meaning in place (see `categories.py`).
 """
 
 from pathlib import Path
@@ -17,20 +22,19 @@ from app.modules.layers.processing import (
     check_pixel_size,
     raster_pixel_size_range_m,
 )
-from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore, get_layers_root
+from app.modules.layers.store import SUPPORTED_LANGUAGES, LayerStore
 from app.utils.maps import parse_year
 
 from .auth import Session, logger, require_admin
+from .helpers import (
+    CountryCategories,
+    country_store,
+    index_or_500,
+    read_country_categories,
+)
 from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
 
 router = APIRouter()
-
-
-def _index_or_500(store: LayerStore) -> list[dict]:
-    index = store.read_index()
-    if index is None:
-        raise HTTPException(status_code=500, detail="Failed to read map data")
-    return index
 
 
 def _position(index: list[dict], layer_id: int) -> int:
@@ -40,7 +44,9 @@ def _position(index: list[dict], layer_id: int) -> int:
     raise HTTPException(status_code=404, detail="Layer not found")
 
 
-def _to_admin_layer(store: LayerStore, entry: dict) -> AdminLayer:
+def _to_admin_layer(
+    store: LayerStore, entry: dict, categories: CountryCategories
+) -> AdminLayer:
     attributes = {}
     considerations = {}
     for language in SUPPORTED_LANGUAGES:
@@ -51,8 +57,12 @@ def _to_admin_layer(store: LayerStore, entry: dict) -> AdminLayer:
         considerations[language] = store.read_considerations(
             entry["considerations_filename"], language
         )
+    category, issue = categories.resolve(entry["category_id"])
     return AdminLayer(
         id=entry["id"],
+        category_id=str(entry["category_id"]),
+        category_issue=issue,
+        category_enabled=bool(category and category["enabled"]),
         pixel_size=entry["pixel_size"],
         baseline=parse_year(entry.get("baseline")),
         compared_against=parse_year(entry.get("compared_against")),
@@ -83,17 +93,70 @@ def _apply_input(store: LayerStore, entry: dict, body: LayerInput) -> None:
     pixel_size = body.pixel_size
     entry.update(
         {
+            "category_id": body.category_id,
             "pixel_size": int(pixel_size) if pixel_size.is_integer() else pixel_size,
-            # Years are stored as strings, like the rest of the index.
-            "baseline": str(body.baseline),
-            "compared_against": str(body.compared_against),
+            # Years are stored as strings, like the rest of the index. Both keys are
+            # always written, null for a layer without years: releases before
+            # categories read them unconditionally.
+            "baseline": _year(body.baseline),
+            "compared_against": _year(body.compared_against),
             "references": body.references,
         }
     )
 
 
-def _country_store(session: Session) -> LayerStore:
-    return get_layers_root().country_store(session.country)
+def _year(year: int | None) -> str | None:
+    return None if year is None else str(year)
+
+
+_CATEGORY_ISSUES = {
+    "unknown_category": "doesn't exist in {country}",
+    "invalid_category": "is invalid in {country}'s categories file",
+    "unreadable_categories": "can't be read: {country}'s categories file is broken",
+}
+
+
+def _check_category(
+    categories: CountryCategories,
+    body: LayerInput,
+    country: str,
+    current: dict | None = None,
+) -> None:
+    """400 unless `body` may put the layer (`current`, None when new) in its category:
+    one that resolves and is enabled (a layer may keep its current, disabled one), not
+    a move of a published layer, and with years exactly when the category is
+    temporal. Checked before anything is written."""
+    category_id = body.category_id
+    moved = current is None or current["category_id"] != category_id
+    if current is not None and moved and current["enabled"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Layer {current['id']} is published: hide it before moving it "
+            "to another category",
+        )
+    category, issue = categories.resolve(category_id)
+    if category is None:
+        reason = _CATEGORY_ISSUES[issue or "unknown_category"]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_id}' {reason.format(country=country)}",
+        )
+    if moved and not category["enabled"]:
+        raise HTTPException(
+            status_code=400, detail=f"Category '{category_id}' is disabled"
+        )
+    if category["temporal"] and body.baseline is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_id}' is temporal: baseline and "
+            "compared_against are required",
+        )
+    if not category["temporal"] and body.baseline is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_id}' is not temporal: baseline and "
+            "compared_against must be null",
+        )
 
 
 def _check_existing_raster_pixel_size(
@@ -117,8 +180,10 @@ def _check_existing_raster_pixel_size(
 def list_layers(session: Session = Depends(require_admin)):
     """Every layer of the session's country, enabled or not, with its metadata in
     every language."""
-    store = _country_store(session)
-    return [_to_admin_layer(store, entry) for entry in _index_or_500(store)]
+    store = country_store(session)
+    index = index_or_500(store)
+    categories = read_country_categories(store)
+    return [_to_admin_layer(store, entry, categories) for entry in index]
 
 
 def _free_metadata_stem(store: LayerStore, index: list[dict], layer_id: int) -> str:
@@ -159,9 +224,11 @@ def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
     than the highest id in the country (disabled layers included), so ids are never
     reused.
     """
-    store = _country_store(session)
+    store = country_store(session)
     with store.locked():
-        index = _index_or_500(store)
+        index = index_or_500(store)
+        categories = read_country_categories(store)
+        _check_category(categories, body, session.country)
         layer_id = max((entry["id"] for entry in index), default=-1) + 1
         stem = _free_metadata_stem(store, index, layer_id)
         entry = {
@@ -177,7 +244,7 @@ def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
         _apply_input(store, entry, body)
         store.write_index([*index, entry])
     logger.info("Admin created layer %s in %s", layer_id, session.country)
-    return _to_admin_layer(store, entry)
+    return _to_admin_layer(store, entry, categories)
 
 
 @router.put("/{layer_id}", response_model=AdminLayer)
@@ -188,16 +255,18 @@ def update_layer(
     Replace a layer's editable fields and its metadata in every language. The id,
     raster, version, enabled state and country are not changed here.
     """
-    store = _country_store(session)
+    store = country_store(session)
     # Checked before taking the store lock: it may open the raster over the share,
     # and every tile and image request waits on that lock.
-    current = _index_or_500(store)
+    current = index_or_500(store)
     checked = current[_position(current, layer_id)]
     if body.pixel_size != checked["pixel_size"]:
         _check_existing_raster_pixel_size(store, checked, body.pixel_size)
     with store.locked():
-        index = _index_or_500(store)
+        index = index_or_500(store)
         position = _position(index, layer_id)
+        categories = read_country_categories(store)
+        _check_category(categories, body, session.country, index[position])
         # A new raster was activated meanwhile: check against that one instead.
         if body.pixel_size != index[position]["pixel_size"] and index[position].get(
             "raster_filename"
@@ -207,7 +276,7 @@ def update_layer(
         store.write_index(index)
         entry = index[position]
     logger.info("Admin updated layer %s in %s", layer_id, session.country)
-    return _to_admin_layer(store, entry)
+    return _to_admin_layer(store, entry, categories)
 
 
 @router.patch("/{layer_id}", response_model=AdminLayer)
@@ -217,17 +286,34 @@ def set_layer_enabled(
     """
     Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
     public listing but still resolves by id for analyses and tiles. A layer can
-    only be enabled once it has a raster.
+    only be enabled once it has a raster (409), and while its category resolves and
+    is enabled (400).
     """
-    store = _country_store(session)
+    store = country_store(session)
     with store.locked():
-        index = _index_or_500(store)
+        index = index_or_500(store)
         position = _position(index, layer_id)
         entry = index[position]
+        categories = read_country_categories(store)
         if body.enabled and not store.has_raster(entry.get("raster_filename")):
             raise HTTPException(
                 status_code=409, detail="Upload a raster before enabling the layer"
             )
+        if body.enabled and not entry["enabled"]:
+            category, issue = categories.resolve(entry["category_id"])
+            if category is None or not category["enabled"]:
+                reason = (
+                    "is disabled"
+                    if category is not None
+                    else _CATEGORY_ISSUES[issue or "unknown_category"].format(
+                        country=session.country
+                    )
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Layer {layer_id} can't be published: its category "
+                    f"'{entry['category_id']}' {reason}",
+                )
         if entry["enabled"] != body.enabled:
             entry["enabled"] = body.enabled
             store.write_index(index)
@@ -237,4 +323,4 @@ def set_layer_enabled(
                 layer_id,
                 session.country,
             )
-    return _to_admin_layer(store, entry)
+    return _to_admin_layer(store, entry, categories)

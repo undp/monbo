@@ -173,7 +173,7 @@ modules/                   # One package per module, each with router.py + helpe
 ├── maps/                  #   GET /maps (?country=) and GET /countries — the published layers and their countries
 ├── layers/                #   LayersRoot/LayerStore (read/write MAPS_ROOT), raster checks + COG conversion, seed and migration commands
 ├── usage/                 #   POST /events (report events from the browser), the middleware that records uploads, validations and analyses, the USAGE_DIR writer and the monthly rollups
-└── admin/                 #   /admin/* — per-country passkey login, layer CRUD, raster uploads (only when configured); GET /admin/usage, every country's usage; countries CLI
+└── admin/                 #   /admin/* — per-country passkey login, layer and category CRUD, raster uploads (only when configured); GET /admin/usage, every country's usage; countries CLI
 maps/                      # Git-tracked layers: index.json, .tif rasters (Git LFS), bilingual metadata per layer
 models/                    # Shared Pydantic schemas (farms, maps, polygons)
 helpers/GeometryCalculator.py  # Geodesic area computation (WGS84 ellipsoid, pyproj.Geod)
