@@ -1,8 +1,10 @@
-# Deforestation layers
+# Map layers
 
-A layer is a binary GeoTIFF (`1` = forest loss after the baseline year, `0` = no
-loss) plus its metadata in English and Spanish. The API analyzes farms against it,
-serves its map tiles and draws it into the report images.
+A layer is a binary GeoTIFF (`1` = inside the layer, `0` = outside it) plus its
+metadata in English and Spanish. What "inside" means depends on the layer's
+[category](#categories): for a `deforestation` layer, forest lost after the baseline
+year; for a protected-areas layer, the protected areas. The API analyzes farms
+against it, serves its map tiles and draws it into the report images.
 
 Every layer belongs to one country and to one of that country's
 [categories](#categories) (all of today's layers are in `deforestation`), and each
@@ -277,18 +279,22 @@ values. A raster must be:
 
 - a GeoTIFF with **exactly one band** of **integer** values and a **coordinate
   reference system**;
-- **binary**: only `0` (no loss), `1` (loss) and, optionally, a nodata value. Every
-  pixel is checked. Nodata cannot be `1`, because the analysis counts `1` as loss.
+- **binary**: only `0` (outside the layer), `1` (inside the layer) and, optionally, a
+  nodata value. Every pixel is checked. Nodata cannot be `1`, because the analysis
+  counts the `1` pixels as the layer.
 - have a pixel area consistent with the layer's `pixel_size` (within 5% at every
   latitude of the raster).
 - no larger than `ADMIN_MAX_UPLOAD_MB` (500 MB by default).
 
 If the file doesn't declare its nodata value, enter it in the upload form.
 
-The upload is rejected with an explanation when a check fails. When the other values
-look like years (1980–2100), the raster has loss years instead of a binary mask:
-binarize it first (see below). An upload with no `1` pixels is accepted (its job
-records a warning).
+The upload is rejected with an explanation when a check fails. In a layer of a
+temporal category (one with a baseline, like `deforestation`), when the other values
+all look like years (1980–2100) the raster has the year of each change instead of a
+binary mask, and the error (`loss_years`) says to binarize it first (see below). In
+any other layer, or one whose category doesn't resolve, the same raster is rejected
+as not binary (`not_binary`). An upload with no `1` pixels is accepted, with the
+warning `no_positive_pixels`.
 
 ### What happens to an upload
 

@@ -113,7 +113,7 @@
     }
   },
   "raster": {
-    "intro": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
+    "intro": "A single-band GeoTIFF with values 0 (outside the layer) and 1 (inside the layer). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
     "steps": {
       "label": "Step {{number}}",
       "select": {
@@ -186,20 +186,20 @@
     "issues": {
       "not_geotiff": "The file is not a readable GeoTIFF.",
       "band_count": "The raster must have exactly one band (it has {{bands}}).",
-      "not_integer": "The raster must have integer values (it has {{dtype}}). Use 0 for no loss and 1 for loss.",
+      "not_integer": "The raster must have integer values (it has {{dtype}}). Use 0 outside the layer and 1 inside it.",
       "no_crs": "The raster must have a coordinate reference system.",
-      "nodata_is_loss": "Nodata cannot be 1 because 1 represents forest loss. Use a different nodata value.",
+      "nodata_is_positive": "Nodata cannot be 1, because 1 marks the pixels inside the layer. Use a different nodata value.",
       "resolution_unavailable": "The raster's pixel size could not be determined from its reference system and grid.",
       "resolution_mismatch": "The layer pixel size ({{declared}} m) differs from the raster ({{measured}} m). Update the layer pixel size or choose another raster.",
       "resolution_varies": "The raster's pixel size varies from {{min}} m to {{max}} m across its latitudes, too much for a single layer pixel size. Reproject it to an equal-area reference system or split it.",
-      "not_binary": "The raster must be binary (0 = no loss, 1 = loss). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
-      "loss_years": "The raster has values that look like loss years ({{values}}). Binarize it against its baseline year before uploading.",
+      "not_binary": "The raster must be binary (0 = outside the layer, 1 = inside the layer). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
+      "loss_years": "The raster has values that look like years ({{values}}). Binarize it against its baseline year before uploading.",
       "conversion_mismatch": "The conversion didn't keep every pixel, so nothing was changed.",
       "layer_not_found": "The layer no longer exists.",
       "interrupted": "The process was interrupted because the server restarted. Upload the file again.",
       "unexpected": "An unexpected error happened while processing the raster.",
       "nodata_ignored": "The file already declares nodata {{declared}}; the value {{requested}} was ignored.",
-      "no_loss_pixels": "The raster has no loss pixels (value 1)."
+      "no_positive_pixels": "The raster has no pixels inside the layer (value 1)."
     }
   },
   "usage": {

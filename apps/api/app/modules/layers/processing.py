@@ -18,7 +18,11 @@ from rasterio.windows import Window
 
 WINDOW_SIZE = 2048
 MAX_REPORTED_VALUES = 10
-LOSS_YEARS = range(1980, 2101)
+# Values that look like years: a temporal layer (one with a baseline) uploaded with
+# the year of each change instead of a binary mask.
+YEARS = range(1980, 2101)
+# A raster is a mask of its layer: 0 outside it, 1 inside it.
+BINARY_LEGEND = "0 = outside the layer, 1 = inside the layer"
 # The declared `pixel_size` (the layer's resolution) must match the raster's cell
 # area at every latitude it covers within this relative tolerance. The analysis
 # measures pixels from the raster itself, so this keeps the metadata honest. Existing
@@ -182,9 +186,18 @@ class Validation:
 
 
 def validate_raster(
-    path: Path, requested_nodata: float | None, on_window: OnWindow | None = None
+    path: Path,
+    requested_nodata: float | None,
+    *,
+    temporal: bool,
+    on_window: OnWindow | None = None,
 ) -> Validation:
-    """Structural checks plus a scan of every pixel."""
+    """Structural checks plus a scan of every pixel.
+
+    `temporal`: whether the layer's category is temporal. Only then are year-like
+    values reported as `loss_years`, with the advice to binarize them against the
+    baseline; any other layer gets the generic `not_binary`.
+    """
     try:
         with warnings.catch_warnings():
             # Rejected below with a clear message; no need for GDAL's warning.
@@ -208,7 +221,7 @@ def validate_raster(
             raise IngestionError(
                 "not_integer",
                 f"The raster must have integer values (it has {dtype}); "
-                "use 0 for no loss and 1 for loss",
+                "use 0 outside the layer and 1 inside it",
                 dtype=dtype,
             )
         if src.crs is None:
@@ -232,8 +245,8 @@ def validate_raster(
             )
         if nodata == 1:
             raise IngestionError(
-                "nodata_is_loss",
-                "Nodata cannot be 1 because 1 represents forest loss",
+                "nodata_is_positive",
+                "Nodata cannot be 1, because 1 marks the pixels inside the layer",
             )
         allowed = {0, 1} | ({int(nodata)} if nodata is not None else set())
 
@@ -263,16 +276,16 @@ def validate_raster(
 
     offending = sorted(values - allowed)[:MAX_REPORTED_VALUES]
     if offending:
-        legend = "0 = no loss, 1 = loss"
+        legend = BINARY_LEGEND
         if nodata is not None:
             legend += f", {_format(nodata)} = nodata"
         message = (
             f"The raster must be binary ({legend}). Other values found: "
             f"{', '.join(str(value) for value in offending)}."
         )
-        if all(value in LOSS_YEARS for value in offending):
+        if temporal and all(value in YEARS for value in offending):
             message += (
-                " They look like loss years: binarize the layer against its "
+                " They look like years: binarize the layer against its "
                 "baseline year before uploading."
             )
             raise IngestionError("loss_years", message, values=offending)
@@ -281,7 +294,9 @@ def validate_raster(
         raise IngestionError("not_binary", message, values=offending, nodata=nodata)
     if 1 not in values:
         found_warnings.append(
-            issue("no_loss_pixels", "No deforestation pixels (value 1) were found")
+            issue(
+                "no_positive_pixels", "No pixels inside the layer (value 1) were found"
+            )
         )
     return Validation(
         report,

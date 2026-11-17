@@ -16,6 +16,7 @@ from app.modules.layers.categories import (
     DEFAULT_CATEGORY,
     CategoriesFile,
     effective_categories,
+    is_temporal,
     parse_categories,
 )
 from app.modules.maps.helpers import get_map_by_id
@@ -152,6 +153,35 @@ def test_a_repeated_id_rejects_every_copy():
 def test_a_file_that_is_not_a_list_is_unreadable():
     assert not parse_categories({"categories": []}).readable
     assert not parse_categories(None).readable
+
+
+@pytest.mark.parametrize(
+    "content, category_id, expected",
+    [
+        (None, "deforestation", True),  # no file: the built-in one
+        ([category("protected_areas")], "deforestation", True),
+        ([category("fires", temporal=True)], "fires", True),
+        ([category("protected_areas")], "protected_areas", False),
+        ([category("old", temporal=True, enabled=False)], "old", True),
+        ([category("protected_areas")], "missing", False),
+        ([category("bad", color="red", temporal=True)], "bad", False),
+        ({"categories": []}, "deforestation", False),  # unreadable
+    ],
+    ids=[
+        "built-in",
+        "built-in-with-file",
+        "stored-temporal",
+        "stored-not-temporal",
+        "disabled",
+        "unknown",
+        "invalid",
+        "unreadable",
+    ],
+)
+def test_is_temporal(content, category_id, expected):
+    file = CategoriesFile() if content is None else parse_categories(content)
+
+    assert is_temporal(category_id, file) is expected
 
 
 def test_unknown_fields_are_ignored():
