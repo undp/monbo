@@ -50,7 +50,7 @@ A text that applies to every layer category SHALL use generic wording ("análisi
 
 ### Requirement: Every visible text goes through i18next
 
-Every string the web shows or announces to assistive technology, including accessible labels, the default texts of MUI components (such as the `closeText` of a closable `Alert` and the no-data text of the charts) and the sheet names of exported Excel files, SHALL come from an i18next key present in both `locales/es/` and `locales/en/`. The validation export's bilingual header rows, which follow the upload template's layout, are exempt. No key SHALL contain the misspelling "analized", and no English text SHALL read "analized".
+Every string the web shows or announces to assistive technology, including accessible labels, the default texts of MUI components (such as the `closeText` of a closable `Alert`) and the sheet names of exported Excel files, SHALL come from an i18next key present in both `locales/es/` and `locales/en/`. The validation export's bilingual header rows, which follow the upload template's layout, are exempt. No key SHALL contain the misspelling "analized", and no English text SHALL read "analized".
 
 #### Scenario: Close button of a modal
 
@@ -64,8 +64,8 @@ Every string the web shows or announces to assistive technology, including acces
 
 #### Scenario: Empty chart in the usage page
 
-- **WHEN** a chart of the usage page has no data
-- **THEN** it says so in the user's language, not with the chart library's "No data to display"
+- **WHEN** the funnel, the outcomes or the weekly chart of the usage page has only zeros for the chosen range
+- **THEN** it shows "Sin datos en este rango." / "No data in this range." in place of the chart, instead of lines and bars at 0
 
 #### Scenario: Validation export in English
 
@@ -79,7 +79,7 @@ Every string the web shows or announces to assistive technology, including acces
 
 ### Requirement: Literal keys exist in the namespace they name
 
-Every translation key written in the code as a string literal `"namespace:key"`, whether it is passed to `t()` directly, chosen in a ternary, kept in a constant or passed as a prop, SHALL name a text (a string, or the forms of a plural) that exists in that namespace, in `es` and in `en`. No text SHALL depend on the fallback to `common` to show, and no key SHALL name a group of texts. Keys built at runtime (a template literal such as `` `${prefix}:title` `` or a variable) are exempt, because their value is only known when the code runs.
+Every translation key written in the code as a string literal `"namespace:key"`, whether it is passed to `t()` directly, chosen in a ternary, kept in a constant or passed as a prop, SHALL name a text (a string, or the forms of a plural) that exists in that namespace, in `es` and in `en`. No text SHALL depend on the fallback to `common` to show, and no key SHALL name a group of texts. A key that exists only as a plural SHALL have both its `_one` and `_other` forms in both languages, and a text that shows a count next to a noun SHALL be a plural ("1 polígono validado", not "1 polígonos validados"). Keys built at runtime (a template literal such as `` `${prefix}:title` `` or a variable) are exempt, because their value is only known when the code runs.
 
 #### Scenario: Testing-environment warning
 
@@ -90,6 +90,16 @@ Every translation key written in the code as a string literal `"namespace:key"`,
 
 - **WHEN** a component reads a literal key that its namespace does not define, even from a ternary or a constant
 - **THEN** the test suite fails and names the file and the key
+
+#### Scenario: A plural without its singular form
+
+- **WHEN** a plural key used with `count` has `_other` but not `_one` in one language
+- **THEN** the test suite fails and says the key is missing a plural form
+
+#### Scenario: One valid polygon
+
+- **WHEN** the validation has one valid polygon
+- **THEN** its tab reads "1 polígono validado"
 
 #### Scenario: A key that names a group of texts
 

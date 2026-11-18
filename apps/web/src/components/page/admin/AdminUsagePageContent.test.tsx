@@ -179,12 +179,12 @@ describe("AdminUsagePageContent", () => {
     const costaRica = within(table.getByRole("row", { name: /^Costa Rica/ }));
     expect(costaRica.getAllByRole("cell").map((c) => c.textContent)).toEqual([
       "Costa Rica",
-      "3 ok · 1 errors",
+      "3 ok · 1 error",
       "30",
       "0 ok · 0 errors",
       "4 ok · 2 errors",
       "5",
-      "5 ok · 1 errors",
+      "5 ok · 1 error",
     ]);
     const unknown = within(table.getByRole("row", { name: /^Unknown country/ }));
     expect(unknown.getAllByRole("cell")[2].textContent).toBe("—");

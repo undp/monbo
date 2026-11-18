@@ -39,3 +39,9 @@
 - [x] 6.3 Copy nits: "No se pudo procesar el raster…", `loadedFarms_one/_other`, "polígonos validados", the same verb in the report modal, "map layers" → "layers" in `en`, "los datos que cargaste y sus resultados"
 - [x] 6.4 `apps/web/README.md` names the new key check
 - [x] 6.5 No horizontal scroll at 390 px on `/polygons-validation` and `/report-generation` (search bar `minWidth`), and the labels of the layer details modal stack on phones instead of breaking mid-word
+
+## 7. Re-review of #143
+
+- [x] 7.1 Plurals for texts that show a count next to a noun: `validPolygons` (`TabTitle.test.tsx`), `moreUploadErrors`, and the usage page's `avgFarms`, `analysisSessions`, `requestedSessions` and `okErrors`
+- [x] 7.2 `usedKeys.test.ts` requires both `_one` and `_other` for a key that exists only as a plural (fails when `validPolygons_one` is removed)
+- [x] 7.3 The usage charts show "Sin datos en este rango." instead of drawing zeros (`UsageCharts.test.tsx`); the unused `localeText` is gone

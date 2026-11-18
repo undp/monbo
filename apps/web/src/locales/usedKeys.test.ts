@@ -44,14 +44,27 @@ const usedKeys = sourceFiles(SRC_DIR).flatMap((file) =>
 const translations = (language: string, namespace: string): unknown =>
   JSON.parse(readFileSync(path.join(LOCALES_DIR, language, `${namespace}.json`), "utf8"));
 
-/** The text `parts` leads to, taking the `_one`/`_other` forms of a plural. */
+const PLURAL_FORMS = ["one", "other"];
+const MISSING_PLURAL_FORM = Symbol("missing plural form");
+
+/**
+ * The text `parts` leads to. A key written without its plural suffix that only exists
+ * as a plural needs both its `_one` and `_other` forms: i18next shows the raw key for
+ * a count whose form is missing ("1 polígonos" was the symptom of a key without
+ * plural, "validPolygons" the one of a plural without `_one`).
+ */
 const textAt = (tree: unknown, parts: string[]): unknown => {
   const last = parts.length - 1;
   let node = tree;
   for (const [index, part] of parts.entries()) {
     if (node === null || typeof node !== "object") return undefined;
     const record = node as Record<string, unknown>;
-    node = index === last && !(part in record) ? record[`${part}_other`] : record[part];
+    if (index === last && !(part in record)) {
+      const forms = PLURAL_FORMS.map((form) => record[`${part}_${form}`]);
+      if (forms.every((form) => form === undefined)) return undefined;
+      return forms.every((form) => typeof form === "string") ? forms[1] : MISSING_PLURAL_FORM;
+    }
+    node = record[part];
   }
   return node;
 };
@@ -66,7 +79,12 @@ describe("translation keys used in the code", () => {
       .map(({ file, namespace, key }) => {
         const text = textAt(translations(language, namespace), key.split(/[:.]/));
         if (typeof text === "string") return null;
-        const problem = text === undefined ? "missing" : "not a text";
+        const problem =
+          text === undefined
+            ? "missing"
+            : text === MISSING_PLURAL_FORM
+              ? "missing a plural form"
+              : "not a text";
         return `${file}: ${namespace}:${key} (${problem})`;
       })
       .filter(Boolean);

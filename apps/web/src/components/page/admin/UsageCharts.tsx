@@ -8,12 +8,15 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 import { useTranslation } from "react-i18next";
+import { Box } from "@mui/material";
+import { Text } from "@/components/reusable/Text";
 import type { UsageBlock, UsageReport } from "@/api/adminUsage";
 import {
   CountrySlice,
   OUTCOME_COLORS,
   TREND_COLORS,
   funnelStages,
+  hasUsage,
   stepOutcomes,
   weeklySeries,
 } from "./usageChartData";
@@ -25,10 +28,19 @@ const AXIS_SX = {
   "& .MuiChartsGrid-line": { stroke: "#e1e0d9" },
 };
 
-// The charts' own texts ("No data to display" by default) in the user's language.
-const useChartLocaleText = () => {
+/**
+ * In place of a chart whose range has no usage. The charts would draw lines and bars
+ * at 0, and their own no-data overlay only shows for an empty series.
+ */
+const ChartNoData: React.FC<{ height: number }> = ({ height }) => {
   const { t } = useTranslation();
-  return { noData: t("admin:usage:chartNoData") };
+  return (
+    <Box sx={{ height, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Text color="secondary" variant="body2">
+        {t("admin:usage:chartNoData")}
+      </Text>
+    </Box>
+  );
 };
 
 const useFormat = () => {
@@ -49,11 +61,9 @@ export const UsageSparkline: React.FC<{ data: number[]; label: string }> = ({
   data,
   label,
 }) => {
-  const localeText = useChartLocaleText();
   const format = useFormat();
   return (
     <SparkLineChart
-      localeText={localeText}
       data={data}
       height={48}
       area
@@ -70,12 +80,11 @@ export const UsageSparkline: React.FC<{ data: number[]; label: string }> = ({
 /** Sessions that reached each step of the analysis flow, with their share. */
 export const UsageFunnelChart: React.FC<{ totals: UsageBlock }> = ({ totals }) => {
   const { t } = useTranslation();
-  const localeText = useChartLocaleText();
   const format = useFormat();
   const stages = funnelStages(totals);
+  if (!hasUsage(stages.map(({ value }) => value))) return <ChartNoData height={260} />;
   return (
     <BarChart
-      localeText={localeText}
       height={260}
       layout="horizontal"
       hideLegend
@@ -125,7 +134,6 @@ export const UsageFunnelChart: React.FC<{ totals: UsageBlock }> = ({ totals }) =
 /** Successes and errors of each step, stacked. */
 export const UsageOutcomesChart: React.FC<{ totals: UsageBlock }> = ({ totals }) => {
   const { t } = useTranslation();
-  const localeText = useChartLocaleText();
   const format = useFormat();
   const rows = stepOutcomes(totals);
   const series = (["ok", "invalidInput", "failed"] as const).map((key) => ({
@@ -135,9 +143,9 @@ export const UsageOutcomesChart: React.FC<{ totals: UsageBlock }> = ({ totals })
     stack: "outcomes",
     valueFormatter: (value: number | null) => format.count(value),
   }));
+  if (!hasUsage(series.flatMap(({ data }) => data))) return <ChartNoData height={260} />;
   return (
     <BarChart
-      localeText={localeText}
       height={260}
       layout="horizontal"
       grid={{ vertical: true }}
@@ -161,11 +169,9 @@ export const CountryShareDonut: React.FC<{ slices: CountrySlice[]; label: string
   slices,
   label,
 }) => {
-  const localeText = useChartLocaleText();
   const format = useFormat();
   return (
     <PieChart
-      localeText={localeText}
       height={220}
       hideLegend
       aria-label={label}
@@ -194,7 +200,6 @@ export const UsageWeeklyChart: React.FC<{ weekly: UsageReport["weekly"] }> = ({
   weekly,
 }) => {
   const { t, i18n } = useTranslation();
-  const localeText = useChartLocaleText();
   const format = useFormat();
   const weekLabel = new Intl.DateTimeFormat(i18n.language, {
     day: "numeric",
@@ -211,10 +216,10 @@ export const UsageWeeklyChart: React.FC<{ weekly: UsageReport["weekly"] }> = ({
       valueFormatter: (value: number | null) => format.count(value),
     })
   );
+  if (!hasUsage(series.flatMap(({ data }) => data))) return <ChartNoData height={300} />;
 
   return (
     <LineChart
-      localeText={localeText}
       height={300}
       grid={{ horizontal: true }}
       sx={{ ...AXIS_SX, "& .MuiLineElement-root": { strokeWidth: 2 } }}
