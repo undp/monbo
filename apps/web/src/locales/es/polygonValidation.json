@@ -18,6 +18,10 @@
   "searchPlaceholder": "Buscar polígono o productor",
   "noResults": "No se encontraron resultados",
   "noInconsistencies": "No hay inconsistencias",
+  "export": {
+    "validSheet": "Polígonos válidos",
+    "inconsistentSheet": "Polígonos inconsistentes"
+  },
   "manualValidation": {
     "snackbarAlert": {
       "included": "incluido en la validación manual",
@@ -44,12 +48,12 @@
       "id": "ID",
       "area": "Superficie (ha)"
     },
-    "callToAction": "Guardar Cambios"
+    "callToAction": "Guardar cambios"
   },
   "geometryInconsistencyModal": {
     "title": "Inconsistencia de geometría",
     "tableTitle": "Información del polígono",
     "contentTitle": "Información de la inconsistencia",
-    "systemFeedback": "Feedback del sistema"
+    "systemFeedback": "Mensaje del sistema"
   }
 }

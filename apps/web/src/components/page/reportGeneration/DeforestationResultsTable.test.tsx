@@ -109,7 +109,7 @@ describe("the report stage's results table", () => {
     // GFW: 1 farm without findings; UPRA: 1 inside the frontier
     expect(footers[column("GFW")].textContent).toBe("1");
     expect(footers[column("UPRA")].textContent).toBe("1");
-    expect(footers[column("Tipo cultivo")].textContent).toBe("");
+    expect(footers[column("Tipo de cultivo")].textContent).toBe("");
   });
 
   it("selects every farm of the report", async () => {

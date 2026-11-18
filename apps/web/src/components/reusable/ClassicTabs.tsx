@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 function CustomTabPanel(
   props: PropsWithChildren<{
@@ -57,6 +58,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
   fullWidth = false,
   keepMounted = false,
 }) => {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(0);
 
   const handleChange = useCallback(
@@ -99,7 +101,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
           value={activeIndex}
           onChange={handleChange}
           variant={fullWidth ? "fullWidth" : "standard"}
-          aria-label="Content tabs"
+          aria-label={t("common:contentTabs")}
         >
           {tabs.map((tab) => (
             <Tab

@@ -91,7 +91,7 @@ describe("LandingPageContent", () => {
 
     expect(
       await screen.findByText(
-        "Se utilizarán los mismos datos para el análisis de deforestación"
+        "Usarás los mismos datos en el análisis territorial"
       )
     ).toBeTruthy();
     expect(router.push).not.toHaveBeenCalled();

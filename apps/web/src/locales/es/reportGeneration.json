@@ -6,7 +6,7 @@
     "selectFarmsTitle": "Selecciona los polígonos a incluir",
     "allFarms": "Todos ({{amount}})",
     "selectFarms": "Seleccionar",
-    "selectMapsTitle": "Selecciona capas de mapas a considerar",
+    "selectMapsTitle": "Elige las capas que quieres incluir",
     "button": "Continuar"
   },
   "words": {
@@ -21,7 +21,7 @@
     "downloadGeojson": "Descargar GeoJSON",
     "analysisPerformedBy": "Análisis realizado por",
     "originCountry": "País de origen",
-    "reportDate": "Fecha reporte",
+    "reportDate": "Fecha del reporte",
     "noDocumentation": "No disponible"
   },
   "buttons": {
@@ -31,7 +31,7 @@
   },
   "preview": {
     "title": "Vista previa del reporte",
-    "error": "Ocurrió un error al generar la vista previa del reporte",
+    "error": "No se pudo generar la vista previa del reporte",
     "retry": "Reintentar",
     "largeReport": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca. La vista previa muestra la primera finca.",
     "largeReportWithoutSatellite": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra la primera finca.",
@@ -45,7 +45,7 @@
   },
   "emptyFarmsSelectionModal": {
     "title": "Generación del reporte",
-    "description": "Por favor selecciona al menos un polígono para generar un reporte",
+    "description": "Elige al menos un polígono para generar el reporte.",
     "button": "Aceptar"
   },
   "attributes": {

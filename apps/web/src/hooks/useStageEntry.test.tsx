@@ -30,7 +30,7 @@ describe("useStageEntry", () => {
     expect(router.push).not.toHaveBeenCalled();
     expect(result.current.modal.isOpen).toBe(true);
     expect(result.current.modal.title).toBe(
-      "Se utilizarán los mismos datos para validar"
+      "Usarás los mismos datos para validar"
     );
   });
 

@@ -1,5 +1,5 @@
 {
-  "title": "Mantenedor de capas",
+  "title": "Administración de capas",
   "logout": "Cerrar sesión",
   "login": {
     "title": "Acceso de administración",
@@ -8,8 +8,8 @@
     "submit": "Ingresar",
     "errors": {
       "invalid": "La clave no es correcta.",
-      "tooManyAttempts": "Demasiados intentos fallidos. Vuelve a intentar en {{minutes}} minutos.",
-      "notEnabled": "El mantenedor de capas no está habilitado en este servidor.",
+      "tooManyAttempts": "Demasiados intentos fallidos. Vuelve a intentarlo en {{minutes}} minutos.",
+      "notEnabled": "La administración de capas no está habilitada en este servidor.",
       "forbiddenOrigin": "Este sitio no está autorizado para administrar capas.",
       "network": "No se pudo conectar con el servidor."
     }
@@ -47,21 +47,21 @@
         "invalid_category": "su categoría «{{category}}» tiene un error en el archivo de categorías.",
         "unreadable_categories": "el archivo de categorías de tu país no se puede leer.",
         "category_disabled": "su categoría «{{category}}» está deshabilitada.",
-        "years_mismatch": "sus años no calzan con su categoría.",
+        "years_mismatch": "sus años no coinciden con su categoría.",
         "missing_raster": "no tiene raster."
       },
       "fixes": {
         "unknown_category": "Edítala y elige otra categoría.",
-        "invalid_category": "Edítala y elige otra categoría, o pide a operaciones que corrijan el archivo de categorías.",
-        "unreadable_categories": "Pide a operaciones que corrijan el archivo de categorías.",
+        "invalid_category": "Edítala y elige otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
+        "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
         "category_disabled": "Habilita su categoría en Categorías, o edítala y elige otra.",
         "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
         "missing_raster": "Sube su raster."
       },
       "fixesPublished": {
         "unknown_category": "Ocúltala y edítala para elegir otra categoría.",
-        "invalid_category": "Ocúltala y edítala para elegir otra categoría, o pide a operaciones que corrijan el archivo de categorías.",
-        "unreadable_categories": "Pide a operaciones que corrijan el archivo de categorías.",
+        "invalid_category": "Ocúltala y edítala para elegir otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
+        "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
         "category_disabled": "Ocúltala; después habilita su categoría y vuelve a publicarla, o edítala y elige otra categoría.",
         "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
         "missing_raster": "Sube su raster."
@@ -76,8 +76,8 @@
     "new": "Nueva categoría",
     "edit": "Editar",
     "loadError": "No se pudieron cargar las categorías.",
-    "unreadable": "El archivo de categorías de tu país no se puede leer, así que no puedes crear ni editar categorías. Pide a operaciones que lo corrijan:",
-    "rejected": "Algunas categorías del archivo tienen errores y no se muestran. Sus capas quedan ocultas hasta que operaciones corrija el archivo:",
+    "unreadable": "El archivo de categorías de tu país no se puede leer, así que no puedes crear ni editar categorías. Pide al equipo de operaciones que lo corrija:",
+    "rejected": "Algunas categorías del archivo tienen errores y no se muestran. Sus capas quedan ocultas hasta que el equipo de operaciones corrija el archivo:",
     "card": {
       "enabled": "Habilitada",
       "disabled": "Deshabilitada",
@@ -100,7 +100,7 @@
     "locks": {
       "enabled": "Tiene capas publicadas ({{layers}}). Ocúltalas para habilitar o deshabilitar la categoría.",
       "polarity": "No se puede cambiar mientras haya capas publicadas ({{layers}}): sus resultados se leerían al revés. Ocúltalas primero.",
-      "temporal": "No se puede cambiar porque la categoría tiene capas ({{layers}}): sus años dejarían de calzar.",
+      "temporal": "No se puede cambiar porque la categoría tiene capas ({{layers}}): sus años dejarían de coincidir con ella.",
       "unreadable": "El archivo de categorías no se puede leer.",
       "layerCount_one": "{{count}} capa",
       "layerCount_other": "{{count}} capas"
@@ -217,9 +217,9 @@
     "preview": "Vista previa",
     "emptyPreview": "Sin consideraciones.",
     "example": {
-      "open": "Ver un ejemplo de cómo llenar los textos",
+      "open": "Ver un ejemplo de cómo completar los textos",
       "title": "Ejemplo: textos de una capa",
-      "intro": "Así se llenan los textos de la capa de deforestación del IDEAM de Colombia. Llena cada idioma en su pestaña: los textos se muestran en el idioma que elija quien usa Monbo.",
+      "intro": "Así se completan los textos de la capa de deforestación del IDEAM de Colombia. Completa cada idioma en su pestaña: cada persona ve los textos en el idioma que elige en Monbo.",
       "field": "Campo",
       "value": "Ejemplo",
       "hints": {
@@ -228,7 +228,7 @@
         "coverage": "Territorio que cubre el mapa.",
         "source": "Institución o proyecto que produce el mapa.",
         "resolution": "Tamaño del píxel en terreno.",
-        "contentDate": "Periodo que cubren los datos.",
+        "contentDate": "Período que cubren los datos.",
         "updateFrequency": "Cada cuánto se publica una versión nueva.",
         "publishDate": "Cuándo suele publicarse.",
         "considerations": "Definiciones y limitaciones, en Markdown: ### para títulos, - para listas, **texto** para negritas."
@@ -268,7 +268,7 @@
     "categoryDisabledOption": "{{name}} (deshabilitada)",
     "noYears": "Esta categoría no compara años: la capa no lleva año base ni año de comparación.",
     "categoriesLoadError": "No se pudieron cargar las categorías. Recarga la página para elegir la categoría de la capa.",
-    "categoriesUnreadable": "El archivo de categorías de tu país no se puede leer. No vas a poder guardar la capa hasta que operaciones lo corrija.",
+    "categoriesUnreadable": "El archivo de categorías de tu país no se puede leer. No vas a poder guardar la capa hasta que el equipo de operaciones lo corrija.",
     "visibility": {
       "blocked": "La capa está publicada, pero no aparece en el análisis",
       "hidden": "Antes de publicar esta capa"
@@ -341,7 +341,7 @@
     "replace": "Reemplazar raster",
     "uploadErrors": {
       "tooLarge": "El archivo supera el tamaño máximo que acepta el servidor.",
-      "busy": "Ya se está procesando otro raster. Intenta en unos minutos.",
+      "busy": "Ya se está procesando otro raster. Inténtalo de nuevo en unos minutos.",
       "generic": "No se pudo subir el raster.",
       "statusUnavailable": "El estado de esta subida ya no está disponible. Recarga la capa para ver si cambió su raster."
     },
@@ -386,7 +386,7 @@
       "sessionsDetail": "Pestañas del navegador que usaron Monbo",
       "uploads": "Cargas de fincas",
       "avgFarms": "{{value}} fincas por carga en promedio",
-      "analyses": "Análisis de deforestación",
+      "analyses": "Análisis territoriales",
       "analysisSessions": "{{value}} sesiones analizaron",
       "reportsRequested": "Reportes pedidos",
       "requestedSessions": "desde {{value}} sesiones",
@@ -396,7 +396,7 @@
     },
     "funnel": {
       "title": "Embudo de uso",
-      "subtitle": "Sesiones que llegaron a cada paso del análisis de deforestación, y su porcentaje del total de sesiones.",
+      "subtitle": "Sesiones que llegaron a cada paso del análisis, y su porcentaje del total de sesiones.",
       "sessions": "Sesiones",
       "uploaded": "Subieron fincas",
       "analyzed": "Hicieron un análisis",

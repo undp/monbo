@@ -3,10 +3,10 @@
 :::summary
 - Revisa que cada finca tenga una geometría correcta y que no se traslape con otra.
 - Una finca con algún problema queda **no válida**: puedes corregirla o incluirla igual con la validación manual.
-- Es un paso **opcional**: un resultado de deforestación no muestra que las fincas no se traslapen.
+- Es un paso **opcional**: el análisis territorial no muestra si las fincas se traslapan.
 :::
 
-Si cargas las fincas directamente en el análisis de deforestación, no se buscan traslapes. Las geometrías aceptadas están en [Carga de las fincas](#upload).
+Si cargas las fincas directamente en el análisis territorial, no se buscan traslapes. Las geometrías aceptadas están en [Carga de las fincas](#upload).
 
 ### ¿Por qué mi finca aparece como no válida?
 
@@ -36,14 +36,14 @@ El porcentaje se mide contra la **finca más pequeña**:
 traslape = superficie compartida / superficie de la finca más pequeña
 ```
 
-Una finca de 1 ha entera dentro de una de 200 ha tiene un traslape de 100%, no de 0,5%: toda la finca chica está declarada dos veces.
+Una finca de 1 ha entera dentro de una de 200 ha tiene un traslape de 100%, no de 0,5%: toda la finca pequeña está declarada dos veces.
 
 - Se informa un traslape solo si es **mayor que {{overlapThreshold}}**. Este umbral lo define cada instalación de Monbo.
-- Sobre **80%** se muestra en **rojo** (criticidad alta); hasta 80%, en **naranjo** (criticidad media).
+- Sobre **80%** se muestra en **rojo** (criticidad alta); hasta 80%, en **naranja** (criticidad media).
 - Las dos fincas de un traslape informado quedan no válidas.
 
 :::details[Más detalle: bordes, huecos, varias partes y puntos]
-- Una finca con geometría inválida no se compara con las demás, y en el análisis de deforestación queda sin resultado (N/D).
+- Una finca con geometría inválida no se compara con las demás, y en el análisis territorial queda sin resultado (N/D).
 - Dos fincas que solo comparten un borde o una esquina no se traslapan: no comparten superficie.
 - Una finca que está dentro del hueco de otra no se traslapa con ella.
 - Si una finca tiene varias partes, se compara con todas. Su superficie es la suma de sus partes.

@@ -18,6 +18,10 @@
   "searchPlaceholder": "Search polygon or producer",
   "noResults": "No results found",
   "noInconsistencies": "No inconsistencies found",
+  "export": {
+    "validSheet": "Valid polygons",
+    "inconsistentSheet": "Inconsistent polygons"
+  },
   "manualValidation": {
     "snackbarAlert": {
       "included": "included in manual validation",

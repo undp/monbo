@@ -386,7 +386,7 @@
       "sessionsDetail": "Browser tabs that used Monbo",
       "uploads": "Farm uploads",
       "avgFarms": "{{value}} farms per upload on average",
-      "analyses": "Deforestation analyses",
+      "analyses": "Territorial analyses",
       "analysisSessions": "{{value}} sessions analyzed",
       "reportsRequested": "Reports requested",
       "requestedSessions": "from {{value}} sessions",
@@ -396,7 +396,7 @@
     },
     "funnel": {
       "title": "Usage funnel",
-      "subtitle": "Sessions that reached each step of the deforestation analysis, and their share of all sessions.",
+      "subtitle": "Sessions that reached each step of the analysis, and their share of all sessions.",
       "sessions": "Sessions",
       "uploaded": "Uploaded farms",
       "analyzed": "Ran an analysis",

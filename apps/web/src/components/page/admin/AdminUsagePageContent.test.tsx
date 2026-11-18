@@ -135,8 +135,8 @@ describe("AdminUsagePageContent", () => {
     expect(tile("Farm uploads").getByText("3")).toBeTruthy();
     expect(tile("Farm uploads").getByText("30 farms per upload on average")).toBeTruthy();
     expect(tile("Farm uploads").getByText("Recorded by the server")).toBeTruthy();
-    expect(tile("Deforestation analyses").getByText("4")).toBeTruthy();
-    expect(tile("Deforestation analyses").getByText("2 sessions analyzed")).toBeTruthy();
+    expect(tile("Territorial analyses").getByText("4")).toBeTruthy();
+    expect(tile("Territorial analyses").getByText("2 sessions analyzed")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("5")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("3 as one PDF · 2 as a ZIP")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("Reported by the browser")).toBeTruthy();

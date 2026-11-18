@@ -71,7 +71,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
         <Typography variant="h6" component="div">
           {t("deforestationAnalysis:mapsInfoModal.title")}
         </Typography>
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" aria-label={t("common:close")}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>

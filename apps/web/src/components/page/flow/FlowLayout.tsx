@@ -3,8 +3,8 @@ import initTranslations from "@/utils/i18n";
 import { FlowHeader } from "./FlowHeader";
 
 // The flow header's texts, plus those of the analysis and report modals its
-// stepper can open. `common` goes first: it is the fallback namespace, where keys
-// such as the testing-environment warning's `home:devWarning` resolve.
+// stepper can open. `common` goes first: it is the fallback namespace, and it
+// holds shared keys such as the testing-environment warning's `common:devWarning`.
 const namespaces = [
   "common",
   "flow",

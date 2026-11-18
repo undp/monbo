@@ -3,8 +3,8 @@
   "deforestationMapFooter": "{{baselineYear}} baseline compared to {{comparedToYear}} data",
   "uploadDataPage": {
     "loadingText": "Loading the data",
-    "recalculatingText": "A map layer changed. Recalculating the analysis…",
-    "analysisUpdated": "The analysis was recalculated with the updated map layer.",
+    "recalculatingText": "A layer changed. Recalculating the analysis…",
+    "analysisUpdated": "The analysis was recalculated with the updated layer.",
     "title": "Territorial analysis",
     "mapSelectionStep": {
       "stepTitle": "Step 1: Choose the layers",
@@ -39,7 +39,7 @@
   "noDataShortText": "No data",
   "map": "Map",
   "mapsInfoModal": {
-    "title": "Map details",
+    "title": "Layer details",
     "coverage": "Coverage",
     "source": "Source",
     "resolution": "Resolution",
@@ -49,7 +49,7 @@
     "references": "References",
     "considerations": "Considerations"
   },
-  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not represent the deforestation",
+  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not show the layer's result.",
   "categories": {
     "uncategorized": "No category"
   },

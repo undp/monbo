@@ -23,6 +23,7 @@
   },
   "cancel": "Cancel",
   "close": "Close",
+  "contentTabs": "Content tabs",
   "all": "All",
   "surface": "Area",
   "devWarning": "You are in a testing environment; the analyses may not be official.",
@@ -54,7 +55,7 @@
   "snackbarAlerts": {
     "parsingFarmsDataError": "An error occurred while processing the farms data",
     "performingAnalysisError": "An error occurred while performing the analysis",
-    "dataAnalizedSuccessfully": "Data analized successfully",
+    "dataAnalyzedSuccessfully": "Data analyzed successfully",
     "notValidFileContent": "The file content is not valid",
     "farmTooLargeForExcel": "Farm {{id}} has too many vertices for an Excel cell. Download the results as GeoJSON",
     "errorParsingDataForExcel": "There was an error parsing the data to generate the Excel file",
@@ -76,7 +77,7 @@
     "menuLabel": "Analysis country",
     "restartModal": {
       "title": "Changing the country restarts the analysis",
-      "description": "You already ran a deforestation analysis. To analyze {{country}} you have to start over and upload your polygons again. The loaded data and results will be lost.",
+      "description": "You already ran a territorial analysis. To analyze {{country}} you have to start over and upload your polygons again. The loaded data and results will be lost.",
       "cancel": "Cancel",
       "confirm": "Start over"
     }

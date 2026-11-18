@@ -23,9 +23,10 @@
   },
   "cancel": "Cancelar",
   "close": "Cerrar",
+  "contentTabs": "Pestañas de contenido",
   "all": "Todos",
   "surface": "Área",
-  "devWarning": "Estás en un ambiente de pruebas, los análisis podrían no ser los oficiales",
+  "devWarning": "Estás en un ambiente de pruebas. Los resultados pueden no ser oficiales.",
   "polygon": "Polígono",
   "polygons": "Polígonos",
   "point": "Punto",
@@ -46,23 +47,23 @@
     "inconsistency": "Inconsistencia",
     "type": "Tipo",
     "producer": "Productor",
-    "cropType": "Tipo cultivo",
+    "cropType": "Tipo de cultivo",
     "production": "Producción",
     "overlap": "Traslape",
     "overlapArea": "Área traslapada (ha)"
   },
   "snackbarAlerts": {
-    "parsingFarmsDataError": "Ocurrió un error al procesar los datos de fincas",
-    "performingAnalysisError": "Ocurrió un error al realizar el análisis",
-    "dataAnalizedSuccessfully": "Datos analizados correctamente",
+    "parsingFarmsDataError": "No se pudieron procesar los datos de las fincas",
+    "performingAnalysisError": "No se pudo hacer el análisis",
+    "dataAnalyzedSuccessfully": "Datos analizados correctamente",
     "notValidFileContent": "El contenido del archivo no es válido",
     "farmTooLargeForExcel": "La finca {{id}} tiene demasiados vértices para una celda de Excel. Descarga los resultados en GeoJSON",
-    "errorParsingDataForExcel": "Ocurrió un error al procesar los datos para generar el archivo Excel",
-    "errorGeneratingExcelFile": "Ocurrió un error al generar el archivo Excel",
-    "errorParsingDataForGeoJson": "Ocurrió un error al procesar los datos para generar el archivo GeoJSON",
-    "errorGeneratingGeoJsonFile": "Ocurrió un error al generar el archivo GeoJSON",
-    "errorDownloadingSeparatedReports": "Ocurrió un error al descargar los reportes por separado",
-    "errorDownloadingCompleteReport": "Ocurrió un error al descargar el reporte completo",
+    "errorParsingDataForExcel": "No se pudieron procesar los datos para el archivo Excel",
+    "errorGeneratingExcelFile": "No se pudo generar el archivo Excel",
+    "errorParsingDataForGeoJson": "No se pudieron procesar los datos para el archivo GeoJSON",
+    "errorGeneratingGeoJsonFile": "No se pudo generar el archivo GeoJSON",
+    "errorDownloadingSeparatedReports": "No se pudieron descargar los reportes por separado",
+    "errorDownloadingCompleteReport": "No se pudo descargar el reporte completo",
     "moreUploadErrors": "Y {{count}} errores más en el archivo"
   },
   "parseFileError": {
@@ -76,7 +77,7 @@
     "menuLabel": "País del análisis",
     "restartModal": {
       "title": "Cambiar de país reinicia el análisis",
-      "description": "Ya hiciste un análisis de deforestación. Para analizar {{country}} tienes que empezar de nuevo y volver a cargar tus polígonos. Se perderán los datos y resultados cargados.",
+      "description": "Ya hiciste un análisis territorial. Para analizar {{country}} tienes que empezar de nuevo y volver a cargar tus polígonos. Vas a perder los datos y los resultados que cargaste.",
       "cancel": "Cancelar",
       "confirm": "Empezar de nuevo"
     }
@@ -104,7 +105,7 @@
     },
     "help": {
       "title": "Nombres de atributos aceptados",
-      "intro": "Cada elemento del archivo es una finca: su geometría (polígono o punto) se toma del archivo y sus datos, de estos atributos. Da igual si están en mayúsculas o minúsculas. Si tu archivo no trae los datos, adjúntale el Excel de producción y se unen por ID.",
+      "intro": "Cada elemento del archivo es una finca: su geometría (polígono o punto) se toma del archivo y sus datos, de estos atributos. Las mayúsculas no importan. Si tu archivo no trae los datos, adjúntale el Excel de producción y se unen por ID.",
       "field": "Dato",
       "geoFile": "GeoJSON / KML / KMZ",
       "shapefile": "Shapefile (.zip)",
@@ -132,9 +133,9 @@
     "featureWithoutRow": "El {{feature}} no tiene fila en el Excel"
   },
   "farmsUpload": {
-    "intro": "Puedes usar cualquiera de estas opciones, la que calce mejor con tus datos. Puedes combinarlas: todas las fincas se suman a la lista de abajo.",
+    "intro": "Elige la opción que mejor se ajuste a tus datos. Puedes combinarlas: todas las fincas se suman a la lista de abajo.",
     "dropzoneActive": "Suelta los archivos aquí",
-    "dropzoneButton": "Click para cargar",
+    "dropzoneButton": "Haz clic para cargar",
     "dropzoneText": "o arrastra y suelta tus archivos aquí",
     "addManually": "Agregar manualmente",
     "listTitle": "Fincas a cargar",
@@ -153,9 +154,9 @@
     "manualFarm": "Finca agregada manualmente",
     "manualFarmWithId": "Finca {{id}} (agregada manualmente)",
     "excelWithoutCoordinates": "Este Excel no tiene coordenadas. Si tus fincas están en un archivo geográfico, súbelo junto a este Excel en «Archivo geográfico + Excel»; si no, completa sus columnas de coordenadas.",
-    "excelWithCoordinates_one": "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
-    "excelWithCoordinates_other": "Este Excel tiene coordenadas en {{count}} filas. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
-    "geoFileRequestFailed": "Ocurrió un error al leer el archivo geográfico",
+    "excelWithCoordinates_one": "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las coordenadas correctas son las del Excel, súbelo solo en «Plantilla Excel».",
+    "excelWithCoordinates_other": "Este Excel tiene coordenadas en {{count}} filas. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las coordenadas correctas son las del Excel, súbelo solo en «Plantilla Excel».",
+    "geoFileRequestFailed": "No se pudo leer el archivo geográfico",
     "duplicateIdAcrossSources": "El ID {{id}} está en más de una fuente ({{sources}}): quita o corrige una de ellas.",
     "submitCount": "{{label}} ({{count}})",
     "cards": {
@@ -164,7 +165,7 @@
         "when": "Tienes las coordenadas de cada finca como texto (WKT o GeoJSON).",
         "steps": {
           "1": "Descarga la plantilla",
-          "2": "Llena una fila por finca, con sus coordenadas",
+          "2": "Completa una fila por finca, con sus coordenadas",
           "3": "Súbela aquí"
         },
         "drop": "Sube tu Excel",
@@ -187,8 +188,8 @@
         "title": "Archivo geográfico + Excel",
         "when": "Tus fincas están en un archivo geográfico (GeoJSON, KML/KMZ o Shapefile), por ejemplo de Google Earth, y sus datos en un Excel. Se unen por el ID de cada finca.",
         "steps": {
-          "1": "Pon a cada finca del archivo geográfico su ID (en Google Earth, como su nombre)",
-          "2": "Llena la plantilla de esta opción con los mismos IDs",
+          "1": "Asigna a cada finca del archivo geográfico su ID (en Google Earth, como su nombre)",
+          "2": "Completa la plantilla de esta opción con los mismos IDs",
           "3": "Sube el archivo geográfico y el Excel"
         },
         "geoDrop": "Archivo geográfico",
@@ -206,7 +207,7 @@
         "steps": {
           "1": "Ubica la finca en el mapa",
           "2": "Dibuja su borde o marca un punto",
-          "3": "Llena sus datos"
+          "3": "Completa sus datos"
         }
       },
       "template": "Plantilla",
@@ -219,8 +220,8 @@
     "problems": {
       "missingData_one": "Faltan datos en 1 elemento ({{fields}}). Adjunta el Excel de producción con su ID, o agrega esos atributos al archivo.",
       "missingData_other": "Faltan datos en {{count}} elementos ({{fields}}). Adjunta el Excel de producción con sus IDs, o agrega esos atributos al archivo.",
-      "unmatchedIds_one": "1 ID no cruza entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila.",
-      "unmatchedIds_other": "{{count}} IDs no cruzan entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+      "unmatchedIds_one": "1 ID no coincide entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila.",
+      "unmatchedIds_other": "{{count}} IDs no coinciden entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
     },
     "summary": {
       "polygons_one": "{{count}} polígono",
