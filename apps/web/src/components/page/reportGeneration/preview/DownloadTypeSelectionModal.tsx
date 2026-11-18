@@ -2,7 +2,7 @@
 
 import { BaseModal, BaseModalProps } from "@/components/reusable/BaseModal";
 import { DataContext } from "@/context/DataContext";
-import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
+import { useReportDownload } from "@/hooks/useReportDownload";
 import {
   Box,
   Button,
@@ -25,7 +25,7 @@ export const DownloadTypeSelectionModal: React.FC<
     setReportGenerationParams,
   } = useContext(DataContext);
   const { downloadCompleteReport, downloadSeparatedReports } =
-    useDeforestationReportDownload();
+    useReportDownload();
 
   const [isDownloading, setIsDownloading] = useState(false);
 

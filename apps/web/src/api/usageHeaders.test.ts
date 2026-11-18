@@ -4,7 +4,7 @@ import { validatePolygons } from "./polygonValidation";
 import { analyzeLayers } from "./layerAnalysis";
 import { readUsageSession } from "@/utils/usageSession";
 import type { FarmData } from "@/interfaces/Farm";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 
 // Upload, validation and analysis carry the usage context in headers (spec
 // "Requests carry the usage context in headers").

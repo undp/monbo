@@ -6,7 +6,7 @@ import { createTestI18n } from "@/test/i18n";
 import { makeDataContext } from "@/test/renderWithData";
 import { router } from "@/test/navigation";
 import { PageFooter as ValidationPageFooter } from "@/components/page/polygonsValidation/PageFooter";
-import { PageFooter as AnalysisPageFooter } from "@/components/page/deforestationAnalysis/PageFooter";
+import { PageFooter as AnalysisPageFooter } from "@/components/page/territorialAnalysis/PageFooter";
 
 const renderCard = async (card: React.ReactNode) => {
   const i18n = await createTestI18n("es");
@@ -30,7 +30,7 @@ describe("next-stage cards", () => {
 
     fireEvent.click(within(card()).getByRole("button", { name: "Continuar" }));
     // No modal: the stage 2 page asks for the polygon subset and the layers.
-    expect(router.push).toHaveBeenCalledWith("/deforestation-analysis/upload-data");
+    expect(router.push).toHaveBeenCalledWith("/territorial-analysis/upload-data");
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

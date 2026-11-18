@@ -15,9 +15,9 @@ import {
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
 import {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import { getMaps } from "@/api/layerAnalysis";
 import { getLayerCategories } from "@/api/layerCategories";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
@@ -30,7 +30,7 @@ import {
 
 /**
  * What the stage 2 page is editing: the polygon subset and the layers (by id) of
- * the next analysis. Kept apart from `deforestationAnalysisParams`, which is what
+ * the next analysis. Kept apart from `territorialAnalysisParams`, which is what
  * the current results were analysed with: editing never changes the results or the
  * report until "Analizar" runs a new analysis.
  */
@@ -47,19 +47,19 @@ export interface DataContextValue {
     SetStateAction<DataContextValue["polygonsValidationResults"]>
   >;
   /** The subset and layers the current results were analysed with. */
-  deforestationAnalysisParams: {
+  territorialAnalysisParams: {
     polygonsSubset: "all" | "valid" | null;
     selectedMaps: MapData[];
   };
-  setDeforestationAnalysisParams: Dispatch<
-    SetStateAction<DataContextValue["deforestationAnalysisParams"]>
+  setTerritorialAnalysisParams: Dispatch<
+    SetStateAction<DataContextValue["territorialAnalysisParams"]>
   >;
   /** The stage 2 page's choices for the next analysis; null until edited. */
   analysisDraft: AnalysisDraft | null;
   setAnalysisDraft: Dispatch<SetStateAction<AnalysisDraft | null>>;
-  deforestationAnalysisResults: DeforestationAnalysisMapResults[] | null;
-  setDeforestationAnalysisResults: Dispatch<
-    SetStateAction<DataContextValue["deforestationAnalysisResults"]>
+  territorialAnalysisResults: LayerAnalysisMapResults[] | null;
+  setTerritorialAnalysisResults: Dispatch<
+    SetStateAction<DataContextValue["territorialAnalysisResults"]>
   >;
   analysisOutdated: boolean;
   setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
@@ -142,7 +142,7 @@ const writeSelectedCountry = (code: string | null) => {
   selectedCountryListeners.forEach((listener) => listener());
 };
 
-const initialDeforestationAnalysisParams: DataContextValue["deforestationAnalysisParams"] =
+const initialTerritorialAnalysisParams: DataContextValue["territorialAnalysisParams"] =
   {
     polygonsSubset: "valid",
     selectedMaps: [],
@@ -161,12 +161,12 @@ export const DataContext = createContext<DataContextValue>({
   setFarmsData: () => {},
   polygonsValidationResults: null,
   setPolygonsValidationResults: () => {},
-  deforestationAnalysisParams: initialDeforestationAnalysisParams,
-  setDeforestationAnalysisParams: () => {},
+  territorialAnalysisParams: initialTerritorialAnalysisParams,
+  setTerritorialAnalysisParams: () => {},
   analysisDraft: null,
   setAnalysisDraft: () => {},
-  deforestationAnalysisResults: null,
-  setDeforestationAnalysisResults: () => {},
+  territorialAnalysisResults: null,
+  setTerritorialAnalysisResults: () => {},
   analysisOutdated: false,
   setAnalysisOutdated: () => {},
   invalidateAnalysis: () => {},
@@ -194,9 +194,9 @@ export const DataContext = createContext<DataContextValue>({
 type KeptKey =
   | "farmsData"
   | "polygonsValidationResults"
-  | "deforestationAnalysisParams"
+  | "territorialAnalysisParams"
   | "analysisDraft"
-  | "deforestationAnalysisResults"
+  | "territorialAnalysisResults"
   | "analysisOutdated"
   | "reportGenerationParams";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
@@ -240,16 +240,16 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const [polygonsValidationResults, setPolygonsValidationResults] =
     useKeptState("polygonsValidationResults", null);
 
-  const [deforestationAnalysisParams, setDeforestationAnalysisParams] =
+  const [territorialAnalysisParams, setTerritorialAnalysisParams] =
     useKeptState(
-      "deforestationAnalysisParams",
-      initialDeforestationAnalysisParams
+      "territorialAnalysisParams",
+      initialTerritorialAnalysisParams
     );
 
   const [analysisDraft, setAnalysisDraft] = useKeptState("analysisDraft", null);
 
-  const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
-    useKeptState("deforestationAnalysisResults", null);
+  const [territorialAnalysisResults, setTerritorialAnalysisResults] =
+    useKeptState("territorialAnalysisResults", null);
   const [analysisOutdated, setAnalysisOutdated] = useKeptState(
     "analysisOutdated",
     false
@@ -263,7 +263,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const invalidateAnalysis = useCallback(() => {
     // The API results and report used previous calculation inputs. Hide them
     // before the map or its interpretation switches to the new values.
-    setDeforestationAnalysisResults(null);
+    setTerritorialAnalysisResults(null);
     setReportGenerationParams((prev) => ({
       ...prev,
       selectedMaps: [],
@@ -271,7 +271,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       downloadType: null,
     }));
     setAnalysisOutdated(true);
-  }, [setDeforestationAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
+  }, [setTerritorialAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
 
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
@@ -317,18 +317,18 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     flowGeneration += 1;
     setFarmsData(null);
     setPolygonsValidationResults(null);
-    setDeforestationAnalysisResults(null);
+    setTerritorialAnalysisResults(null);
     setAnalysisOutdated(false);
-    setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
+    setTerritorialAnalysisParams(initialTerritorialAnalysisParams);
     setAnalysisDraft(null);
     setReportGenerationParams(initialReportGenerationParams);
   }, [
     setAnalysisDraft,
     setFarmsData,
     setPolygonsValidationResults,
-    setDeforestationAnalysisResults,
+    setTerritorialAnalysisResults,
     setAnalysisOutdated,
-    setDeforestationAnalysisParams,
+    setTerritorialAnalysisParams,
     setReportGenerationParams,
   ]);
 
@@ -339,7 +339,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setAvailableCategories(categories);
       setAvailableMapsCountry(country);
       setAvailableMapsErrorCountry(null);
-      const selectedMaps = deforestationAnalysisParams.selectedMaps;
+      const selectedMaps = territorialAnalysisParams.selectedMaps;
       if (!selectedMaps.length) return;
 
       // Public /maps only returns enabled layers. A hidden layer keeps its last
@@ -348,7 +348,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       const refreshed = selectedMaps.flatMap((selected) => {
         const listed = maps.find((map) => map.id === selected.id);
         if (listed) return [listed];
-        return deforestationAnalysisResults ? [selected] : [];
+        return territorialAnalysisResults ? [selected] : [];
       });
       const calculationChanged =
         refreshed.length === selectedMaps.length &&
@@ -360,7 +360,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
             map.comparedAgainst !== selectedMaps[index].comparedAgainst
         );
 
-      if (calculationChanged && deforestationAnalysisResults) {
+      if (calculationChanged && territorialAnalysisResults) {
         invalidateAnalysis();
       }
 
@@ -368,7 +368,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         refreshed.length !== selectedMaps.length ||
         refreshed.some((map, index) => map !== selectedMaps[index])
       ) {
-        setDeforestationAnalysisParams((prev) => ({
+        setTerritorialAnalysisParams((prev) => ({
           ...prev,
           selectedMaps: refreshed,
         }));
@@ -537,9 +537,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     [availableCategories, availableMapsCountry, selectedCountry]
   );
 
-  const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
-    () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
-    [deforestationAnalysisParams.selectedMaps]
+  const sortedTerritorialAnalysisParamsSelectedMaps = useMemo(
+    () => orderBy(territorialAnalysisParams.selectedMaps, "id"),
+    [territorialAnalysisParams.selectedMaps]
   );
 
   const currentState = useMemo(() => {
@@ -548,15 +548,15 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setFarmsData,
       polygonsValidationResults,
       setPolygonsValidationResults,
-      deforestationAnalysisParams: {
-        ...deforestationAnalysisParams,
-        selectedMaps: sortedDeforestationAnalysisParamsSelectedMaps,
+      territorialAnalysisParams: {
+        ...territorialAnalysisParams,
+        selectedMaps: sortedTerritorialAnalysisParamsSelectedMaps,
       },
-      setDeforestationAnalysisParams,
+      setTerritorialAnalysisParams,
       analysisDraft,
       setAnalysisDraft,
-      deforestationAnalysisResults,
-      setDeforestationAnalysisResults,
+      territorialAnalysisResults,
+      setTerritorialAnalysisResults,
       analysisOutdated,
       setAnalysisOutdated,
       invalidateAnalysis,
@@ -583,13 +583,13 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setFarmsData,
     polygonsValidationResults,
     setPolygonsValidationResults,
-    deforestationAnalysisParams,
-    sortedDeforestationAnalysisParamsSelectedMaps,
-    setDeforestationAnalysisParams,
+    territorialAnalysisParams,
+    sortedTerritorialAnalysisParamsSelectedMaps,
+    setTerritorialAnalysisParams,
     analysisDraft,
     setAnalysisDraft,
-    deforestationAnalysisResults,
-    setDeforestationAnalysisResults,
+    territorialAnalysisResults,
+    setTerritorialAnalysisResults,
     analysisOutdated,
     setAnalysisOutdated,
     invalidateAnalysis,

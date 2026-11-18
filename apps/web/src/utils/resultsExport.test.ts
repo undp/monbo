@@ -5,7 +5,7 @@ import { setRuntimeConfig } from "@/config/runtime";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
 import { FarmData } from "@/interfaces/Farm";
 import { InconsistentPolygonData } from "@/interfaces/PolygonValidation";
-import { MapData } from "@/interfaces/DeforestationAnalysis";
+import { MapData } from "@/interfaces/LayerAnalysis";
 import {
   SheetData,
   TEMPLATE_COLUMNS,
@@ -21,7 +21,7 @@ import {
 } from "@/test/factories";
 import {
   FarmTooLargeForExcelError,
-  buildDeforestationSheets,
+  buildLayerSheets,
   buildPolygonValidationSheets,
 } from "./resultsExport";
 
@@ -214,9 +214,9 @@ const validationSheets = async (locale: TestLocale) => {
   );
 };
 
-const deforestationSheets = async (locale: TestLocale) => {
+const layerSheets = async (locale: TestLocale) => {
   const { t } = await createTestI18n(locale);
-  return buildDeforestationSheets(
+  return buildLayerSheets(
     FARMS,
     [
       {
@@ -279,7 +279,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
   });
 
   it("uploads the deforestation export again with every farm", async () => {
-    expect(await upload(await deforestationSheets(locale), locale)).toEqual({
+    expect(await upload(await layerSheets(locale), locale)).toEqual({
       data: UPLOADED,
       errorMessages: [],
       rowsWithCoordinates: UPLOADED.length,
@@ -306,7 +306,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
   });
 
   it("puts each layer's finding and result after the template's columns, by category", async () => {
-    const sheets = await deforestationSheets(locale);
+    const sheets = await layerSheets(locale);
     const sheetName = { es: "Análisis territorial", en: "Territorial analysis" }[
       locale
     ];
@@ -354,7 +354,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     // RUNAP's category was disabled after the analysis: it is no longer among
     // the country's categories, but the analysis still has its results.
     const runap = { id: 9, alias: "RUNAP", categoryId: "protected_areas" } as MapData;
-    const sheets = await buildDeforestationSheets(
+    const sheets = await buildLayerSheets(
       FARMS,
       [
         {

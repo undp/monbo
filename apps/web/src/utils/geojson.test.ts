@@ -14,7 +14,7 @@ import {
   makeValidationResults,
 } from "@/test/factories";
 import {
-  generateGeoJsonFarmsDataWithDeforestationAnalysis,
+  generateGeoJsonFarmsDataWithLayerAnalysis,
   generateGeoJsonFarmsDataWithPolygonsValidation,
   generateGeoJsonFeature,
 } from "./geojson";
@@ -80,7 +80,7 @@ describe("generateGeoJsonFarmsDataWithPolygonsValidation", () => {
   });
 });
 
-describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
+describe("generateGeoJsonFarmsDataWithLayerAnalysis", () => {
   const tFor = async (locale: "es" | "en") =>
     (await createTestI18n(locale)).getFixedT(locale) as TFunction;
   const categories = [makeCategory({ thresholdPercentage: 2 }), makeFrontierCategory()];
@@ -90,7 +90,7 @@ describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
       deforestationThresholdPercentage: 1,
       overlapThresholdPercentage: 0,
     });
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" }), makeFarm({ id: "F02" }), makeFarm({ id: "F03" })],
       [makeMapResults(1, { F01: 0.014, F02: 0.004, F03: null })],
       [makeMap({ id: 1, alias: "GFW" })],
@@ -113,7 +113,7 @@ describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
   });
 
   it("reads a required category by what lies outside its layer, in English", async () => {
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" })],
       [makeMapResults(5, { F01: 0.82 })],
       [makeMap({ id: 5, alias: "UPRA", categoryId: "agricultural_frontier" })],
@@ -128,7 +128,7 @@ describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
   });
 
   it("says No data for a layer whose category is unknown", async () => {
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" })],
       [makeMapResults(5, { F01: 0.5 })],
       [makeMap({ id: 5, alias: "X", categoryId: "gone" })],
@@ -143,7 +143,7 @@ describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
   });
 
   it("skips layers that are no longer available", async () => {
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" })],
       [makeMapResults(2, { F01: 0.5 })],
       [makeMap({ id: 1 })],

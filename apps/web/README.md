@@ -152,22 +152,22 @@ The application supports multiple languages using i18next. Currently supported l
 src/locales/
 ├── en/
 │   ├── common.json
-│   ├── deforestationAnalysis.json
 │   ├── home.json
-│   └── polygonValidation.json
+│   ├── polygonValidation.json
+│   └── territorialAnalysis.json
 └── es/
     ├── common.json
-    ├── deforestationAnalysis.json
     ├── home.json
-    └── polygonValidation.json
+    ├── polygonValidation.json
+    └── territorialAnalysis.json
 ```
 
 Each JSON file corresponds to a specific page or feature:
 
 - `common.json`: Shared translations used across the application
-- `deforestationAnalysis.json`: Translations for the deforestation analysis module
 - `home.json`: Home page translations
 - `polygonValidation.json`: Translations for polygon validation module
+- `territorialAnalysis.json`: Translations for the territorial analysis module (stage 2, `/territorial-analysis`)
 
 If you want to add a new language, please follow the instructions in the [New Language Documentation](docs/new_language.md) file.
 
@@ -359,7 +359,7 @@ The report is rendered in the browser with `@react-pdf/renderer`, off the main t
 
 - `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /layer_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
 - Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
-- **What it says** (`src/utils/deforestationReport/sections.tsx`): a cover without results (the categories of the selected layers and a linked index), then for each farm a sheet with every selected layer's result grouped by category and a map page per layer with a result, then the methodology and each layer's scope and limits. Each result is read with its layer's category (`GET /categories`, in `DataContext` as `availableCategories`) through `src/utils/layerCategories.ts`, which the Excel and GeoJSON exports share; a `null` result, or a layer whose category is gone, is "Sin dato" / "No data". The satellite caption appears only when the maps have the satellite background.
+- **What it says** (`src/utils/report/sections.tsx`): a cover without results (the categories of the selected layers and a linked index), then for each farm a sheet with every selected layer's result grouped by category and a map page per layer with a result, then the methodology and each layer's scope and limits. Each result is read with its layer's category (`GET /categories`, in `DataContext` as `availableCategories`) through `src/utils/layerCategories.ts`, which the Excel and GeoJSON exports share; a `null` result, or a layer whose category is gone, is "Sin dato" / "No data". The satellite caption appears only when the maps have the satellite background.
 - Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
 - **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, one sheet per selected farm plus one map page per selected (farm, layer) pair with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:
   - the preview shows only the first farm's PDF, with a notice;

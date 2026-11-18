@@ -13,9 +13,9 @@ const STAGES = {
     description: "home:sameDataModal:polygonValidation:description",
   },
   2: {
-    path: "/deforestation-analysis",
-    title: "home:sameDataModal:deforestationAnalysis:title",
-    description: "home:sameDataModal:deforestationAnalysis:description",
+    path: "/territorial-analysis",
+    title: "home:sameDataModal:territorialAnalysis:title",
+    description: "home:sameDataModal:territorialAnalysis:description",
   },
 } as const;
 
@@ -29,7 +29,7 @@ export function useStageEntry(stage: EntryStage) {
   const {
     farmsData,
     polygonsValidationResults,
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     resetAnalysis,
   } = useContext(DataContext);
   const router = useRouter();
@@ -46,8 +46,8 @@ export function useStageEntry(stage: EntryStage) {
   // other stage has them (e.g. analysed directly, without a validation).
   const sameDataDisabled =
     stage === 1
-      ? !polygonsValidationResults && !!deforestationAnalysisResults
-      : !!polygonsValidationResults && !deforestationAnalysisResults;
+      ? !polygonsValidationResults && !!territorialAnalysisResults
+      : !!polygonsValidationResults && !territorialAnalysisResults;
 
   const modal = {
     maxWidth: "md" as const,

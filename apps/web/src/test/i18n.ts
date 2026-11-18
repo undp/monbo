@@ -5,7 +5,7 @@ const NAMESPACES = [
   "common",
   "home",
   "polygonValidation",
-  "deforestationAnalysis",
+  "territorialAnalysis",
   "reportGeneration",
   "admin",
   "manualFarm",

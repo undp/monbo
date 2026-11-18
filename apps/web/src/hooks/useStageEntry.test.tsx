@@ -10,7 +10,7 @@ const withFarms = makeDataContext({ farmsData: [makeFarm()] });
 describe("useStageEntry", () => {
   it.each([
     [1, "/polygons-validation/upload-data"],
-    [2, "/deforestation-analysis/upload-data"],
+    [2, "/territorial-analysis/upload-data"],
   ] as const)("opens stage %s's upload page without farms", async (stage, path) => {
     const { result } = await renderHookWithData(() => useStageEntry(stage));
 
@@ -42,7 +42,7 @@ describe("useStageEntry", () => {
     act(() => result.current.enter());
     act(() => result.current.modal.actions[1].handler());
 
-    expect(router.push).toHaveBeenCalledWith("/deforestation-analysis");
+    expect(router.push).toHaveBeenCalledWith("/territorial-analysis");
   });
 
   it("drops the data to upload new data", async () => {
@@ -61,7 +61,7 @@ describe("useStageEntry", () => {
     const { result } = await renderHookWithData(() => useStageEntry(1), {
       context: makeDataContext({
         farmsData: [makeFarm()],
-        deforestationAnalysisResults: [makeMapResults(1, {})],
+        territorialAnalysisResults: [makeMapResults(1, {})],
       }),
     });
 

@@ -68,17 +68,17 @@ describe("MainNavigation", () => {
       "es",
       makeDataContext({
         polygonsValidationResults: makeValidationResults({}),
-        deforestationAnalysisResults: [makeMapResults(1, {})],
+        territorialAnalysisResults: [makeMapResults(1, {})],
       })
     );
 
-    expect(hrefOf("Análisis")).toBe("/deforestation-analysis");
+    expect(hrefOf("Análisis")).toBe("/territorial-analysis");
   });
 
   it.each([
     ["/", "Inicio"],
     ["/polygons-validation", "Análisis"],
-    ["/deforestation-analysis/upload-data", "Análisis"],
+    ["/territorial-analysis/upload-data", "Análisis"],
     ["/report-generation/preview", "Análisis"],
     ["/documentation", "Metodología"],
   ])("marks the current section on %s", async (pathname, current) => {

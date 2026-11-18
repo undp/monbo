@@ -4,9 +4,9 @@ import {
   LAYER_ANALYSIS_IMAGE_GENERATION_URL,
 } from "@/config/env";
 import {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
 import { GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
@@ -50,7 +50,7 @@ export const analyzeLayers = async (
   data: FarmData[],
   selectedMaps: MapData[],
   country: string
-): Promise<DeforestationAnalysisMapResults[]> => {
+): Promise<LayerAnalysisMapResults[]> => {
   const body: components["schemas"]["AnalyzeBody"] = {
     country,
     farms: data.map(({ id, polygon }) => ({

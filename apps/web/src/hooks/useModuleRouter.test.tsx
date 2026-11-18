@@ -42,13 +42,13 @@ describe("useModuleRouter", () => {
 
   it("uses the farms loaded after the first render", async () => {
     const rendered = await renderHookWithData(() =>
-      useModuleRouter("/deforestation-analysis")
+      useModuleRouter("/territorial-analysis")
     );
     rendered.setContext(makeDataContext({ farmsData: [makeFarm()] }));
     rendered.rerender(undefined);
 
     act(() => rendered.result.current());
 
-    expect(router.push).toHaveBeenCalledWith("/deforestation-analysis");
+    expect(router.push).toHaveBeenCalledWith("/territorial-analysis");
   });
 });

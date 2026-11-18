@@ -1,6 +1,6 @@
 import { useContext, useMemo } from "react";
 import { SelectionOption } from "@/interfaces/SelectionOption";
-import { MapData } from "@/interfaces/DeforestationAnalysis";
+import { MapData } from "@/interfaces/LayerAnalysis";
 import { DataContext } from "@/context/DataContext";
 import { layerLabel } from "@/utils/layerLabel";
 

@@ -1,11 +1,11 @@
 import type { RuntimeConfig } from "@/config/runtime";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import type { DeforestationImageBlob } from "@/utils/deforestationImages";
+import type { LayerImageBlob } from "@/utils/layerImages";
 
 // Messages between the report page and src/workers/reportPdf.worker.tsx. Everything
 // here is structured-cloneable: the worker can't receive `t` or blob URLs, so it
@@ -18,13 +18,13 @@ export interface ReportPdfRequest {
   showLinks: boolean;
   config: RuntimeConfig;
   farms: FarmData[];
-  results: DeforestationAnalysisMapResults[];
+  results: LayerAnalysisMapResults[];
   maps: MapData[];
   /** The country's categories: each layer's rule and texts. */
   categories: LayerCategory[];
   /** Whether the images have the satellite background (its caption). */
   satelliteBackground: boolean;
-  images: DeforestationImageBlob[];
+  images: LayerImageBlob[];
 }
 
 /**
@@ -45,8 +45,8 @@ export type ZipCommand =
       op: "add";
       farm: FarmData;
       /** Only this farm's results, per selected layer. */
-      results: DeforestationAnalysisMapResults[];
-      images: DeforestationImageBlob[];
+      results: LayerAnalysisMapResults[];
+      images: LayerImageBlob[];
     }
   | { op: "finish" }
   | { op: "cancel" };

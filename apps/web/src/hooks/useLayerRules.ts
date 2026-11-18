@@ -23,7 +23,7 @@ const NO_READING: LayerReading = { category: null, rule: null };
  */
 export const useLayerRules = () => {
   const {
-    deforestationAnalysisParams: { selectedMaps },
+    territorialAnalysisParams: { selectedMaps },
     availableCategories,
   } = useContext(DataContext);
 

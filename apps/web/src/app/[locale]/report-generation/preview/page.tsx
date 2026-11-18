@@ -7,7 +7,7 @@ import { PageFooter } from "@/components/page/reportGeneration/preview/PageFoote
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
 import { ReportProvider } from "@/context/ReportContext";
 
-const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
+const namespaces = ["common", "territorialAnalysis", "reportGeneration"];
 
 export default async function ReportGenerationPreviewPage({
   params,

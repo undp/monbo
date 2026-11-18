@@ -7,7 +7,7 @@ import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
   ON_DEMAND_REFRESH_MIN_GAP,
 } from "@/config/constants";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import { deferred } from "@/test/deferred";
 import { createTestI18n } from "@/test/i18n";
 import {
@@ -242,9 +242,9 @@ describe("DataProvider polling with a selected layer", () => {
     act(() => {
       const { current } = provider.result;
       current.setFarmsData([farm]);
-      current.setDeforestationAnalysisParams({ polygonsSubset: "all", selectedMaps: [gfw] });
+      current.setTerritorialAnalysisParams({ polygonsSubset: "all", selectedMaps: [gfw] });
       if (withResults) {
-        current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0.1 })]);
+        current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0.1 })]);
         current.setReportGenerationParams({
           initialFarmSelection: "select",
           selectedMaps: [gfw],
@@ -268,14 +268,14 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
     expect(result.current.reportGenerationParams).toMatchObject({
       selectedMaps: [],
       selectedFarms: [],
       downloadType: null,
     });
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([changed]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([changed]);
     expect(result.current.farmsData).toHaveLength(1);
   });
 
@@ -285,9 +285,9 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisResults).not.toBeNull();
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
     expect(result.current.analysisOutdated).toBe(false);
-    expect(result.current.deforestationAnalysisParams.selectedMaps[0].name).toBe(
+    expect(result.current.territorialAnalysisParams.selectedMaps[0].name).toBe(
       "GFW (Hansen)"
     );
   });
@@ -298,8 +298,8 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([gfw]);
-    expect(result.current.deforestationAnalysisResults).not.toBeNull();
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([gfw]);
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
   });
 
   it("invalidates the analysis on an on-demand refresh, as on a poll", async () => {
@@ -311,9 +311,9 @@ describe("DataProvider polling with a selected layer", () => {
     act(() => result.current.refreshAvailableMaps());
     await flush();
 
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([changed]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([changed]);
   });
 
   it("deselects a hidden layer without an analysis", async () => {
@@ -322,7 +322,7 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([]);
   });
 });
 
@@ -419,7 +419,7 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
     act(() => {
       result.current.setFarmsData([makeFarm()]);
-      result.current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0 })]);
+      result.current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0 })]);
       result.current.setAnalysisOutdated(true);
     });
     const generation = readFlowGeneration();
@@ -429,9 +429,9 @@ describe("DataProvider analysis flow", () => {
     expect(result.current).toMatchObject({
       farmsData: null,
       polygonsValidationResults: null,
-      deforestationAnalysisResults: null,
+      territorialAnalysisResults: null,
       analysisOutdated: false,
-      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
+      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
       reportGenerationParams: { selectedMaps: [], selectedFarms: [], downloadType: null },
     });
     expect(readFlowGeneration()).toBe(generation + 1);
@@ -443,13 +443,13 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
     act(() => {
       result.current.setFarmsData([makeFarm()]);
-      result.current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0 })]);
+      result.current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0 })]);
     });
 
     act(() => result.current.invalidateAnalysis());
 
     expect(result.current.farmsData).toHaveLength(1);
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
   });
 
@@ -457,13 +457,13 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
 
     act(() =>
-      result.current.setDeforestationAnalysisParams({
+      result.current.setTerritorialAnalysisParams({
         polygonsSubset: "all",
         selectedMaps: [makeMap({ id: 3 }), makeMap({ id: 1 }), makeMap({ id: 2 })],
       })
     );
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps.map(({ id }) => id)).toEqual([
+    expect(result.current.territorialAnalysisParams.selectedMaps.map(({ id }) => id)).toEqual([
       1, 2, 3,
     ]);
   });

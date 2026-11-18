@@ -10,10 +10,10 @@ import { setParams } from "@/test/navigation";
 import { stubObjectUrls } from "@/test/objectUrls";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
 import {
-  fetchDeforestationImages,
+  fetchLayerImages,
   fetchFarmImages,
-  type DeforestationImageBlob,
-} from "@/utils/deforestationImages";
+  type LayerImageBlob,
+} from "@/utils/layerImages";
 import { isLargeReport } from "@/utils/reportSize";
 import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
@@ -44,9 +44,9 @@ vi.mock("@/workers/reportPdfClient", async (importOriginal) => ({
   },
 }));
 
-vi.mock("@/utils/deforestationImages", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/utils/deforestationImages")>()),
-  fetchDeforestationImages: vi.fn(),
+vi.mock("@/utils/layerImages", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/layerImages")>()),
+  fetchLayerImages: vi.fn(),
   fetchFarmImages: vi.fn(),
 }));
 
@@ -68,7 +68,7 @@ const categories = [makeCategory()];
 const f1 = makeFarm({ id: "F01" });
 const f2 = makeFarm({ id: "F02" });
 const results = [makeMapResults(1, { F01: 0.1, F02: 0 })];
-const images: DeforestationImageBlob[] = [
+const images: LayerImageBlob[] = [
   { mapId: 1, farmId: "F01", blob: new Blob(["F01"]) },
   { mapId: 1, farmId: "F02", blob: new Blob(["F02"]) },
 ];
@@ -78,8 +78,8 @@ const reportContext = (farms = [f1, f2], overrides: Partial<DataContextValue> = 
   makeDataContext({
     selectedCountry: "CR",
     farmsData: [f1, f2],
-    deforestationAnalysisParams: { polygonsSubset: "all", selectedMaps: [gfw] },
-    deforestationAnalysisResults: results,
+    territorialAnalysisParams: { polygonsSubset: "all", selectedMaps: [gfw] },
+    territorialAnalysisResults: results,
     reportGenerationParams: {
       initialFarmSelection: "select",
       selectedMaps: [gfw],
@@ -105,7 +105,7 @@ beforeEach(() => {
     async (request: ReportPdfRequest) =>
       new Blob([`${request.kind}:${request.showLinks}`])
   );
-  vi.mocked(fetchDeforestationImages).mockResolvedValue(images);
+  vi.mocked(fetchLayerImages).mockResolvedValue(images);
   vi.mocked(isLargeReport).mockReturnValue(false);
   urls = stubObjectUrls();
   setParams({ locale: "es" });
@@ -125,7 +125,7 @@ describe("ReportProvider without a selection", () => {
       "No report selection to render"
     );
     await expect(result.current.getSeparatedReports()).rejects.toThrow();
-    expect(fetchDeforestationImages).not.toHaveBeenCalled();
+    expect(fetchLayerImages).not.toHaveBeenCalled();
   });
 });
 
@@ -138,8 +138,8 @@ describe("ReportProvider with a selection", () => {
     await waitFor(() => expect(client.render).toHaveBeenCalledTimes(2));
 
     expect(result.current.isPreviewLoading).toBe(false);
-    expect(fetchDeforestationImages).toHaveBeenCalledOnce();
-    expect(fetchDeforestationImages).toHaveBeenCalledWith("CR", [gfw], [f1, f2], results);
+    expect(fetchLayerImages).toHaveBeenCalledOnce();
+    expect(fetchLayerImages).toHaveBeenCalledWith("CR", [gfw], [f1, f2], results);
     expect(requests().map(({ kind, showLinks }) => [kind, showLinks])).toEqual([
       ["complete", false],
       ["complete", true],
@@ -186,7 +186,7 @@ describe("ReportProvider with a selection", () => {
 
     expect(await zip.text()).toBe("perFarm:true");
     expect(requests()[2]).toMatchObject({ kind: "perFarm", showLinks: true, images });
-    expect(fetchDeforestationImages).toHaveBeenCalledOnce();
+    expect(fetchLayerImages).toHaveBeenCalledOnce();
   });
 
   it("treats the same farms in another order as the same selection", async () => {
@@ -197,7 +197,7 @@ describe("ReportProvider with a selection", () => {
     rendered.rerender(undefined);
 
     expect(rendered.result.current.previewUrl).toBe("blob:test/1");
-    expect(fetchDeforestationImages).toHaveBeenCalledOnce();
+    expect(fetchLayerImages).toHaveBeenCalledOnce();
     expect(client.render).toHaveBeenCalledTimes(2);
   });
 
@@ -211,7 +211,7 @@ describe("ReportProvider with a selection", () => {
     expect(rendered.result.current.isPreviewLoading).toBe(true);
 
     await waitFor(() => expect(rendered.result.current.previewUrl).toBe("blob:test/2"));
-    expect(fetchDeforestationImages).toHaveBeenCalledTimes(2);
+    expect(fetchLayerImages).toHaveBeenCalledTimes(2);
     expect(urls.revokeObjectURL).toHaveBeenCalledWith("blob:test/1");
   });
 });
@@ -245,7 +245,7 @@ describe("ReportProvider failures", () => {
   });
 
   it("re-runs the analysis when a layer changed, instead of failing", async () => {
-    vi.mocked(fetchDeforestationImages).mockRejectedValue(new MapLayerChangedError());
+    vi.mocked(fetchLayerImages).mockRejectedValue(new MapLayerChangedError());
     const context = reportContext();
     const { result } = await renderReport(context);
 
@@ -280,10 +280,10 @@ describe("ReportProvider unmount", () => {
   });
 
   it("starts no worker when it unmounts while the images are fetched", async () => {
-    const pending = deferred<DeforestationImageBlob[]>();
-    vi.mocked(fetchDeforestationImages).mockReturnValue(pending.promise);
+    const pending = deferred<LayerImageBlob[]>();
+    vi.mocked(fetchLayerImages).mockReturnValue(pending.promise);
     const { unmount } = await renderReport();
-    await waitFor(() => expect(fetchDeforestationImages).toHaveBeenCalledOnce());
+    await waitFor(() => expect(fetchLayerImages).toHaveBeenCalledOnce());
 
     unmount();
     await act(async () => pending.resolve(images));
@@ -320,7 +320,7 @@ describe("ReportProvider with a large report", () => {
 
     await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
     expect(result.current).toMatchObject({ isLarge: true, farmCount: 2 });
-    expect(fetchDeforestationImages).not.toHaveBeenCalled();
+    expect(fetchLayerImages).not.toHaveBeenCalled();
     expect(fetchFarmImages).toHaveBeenCalledOnce();
     expect(vi.mocked(fetchFarmImages).mock.calls[0][0]).toMatchObject({ farm: f1 });
     expect(requests()).toHaveLength(1);
@@ -366,7 +366,7 @@ describe("ReportProvider with a large report", () => {
 
   it("stops and cancels the job when the user cancels", async () => {
     const { job } = zipJob();
-    const pending = deferred<DeforestationImageBlob[]>();
+    const pending = deferred<LayerImageBlob[]>();
     const { result } = await renderReport();
     await waitFor(() => expect(result.current.previewUrl).toBe("blob:test/1"));
     vi.mocked(fetchFarmImages).mockReturnValueOnce(pending.promise);
@@ -411,7 +411,7 @@ describe("ReportProvider with a large report", () => {
   /** A job with F01 added and F02 waiting for its images (`pending`). */
   const jobHalfway = async () => {
     const { job } = zipJob();
-    const pending = deferred<DeforestationImageBlob[]>();
+    const pending = deferred<LayerImageBlob[]>();
     const rendered = await renderReport();
     await waitFor(() => expect(rendered.result.current.previewUrl).toBe("blob:test/1"));
     vi.mocked(fetchFarmImages)

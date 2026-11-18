@@ -14,7 +14,7 @@ import { router, setPathname } from "@/test/navigation";
 import { FlowHeader } from "./FlowHeader";
 
 const ANALYZED: Partial<DataContextValue> = {
-  deforestationAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
+  territorialAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
 };
 
 const renderHeader = async (
@@ -68,7 +68,7 @@ describe("FlowHeader", () => {
   });
 
   it("direct entry to stage 2: stage 1 is optional and stage 3 can't be pressed", async () => {
-    await renderHeader("/deforestation-analysis/upload-data");
+    await renderHeader("/territorial-analysis/upload-data");
 
     expect(stageTexts()[0]).toBe("1ValidaciónSin realizar · opcional");
     expect(screen.queryByRole("button", { name: /Reporte/ })).toBeNull();
@@ -76,7 +76,7 @@ describe("FlowHeader", () => {
   });
 
   it("stage 1 is completed once the polygons are validated", async () => {
-    await renderHeader("/deforestation-analysis/upload-data", {
+    await renderHeader("/territorial-analysis/upload-data", {
       polygonsValidationResults: makeValidationResults({}),
     });
 
@@ -87,11 +87,11 @@ describe("FlowHeader", () => {
     await renderHeader("/polygons-validation/upload-data");
 
     fireEvent.click(screen.getByRole("button", { name: /Análisis territorial/ }));
-    expect(router.push).toHaveBeenLastCalledWith("/deforestation-analysis/upload-data");
+    expect(router.push).toHaveBeenLastCalledWith("/territorial-analysis/upload-data");
   });
 
   it("opens the validation results from another stage", async () => {
-    await renderHeader("/deforestation-analysis", {
+    await renderHeader("/territorial-analysis", {
       ...ANALYZED,
       polygonsValidationResults: makeValidationResults({}),
     });
@@ -108,14 +108,14 @@ describe("FlowHeader", () => {
     fireEvent.click(screen.getByRole("button", { name: /Análisis territorial/ }));
 
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(router.push).toHaveBeenLastCalledWith("/deforestation-analysis/upload-data");
+    expect(router.push).toHaveBeenLastCalledWith("/territorial-analysis/upload-data");
   });
 
   it("on stage 2 itself, the stage opens no dialog, even after a validation", async () => {
     // As while the analysis runs, or after it failed, back on the form.
-    await renderHeader("/deforestation-analysis/upload-data", {
+    await renderHeader("/territorial-analysis/upload-data", {
       polygonsValidationResults: makeValidationResults({}),
-      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [makeMap()] },
+      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [makeMap()] },
     });
 
     expect(screen.queryByRole("button", { name: /Análisis territorial/ })).toBeNull();
@@ -139,11 +139,11 @@ describe("FlowHeader", () => {
     await renderHeader("/en/polygons-validation/upload-data", {}, "en");
 
     fireEvent.click(screen.getByRole("button", { name: /Territorial analysis/ }));
-    expect(router.push).toHaveBeenCalledWith("/en/deforestation-analysis/upload-data");
+    expect(router.push).toHaveBeenCalledWith("/en/territorial-analysis/upload-data");
   });
 
   it("asks for the report's layers before opening stage 3", async () => {
-    await renderHeader("/deforestation-analysis", ANALYZED);
+    await renderHeader("/territorial-analysis", ANALYZED);
 
     fireEvent.click(screen.getByRole("button", { name: /Reporte/ }));
 
@@ -153,9 +153,9 @@ describe("FlowHeader", () => {
 
   it("asks again when the report has layers but no confirmed farms", async () => {
     const map = makeMap();
-    await renderHeader("/deforestation-analysis", {
+    await renderHeader("/territorial-analysis", {
       ...ANALYZED,
-      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
+      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
       reportGenerationParams: {
         initialFarmSelection: "all",
         selectedMaps: [map],
@@ -174,7 +174,7 @@ describe("FlowHeader", () => {
     const map = makeMap();
     await renderHeader("/polygons-validation", {
       ...ANALYZED,
-      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
+      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
       reportGenerationParams: {
         initialFarmSelection: "all",
         selectedMaps: [map],

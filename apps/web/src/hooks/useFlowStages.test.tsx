@@ -8,7 +8,7 @@ const states = (stages: { state: string }[]) => stages.map(({ state }) => state)
 
 describe("useFlowStages", () => {
   it("reads the current stage from the localized route", async () => {
-    setPathname("/en/deforestation-analysis/upload-data");
+    setPathname("/en/territorial-analysis/upload-data");
     const { result } = await renderHookWithData(useFlowStages);
 
     expect(result.current.current).toBe(2);
@@ -20,7 +20,7 @@ describe("useFlowStages", () => {
     const { result } = await renderHookWithData(useFlowStages, {
       context: makeDataContext({
         polygonsValidationResults: makeValidationResults({}),
-        deforestationAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
+        territorialAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
       }),
     });
 
@@ -29,10 +29,10 @@ describe("useFlowStages", () => {
   });
 
   it("doesn't count an outdated analysis", async () => {
-    setPathname("/deforestation-analysis/upload-data");
+    setPathname("/territorial-analysis/upload-data");
     const { result } = await renderHookWithData(useFlowStages, {
       context: makeDataContext({
-        deforestationAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
+        territorialAnalysisResults: [makeMapResults(1, { "farm-1": 0 })],
         analysisOutdated: true,
       }),
     });

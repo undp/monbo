@@ -1,4 +1,4 @@
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 
 type LayerName = Pick<MapData, "id" | "name" | "alias">;
 

@@ -15,11 +15,11 @@ import {
  */
 export const useFlowStages = () => {
   const pathname = usePathname();
-  const { polygonsValidationResults, deforestationAnalysisResults, analysisOutdated } =
+  const { polygonsValidationResults, territorialAnalysisResults, analysisOutdated } =
     useContext(DataContext);
 
   const validationDone = polygonsValidationResults !== null;
-  const analysisDone = deforestationAnalysisResults !== null && !analysisOutdated;
+  const analysisDone = territorialAnalysisResults !== null && !analysisOutdated;
 
   return useMemo(() => {
     const flags: FlowFlags = { validationDone, analysisDone };
