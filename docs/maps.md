@@ -206,8 +206,8 @@ country's.
 
 ### Managing categories in the admin
 
-The admin API manages the session's country's categories (`/admin/categories`; the
-admin UI comes with GC-5):
+The admin API manages the session's country's categories (`/admin/categories`), and
+the admin's **Categories** page (`/[locale]/admin/categories`) uses it:
 
 - `GET /admin/categories` lists them, enabled or not, with their own threshold (`null`:
   the global one) and how many layers, and published layers, each has. It also says
@@ -245,6 +245,19 @@ that category and whose raster file exists. Any other layer is hidden, logged on
 as an error, and shown in the admin with `category_issue` or `layer_issue`
 (`years_mismatch`, `missing_raster`). Like any hidden layer, it still resolves by id
 for analyses already open.
+
+**The admin UI explains these rules before the admin hits them.** On the Categories
+page and in its panel, a control that a rule blocks (the enable switch, the
+polarity, "layers compare two years", a published layer's category in the layer
+form) is locked and says why, naming the layers to hide first. The polarity has no
+default: a new category can't be saved until the admin chooses it, and the panel's
+preview classifies two example polygons with the app's own classifier, so it shows
+which polygon gets the observation. The layer form shows the baseline and
+comparison years only for a temporal category and sends them as `null` otherwise.
+The layers list and the layer editor say why an enabled layer isn't public
+(`category_issue`, a disabled category, `layer_issue`) and how to fix it. Rejected
+entries of `categories.json` are reported on the Categories page but repaired on the
+share, not from the UI.
 
 Writes change one entry of `categories.json` and keep the others as they are stored,
 rejected ones included, so nothing the API can't validate (a hand edit, a file from a

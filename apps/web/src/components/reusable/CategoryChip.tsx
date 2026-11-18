@@ -10,7 +10,7 @@ interface CategoryChipProps {
   color: string | null;
 }
 
-/** A category's name with its icon, in its color (as in the territorial analysis). */
+/** A category's name with its icon, in its color (as in the territorial analysis, the methodology and the admin). */
 export const CategoryChip: React.FC<CategoryChipProps> = ({ name, icon, color }) => {
   const tints = categoryTints(color);
   return (

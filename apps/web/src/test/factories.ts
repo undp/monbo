@@ -1,3 +1,4 @@
+import type { AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
 import type { FarmData } from "@/interfaces/Farm";
 import type {
   DeforestationAnalysisMapResults,
@@ -188,3 +189,56 @@ export const makeFrontierCategory = (
     temporal: false,
     ...overrides,
   });
+
+/** A category as `GET /admin/categories` lists it: the built-in deforestation. */
+export const makeAdminCategory = (
+  overrides: Partial<AdminCategory> = {}
+): AdminCategory => ({
+  ...makeCategory(),
+  thresholdPercentage: null,
+  enabled: true,
+  layerCount: 0,
+  publishedLayerCount: 0,
+  ...overrides,
+});
+
+/** A layer as `GET /admin/layers` lists it: public, in deforestation. */
+export const makeAdminLayer = (overrides: Partial<AdminLayer> = {}): AdminLayer => ({
+  id: 0,
+  category_id: "deforestation",
+  category_issue: null,
+  category_enabled: true,
+  layer_issue: null,
+  pixel_size: 30,
+  baseline: 2020,
+  compared_against: 2023,
+  references: [],
+  enabled: true,
+  version: 1,
+  raster_filename: "layer-0-v1.tif",
+  has_raster: true,
+  attributes: {
+    en: {
+      name: "IDEAM deforestation",
+      alias: "IDEAM 2020-2023",
+      coverage: null,
+      source: null,
+      resolution: null,
+      contentDate: null,
+      updateFrequency: null,
+      publishDate: null,
+    },
+    es: {
+      name: "Deforestación IDEAM",
+      alias: "IDEAM 2020-2023",
+      coverage: null,
+      source: null,
+      resolution: null,
+      contentDate: null,
+      updateFrequency: null,
+      publishDate: null,
+    },
+  },
+  considerations: { en: null, es: null },
+  ...overrides,
+});

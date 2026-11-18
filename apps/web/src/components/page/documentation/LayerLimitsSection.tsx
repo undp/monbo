@@ -15,7 +15,7 @@ import type { CountryLayerCatalogState } from "@/hooks/useCountryLayerCatalog";
 import { groupLayersByCategory, isWebUrl } from "@/utils/layerCatalog";
 import { localizedText } from "@/utils/localizedText";
 import { CatalogStatus } from "./CatalogStatus";
-import { CategoryChip } from "./CategoryChip";
+import { CategoryChip } from "@/components/reusable/CategoryChip";
 import { ConsiderationsMarkdown } from "./DocumentationMarkdown";
 import { HEADING_FONT } from "./methodologyStyles";
 

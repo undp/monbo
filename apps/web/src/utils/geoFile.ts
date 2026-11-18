@@ -1,4 +1,5 @@
 import { TFunction } from "i18next";
+import { AS_TEXT } from "@/utils/asText";
 import { uniq } from "lodash";
 import { Accept } from "react-dropzone";
 import { FarmRow } from "@/interfaces/FarmRow";
@@ -72,8 +73,8 @@ export const geoFeatureId = (
 };
 
 // The messages are shown as text, not HTML: names and ids from the file must not be
-// escaped (a "/" would show as "&#x2F;").
-export const AS_TEXT = { interpolation: { escapeValue: false } };
+// escaped (a "/" would show as "&#x2F;"). Re-exported for the geo file modules.
+export { AS_TEXT };
 
 /** How a feature is named in messages: its position, and its ID when it has one. */
 export const featureLabel = (

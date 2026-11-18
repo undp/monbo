@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { I18nextProvider } from "react-i18next";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import theme from "@/config/theme";
+import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
 import { makeMapResults, makeValidationResults } from "@/test/factories";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
@@ -119,5 +120,45 @@ describe("MainNavigation", () => {
       "Análisis",
       "Metodología",
     ]);
+  });
+
+  it("holds the admin's country and sections in the narrow-screen menu", async () => {
+    setPathname("/es/admin/categories");
+    const i18n = await createTestI18n("es");
+    render(
+      <ThemeProvider theme={theme}>
+        <I18nextProvider i18n={i18n}>
+          <AdminSessionContext.Provider
+            value={{
+              session: { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "CO" },
+              ready: true,
+              login: vi.fn(),
+              logout: vi.fn(),
+              withToken: vi.fn(),
+            }}
+          >
+            <DataContext.Provider value={makeDataContext()}>
+              <MainNavigation />
+            </DataContext.Provider>
+          </AdminSessionContext.Provider>
+        </I18nextProvider>
+      </ThemeProvider>
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir el menú de navegación", hidden: true })
+    );
+
+    const menu = within(await screen.findByRole("menu"));
+    expect(menu.getByText("Colombia")).toBeTruthy();
+    expect(menu.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Capas",
+      "Categorías",
+      "Uso",
+      "Metodología",
+    ]);
+    expect(
+      menu.getByRole("menuitem", { name: "Categorías" }).getAttribute("aria-current")
+    ).toBe("page");
   });
 });
