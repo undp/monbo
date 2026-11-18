@@ -6,6 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { notFound } from "next/navigation";
 import theme from "@/config/theme";
 import i18nConfig from "@/i18nConfig";
+import initTranslations from "@/utils/i18n";
 import { LayoutProps } from "@/interfaces";
 import { Header } from "@/components/reusable/Header";
 import { HeaderSpacer } from "@/components/reusable/Header/HeaderSpacer";
@@ -55,12 +56,14 @@ export default async function MainLayout({ children, params }: LayoutProps) {
   if (!i18nConfig.locales.includes(locale)) {
     notFound();
   }
+  // The snackbars live above every page's translations (see SnackbarProvider).
+  const { t } = await initTranslations(locale, ["common"]);
   return (
     <html lang={locale}>
       <body className={`${roboto.variable} ${plusJakartaSans.variable}`}>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
-            <SnackbarProvider>
+            <SnackbarProvider closeLabel={t("common:close")}>
               <DataProvider locale={locale}>
                 {/* Here rather than in the admin layout: the header shows the
                     admin session's country. */}

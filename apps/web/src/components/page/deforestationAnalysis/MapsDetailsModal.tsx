@@ -71,7 +71,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
         <Typography variant="h6" component="div">
           {t("deforestationAnalysis:mapsInfoModal.title")}
         </Typography>
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" aria-label={t("common:close")}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -194,18 +194,13 @@ const DetailItem: React.FC<DetailItemProps> = ({
   value,
   typographyComponent = "p",
 }) => (
-  <Grid container spacing={2}>
-    <Grid size={3}>
-      <Text
-        variant="body2"
-        sx={{
-          wordBreak: "break-word",
-        }}
-      >
-        {label}
-      </Text>
+  // On a phone the label goes above its value: a quarter of the width cuts labels
+  // such as "Fecha del contenido" mid-word.
+  <Grid container columnSpacing={2} rowSpacing={{ xs: 0.5, sm: 2 }}>
+    <Grid size={{ xs: 12, sm: 3 }}>
+      <Text variant="body2">{label}</Text>
     </Grid>
-    <Grid size={9}>
+    <Grid size={{ xs: 12, sm: 9 }}>
       <Typography
         variant="body2"
         component={typographyComponent}

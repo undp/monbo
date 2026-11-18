@@ -41,7 +41,7 @@ La aplicación también permite extraer y descargar los resultados generados por
 
 #### **Módulo de Validación de Polígonos**
 
-El archivo Excel descargado de este módulo contiene dos pestañas:
+El archivo Excel descargado de este módulo contiene dos pestañas, con el nombre en el idioma de la aplicación (en inglés, «Valid polygons» e «Inconsistent polygons»):
 
 - **Polígonos válidos**. En esta pestaña se detalla la información de los polígonos validados conforme y se entrega un resultado del "Status" del polígono.
   - Status **"VALID"**: cuando la validación se realiza automáticamente por la lógica interna de la aplicación.

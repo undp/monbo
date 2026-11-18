@@ -1,6 +1,7 @@
 {
   "title": "Polygon Validation",
-  "validPolygons": "Validated Polygons",
+  "validPolygons_one": "validated polygon",
+  "validPolygons_other": "validated polygons",
   "inconsistenciesTypes": {
     "overlap": "Overlap",
     "empty_polygon": "Empty Polygon",
@@ -18,6 +19,10 @@
   "searchPlaceholder": "Search polygon or producer",
   "noResults": "No results found",
   "noInconsistencies": "No inconsistencies found",
+  "export": {
+    "validSheet": "Valid polygons",
+    "inconsistentSheet": "Inconsistent polygons"
+  },
   "manualValidation": {
     "snackbarAlert": {
       "included": "included in manual validation",

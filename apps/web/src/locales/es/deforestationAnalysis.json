@@ -3,8 +3,8 @@
   "deforestationMapFooter": "Línea base de {{baselineYear}} comparada con datos de {{comparedToYear}}",
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
-    "recalculatingText": "Cambió una capa de mapa. Recalculando el análisis…",
-    "analysisUpdated": "El análisis se recalculó con la capa de mapa actualizada.",
+    "recalculatingText": "Cambió una capa. Estamos recalculando el análisis…",
+    "analysisUpdated": "Recalculamos el análisis con la capa actualizada.",
     "title": "Análisis territorial",
     "mapSelectionStep": {
       "stepTitle": "Paso 1: Elige las capas",
@@ -14,7 +14,8 @@
     },
     "uploadStep": {
       "stepTitle": "Paso 2: Agrega tus polígonos",
-      "loadedFarms": "Ya tienes {{count}} polígonos y/o puntos cargados.",
+      "loadedFarms_one": "Ya cargaste {{count}} polígono o punto.",
+      "loadedFarms_other": "Ya cargaste {{count}} polígonos o puntos.",
       "analyzeLoadedFarms": "Analizar",
       "submit": "Subir y analizar",
       "uploadAnother": "Cargar otro archivo"
@@ -39,17 +40,17 @@
   "noDataShortText": "Sin dato",
   "map": "Mapa",
   "mapsInfoModal": {
-    "title": "Detalles de mapas",
+    "title": "Detalles de las capas",
     "coverage": "Cobertura",
     "source": "Fuente",
     "resolution": "Resolución",
-    "contentDate": "Fecha contenido",
+    "contentDate": "Fecha del contenido",
     "updateFrequency": "Frecuencia de actualización",
     "publishDate": "Fecha de publicación",
     "references": "Referencias",
     "considerations": "Consideraciones"
   },
-  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no representa la deforestación",
+  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no muestra el resultado de la capa.",
   "categories": {
     "uncategorized": "Sin categoría"
   },

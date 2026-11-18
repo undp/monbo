@@ -160,10 +160,10 @@ export const buildPolygonValidationSheets = async (
   );
 
   return {
-    "Polígonos válidos": {
+    [t("polygonValidation:export:validSheet")]: {
       rows: [...validPolygonsHeaders, ...validatedPolygonsParsedData],
     },
-    "Polígonos inconsistentes": {
+    [t("polygonValidation:export:inconsistentSheet")]: {
       rows: [...inconsistenciesHeaders, ...inconsistenciesParsedData],
       merges: percentagesMerges,
     },

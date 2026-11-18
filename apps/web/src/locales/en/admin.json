@@ -385,18 +385,21 @@
       "sessions": "Sessions",
       "sessionsDetail": "Browser tabs that used Monbo",
       "uploads": "Farm uploads",
-      "avgFarms": "{{value}} farms per upload on average",
-      "analyses": "Deforestation analyses",
-      "analysisSessions": "{{value}} sessions analyzed",
+      "avgFarms_one": "{{value}} farm per upload on average",
+      "avgFarms_other": "{{value}} farms per upload on average",
+      "analyses": "Territorial analyses",
+      "analysisSessions_one": "{{value}} session analyzed",
+      "analysisSessions_other": "{{value}} sessions analyzed",
       "reportsRequested": "Reports requested",
-      "requestedSessions": "from {{value}} sessions",
+      "requestedSessions_one": "from {{value}} session",
+      "requestedSessions_other": "from {{value}} sessions",
       "reportsDownloaded": "Reports downloaded",
       "downloadedFormats": "{{pdf}} as one PDF · {{zip}} as a ZIP",
       "trend": "{{label}}, week by week"
     },
     "funnel": {
       "title": "Usage funnel",
-      "subtitle": "Sessions that reached each step of the deforestation analysis, and their share of all sessions.",
+      "subtitle": "Sessions that reached each step of the analysis, and their share of all sessions.",
       "sessions": "Sessions",
       "uploaded": "Uploaded farms",
       "analyzed": "Ran an analysis",
@@ -434,7 +437,8 @@
       "analyses": "Analyses",
       "reportsRequested": "Reports requested",
       "reportsDownloaded": "Reports downloaded",
-      "okErrors": "{{ok}} ok · {{errors}} errors",
+      "okErrors_one": "{{ok}} ok · {{errors}} error",
+      "okErrors_other": "{{ok}} ok · {{errors}} errors",
       "unknown": "Unknown country",
       "empty": "There is no usage in this range.",
       "sources": "Uploads, validations and analyses are recorded by the server. Reports are reported by the browser."
@@ -446,6 +450,7 @@
       "reportsDownloaded": "Reports downloaded"
     },
     "notConfigured": "Usage metrics aren't configured on this server.",
-    "loadError": "The usage figures could not be loaded."
+    "loadError": "The usage figures could not be loaded.",
+    "chartNoData": "No data in this range."
   }
 }

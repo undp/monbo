@@ -88,7 +88,7 @@ export function PolygonsValidationUploadDataPageContent() {
         setPolygonsValidationResults(response);
         router.push("/polygons-validation");
         openSnackbar({
-          message: t("common:snackbarAlerts:dataAnalizedSuccessfully"),
+          message: t("common:snackbarAlerts:dataAnalyzedSuccessfully"),
           type: "success",
         });
 

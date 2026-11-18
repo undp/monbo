@@ -257,7 +257,19 @@ describe.each(LOCALES)("the %s upload template", (locale) => {
   });
 });
 
+const VALIDATION_SHEETS = {
+  es: { valid: "Polígonos válidos", inconsistent: "Polígonos inconsistentes" },
+  en: { valid: "Valid polygons", inconsistent: "Inconsistent polygons" },
+};
+
 describe.each(LOCALES)("the %s Excel exports", (locale) => {
+  it("names the validation sheets in the user's language", async () => {
+    expect(Object.keys(await validationSheets(locale))).toEqual([
+      VALIDATION_SHEETS[locale].valid,
+      VALIDATION_SHEETS[locale].inconsistent,
+    ]);
+  });
+
   it("uploads the validation export again with the same farms", async () => {
     expect(await upload(await validationSheets(locale), locale)).toEqual({
       data: UPLOADED,
@@ -277,7 +289,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
   it("writes each value under its header", async () => {
     const workbook = await writeAndRead(await validationSheets(locale));
     const [, headers, , firstFarm] = XLSX.utils.sheet_to_json<unknown[]>(
-      workbook.Sheets["Polígonos válidos"],
+      workbook.Sheets[VALIDATION_SHEETS[locale].valid],
       { header: 1, defval: "" }
     );
     const column = (key: string) =>
@@ -368,7 +380,9 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
   });
 
   it("merges the overlap percentage in its own column", async () => {
-    const sheet = (await validationSheets(locale))["Polígonos inconsistentes"];
+    const sheet = (await validationSheets(locale))[
+      VALIDATION_SHEETS[locale].inconsistent
+    ];
     const percentageColumn = sheet.rows[1].indexOf(
       "Porcentaje de Traslape\nOverlap Percentage"
     );

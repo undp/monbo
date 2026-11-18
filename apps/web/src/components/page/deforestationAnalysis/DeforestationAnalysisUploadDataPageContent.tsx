@@ -318,7 +318,7 @@ export function DeforestationAnalysisUploadDataPageContent() {
         openSnackbar({
           message: analysisOutdated
             ? t("deforestationAnalysis:uploadDataPage:analysisUpdated")
-            : t("common:snackbarAlerts:dataAnalizedSuccessfully"),
+            : t("common:snackbarAlerts:dataAnalyzedSuccessfully"),
           type: "success",
         });
       } catch {

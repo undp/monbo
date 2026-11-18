@@ -42,6 +42,8 @@ export default async function PolygonsValidationPage({
         <Box
           sx={{
             display: "flex",
+            flexWrap: "wrap",
+            gap: 2,
             justifyContent: "space-between",
             alignItems: "flex-end",
           }}
@@ -52,11 +54,19 @@ export default async function PolygonsValidationPage({
               {t("polygonValidation:title")}
             </Text>
           </Box>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          {/* On a phone the search bar takes the row, next to the download button. */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
             <Suspense>
               <SearchBar
                 placeholder={t("polygonValidation:searchPlaceholder")}
-                style={{ minWidth: "400px" }}
+                style={{ flex: { xs: 1, sm: "none" }, minWidth: { xs: 0, sm: "400px" } }}
               />
             </Suspense>
             <DownloadPageData />

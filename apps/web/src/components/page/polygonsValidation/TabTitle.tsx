@@ -18,9 +18,8 @@ export const TabTitle: React.FC<TabTitleProps> = ({ type }) => {
   const { t } = useTranslation();
 
   if (type === "valid") {
-    return `${validFarmsData.length || 0} ${t(
-      "polygonValidation:validPolygons"
-    )}`;
+    const count = validFarmsData.length || 0;
+    return `${count} ${t("polygonValidation:validPolygons", { count })}`;
   } else if (type === "inconsistent") {
     const polygonsAmount = sum(
       polygonsValidationResults?.inconsistencies?.map(

@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 
 import CloseIcon from "@mui/icons-material/Close";
+import { useTranslation } from "react-i18next";
 
 export interface BaseModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   children,
   onAfterClose,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={isOpen}
@@ -35,7 +37,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
     >
       <DialogTitle sx={{ fontSize: "24px" }}>{title}</DialogTitle>
       <IconButton
-        aria-label="close"
+        aria-label={t("common:close")}
         onClick={handleClose}
         sx={(theme) => ({
           position: "absolute",

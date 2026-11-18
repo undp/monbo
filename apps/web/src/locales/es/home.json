@@ -1,14 +1,14 @@
 {
   "sameDataModal": {
     "polygonValidation": {
-      "title": "Se utilizarán los mismos datos para validar",
-      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+      "title": "Usarás los mismos datos para validar",
+      "description": "Puedes ver los datos que ya cargaste o subir datos nuevos."
     },
     "deforestationAnalysis": {
-      "title": "Se utilizarán los mismos datos para el análisis de deforestación",
-      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+      "title": "Usarás los mismos datos en el análisis territorial",
+      "description": "Puedes ver los datos que ya cargaste o subir datos nuevos."
     },
-    "uploadNewData": "Subir nuevos datos",
+    "uploadNewData": "Subir datos nuevos",
     "sameData": "Continuar con los mismos datos"
   },
   "landing": {
@@ -27,7 +27,7 @@
     "steps": {
       "validation": {
         "title": "Valida tus polígonos",
-        "description": "Súbelos en Excel, archivo geográfico o dibújalos en el mapa. Revisamos errores y superposiciones.",
+        "description": "Súbelos en Excel, archivo geográfico o dibújalos en el mapa. Revisamos errores y traslapes.",
         "link": "Descargar plantilla"
       },
       "analysis": {

@@ -229,7 +229,7 @@ describe("attachExcel", () => {
 
     const source = await drop();
     expect(sourceErrors(source)).toEqual([
-      "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
+      "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las coordenadas correctas son las del Excel, súbelo solo en «Plantilla Excel».",
     ]);
     expect(sourceRows(source)).toEqual([]);
     expect(isUploadable(source)).toBe(false);
@@ -349,7 +349,7 @@ describe("sourceProblem", () => {
     );
 
     expect(sourceProblem(source, ctx.t)).toBe(
-      "2 IDs no cruzan entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+      "2 IDs no coinciden entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
     );
   });
 
