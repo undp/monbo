@@ -20,6 +20,7 @@
 - [x] 3.5 Rename the `DataContext` state to `territorialAnalysisParams` / `territorialAnalysisResults` (setters, initial and sorted values), in the context, its consumers, `src/test/renderWithData.tsx` and the tests
 - [x] 3.6 Rename the util modules and helpers of design D2 (`overlap.ts`, `layerImages.ts`, `report.tsx` + `report/`, `generateGeoJsonFarmsDataWithLayerAnalysis`, `buildLayerSheets`, `formatResultPercentage`, `getResultChip*Color`) and the local names, tests included
 - [x] 3.7 `grep -rniE "deforest"` over `apps/web/src` and check that every remaining hit is in the "Kept" table of design D2
+- [x] 3.8 Search `openspec/specs/` and the delta specs of the open changes for every renamed path and module, and add a `MODIFIED` delta for each requirement that still names one (`frontend-unit-tests`)
 
 ## 4. Docs
 

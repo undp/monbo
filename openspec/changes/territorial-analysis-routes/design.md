@@ -96,7 +96,7 @@ Kept (contract, decision D12, or really about forest loss):
 
 ### D4. Specs: deltas on top of unarchived changes
 
-Four capabilities that name the route exist only in unarchived changes. Following `territorial-analysis-by-category`, this change writes `MODIFIED` deltas copied from the latest version of each requirement, with only the path changed, and must be archived after `progressive-flow-stages`, `new-landing` and `territorial-analysis-by-category`. A new capability `web-routes` records the routes, the redirects and the namespace.
+Four capabilities that name the route exist only in unarchived changes. Following `territorial-analysis-by-category`, this change writes `MODIFIED` deltas copied from the latest version of each requirement, with only the path changed, and must be archived after `progressive-flow-stages`, `new-landing`, `territorial-analysis-by-category` and `single-result-classification`. `frontend-unit-tests` names three renamed modules (`utils/deforestation`, `useVisibleDataForDeforestationPage`, `useDeforestationFreeResultsCountByMap`), so it gets the same kind of delta with only those names changed. The proposals, designs and tasks of other changes are left as written: they record what was done with the names of the time. A new capability `web-routes` records the routes, the redirects and the namespace.
 
 ### D5. Moves with `git mv`
 
@@ -111,7 +111,7 @@ Every file move uses `git mv` so the PR diff shows renames, and identifier renam
 
 ## Migration Plan
 
-Ships with the integration PR `feat/layer-manager` → `dev`. No data migration: the flow lives in memory. Old links (bookmarks, the example PDFs, shared URLs) are covered by the 308. Rollback is reverting the commit; the redirect goes away with it and the old routes come back.
+Ships with the integration PR `feat/layer-manager` → `dev`. No data migration: the flow lives in memory. Old links (bookmarks, shared URLs) are covered by the 308. The example PDFs of the start page link no web route, so they need no change. Rollback is reverting the commit; the redirect goes away with it and the old routes come back.
 
 ## Open Questions
 

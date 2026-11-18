@@ -10,7 +10,7 @@ const LOCALE_PREFIX = `(/(?:${i18nConfig.locales.join("|")}))?`;
 const HOME = new RegExp(`^${LOCALE_PREFIX}/home/?$`);
 
 // Stage 2 moved from /deforestation-analysis to /territorial-analysis. Old links
-// (bookmarks, shared URLs, example PDFs) get a permanent redirect to the same
+// (bookmarks, shared URLs) get a permanent redirect to the same
 // sub-path. The language prefix is kept as requested: the locale router then turns
 // /es/... into /... and stores `es` in its cookie, so the language never changes.
 const OLD_STAGE_2 = new RegExp(`^${LOCALE_PREFIX}/deforestation-analysis(?=/|$)(.*)$`);

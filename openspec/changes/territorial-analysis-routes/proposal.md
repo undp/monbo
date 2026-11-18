@@ -4,7 +4,7 @@ Stage 2 is called "Análisis territorial" (decision D7 of undp/monbo#116) and cr
 
 ## What Changes
 
-- **BREAKING (URLs):** stage 2 moves to `/territorial-analysis` and `/territorial-analysis/upload-data`, in both languages. The old URLs answer a permanent redirect (308) to the new ones, keeping the language prefix, any sub-path and the query string, so bookmarks, shared links and the example PDFs keep working.
+- **BREAKING (URLs):** stage 2 moves to `/territorial-analysis` and `/territorial-analysis/upload-data`, in both languages. The old URLs answer a permanent redirect (308) to the new ones, keeping the language prefix, any sub-path and the query string, so bookmarks and shared links keep working.
 - The i18n namespace `deforestationAnalysis` becomes `territorialAnalysis` (`locales/es/` and `locales/en/`), with every `t("…")`, `useTranslation` and namespace list updated. The `home:sameDataModal.deforestationAnalysis` key becomes `home:sameDataModal.territorialAnalysis`. Texts don't change.
 - `components/page/deforestationAnalysis/` becomes `components/page/territorialAnalysis/`. Generic components, hooks, types, state and utilities are renamed (full table in `design.md`), for example `DeforestationResultsTable` → `LayerResultsTable`, `useVisibleDataForDeforestationPage` → `useVisibleDataForAnalysisPage`, `DeforestationAnalysisMapResults` → `LayerAnalysisMapResults` (D17), and `DataContext`'s `deforestationAnalysisParams`/`deforestationAnalysisResults` → `territorialAnalysisParams`/`territorialAnalysisResults`.
 - Internal links (stage navigation, header "Análisis", landing, outdated-analysis guard, post-upload navigation) point to the new routes.
@@ -19,13 +19,14 @@ Stage 2 is called "Análisis territorial" (decision D7 of undp/monbo#116) and cr
 
 ### Modified Capabilities
 
-Each delta below changes only the stage 2 path from `/deforestation-analysis` to `/territorial-analysis`; the rest of each requirement is copied unchanged. Four of these capabilities exist only in changes that are merged in `feat/layer-manager` but not archived yet, so each delta is written on top of the latest version of the requirement, as `territorial-analysis-by-category` did with `analysis-flow-stages`. This change is archived after them.
+Each delta below changes only a renamed path or module name (the stage 2 path from `/deforestation-analysis` to `/territorial-analysis`, or a renamed web module); the rest of each requirement is copied unchanged. Four of these capabilities exist only in changes that are merged in `feat/layer-manager` but not archived yet, so each delta is written on top of the latest version of the requirement, as `territorial-analysis-by-category` did with `analysis-flow-stages`. This change is archived after them.
 
 - `country-selection`: "Module pages require a selected country" (on top of `new-landing`).
 - `analysis-flow-stages`: "The flow is three stages with their own pages", "Stage pages name their stage" (from `progressive-flow-stages`), "Stage 2 is never blocked and stage 3 needs results" and "A next-stage card closes stages 1 and 2" (from `territorial-analysis-by-category`).
 - `territorial-analysis`: "Direct entry without polygons" and "The analysis starts only when the user asks" (from `territorial-analysis-by-category`).
 - `site-navigation`: "Header navigation links" (from `new-landing`).
 - `landing-page`: "Three step cards" (from `new-landing`).
+- `frontend-unit-tests`: "Pure logic is covered" (on top of `single-result-classification`: `utils/deforestation` → `utils/overlap`) and "Hooks that read the data context are covered" (`useVisibleDataForDeforestationPage` → `useVisibleDataForAnalysisPage`, `useDeforestationFreeResultsCountByMap` → `useNoObservationsCountByMap`). These deltas change module names, not routes.
 
 ## Impact
 
