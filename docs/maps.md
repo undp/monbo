@@ -423,6 +423,8 @@ then builds the per-country layout from it:
   2 in Colombia and MOCUPP is 2 in Costa Rica);
 - `--mapping-out <file>` writes each country's old id → new id, for the parity check;
 - rasters are copied whole, never clipped, because a farm can cross a border;
+- each country gets a `categories.json` with the `deforestation` category, the one
+  every migrated layer belongs to, so the Categories page shows it as stored;
 - every country is registered with a new passkey, printed once.
 
 The source is left untouched. In Azure, `tools/layers-ops/layers-ops.sh <env> seed` runs both
