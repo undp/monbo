@@ -126,6 +126,7 @@ export const AdminLayersPageContent: React.FC = () => {
         openSnackbar({
           message: t(enabled ? "admin:layers:published" : "admin:layers:hidden", {
             alias: layerText(updated, "alias", language),
+            ...AS_TEXT,
           }),
           type: "success",
         });

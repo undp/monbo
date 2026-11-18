@@ -231,4 +231,20 @@ describe("admin texts with ' and &", () => {
       })
     );
   });
+
+  it("names the layer as typed when it is published from the list", async () => {
+    const layer = makeAdminLayer({ id: 5, enabled: false });
+    layer.attributes.en = { ...layer.attributes.en!, alias: "IDEAM & d'Ana <b>x</b>" };
+    mockApi([layer], [makeAdminCategory()]);
+    vi.mocked(setAdminLayerEnabled).mockResolvedValue({ ...layer, enabled: true });
+    await withProviders(<AdminLayersPageContent />);
+    await screen.findByText("IDEAM & d'Ana <b>x</b>");
+    fireEvent.click(screen.getByRole("switch", { name: /Published/ }));
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message: "Layer IDEAM & d'Ana <b>x</b> published.",
+        type: "success",
+      })
+    );
+  });
 });

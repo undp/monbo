@@ -157,7 +157,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
           issue?.code === "resolution_mismatch" ||
           issue?.code === "resolution_varies" ||
           issue?.code === "resolution_unavailable"
-            ? t(`admin:raster:issues:${issue.code}`, issue.params)
+            ? t(`admin:raster:issues:${issue.code}`, { ...issue.params, ...AS_TEXT })
             : null;
         // Any other refusal says why, as on the other admin pages: a rule the form
         // didn't foresee (another admin's change) or a 409 such as an unreadable raster.

@@ -67,6 +67,7 @@ const issueText = (t: TFunction, issue: JobIssue) =>
       ])
     ),
     defaultValue: issue.message,
+    ...AS_TEXT,
   });
 
 const uploadErrorText = (t: TFunction, error: unknown) => {
@@ -608,7 +609,7 @@ export const RasterUploadSection: React.FC<Props> = ({
                 : t("admin:raster:done:updated")}
             </Text>
             <Text color="secondary" variant="body2">
-              {t("admin:raster:done:text", { filename: flow.filename })}
+              {t("admin:raster:done:text", { filename: flow.filename, ...AS_TEXT })}
             </Text>
           </Box>
           <Button variant="outlined" onClick={replace} sx={rasterButtonSx}>
@@ -774,7 +775,7 @@ const ValidatedNotice: React.FC<{ filename: string }> = ({ filename }) => {
           {t("admin:raster:validated:title")}
         </Text>
         <Text sx={{ fontSize: 14 }}>
-          {t("admin:raster:validated:text", { filename })}
+          {t("admin:raster:validated:text", { filename, ...AS_TEXT })}
         </Text>
       </Box>
     </Box>
