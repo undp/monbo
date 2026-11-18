@@ -2,7 +2,7 @@ import { Box, Typography, useTheme } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import { useTranslation } from "react-i18next";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import { categoryTints } from "@/utils/categoryColors";
 import { localizedText } from "@/utils/localizedText";

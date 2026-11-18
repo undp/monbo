@@ -6,9 +6,9 @@ import {
   ValidateFarmsResponse,
 } from "@/interfaces/PolygonValidation";
 import {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import { formatOverlapPercentage } from "./numbers";
 import { findingPercentCell, layerResultColumns } from "./layerCategories";
@@ -176,16 +176,16 @@ export const buildPolygonValidationSheets = async (
  * finding, as a number in percent ("No data" as text), and the result label.
  * `availableMaps` are the analysed layers (see layerResultColumns).
  */
-export const buildDeforestationSheets = async (
+export const buildLayerSheets = async (
   farmsData: FarmData[],
-  deforestationAnalysisResults: DeforestationAnalysisMapResults[],
+  territorialAnalysisResults: LayerAnalysisMapResults[],
   availableMaps: MapData[],
   categories: LayerCategory[],
   t: TFunction,
   language: string
 ): Promise<Record<string, SheetData>> => {
   const columns = layerResultColumns(
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     availableMaps,
     categories,
     t,

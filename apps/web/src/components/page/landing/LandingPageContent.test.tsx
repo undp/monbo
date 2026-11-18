@@ -71,7 +71,7 @@ describe("LandingPageContent", () => {
 
   it.each([
     ["Valida tus polígonos", "/polygons-validation/upload-data"],
-    ["Análisis territorial", "/deforestation-analysis/upload-data"],
+    ["Análisis territorial", "/territorial-analysis/upload-data"],
     ["Empezar en Colombia", "/polygons-validation/upload-data"],
   ])("%s opens its stage without farms", async (name, path) => {
     await renderLanding(<LandingPageContent />, { selectedCountry: "CO" });

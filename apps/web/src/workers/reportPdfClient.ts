@@ -1,6 +1,6 @@
-import type { DeforestationAnalysisMapResults } from "@/interfaces/DeforestationAnalysis";
+import type { LayerAnalysisMapResults } from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
-import type { DeforestationImageBlob } from "@/utils/deforestationImages";
+import type { LayerImageBlob } from "@/utils/layerImages";
 import type {
   ReportPdfMessage,
   ReportPdfRequest,
@@ -13,8 +13,8 @@ export interface ZipJob {
   /** Adds one farm's PDF; resolves with the number of farms in the ZIP. */
   add(
     farm: FarmData,
-    results: DeforestationAnalysisMapResults[],
-    images: DeforestationImageBlob[]
+    results: LayerAnalysisMapResults[],
+    images: LayerImageBlob[]
   ): Promise<number>;
   finish(): Promise<Blob>;
   /** Drops the ZIP in the worker. */

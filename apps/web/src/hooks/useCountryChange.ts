@@ -8,7 +8,7 @@ interface CountryChangeOptions {
 }
 
 /**
- * The one way to change the analysis country. Before a deforestation analysis the
+ * The one way to change the analysis country. Before a territorial analysis the
  * change applies at once: farms and validation results stay, chosen layers are
  * cleared. After an analysis it waits for the user to confirm a restart
  * (`pendingCountry`), which drops every loaded result and goes to the start page.
@@ -17,10 +17,10 @@ export function useCountryChange() {
   const {
     selectedCountry,
     setSelectedCountry,
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     resetAnalysis,
     setFarmsData,
-    setDeforestationAnalysisParams,
+    setTerritorialAnalysisParams,
     setAnalysisDraft,
     setReportGenerationParams,
   } = useContext(DataContext);
@@ -33,11 +33,11 @@ export function useCountryChange() {
         if (navigateTo) router.push(navigateTo);
         return;
       }
-      if (deforestationAnalysisResults) {
+      if (territorialAnalysisResults) {
         setPendingCountry(code);
         return;
       }
-      setDeforestationAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
+      setTerritorialAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
       // Another country's layers: the next analysis starts from none.
       setAnalysisDraft(null);
       setFarmsData(
@@ -56,10 +56,10 @@ export function useCountryChange() {
     },
     [
       selectedCountry,
-      deforestationAnalysisResults,
+      territorialAnalysisResults,
       setFarmsData,
       setSelectedCountry,
-      setDeforestationAnalysisParams,
+      setTerritorialAnalysisParams,
       setAnalysisDraft,
       setReportGenerationParams,
       router,

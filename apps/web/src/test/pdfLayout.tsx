@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { vi } from "vitest";
 import { Document, pdf, type DocumentProps } from "@react-pdf/renderer";
-import { registerReportFonts } from "@/utils/deforestationReport";
-import { styles } from "@/utils/deforestationReport/styles";
+import { registerReportFonts } from "@/utils/report";
+import { styles } from "@/utils/report/styles";
 import { readPublicFile } from "./files";
 
 // The report's pages as react-pdf lays them out: where each printed line lands, page

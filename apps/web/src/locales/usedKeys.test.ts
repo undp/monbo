@@ -90,4 +90,15 @@ describe("translation keys used in the code", () => {
       .filter(Boolean);
     expect(wrong).toEqual([]);
   });
+
+  // A namespace that no longer exists is not in NAMESPACES, so the check above skips
+  // its keys: a leftover "deforestationAnalysis:…" would show as a raw key unnoticed.
+  it("don't use a retired namespace", () => {
+    const RETIRED = ["deforestationAnalysis"];
+    const retired = new RegExp(`(["'\`])(${RETIRED.join("|")})(:|\\1)`);
+    const wrong = sourceFiles(SRC_DIR)
+      .filter((file) => retired.test(readFileSync(file, "utf8")))
+      .map((file) => path.relative(SRC_DIR, file));
+    expect(wrong).toEqual([]);
+  });
 });

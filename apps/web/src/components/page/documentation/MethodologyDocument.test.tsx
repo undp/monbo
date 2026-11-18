@@ -7,7 +7,7 @@ import { getLayerCategories } from "@/api/layerCategories";
 import theme from "@/config/theme";
 import { setRuntimeConfig } from "@/config/runtime";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import { makeCategory, makeFrontierCategory, makeMap } from "@/test/factories";
 import { createTestI18n, type TestLocale } from "@/test/i18n";

@@ -1,6 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import { layerPeriod } from "@/utils/layerCatalog";
 import { LayerCell, type LayerCellText } from "./LayerCell";
 import { TABLE_HEADER_BACKGROUND } from "./methodologyStyles";

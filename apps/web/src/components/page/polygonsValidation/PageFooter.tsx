@@ -28,7 +28,7 @@ export const PageFooter: React.FC = () => {
       description={t("flow:nextStage.analysis.description", { country })}
       onContinue={() =>
         router.push(
-          localizedPath("/deforestation-analysis/upload-data", i18n.language)
+          localizedPath("/territorial-analysis/upload-data", i18n.language)
         )
       }
     />

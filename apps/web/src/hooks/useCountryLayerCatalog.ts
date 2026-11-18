@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getMaps } from "@/api/layerAnalysis";
 import { getLayerCategories } from "@/api/layerCategories";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 
 export interface CountryLayerCatalog {

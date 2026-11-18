@@ -9,7 +9,7 @@ const namespaces = [
   "common",
   "flow",
   "polygonValidation",
-  "deforestationAnalysis",
+  "territorialAnalysis",
   "reportGeneration",
 ];
 

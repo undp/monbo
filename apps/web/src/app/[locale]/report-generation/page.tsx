@@ -7,15 +7,15 @@ import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHom
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { SectionBackground } from "@/components/reusable/SectionBackground";
 import { PageTitle } from "@/components/page/reportGeneration/PageTitle";
-import { DeforestationResultsTable } from "@/components/page/reportGeneration/DeforestationResultsTable";
+import { ReportResultsTable } from "@/components/page/reportGeneration/ReportResultsTable";
 import { PageFooter } from "@/components/page/reportGeneration/PageFooter";
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
 import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
 import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
-const namespaces = ["common", "deforestationAnalysis", "reportGeneration", "flow"];
+const namespaces = ["common", "territorialAnalysis", "reportGeneration", "flow"];
 
-export default async function DeforestationAnalysis({ params }: BasePageProps) {
+export default async function ReportGeneration({ params }: BasePageProps) {
   const { locale } = await params;
   const { t, resources } = await initTranslations(locale, namespaces);
 
@@ -60,7 +60,7 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
             sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT, padding: 0 }}
           >
             <Suspense>
-              <DeforestationResultsTable />
+              <ReportResultsTable />
             </Suspense>
           </SectionBackground>
         </Box>

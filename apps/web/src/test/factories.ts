@@ -1,9 +1,9 @@
 import type { AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
 import type { FarmData } from "@/interfaces/Farm";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
   FarmValidationStatus,
@@ -119,7 +119,7 @@ export const makeMapResults = (
   mapId: number,
   values: Record<string, number | null>,
   version = 1
-): DeforestationAnalysisMapResults => ({
+): LayerAnalysisMapResults => ({
   mapId,
   version,
   farmResults: Object.entries(values).map(([farmId, value]) => ({

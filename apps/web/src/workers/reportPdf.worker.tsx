@@ -5,17 +5,17 @@ import initTranslations from "@/utils/i18n";
 import i18nConfig from "@/i18nConfig";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
-  DeforestationReportDocument,
+  ReportDocument,
   registerReportFonts,
-  type DeforestationReportImage,
-} from "@/utils/deforestationReport";
+  type ReportImage,
+} from "@/utils/report";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
-import type { DeforestationImageBlob } from "@/utils/deforestationImages";
+import type { LayerImageBlob } from "@/utils/layerImages";
 import type {
   ReportPdfMessage,
   ReportPdfRequest,
@@ -30,7 +30,7 @@ import type {
 const scope = self as unknown as Worker;
 
 // The namespaces the report reads (it always prefixes its keys).
-const NAMESPACES = ["reportGeneration", "common", "deforestationAnalysis"];
+const NAMESPACES = ["reportGeneration", "common", "territorialAnalysis"];
 
 // Only this page messages the worker, but the locale picks the translations: use
 // the configured value that matches it, never the message's own string.
@@ -54,8 +54,8 @@ type Locale = ReturnType<typeof supportedLocale>;
 
 /** Object URLs for `images` while `callback` runs, revoked afterwards. */
 const withImageUrls = async <T,>(
-  images: DeforestationImageBlob[],
-  callback: (images: DeforestationReportImage[]) => Promise<T>
+  images: LayerImageBlob[],
+  callback: (images: ReportImage[]) => Promise<T>
 ): Promise<T> => {
   const withUrls = images.map(({ mapId, farmId, blob }) => ({
     mapId,
@@ -71,19 +71,19 @@ const withImageUrls = async <T,>(
 
 const renderDocument = (params: {
   farms: FarmData[];
-  results: DeforestationAnalysisMapResults[];
+  results: LayerAnalysisMapResults[];
   maps: MapData[];
   categories: LayerCategory[];
   satelliteBackground: boolean;
-  images: DeforestationReportImage[];
+  images: ReportImage[];
   t: TFunction;
   locale: Locale;
   showLinks: boolean;
 }) =>
   pdf(
-    <DeforestationReportDocument
+    <ReportDocument
       farmsData={params.farms}
-      deforestationAnalysisResults={params.results}
+      territorialAnalysisResults={params.results}
       mapsData={params.maps}
       categories={params.categories}
       satelliteBackground={params.satelliteBackground}

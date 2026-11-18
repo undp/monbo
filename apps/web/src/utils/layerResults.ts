@@ -1,8 +1,8 @@
 import { getDeforestationThreshold } from "@/config/runtime";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 
 // The one place that turns a layer result into ok / flagged / unknown. Every screen,
@@ -35,7 +35,7 @@ export const findingRatio = (value: number, polarity: Polarity): number =>
 // the last place (ULPs) at the scale of the numbers compared. For `required`, 1 − value
 // is rounded at the scale of 1 (100 in percent), however small the finding.
 // The tolerance is relative, not a fixed resolution, because the API accepts
-// thresholds as small as it likes (see formatDeforestationPercentage).
+// thresholds as small as it likes (see formatResultPercentage).
 const ROUNDING_ULPS = 8;
 
 const isAboveThreshold = (
@@ -121,7 +121,7 @@ export const countResults = (
  */
 export const groupFarmsByResult = <Farm extends { id: string }>(
   farms: Farm[],
-  mapResults: Pick<DeforestationAnalysisMapResults, "farmResults"> | undefined,
+  mapResults: Pick<LayerAnalysisMapResults, "farmResults"> | undefined,
   rule: ClassificationRule | null
 ): Record<ResultClass, Farm[]> => {
   const valueByFarm = new Map(
@@ -191,7 +191,7 @@ export interface CategorySummary {
  */
 export const summarizeCategories = (
   farms: { id: string }[],
-  results: DeforestationAnalysisMapResults[],
+  results: LayerAnalysisMapResults[],
   layers: Pick<MapData, "id" | "categoryId">[],
   categories: LayerCategory[]
 ): CategorySummary[] => {

@@ -24,8 +24,8 @@ describe("stageFromPathname", () => {
     ["/polygons-validation", 1],
     ["/polygons-validation/upload-data", 1],
     ["/en/polygons-validation", 1],
-    ["/es/deforestation-analysis/upload-data", 2],
-    ["/deforestation-analysis", 2],
+    ["/es/territorial-analysis/upload-data", 2],
+    ["/territorial-analysis", 2],
     ["/report-generation", 3],
     ["/report-generation/preview", 3],
     ["/en/report-generation/preview", 3],
@@ -103,13 +103,13 @@ describe("flowProgress", () => {
 describe("stageHref", () => {
   it("goes to a stage's results when it has them", () => {
     expect(stageHref(1, BOTH)).toBe("/polygons-validation");
-    expect(stageHref(2, BOTH)).toBe("/deforestation-analysis");
+    expect(stageHref(2, BOTH)).toBe("/territorial-analysis");
     expect(stageHref(3, BOTH)).toBe("/report-generation");
   });
 
   it("goes to a stage's upload page otherwise", () => {
     expect(stageHref(1, NOTHING)).toBe("/polygons-validation/upload-data");
-    expect(stageHref(2, VALIDATED)).toBe("/deforestation-analysis/upload-data");
+    expect(stageHref(2, VALIDATED)).toBe("/territorial-analysis/upload-data");
   });
 });
 

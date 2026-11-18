@@ -16,7 +16,7 @@ import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHom
 import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
 import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
-const namespaces = ["common", "polygonValidation", "deforestationAnalysis", "flow"];
+const namespaces = ["common", "polygonValidation", "territorialAnalysis", "flow"];
 
 export default async function PolygonsValidationPage({
   params,

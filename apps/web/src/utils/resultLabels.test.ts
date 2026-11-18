@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 import { setRuntimeConfig } from "@/config/runtime";
-import { useDeforestationFreeResultsCountByMap } from "@/hooks/useDeforestationFreeResultsCountByMap";
+import { useNoObservationsCountByMap } from "@/hooks/useNoObservationsCountByMap";
 import { createTestI18n } from "@/test/i18n";
 import {
   makeCategory,
@@ -107,7 +107,7 @@ describe("layerResultText", () => {
 });
 
 // The helpers agree with each other here; that the views use them is tested in
-// MapView.test.tsx and DeforestationResultsTable.test.tsx.
+// MapView.test.tsx and LayerResultsTable.test.tsx.
 describe("one classification across helpers", () => {
   it("gives the same free count in the counter hook, the grouping, the table and the PDF", async () => {
     const t = await tFor("es");
@@ -117,15 +117,15 @@ describe("one classification across helpers", () => {
     const results = makeMapResults(1, values);
 
     const { result: counter } = await renderHookWithData(
-      useDeforestationFreeResultsCountByMap,
+      useNoObservationsCountByMap,
       {
         context: makeDataContext({
           farmsData: farms,
-          deforestationAnalysisParams: {
+          territorialAnalysisParams: {
             polygonsSubset: "all",
             selectedMaps: [makeMap({ id: 1 })],
           },
-          deforestationAnalysisResults: [results],
+          territorialAnalysisResults: [results],
           availableCategories: [category],
         }),
       }

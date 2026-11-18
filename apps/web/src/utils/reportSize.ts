@@ -1,5 +1,5 @@
 import { LARGE_REPORT_FARM_PAGES } from "@/config/constants";
-import type { DeforestationAnalysisMapResults } from "@/interfaces/DeforestationAnalysis";
+import type { LayerAnalysisMapResults } from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 
 /**
@@ -9,7 +9,7 @@ import type { FarmData } from "@/interfaces/Farm";
  */
 export const countFarmPages = (
   farms: FarmData[],
-  results: DeforestationAnalysisMapResults[]
+  results: LayerAnalysisMapResults[]
 ): number => {
   const selected = new Set(farms.map(({ id }) => id));
   const mapPages = results.reduce(

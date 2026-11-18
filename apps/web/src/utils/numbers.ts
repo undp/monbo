@@ -1,5 +1,5 @@
 import { getOverlapThreshold } from "@/config/runtime";
-import { isOverlapAboveThreshold } from "./deforestation";
+import { isOverlapAboveThreshold } from "./overlap";
 import {
   classifyResult,
   deforestationRule,
@@ -144,14 +144,14 @@ export const formatOverlapPercentage = (
 ): string => {
   if (value === 0) return "0%";
 
-  // No threshold defined by user, so we use the default threshold for displaying deforestation
+  // No threshold defined by user, so we use the default threshold for displaying the overlap
   if (getOverlapThreshold() === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
     return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
   }
 
-  // Threshold defined by user, so we use it for displaying deforestation
+  // Threshold defined by user, so we use it for displaying the overlap
   if (!isOverlapAboveThreshold(value))
     return formattedBelowThreshold(getOverlapThreshold(), language);
 
@@ -173,7 +173,7 @@ export const formatOverlapPercentage = (
  * @param value - The layer result to format (between 0 and 1)
  * @returns The formatted percentage string
  */
-export const formatDeforestationPercentage = (
+export const formatResultPercentage = (
   value: number,
   language = "es",
   rule: ClassificationRule = deforestationRule()
@@ -203,7 +203,7 @@ const THRESHOLD_ROUNDING_ULPS = 8;
 /**
  * A finding as a percentage next to its rule's threshold, for the stage 2 cells and
  * the PDF. Meant for a `flagged` result; for a result of any class, use
- * formatDeforestationPercentage with the rule, which also covers results at or
+ * formatResultPercentage with the rule, which also covers results at or
  * below the threshold.
  *
  * Contract (the text always agrees with the classification against the threshold):

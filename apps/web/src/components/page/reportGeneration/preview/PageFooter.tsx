@@ -6,7 +6,7 @@ import { Box, Button } from "@mui/material";
 import { useCallback, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DownloadTypeSelectionModal } from "./DownloadTypeSelectionModal";
-import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
+import { useReportDownload } from "@/hooks/useReportDownload";
 import { DataContext } from "@/context/DataContext";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { ReportContext } from "@/context/ReportContext";
@@ -18,7 +18,7 @@ export function PageFooter() {
     reportGenerationParams: { selectedFarms: selectedFarmsForReport },
   } = useContext(DataContext);
   const { downloadCompleteReport, downloadLargeReport } =
-    useDeforestationReportDownload();
+    useReportDownload();
   const { isLarge, farmCount } = useContext(ReportContext);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);

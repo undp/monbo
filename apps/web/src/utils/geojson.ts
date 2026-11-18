@@ -4,9 +4,9 @@ import { GeoJsonData, GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
 import { getRowCommonDataAsObject } from "./download";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type { TFunction } from "i18next";
 import { layerResultColumns } from "./layerCategories";
@@ -73,10 +73,10 @@ export const generateGeoJsonFarmsDataWithPolygonsValidation = (
  * its result, read with the layer's category), named in the user's language after
  * the category and the layer.
  */
-export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
+export const generateGeoJsonFarmsDataWithLayerAnalysis = (
   farmsData: FarmData[],
-  deforestationAnalysisResults: Pick<
-    DeforestationAnalysisMapResults,
+  territorialAnalysisResults: Pick<
+    LayerAnalysisMapResults,
     "mapId" | "farmResults"
   >[],
   availableMaps: MapData[],
@@ -85,7 +85,7 @@ export const generateGeoJsonFarmsDataWithDeforestationAnalysis = (
   language?: string
 ) => {
   const columns = layerResultColumns(
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     availableMaps,
     categories,
     t,

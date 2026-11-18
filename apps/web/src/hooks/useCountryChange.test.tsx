@@ -41,7 +41,7 @@ describe("useCountryChange", () => {
 
     const map = makeMap();
     expect(
-      nextState(context.setDeforestationAnalysisParams, {
+      nextState(context.setTerritorialAnalysisParams, {
         polygonsSubset: "valid" as const,
         selectedMaps: [map],
       })
@@ -74,7 +74,7 @@ describe("useCountryChange", () => {
 
   describe("after an analysis", () => {
     const afterAnalysis = () =>
-      beforeAnalysis({ deforestationAnalysisResults: [makeMapResults(1, { F01: 0 })] });
+      beforeAnalysis({ territorialAnalysisResults: [makeMapResults(1, { F01: 0 })] });
 
     it("waits for the user to confirm a restart", async () => {
       const { result, context } = await renderHookWithData(useCountryChange, {

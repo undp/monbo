@@ -22,6 +22,6 @@ export const layerResultText = (
     language
   );
   // A finding under 0.1% with a threshold of 0 reads "< 0,1%", never "0%" next to
-  // the flagged label (formatDeforestationPercentage).
+  // the flagged label (formatResultPercentage).
   return resultClass === "flagged" ? `${findingText} · ${label}` : label;
 };

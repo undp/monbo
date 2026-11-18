@@ -32,7 +32,7 @@ export interface FlowStageView {
 // The routes of each stage, sub-pages included.
 const STAGE_ROUTES: Record<FlowStage, string> = {
   1: "polygons-validation",
-  2: "deforestation-analysis",
+  2: "territorial-analysis",
   3: "report-generation",
 };
 
@@ -103,7 +103,7 @@ export const stageHref = (stage: FlowStage, { validationDone, analysisDone }: Fl
   if (stage === 1)
     return validationDone ? "/polygons-validation" : "/polygons-validation/upload-data";
   if (stage === 2)
-    return analysisDone ? "/deforestation-analysis" : "/deforestation-analysis/upload-data";
+    return analysisDone ? "/territorial-analysis" : "/territorial-analysis/upload-data";
   return "/report-generation";
 };
 

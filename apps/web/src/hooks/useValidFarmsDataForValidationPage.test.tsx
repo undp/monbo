@@ -9,7 +9,7 @@ import {
   makeValidationResults,
 } from "@/test/factories";
 import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
-import { useDeforestationFreeResultsCountByMap } from "./useDeforestationFreeResultsCountByMap";
+import { useNoObservationsCountByMap } from "./useNoObservationsCountByMap";
 import { useValidFarmsDataForValidationPage } from "./useValidFarmsDataForValidationPage";
 
 describe("useValidFarmsDataForValidationPage", () => {
@@ -34,12 +34,12 @@ describe("useValidFarmsDataForValidationPage", () => {
   });
 });
 
-describe("useDeforestationFreeResultsCountByMap", () => {
+describe("useNoObservationsCountByMap", () => {
   it("counts the farms at or below the category's threshold per layer, and null when a layer has no data", async () => {
     // The category's threshold (1), not the global one, decides.
     setRuntimeConfig({ deforestationThresholdPercentage: 50, overlapThresholdPercentage: 1 });
     const category = makeCategory({ thresholdPercentage: 1 });
-    const { result } = await renderHookWithData(useDeforestationFreeResultsCountByMap, {
+    const { result } = await renderHookWithData(useNoObservationsCountByMap, {
       context: makeDataContext({
         farmsData: [
           makeFarm({ id: "F01" }),
@@ -47,11 +47,11 @@ describe("useDeforestationFreeResultsCountByMap", () => {
           makeFarm({ id: "F03" }),
           makeFarm({ id: "F04" }),
         ],
-        deforestationAnalysisParams: {
+        territorialAnalysisParams: {
           polygonsSubset: "all",
           selectedMaps: [makeMap({ id: 1 }), makeMap({ id: 2 })],
         },
-        deforestationAnalysisResults: [
+        territorialAnalysisResults: [
           // 0.004 is below the 1% threshold: free, as the table cell and the map say.
           makeMapResults(1, { F01: 0, F02: 0.004, F03: 0.05, F04: null }),
           makeMapResults(2, { F01: null, F02: null, F03: null, F04: null }),

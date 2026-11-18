@@ -14,7 +14,7 @@ import {
   type FlowStage,
   type FlowStageView,
 } from "@/utils/flowStages";
-import { MapSelectionModal } from "@/components/page/deforestationAnalysis/MapSelectionModal";
+import { MapSelectionModal } from "@/components/page/territorialAnalysis/MapSelectionModal";
 import { FLOW_COLORS, HEADING_FONT, REDUCED_MOTION, fill, rise } from "./flowStyles";
 
 // Entrance delays, in seconds: the stages one after another, each bar after the
@@ -102,7 +102,7 @@ export const FlowStepper: React.FC = () => {
   const { current, stages, progress, flags } = useFlowStages();
   const {
     reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
-    deforestationAnalysisParams: { selectedMaps: analysisMaps },
+    territorialAnalysisParams: { selectedMaps: analysisMaps },
   } = useContext(DataContext);
   const [reportModalOpen, setReportModalOpen] = useState(false);
 

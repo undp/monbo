@@ -22,7 +22,7 @@ import { isAdminPath, isSamePath } from "@/utils/paths";
 import { ADMIN_SECTIONS, isInAdminSection } from "./adminSections";
 
 const FLOW_PATH =
-  /^\/(?:[a-z]{2}\/)?(?:polygons-validation|deforestation-analysis|report-generation)(?:\/|$)/;
+  /^\/(?:[a-z]{2}\/)?(?:polygons-validation|territorial-analysis|report-generation)(?:\/|$)/;
 const DOCUMENTATION_PATH = "/documentation";
 
 interface NavLink {
@@ -37,9 +37,9 @@ interface NavLink {
  * it has results, else stage 1's upload page.
  */
 const useAnalysisPath = () => {
-  const { polygonsValidationResults, deforestationAnalysisResults } =
+  const { polygonsValidationResults, territorialAnalysisResults } =
     useContext(DataContext);
-  if (deforestationAnalysisResults) return "/deforestation-analysis";
+  if (territorialAnalysisResults) return "/territorial-analysis";
   if (polygonsValidationResults) return "/polygons-validation";
   return "/polygons-validation/upload-data";
 };

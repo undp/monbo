@@ -1,8 +1,8 @@
 import type { TFunction } from "i18next";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import {
   categoryRule,
@@ -11,7 +11,7 @@ import {
   groupLayersByCategory,
   type ResultClass,
 } from "./layerResults";
-import { formatDeforestationPercentage } from "./numbers";
+import { formatResultPercentage } from "./numbers";
 import { layerLabel } from "./layerLabel";
 import { localizedText } from "./localizedText";
 
@@ -41,7 +41,7 @@ export const layerResult = (
   language = "es"
 ): LayerResult => {
   if (!category || value === null || value === undefined) {
-    const noData = t("deforestationAnalysis:noDataShortText");
+    const noData = t("territorialAnalysis:noDataShortText");
     return {
       resultClass: "unknown",
       finding: null,
@@ -56,7 +56,7 @@ export const layerResult = (
   return {
     resultClass,
     finding: findingRatio(value, rule.polarity),
-    findingText: formatDeforestationPercentage(value, language, rule),
+    findingText: formatResultPercentage(value, language, rule),
     label: localizedText(category.resultLabels[labelClass], language),
   };
 };
@@ -71,7 +71,7 @@ export const categoryLayerName = (
   t("common:layerResults:categoryLayer", {
     category: category
       ? localizedText(category.name, language)
-      : t("deforestationAnalysis:categories.uncategorized"),
+      : t("territorialAnalysis:categories.uncategorized"),
     layer: layerLabel(layer, "short"),
   });
 
@@ -102,7 +102,7 @@ export const findingPercentCell = ({
  * out.
  */
 export const layerResultColumns = (
-  results: Pick<DeforestationAnalysisMapResults, "mapId" | "farmResults">[],
+  results: Pick<LayerAnalysisMapResults, "mapId" | "farmResults">[],
   maps: MapData[],
   categories: LayerCategory[],
   t: TFunction,

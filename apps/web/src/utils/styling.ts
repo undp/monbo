@@ -26,12 +26,12 @@ export const resultClassBackgroundColor = (resultClass: ResultClass) =>
 
 // The rule defaults to deforestation (the PDF and the exports); stage 2 passes each
 // layer's category rule, and a null rule (category missing) reads as no data.
-export const getDeforestationPercentageChipColor = (
-  deforestationValue: number | null | undefined,
+export const getResultChipColor = (
+  value: number | null | undefined,
   rule: ClassificationRule | null = deforestationRule()
-) => resultClassColor(classifyResult(deforestationValue, rule));
+) => resultClassColor(classifyResult(value, rule));
 
-export const getDeforestationPercentageChipBackgroundColor = (
-  deforestationValue: number | null | undefined,
+export const getResultChipBackgroundColor = (
+  value: number | null | undefined,
   rule: ClassificationRule | null = deforestationRule()
-) => resultClassBackgroundColor(classifyResult(deforestationValue, rule));
+) => resultClassBackgroundColor(classifyResult(value, rule));

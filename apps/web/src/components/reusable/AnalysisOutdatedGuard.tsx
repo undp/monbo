@@ -17,7 +17,7 @@ export const AnalysisOutdatedGuard = ({ locale, children }: Props) => {
 
   useEffect(() => {
     if (analysisOutdated) {
-      router.replace(`/${locale}/deforestation-analysis/upload-data`);
+      router.replace(`/${locale}/territorial-analysis/upload-data`);
     }
   }, [analysisOutdated, locale, router]);
 

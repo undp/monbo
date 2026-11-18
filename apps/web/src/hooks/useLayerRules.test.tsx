@@ -12,7 +12,7 @@ describe("useLayerRules", () => {
   it("reads each analysed layer with its category's rule", async () => {
     const { result } = await renderHookWithData(() => useLayerRules(), {
       context: makeDataContext({
-        deforestationAnalysisParams: {
+        territorialAnalysisParams: {
           polygonsSubset: "valid",
           selectedMaps: [gfw, upra, orphan],
         },

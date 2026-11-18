@@ -80,7 +80,7 @@ describe("LandingStart", () => {
   it("asks for a restart once an analysis exists", async () => {
     await renderLanding(<LandingStart onStart={vi.fn()} />, {
       selectedCountry: "CO",
-      context: { deforestationAnalysisResults: [makeMapResults(1, {})] },
+      context: { territorialAnalysisResults: [makeMapResults(1, {})] },
     });
 
     fireEvent.click(pill("Ecuador"));

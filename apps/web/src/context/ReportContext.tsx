@@ -13,18 +13,18 @@ import {
 } from "react";
 import { useParams } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
-import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
+import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysisPage";
 import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
 import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import pLimit from "p-limit";
 import {
-  DeforestationImageBlob,
-  fetchDeforestationImages,
+  LayerImageBlob,
+  fetchLayerImages,
   fetchFarmImages,
   includesSatelliteBackground,
   mapsWithResults,
-} from "@/utils/deforestationImages";
+} from "@/utils/layerImages";
 import { countFarmPages, isLargeReport } from "@/utils/reportSize";
 import {
   ReportPdfClient,
@@ -35,9 +35,9 @@ import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import type { FarmData } from "@/interfaces/Farm";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 
 // The report page's images and renders, shared by the preview and the downloads:
 // - every PDF renders in a worker (src/workers/reportPdf.worker.tsx);
@@ -56,7 +56,7 @@ interface Selection {
   maps: MapData[];
   /** The country's categories: each layer's rule and texts in the report. */
   categories: LayerCategory[];
-  results: DeforestationAnalysisMapResults[];
+  results: LayerAnalysisMapResults[];
   locale: string;
   /** Its farm pages: a sheet per farm and a map per (farm, layer) with a result. */
   farmPages: number;
@@ -143,7 +143,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 /** Only `farm`'s results, per layer: all that its PDF needs. */
 const farmResults = (
   farm: FarmData,
-  results: DeforestationAnalysisMapResults[]
+  results: LayerAnalysisMapResults[]
 ) =>
   results.map((layer) => ({
     ...layer,
@@ -177,7 +177,7 @@ const keyed = <T,>(
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
   const params = useParams();
   const locale = params.locale as string;
-  const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
+  const { territorialAnalysisResults } = useVisibleDataForAnalysisPage();
   const {
     reportGenerationParams: { selectedMaps, selectedFarms },
     selectedCountry,
@@ -186,7 +186,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   } = useContext(DataContext);
 
   const selection = useMemo<Selection | null>(() => {
-    const results = deforestationAnalysisResults.filter((m) =>
+    const results = territorialAnalysisResults.filter((m) =>
       selectedMaps.some((map) => map.id === m.mapId)
     );
     if (
@@ -217,7 +217,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       isLarge: isLargeReport(farmPages),
     };
   }, [
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     selectedMaps,
     selectedFarms,
     selectedCountry,
@@ -236,7 +236,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   const clientRef = useRef<ReportPdfClient | null>(null);
   const mountedRef = useRef(true);
-  const imagesRef = useRef<Keyed<DeforestationImageBlob[]>>(null);
+  const imagesRef = useRef<Keyed<LayerImageBlob[]>>(null);
   const previewRef = useRef<Keyed<Blob>>(null);
   const completeRef = useRef<Keyed<Blob>>(null);
 
@@ -256,7 +256,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       showLinks: boolean
     ): Promise<Blob> => {
       const images = await keyed(imagesRef, s.key, () =>
-        fetchDeforestationImages(s.country, s.maps, s.farms, s.results)
+        fetchLayerImages(s.country, s.maps, s.farms, s.results)
       );
       return workerClient().render({
         kind,
@@ -348,7 +348,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       });
       const limit = pLimit(20);
       const total = s.farms.length;
-      const images: (Promise<DeforestationImageBlob[]> | null | undefined)[] = [];
+      const images: (Promise<LayerImageBlob[]> | null | undefined)[] = [];
       const fetchAhead = (i: number) => {
         if (i >= total || images[i] !== undefined) return;
         const fetching = fetchFarmImages({
