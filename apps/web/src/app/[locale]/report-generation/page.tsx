@@ -39,6 +39,8 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
           <Box
             sx={{
               display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
               justifyContent: "space-between",
               alignItems: "flex-end",
             }}
@@ -50,7 +52,7 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
             <Suspense>
               <SearchBar
                 placeholder={t("reportGeneration:searchPlaceholder")}
-                style={{ minWidth: "400px" }}
+                style={{ minWidth: { xs: "100%", sm: "400px" } }}
               />
             </Suspense>
           </Box>

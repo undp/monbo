@@ -6,7 +6,7 @@
     "selectFarmsTitle": "Select the polygons to include",
     "allFarms": "All ({{amount}})",
     "selectFarms": "Select",
-    "selectMapsTitle": "Select map layers to consider",
+    "selectMapsTitle": "Select the layers to include",
     "button": "Continue"
   },
   "words": {

@@ -25,6 +25,12 @@ const AXIS_SX = {
   "& .MuiChartsGrid-line": { stroke: "#e1e0d9" },
 };
 
+// The charts' own texts ("No data to display" by default) in the user's language.
+const useChartLocaleText = () => {
+  const { t } = useTranslation();
+  return { noData: t("admin:usage:chartNoData") };
+};
+
 const useFormat = () => {
   const { i18n } = useTranslation();
   const integer = new Intl.NumberFormat(i18n.language);
@@ -43,9 +49,11 @@ export const UsageSparkline: React.FC<{ data: number[]; label: string }> = ({
   data,
   label,
 }) => {
+  const localeText = useChartLocaleText();
   const format = useFormat();
   return (
     <SparkLineChart
+      localeText={localeText}
       data={data}
       height={48}
       area
@@ -62,10 +70,12 @@ export const UsageSparkline: React.FC<{ data: number[]; label: string }> = ({
 /** Sessions that reached each step of the analysis flow, with their share. */
 export const UsageFunnelChart: React.FC<{ totals: UsageBlock }> = ({ totals }) => {
   const { t } = useTranslation();
+  const localeText = useChartLocaleText();
   const format = useFormat();
   const stages = funnelStages(totals);
   return (
     <BarChart
+      localeText={localeText}
       height={260}
       layout="horizontal"
       hideLegend
@@ -115,6 +125,7 @@ export const UsageFunnelChart: React.FC<{ totals: UsageBlock }> = ({ totals }) =
 /** Successes and errors of each step, stacked. */
 export const UsageOutcomesChart: React.FC<{ totals: UsageBlock }> = ({ totals }) => {
   const { t } = useTranslation();
+  const localeText = useChartLocaleText();
   const format = useFormat();
   const rows = stepOutcomes(totals);
   const series = (["ok", "invalidInput", "failed"] as const).map((key) => ({
@@ -126,6 +137,7 @@ export const UsageOutcomesChart: React.FC<{ totals: UsageBlock }> = ({ totals })
   }));
   return (
     <BarChart
+      localeText={localeText}
       height={260}
       layout="horizontal"
       grid={{ vertical: true }}
@@ -149,9 +161,11 @@ export const CountryShareDonut: React.FC<{ slices: CountrySlice[]; label: string
   slices,
   label,
 }) => {
+  const localeText = useChartLocaleText();
   const format = useFormat();
   return (
     <PieChart
+      localeText={localeText}
       height={220}
       hideLegend
       aria-label={label}
@@ -180,6 +194,7 @@ export const UsageWeeklyChart: React.FC<{ weekly: UsageReport["weekly"] }> = ({
   weekly,
 }) => {
   const { t, i18n } = useTranslation();
+  const localeText = useChartLocaleText();
   const format = useFormat();
   const weekLabel = new Intl.DateTimeFormat(i18n.language, {
     day: "numeric",
@@ -199,6 +214,7 @@ export const UsageWeeklyChart: React.FC<{ weekly: UsageReport["weekly"] }> = ({
 
   return (
     <LineChart
+      localeText={localeText}
       height={300}
       grid={{ horizontal: true }}
       sx={{ ...AXIS_SX, "& .MuiLineElement-root": { strokeWidth: 2 } }}

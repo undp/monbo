@@ -3,7 +3,7 @@
   "searchPlaceholder": "Buscar por polígono o productor",
   "paramsSelectionModal": {
     "title": "Generación del reporte",
-    "selectFarmsTitle": "Selecciona los polígonos a incluir",
+    "selectFarmsTitle": "Elige los polígonos que quieres incluir",
     "allFarms": "Todos ({{amount}})",
     "selectFarms": "Seleccionar",
     "selectMapsTitle": "Elige las capas que quieres incluir",

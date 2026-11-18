@@ -359,7 +359,7 @@
       "conversion_mismatch": "La conversión no conservó todos los píxeles, así que no se cambió nada.",
       "layer_not_found": "La capa ya no existe.",
       "interrupted": "El proceso se interrumpió porque el servidor se reinició. Vuelve a subir el archivo.",
-      "unexpected": "Ocurrió un error inesperado al procesar el raster.",
+      "unexpected": "No se pudo procesar el raster por un error inesperado.",
       "nodata_ignored": "El archivo ya declara nodata {{declared}}; se ignoró el valor {{requested}}.",
       "no_positive_pixels": "El raster no tiene píxeles dentro de la capa (valor 1)."
     }
@@ -446,6 +446,7 @@
       "reportsDownloaded": "Reportes descargados"
     },
     "notConfigured": "Las métricas de uso no están configuradas en este servidor.",
-    "loadError": "No se pudieron cargar las cifras de uso."
+    "loadError": "No se pudieron cargar las cifras de uso.",
+    "chartNoData": "Sin datos en este rango."
   }
 }

@@ -50,12 +50,22 @@ A text that applies to every layer category SHALL use generic wording ("análisi
 
 ### Requirement: Every visible text goes through i18next
 
-Every string the web shows or announces to assistive technology, including accessible labels and the sheet names of exported Excel files, SHALL come from an i18next key present in both `locales/es/` and `locales/en/`. The validation export's bilingual header rows, which follow the upload template's layout, are exempt. No key SHALL contain the misspelling "analized", and no English text SHALL read "analized".
+Every string the web shows or announces to assistive technology, including accessible labels, the default texts of MUI components (such as the `closeText` of a closable `Alert` and the no-data text of the charts) and the sheet names of exported Excel files, SHALL come from an i18next key present in both `locales/es/` and `locales/en/`. The validation export's bilingual header rows, which follow the upload template's layout, are exempt. No key SHALL contain the misspelling "analized", and no English text SHALL read "analized".
 
 #### Scenario: Close button of a modal
 
 - **WHEN** a screen reader focuses the close button of a modal in Spanish
 - **THEN** it announces "Cerrar"
+
+#### Scenario: Close button of a snackbar or an alert
+
+- **WHEN** a snackbar or a closable alert shows in Spanish
+- **THEN** its close button announces "Cerrar", not MUI's default "Close"
+
+#### Scenario: Empty chart in the usage page
+
+- **WHEN** a chart of the usage page has no data
+- **THEN** it says so in the user's language, not with the chart library's "No data to display"
 
 #### Scenario: Validation export in English
 
@@ -69,7 +79,7 @@ Every string the web shows or announces to assistive technology, including acces
 
 ### Requirement: Literal keys exist in the namespace they name
 
-Every literal key the code passes to `t()` as `"namespace:key"` SHALL exist in that namespace, in `es` and in `en`, so that no text depends on the fallback to `common` to show. Keys built at runtime are exempt.
+Every translation key written in the code as a string literal `"namespace:key"`, whether it is passed to `t()` directly, chosen in a ternary, kept in a constant or passed as a prop, SHALL name a text (a string, or the forms of a plural) that exists in that namespace, in `es` and in `en`. No text SHALL depend on the fallback to `common` to show, and no key SHALL name a group of texts. Keys built at runtime (a template literal such as `` `${prefix}:title` `` or a variable) are exempt, because their value is only known when the code runs.
 
 #### Scenario: Testing-environment warning
 
@@ -78,5 +88,10 @@ Every literal key the code passes to `t()` as `"namespace:key"` SHALL exist in t
 
 #### Scenario: A key missing from its namespace
 
-- **WHEN** a component reads a literal key that its namespace does not define
+- **WHEN** a component reads a literal key that its namespace does not define, even from a ternary or a constant
 - **THEN** the test suite fails and names the file and the key
+
+#### Scenario: A key that names a group of texts
+
+- **WHEN** the code holds a literal key such as `"common:snackbarAlerts"`, which names an object of texts
+- **THEN** the test suite fails and says the key is not a text

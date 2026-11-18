@@ -14,7 +14,8 @@
     },
     "uploadStep": {
       "stepTitle": "Paso 2: Agrega tus polígonos",
-      "loadedFarms": "Ya cargaste {{count}} polígonos o puntos.",
+      "loadedFarms_one": "Ya cargaste {{count}} polígono o punto.",
+      "loadedFarms_other": "Ya cargaste {{count}} polígonos o puntos.",
       "analyzeLoadedFarms": "Analizar",
       "submit": "Subir y analizar",
       "uploadAnother": "Cargar otro archivo"

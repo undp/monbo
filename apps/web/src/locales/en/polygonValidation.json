@@ -1,6 +1,6 @@
 {
   "title": "Polygon Validation",
-  "validPolygons": "Validated Polygons",
+  "validPolygons": "validated polygons",
   "inconsistenciesTypes": {
     "overlap": "Overlap",
     "empty_polygon": "Empty Polygon",

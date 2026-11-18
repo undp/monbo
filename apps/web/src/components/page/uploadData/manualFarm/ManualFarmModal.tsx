@@ -203,7 +203,11 @@ const ManualFarmModalContent: React.FC<
               </Alert>
             )}
             {farm.error && (
-              <Alert severity="warning" onClose={farm.clearError}>
+              <Alert
+                severity="warning"
+                onClose={farm.clearError}
+                closeText={t("manualFarm:close")}
+              >
                 {t(`manualFarm:drawingErrors:${farm.error}`)}
               </Alert>
             )}

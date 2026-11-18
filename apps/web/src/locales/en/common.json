@@ -77,7 +77,7 @@
     "menuLabel": "Analysis country",
     "restartModal": {
       "title": "Changing the country restarts the analysis",
-      "description": "You already ran a territorial analysis. To analyze {{country}} you have to start over and upload your polygons again. The loaded data and results will be lost.",
+      "description": "You already ran a territorial analysis. To analyze {{country}} you have to start over and upload your polygons again. You will lose the data you loaded and its results.",
       "cancel": "Cancel",
       "confirm": "Start over"
     }

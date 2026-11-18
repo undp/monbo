@@ -235,7 +235,8 @@ pnpm test:watch   # re-runs the affected tests on save
 - **What they cover:**
   - the formatting and domain helpers in `src/utils/`;
   - upload validation and the real upload templates in `public/files/`;
-  - en/es translation parity;
+  - en/es translation parity, and that every literal translation key in the code
+    (`"namespace:key"`) names a text of that namespace (`src/locales/usedKeys.test.ts`);
   - the hooks that read `DataContext`;
   - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
   - the PDF worker client;

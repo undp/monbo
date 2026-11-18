@@ -7,10 +7,15 @@ import { useModuleRouter } from "./useModuleRouter";
 export type EntryStage = 1 | 2;
 
 const STAGES = {
-  1: { path: "/polygons-validation", texts: "home:sameDataModal:polygonValidation" },
+  1: {
+    path: "/polygons-validation",
+    title: "home:sameDataModal:polygonValidation:title",
+    description: "home:sameDataModal:polygonValidation:description",
+  },
   2: {
     path: "/deforestation-analysis",
-    texts: "home:sameDataModal:deforestationAnalysis",
+    title: "home:sameDataModal:deforestationAnalysis:title",
+    description: "home:sameDataModal:deforestationAnalysis:description",
   },
 } as const;
 
@@ -20,7 +25,7 @@ const STAGES = {
  * ActionModal), whether to continue with the same data or upload new data.
  */
 export function useStageEntry(stage: EntryStage) {
-  const { path, texts } = STAGES[stage];
+  const { path, title, description } = STAGES[stage];
   const {
     farmsData,
     polygonsValidationResults,
@@ -47,8 +52,8 @@ export function useStageEntry(stage: EntryStage) {
   const modal = {
     maxWidth: "md" as const,
     isOpen,
-    title: t(`${texts}:title`),
-    description: t(`${texts}:description`),
+    title: t(title),
+    description: t(description),
     handleClose: () => setIsOpen(false),
     actions: [
       {

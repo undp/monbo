@@ -1,6 +1,6 @@
 {
   "title": "Validación de polígonos",
-  "validPolygons": "Polígonos validados",
+  "validPolygons": "polígonos validados",
   "inconsistenciesTypes": {
     "overlap": "Traslape",
     "empty_polygon": "Polígono vacío",

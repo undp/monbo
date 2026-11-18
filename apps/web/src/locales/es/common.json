@@ -77,7 +77,7 @@
     "menuLabel": "País del análisis",
     "restartModal": {
       "title": "Cambiar de país reinicia el análisis",
-      "description": "Ya hiciste un análisis territorial. Para analizar {{country}} tienes que empezar de nuevo y volver a cargar tus polígonos. Vas a perder los datos y los resultados que cargaste.",
+      "description": "Ya hiciste un análisis territorial. Para analizar {{country}} tienes que empezar de nuevo y volver a cargar tus polígonos. Vas a perder los datos que cargaste y sus resultados.",
       "cancel": "Cancelar",
       "confirm": "Empezar de nuevo"
     }
