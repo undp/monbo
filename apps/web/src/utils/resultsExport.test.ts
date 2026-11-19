@@ -51,6 +51,7 @@ const POLYGON_FARM: FarmData = {
   documents: [
     { name: "Declaración Jurada", url: "https://example.org/declaracion" },
   ],
+  origin: null,
   polygon: {
     type: "polygon",
     details: {
@@ -73,6 +74,7 @@ const POINT_FARM: FarmData = {
   region: null,
   association: null,
   documents: [],
+  origin: null,
   polygon: {
     type: "point",
     details: { center: { lng: -84.1, lat: 10.1 }, radius: 89.2 },
@@ -94,6 +96,7 @@ const SMALL_POINT_FARM: FarmData = {
   region: null,
   association: null,
   documents: [],
+  origin: null,
   polygon: {
     type: "point",
     details: { center: { lng: -84.12, lat: 10.11 }, radius: 3.57 },

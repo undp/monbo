@@ -1069,6 +1069,16 @@
             "title": "Id",
             "type": "string"
           },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "polygon": {
             "discriminator": {
               "mapping": {
@@ -1131,7 +1141,8 @@
           "region",
           "association",
           "documents",
-          "polygon"
+          "polygon",
+          "origin"
         ],
         "title": "FarmData",
         "type": "object"
@@ -1159,6 +1170,71 @@
           "value"
         ],
         "title": "FarmLayerResult",
+        "type": "object"
+      },
+      "FarmOrigin-Input": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "title": "FarmOrigin",
+        "type": "object"
+      },
+      "FarmOrigin-Output": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "fileName"
+        ],
+        "title": "FarmOrigin",
         "type": "object"
       },
       "FarmPolygonDetailData": {
@@ -1639,6 +1715,16 @@
               }
             ],
             "title": "Id"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "producerName": {
             "title": "Producername",

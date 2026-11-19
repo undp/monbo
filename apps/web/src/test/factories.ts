@@ -25,6 +25,7 @@ export const makeFarm = (overrides: Partial<FarmData> = {}): FarmData => ({
   cropType: "Café",
   association: null,
   documents: [],
+  origin: null,
   polygon: {
     type: "point",
     area: 10000,
