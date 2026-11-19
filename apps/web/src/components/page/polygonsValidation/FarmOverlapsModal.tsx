@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { CircleObject, PolygonObject } from "@/components/reusable/Map";
 import { Header, RowData } from "@/components/reusable/Table";
 import { Text } from "@/components/reusable/Text";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { issueMapColor, multipleObjectsMapColors } from "@/config/theme";
 import { DataContext } from "@/context/DataContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
@@ -20,7 +21,11 @@ import { BasePolygonModal } from "./BasePolygonModal";
 const colorAt = (index: number) =>
   multipleObjectsMapColors[index % multipleObjectsMapColors.length];
 
-const CRITICALITY_COLORS = { HIGH: "#C62828", MEDIUM: "#ED6C02" } as const;
+// The stage pages' tones, as the status chips of the results table
+const CRITICALITY_COLORS = {
+  HIGH: { color: FLOW_COLORS.bad, backgroundColor: FLOW_COLORS.badBackground },
+  MEDIUM: { color: FLOW_COLORS.warn, backgroundColor: FLOW_COLORS.warnBackground },
+} as const;
 
 const farmObject = (
   farm: FarmData,
@@ -119,10 +124,7 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
         },
         criticality: {
           value: t(`polygonValidation:farmOverlapsModal:criticality:${data.criticality}`),
-          chipStyle: {
-            color: "#fff",
-            backgroundColor: CRITICALITY_COLORS[data.criticality],
-          },
+          chipStyle: { ...CRITICALITY_COLORS[data.criticality], fontWeight: 700 },
         },
       },
     }));

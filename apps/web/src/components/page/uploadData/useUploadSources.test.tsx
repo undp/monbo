@@ -302,6 +302,27 @@ describe("useUploadSources, kept for stage 1", () => {
     expect(result.current.upload.sources).toEqual([]);
   });
 
+  it("doesn't bring back a file whose read ends after the flow started over", async () => {
+    const imported = deferred<ImportedFile>();
+    vi.mocked(importGeoFile).mockReturnValue(imported.promise);
+    const { result } = await mountKept();
+
+    let adding!: Promise<void>;
+    act(() => {
+      adding = result.current.upload.addGeoFiles([
+        toFile(new Uint8Array([1]), "fincas.geojson"),
+      ]);
+    });
+    act(() => result.current.context.resetAnalysis());
+    await act(async () => {
+      imported.resolve(COLOMBIAN_FARM);
+      await adding;
+    });
+
+    expect(result.current.upload.sources).toEqual([]);
+    expect(result.current.upload.reading).toBe(false);
+  });
+
   it("keeps the page-local list apart", async () => {
     const { result } = await mountKept();
     act(() => result.current.upload.saveManual(MANUAL_ROW));

@@ -100,6 +100,6 @@
     "validate": "Validate {{id}} manually",
     "validateHint": "It is included in the analysis even though it overlaps these polygons. Each neighbour is validated from its own row."
   },
-  "manualValidationsDropped_one": "{{count}} manual validation was removed: that polygon now overlaps others. Review it again.",
-  "manualValidationsDropped_other": "{{count}} manual validations were removed: those polygons now overlap others. Review them again."
+  "manualValidationsDropped_one": "{{count}} manual validation was removed: the polygon changed or its overlaps are no longer the same. Review it again.",
+  "manualValidationsDropped_other": "{{count}} manual validations were removed: the polygons changed or their overlaps are no longer the same. Review them again."
 }

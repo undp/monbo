@@ -108,7 +108,7 @@ The three summary cards above the results (ready to analyze, overlapping, with a
 
 ### Requirement: Adding more polygons after a validation
 
-The results page SHALL offer "Agregar más polígonos". It SHALL go to `/polygons-validation/upload-data` with the upload list as the user last left it, including the rows they deleted. The page SHALL NOT validate again until the user presses its button. Pressing it SHALL parse and validate every farm in the list together, old and new, because a new polygon can overlap an old one. The new validation SHALL drop the stage 2 results, as uploading new farms does today.
+The results page SHALL offer "Agregar más polígonos" when the farms come from stage 1's upload list; farms uploaded on stage 2 have no list to go back to, and an empty one would replace them all. It SHALL go to `/polygons-validation/upload-data` with the upload list as the user last left it, including the rows they deleted. The page SHALL NOT validate again until the user presses its button. Pressing it SHALL parse and validate every farm in the list together, old and new, because a new polygon can overlap an old one. The new validation SHALL drop the stage 2 results, as uploading new farms does today.
 
 #### Scenario: Adding a drawn farm
 
@@ -123,11 +123,11 @@ The results page SHALL offer "Agregar más polígonos". It SHALL go to `/polygon
 ### Requirement: Manual validations survive a new validation only for the same overlaps
 
 After a new validation from "Agregar más polígonos", a farm that was `VALID_MANUALLY` SHALL stay `VALID_MANUALLY` only when all of these hold:
-- it has the same ID;
+- it is the same polygon: the same geometry, whatever ID the API gives it now, and no other farm of the list has that geometry;
 - it has no geometry error;
-- it overlaps exactly the same set of farm IDs as when it was validated.
+- it overlaps exactly the same polygons as when it was validated.
 
-Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps. When a manual validation was dropped, the page SHALL say how many were dropped and why.
+Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps, and a validation SHALL never pass to another farm through its ID. When a validated farm still in the list loses its validation, the page SHALL say how many were dropped and why. A farm the user deleted SHALL NOT count.
 
 #### Scenario: A new farm away from the validated ones
 
@@ -143,6 +143,11 @@ Otherwise it SHALL take the status the API returned, so nobody is validated with
 
 - **WHEN** CO-003 was validated manually over CO-006, and the user deletes CO-006 from the list and validates again
 - **THEN** CO-003 takes the API's status, `VALID`, and reads "Listo"
+
+#### Scenario: Positional IDs shift after a deleted row
+
+- **WHEN** an Excel without IDs lists five farms in a row, each overlapping the next, the third one (ID 3) was validated manually, and the user deletes the first row and validates again
+- **THEN** the validated polygon, now ID 2, still reads "Validado manualmente", and the polygon that now has ID 3 reads "Se superpone con 2 polígonos"
 
 ### Requirement: The results texts are translated
 

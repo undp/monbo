@@ -127,6 +127,7 @@ const generateRows = (
   return data.farmIds.map((farmId, idx) => {
     const farm = farmsData.find((farm) => farm.id === farmId);
     if (!farm) return null;
+    const area = knownArea(farm.polygon.area);
 
     return {
       haveActions: true,
@@ -151,9 +152,7 @@ const generateRows = (
         },
         id: { value: farm.id },
         area: {
-          value: knownArea(farm.polygon.area)
-            ? parseAreaToHectares(farm.polygon.area!, 2, false, language)
-            : t("common:na"),
+          value: area ? parseAreaToHectares(area, 2, false, language) : t("common:na"),
         },
       },
       data,

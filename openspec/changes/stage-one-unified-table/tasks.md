@@ -1,6 +1,6 @@
 ## 0. Prerequisite
 
-- [ ] 0.1 Commit the uncommitted stage 1 redesign of `progressive-flow-stages` (§10) after `pnpm run build` passes, so this change starts from a clean base (the build passed on 2026-11-18; the commit waits for the user)
+- [x] 0.1 Commit the uncommitted stage 1 redesign of `progressive-flow-stages` (§10) after `pnpm run build` passes, so this change starts from a clean base (`fc51b9d`)
 
 ## 1. API: farm origin
 
@@ -10,7 +10,7 @@
   - `origin` is echoed per farm;
   - a farm without `origin` gets null;
   - a 256-character `fileName` gets a 422
-- [ ] 1.4 Run `pnpm contracts` (done, checks green; the commit waits for the user) and commit the model, `openapi.json` and `schema.d.ts` together. Run `uv run pytest`, `ruff`, `black --check` and `mypy app`
+- [x] 1.4 Run `pnpm contracts` and commit the model, `openapi.json` and `schema.d.ts` together. Run `uv run pytest`, `ruff`, `black --check` and `mypy app`
 
 ## 2. Web: upload sources
 
@@ -78,6 +78,16 @@
 - [x] 5b.2 Share the mockup's table look between the upload list and the results (`flowTable.ts`): headers on a light band, roomy rows, a blue ID, the type with its icon, and wrapping texts instead of a sideways scroll
 - [x] 5b.3 Put the results in a card titled "Resultado de la validación", with the count of items, polygons and points, "Revisar" and "Agregar más polígonos" as links
 - [x] 5b.4 Make the summary cards filter the table through `?status=`, with the same rule for their numbers and their rows (`matchesResultsFilter`), plus tests
+
+## 5c. Review fixes (PR #147)
+
+- [x] 5c.1 Reconcile manual validations by geometry, not by ID: a validation never moves to the farm that takes its ID, follows its polygon when the API gives it another ID, and every validated farm still listed that loses it counts in the notice
+- [x] 5c.2 Offer "Agregar más polígonos" only over stage 1's own list (farms uploaded on stage 2 have none, and an empty list would replace them)
+- [x] 5c.3 Clear the earlier results when new farms are set, so a failed validation never shows a farm as ready
+- [x] 5c.4 Ignore a file read that ends after the flow started over
+- [x] 5c.5 Name each file notice's buttons after their file; theme colors in the overlaps modal; production through `formatNumber`
+- [x] 5c.6 Split `FarmsUploadStep.tsx` into one file per component, and virtualize the upload list from 100 rows (`@tanstack/react-virtual`)
+- [x] 5c.7 Let the results card grow with its rows up to the viewport, scrolling from there
 
 ## 6. Docs and checks
 

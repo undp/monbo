@@ -121,19 +121,22 @@ The validate-on-mount effect changes to:
 
 ### 6. Re-validation keeps manual validations only for the same neighbours
 
-Before sending the new upload, the page keeps a snapshot. It maps each `VALID_MANUALLY` farm's ID to the set of neighbour IDs it overlapped then.
+A farm is identified by its geometry (`geometryKey`: a point's center and radius, a polygon's parts), not by its ID. Rows without an ID get theirs from the API by position or at random, so deleting a row can hand a validated farm's ID to another farm, and a parse can give the same farm a new ID.
 
-After `validatePolygons` answers, a pure function, `reconcileManualValidations(snapshot, newResults)`, sets a farm back to `VALID_MANUALLY` when:
-- its ID is in the snapshot;
+Before sending the new upload, the page keeps a snapshot. It maps each `VALID_MANUALLY` farm's geometry to the geometries it overlapped then.
+
+After `validatePolygons` answers, a pure function, `reconcileManualValidations(snapshot, newResults, farms)`, sets a farm back to `VALID_MANUALLY` when:
+- its geometry is in the snapshot, and no other farm of the list shares it;
 - it has no geometry inconsistency;
-- its new set of neighbours equals the old one.
+- the geometries it overlaps now equal the old ones.
 
-The function returns the reconciled results and how many validations were dropped. A count above zero shows a warning snackbar.
+The function returns the reconciled results and how many validations were dropped: the validated farms still in the list that now need a review. A deleted farm needs none and isn't counted. A count above zero shows a warning snackbar.
 
 The stage 2 results are dropped through the existing invalidation, the same as a new upload.
 
 - **Alternative: drop every manual validation.** It is simpler, but it throws away a review that is still right.
 - **Alternative: keep them all.** It can keep a farm validated over a new overlap nobody saw.
+- **Alternative: key by ID.** The first version did. A deleted row shifted the positional IDs, and the validation moved to the farm that took the ID (review of #147).
 
 ### 7. The drawing area is one button
 
@@ -141,8 +144,8 @@ The drawing panel becomes a `ButtonBase`. It covers the forest image, the icon, 
 
 ## Risks / Trade-offs
 
-- **[Farms without an ID lose their manual validation on a re-validation.]** When only some farms have IDs, the API gives the others random IDs on each parse. → They are counted in the "dropped" notice, so the user knows. This is the safe direction: a validation can be lost, never wrongly kept.
-- **[A large Excel becomes thousands of rows in the list.]** → The list scrolls inside a fixed-height section, as the results do. If it proves slow with real files, virtualize the rows in a follow-up. The reusable `Table` has no virtualization today.
+- **[A farm whose geometry changes loses its manual validation.]** Editing a drawn farm or fixing a file's coordinates makes it another polygon. → It is counted in the "dropped" notice, so the user reviews it again. This is the safe direction: a validation can be lost, never wrongly kept.
+- **[A large Excel becomes thousands of rows in the list.]** → The list scrolls inside a fixed-height frame, and from 100 rows on only the rows in view are rendered (`@tanstack/react-virtual`, which measures each row, since long texts wrap).
 - **[Two open changes touch stage 1.]** → This change starts after `progressive-flow-stages` is committed. Its delta specs modify `farm-upload` requirements that `progressive-flow-stages` doesn't, so archiving both in order doesn't conflict.
 - **[A contract change touches both CI jobs.]** → The model, `openapi.json` and `schema.d.ts` go in one commit. The API test covers the echo and the 255-character limit (a 422).
 - **[Keeping `File` objects in memory.]** They are already kept for the country change. Now they also survive a visit to the results. → Memory is released on start over and on refresh.

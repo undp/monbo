@@ -88,48 +88,80 @@ export const withFarmStatus = (
   ),
 });
 
-/** Each farm validated manually, by ID, with the IDs it overlapped, sorted. */
-export type ManualValidations = Map<string, string[]>;
-
-const neighbourIds = (
-  farmId: string,
-  inconsistencies: ValidateFarmsResponse["inconsistencies"]
-) =>
-  overlapsOf(farmId, inconsistencies)
-    .map(({ neighbourId }) => neighbourId)
-    .sort();
-
-export const manualValidationsOf = (
-  results: ValidateFarmsResponse | null
-): ManualValidations =>
-  new Map(
-    (results?.farmResults ?? [])
-      .filter(({ status }) => status === FarmValidationStatus.VALID_MANUALLY)
-      .map(({ farmId }) => [farmId, neighbourIds(farmId, results!.inconsistencies)])
+/**
+ * A farm's geometry as text. It names the same farm across parses whatever ID
+ * the API gives it: farms without an ID get theirs by position, or at random,
+ * so deleting a row can hand a validated farm's ID to another one.
+ */
+export const geometryKey = (farm: FarmData): string =>
+  JSON.stringify(
+    farm.polygon.type === "point"
+      ? [farm.polygon.details.center, farm.polygon.details.radius]
+      : (farm.polygon.details?.parts ?? null)
   );
 
-const sameIds = (a: string[], b: string[]) =>
-  a.length === b.length && a.every((id, index) => id === b[index]);
+/** Each farm validated manually, by geometry, with the geometries it overlapped, sorted. */
+export type ManualValidations = Map<string, string[]>;
+
+const geometryKeys = (farms: FarmData[]) =>
+  new Map(farms.map((farm) => [farm.id, geometryKey(farm)]));
+
+const neighbourKeys = (
+  farmId: string,
+  inconsistencies: ValidateFarmsResponse["inconsistencies"],
+  keys: Map<string, string>
+) =>
+  overlapsOf(farmId, inconsistencies)
+    .map(({ neighbourId }) => keys.get(neighbourId) ?? `id:${neighbourId}`)
+    .sort();
+
+/** The manual validations of these results, to put back after a new validation. */
+export const manualValidationsOf = (
+  results: ValidateFarmsResponse | null,
+  farms: FarmData[] | null
+): ManualValidations => {
+  if (!results || !farms) return new Map();
+  const keys = geometryKeys(farms);
+  return new Map(
+    results.farmResults.flatMap(({ farmId, status }) => {
+      const key = keys.get(farmId);
+      return status === FarmValidationStatus.VALID_MANUALLY && key !== undefined
+        ? [[key, neighbourKeys(farmId, results.inconsistencies, keys)] as const]
+        : [];
+    })
+  );
+};
+
+const sameKeys = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((key, index) => key === b[index]);
 
 /**
- * A new validation's results with the earlier manual validations put back, for
- * the farms that overlap exactly the same farms as when they were validated and
- * have no geometry error: nobody stays validated over an overlap they didn't see.
- * `dropped` counts the farms that were validated and now need a review again.
+ * A new validation's results with the earlier manual validations put back. A
+ * farm gets its validation back only if it is the same polygon (same geometry,
+ * whatever its ID now), overlaps exactly the same polygons as when it was
+ * validated, has no geometry error and no other farm in the list shares its
+ * geometry: nobody stays validated over an overlap they didn't see, and a
+ * validation never moves to another farm. `dropped` counts the validated farms
+ * still in the list that need a review again; a deleted one needs none.
  */
 export const reconcileManualValidations = (
   validated: ManualValidations,
-  results: ValidateFarmsResponse
+  results: ValidateFarmsResponse,
+  farms: FarmData[]
 ): { results: ValidateFarmsResponse; dropped: number } => {
+  const keys = geometryKeys(farms);
+  const farmsPerKey = new Map<string, number>();
+  keys.forEach((key) => farmsPerKey.set(key, (farmsPerKey.get(key) ?? 0) + 1));
   let dropped = 0;
   const farmResults = results.farmResults.map((result) => {
-    const before = validated.get(result.farmId);
+    const key = keys.get(result.farmId);
+    const before = key === undefined ? undefined : validated.get(key);
     if (!before || result.status !== FarmValidationStatus.NOT_VALID) return result;
     const hasGeometryError = results.inconsistencies.some(
       ({ type, farmIds }) => type !== "overlap" && farmIds.includes(result.farmId)
     );
-    const now = neighbourIds(result.farmId, results.inconsistencies);
-    if (!hasGeometryError && sameIds(before, now))
+    const now = neighbourKeys(result.farmId, results.inconsistencies, keys);
+    if (!hasGeometryError && farmsPerKey.get(key!) === 1 && sameKeys(before, now))
       return { ...result, status: FarmValidationStatus.VALID_MANUALLY };
     dropped += 1;
     return result;

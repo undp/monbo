@@ -25,6 +25,7 @@ import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
 import { FarmRow } from "@/interfaces/FarmRow";
 import {
+  ManualValidations,
   manualValidationsOf,
   reconcileManualValidations,
 } from "@/utils/validationResults";
@@ -55,12 +56,13 @@ export function PolygonsValidationUploadDataPageContent() {
   }, []);
 
   const performValidationAnalysis = useCallback(
-    async (data: FarmData[], validatedBefore = manualValidationsOf(null)) => {
+    async (data: FarmData[], validatedBefore: ManualValidations = new Map()) => {
       setLoading(true);
       try {
         const { results: response, dropped } = reconcileManualValidations(
           validatedBefore,
-          await validatePolygons(data, selectedCountry)
+          await validatePolygons(data, selectedCountry),
+          data
         );
         setPolygonsValidationResults(response);
         router.push("/polygons-validation");
@@ -107,7 +109,7 @@ export function PolygonsValidationUploadDataPageContent() {
       const generation = readFlowGeneration();
       // The farms validated by hand before "Agregar más polígonos", and what
       // they overlapped: kept only where nothing new overlaps them.
-      const validatedBefore = manualValidationsOf(polygonsValidationResults);
+      const validatedBefore = manualValidationsOf(polygonsValidationResults, farmsData);
       try {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
@@ -123,6 +125,9 @@ export function PolygonsValidationUploadDataPageContent() {
           country: readSelectedCountry() ?? farm.country,
         }));
         setFarmsData(farms);
+        // The earlier results describe the earlier farms: if the validation
+        // fails, no farm may show as ready without having been validated
+        setPolygonsValidationResults(null);
         // An analysis of the earlier farms doesn't describe these
         setTerritorialAnalysisResults(null);
         setAnalysisOutdated(false);
@@ -146,11 +151,13 @@ export function PolygonsValidationUploadDataPageContent() {
     [
       openSnackbar,
       setFarmsData,
+      setPolygonsValidationResults,
       setTerritorialAnalysisResults,
       setAnalysisOutdated,
       setReportGenerationParams,
       performValidationAnalysis,
       polygonsValidationResults,
+      farmsData,
       t,
       i18n.language,
       selectedCountry,

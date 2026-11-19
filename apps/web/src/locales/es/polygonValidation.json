@@ -100,6 +100,6 @@
     "validate": "Validar {{id}} manualmente",
     "validateHint": "Lo incluye en el análisis aunque se superponga con estos polígonos. Cada vecino se valida desde su propia fila."
   },
-  "manualValidationsDropped_one": "Se quitó {{count}} validación manual: ese polígono ahora se superpone con otros. Revísalo de nuevo.",
-  "manualValidationsDropped_other": "Se quitaron {{count}} validaciones manuales: esos polígonos ahora se superponen con otros. Revísalos de nuevo."
+  "manualValidationsDropped_one": "Se quitó {{count}} validación manual: el polígono cambió o sus superposiciones ya no son las mismas. Revísalo de nuevo.",
+  "manualValidationsDropped_other": "Se quitaron {{count}} validaciones manuales: los polígonos cambiaron o sus superposiciones ya no son las mismas. Revísalos de nuevo."
 }

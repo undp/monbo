@@ -260,6 +260,9 @@
       "drawn": "Dibujo",
       "removeRow": "Quitar {{name}} de la lista",
       "editRow": "Editar {{name}}"
+    },
+    "notice": {
+      "actionOn": "{{action}}: {{name}}"
     }
   },
   "layerResults": {

@@ -4,49 +4,25 @@ import React, { useContext, useRef, useState } from "react";
 import {
   Box,
   Button,
-  ButtonBase,
-  Chip,
   CircularProgress,
   Divider,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Tooltip,
 } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { Accept } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { DropZone } from "@/components/reusable/DropZone";
 import { Text } from "@/components/reusable/Text";
 import { sum } from "lodash";
-import { FarmTypeLabel } from "@/components/page/flow/FarmTypeLabel";
 import { FlowSection } from "@/components/page/flow/FlowSection";
 import {
-  FLOW_TABLE_FRAME,
-  FLOW_TABLE_ID,
-  FLOW_TABLE_SX,
-} from "@/components/page/flow/flowTable";
-import {
   FLOW_COLORS,
-  FOREST_IMAGE,
-  HEADING_FONT,
 } from "@/components/page/flow/flowStyles";
 import { getUploadExamples } from "@/config/uploadExamples";
 import { SnackbarContext } from "@/context/SnackbarContext";
@@ -62,17 +38,21 @@ import {
   UploadSource,
   canAttachExcel,
   collectUpload,
-  isMissingData,
   isUploadable,
-  sourceErrors,
-  sourceListedRows,
-  sourceProblem,
   sourceRows,
   uploadSummary,
   uploadSummaryText,
 } from "@/utils/uploadSources";
+import { FarmRowsTable } from "./FarmRowsTable";
+import { DrawArea } from "./DrawArea";
+import { FileNotice } from "./FileNotice";
 import { GeoFileFieldsHelp } from "./GeoFileFieldsHelp";
+import { HowToSteps } from "./HowToSteps";
 import { ManualFarmModal } from "./manualFarm/ManualFarmModal";
+import { MethodButton } from "./MethodButton";
+import { PairDropZone } from "./PairDropZone";
+import { SummaryStat } from "./SummaryStat";
+import { HOW_TO_LINK, HowToLink } from "./uploadStepStyles";
 import { UploadSourcesState } from "./useUploadSources";
 
 const EXCEL_EXTENSIONS = Object.values(EXCEL_ACCEPT).flat().join(",");
@@ -280,68 +260,10 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
       </Box>
     ),
     manual: (
-      // The whole area opens the map: it is one button, named by its text.
-      <ButtonBase
-        onClick={() => setManualFarm({ open: true, editing: null })}
+      <DrawArea
         disabled={disabled}
-        sx={{
-          flexGrow: 1,
-          minHeight: 160,
-          borderRadius: "12px",
-          border: `1.5px dashed #a9c4dc`,
-          background: `linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)), url(${FOREST_IMAGE}) center / cover`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          padding: "22px",
-          textAlign: "center",
-          transition: "border-color .15s",
-          "&:hover": { borderColor: FLOW_COLORS.blue },
-          "&.Mui-focusVisible": {
-            outline: `2px solid ${FLOW_COLORS.blue}`,
-            outlineOffset: 2,
-          },
-        }}
-      >
-        <Box
-          aria-hidden
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            backgroundColor: FLOW_COLORS.blue50,
-            color: FLOW_COLORS.blue,
-          }}
-        >
-          <EditOutlinedIcon />
-        </Box>
-        <Box component="b" sx={{ color: FLOW_COLORS.ink, fontSize: 14 }}>
-          {t("common:farmsUpload:drawTitle")}
-        </Box>
-        {/* Looks like a button; the whole area is the control */}
-        <Box
-          component="span"
-          aria-hidden
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 0.75,
-            borderRadius: "8px",
-            padding: "5px 12px",
-            fontSize: 13,
-            fontWeight: 600,
-            color: FLOW_COLORS.white,
-            backgroundColor: FLOW_COLORS.blue,
-          }}
-        >
-          <AddLocationAltOutlinedIcon sx={{ fontSize: 18 }} />
-          {t("common:farmsUpload:openMap")}
-        </Box>
-      </ButtonBase>
+        onClick={() => setManualFarm({ open: true, editing: null })}
+      />
     ),
   };
 
@@ -387,91 +309,13 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
           border: `1px solid ${FLOW_COLORS.line}`,
         }}
       >
-        <Box>
-          <Box
-            component="h3"
-            sx={{
-              margin: 0,
-              marginBottom: 1.5,
-              fontSize: 12,
-              fontWeight: 700,
-              lineHeight: 1,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: FLOW_COLORS.muted,
-            }}
-          >
-            {t("common:farmsUpload:howTo")}
-          </Box>
-          {/* In order, but with bullets: digits here read like the flow's stages. */}
-          <Box
-            component="ol"
-            sx={{
-              margin: 0,
-              padding: 0,
-              listStyle: "none",
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.25,
-            }}
-          >
-            {Array.from({ length: current.steps }, (_, index) => (
-              <Box
-                component="li"
-                key={`${method}-${index}`}
-                sx={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 1.25,
-                  fontSize: 14,
-                  color: FLOW_COLORS.ink2,
-                }}
-              >
-                <ChevronRightRoundedIcon
-                  aria-hidden
-                  sx={{ fontSize: 18, color: FLOW_COLORS.leafDark, marginTop: "1px" }}
-                />
-                {t(`${methodKey}:steps:${index + 1}`)}
-              </Box>
-            ))}
-          </Box>
-          {(links[method].length > 0 || method === "geoData") && (
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                columnGap: 2,
-                rowGap: 1,
-                marginTop: 1.75,
-              }}
-            >
-              {links[method].map((link) => (
-                <Box
-                  component="a"
-                  key={link.href}
-                  href={link.href}
-                  download
-                  sx={HOW_TO_LINK}
-                >
-                  {link.template && (
-                    <FileDownloadOutlinedIcon aria-hidden sx={{ fontSize: 16 }} />
-                  )}
-                  {link.label}
-                </Box>
-              ))}
-              {method === "geoData" && (
-                <Box
-                  component="button"
-                  type="button"
-                  onClick={() => setFieldsHelpOpen(true)}
-                  sx={HOW_TO_LINK}
-                >
-                  {t("common:farmsUpload:cards:geoData:fieldsHelp")}
-                </Box>
-              )}
-            </Box>
+        <HowToSteps
+          steps={Array.from({ length: current.steps }, (_, index) =>
+            t(`${methodKey}:steps:${index + 1}`)
           )}
-        </Box>
+          links={links[method]}
+          onFieldsHelp={method === "geoData" ? () => setFieldsHelpOpen(true) : undefined}
+        />
         <Box sx={{ display: "flex", minWidth: 0 }}>{controls[method]}</Box>
       </Box>
     </Box>
@@ -688,462 +532,6 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         </Button>
       </Box>
       {hidden}
-    </Box>
-  );
-};
-
-interface HowToLink {
-  label: string;
-  href: string;
-  /** A template to fill in, shown with a download icon */
-  template?: boolean;
-}
-
-/** A link of the "how to" panel: blue text, also on its buttons. */
-const HOW_TO_LINK = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 0.5,
-  padding: 0,
-  border: "none",
-  background: "none",
-  font: "inherit",
-  fontSize: 14,
-  fontWeight: 500,
-  color: FLOW_COLORS.blue,
-  textDecoration: "none",
-  cursor: "pointer",
-  "&:hover": { textDecoration: "underline" },
-} as const;
-
-interface MethodButtonProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  /** Farms already listed from this method */
-  loaded: number;
-  selected: boolean;
-  onClick: () => void;
-}
-
-/** One way to upload: picking it shows its steps and its control below. */
-const MethodButton: React.FC<MethodButtonProps> = ({
-  icon,
-  title,
-  description,
-  loaded,
-  selected,
-  onClick,
-}) => {
-  const { t } = useTranslation();
-  return (
-    <ButtonBase
-      onClick={onClick}
-      aria-pressed={selected}
-      sx={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        justifyContent: "flex-start",
-        gap: 0.75,
-        padding: "14px",
-        textAlign: "left",
-        borderRadius: "12px",
-        border: `1.5px solid ${selected ? FLOW_COLORS.blue : FLOW_COLORS.line}`,
-        backgroundColor: selected ? FLOW_COLORS.blue25 : FLOW_COLORS.white,
-        boxShadow: selected ? "0 0 0 3px rgba(13, 100, 160, 0.08)" : "none",
-        transition: "border-color .15s, background-color .15s",
-        "&:hover": { borderColor: selected ? FLOW_COLORS.blue : "#b9d3e8" },
-        "&.Mui-focusVisible": { outline: `2px solid ${FLOW_COLORS.blue}`, outlineOffset: 2 },
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          width: 34,
-          height: 34,
-          borderRadius: "9px",
-          display: "grid",
-          placeItems: "center",
-          backgroundColor: FLOW_COLORS.blue50,
-          color: FLOW_COLORS.blue,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          fontFamily: HEADING_FONT,
-          fontSize: 15,
-          fontWeight: 700,
-          lineHeight: 1.2,
-          color: FLOW_COLORS.ink,
-        }}
-      >
-        {title}
-      </Box>
-      <Box
-        component="span"
-        sx={{ fontSize: 12.5, lineHeight: 1.35, color: FLOW_COLORS.muted }}
-      >
-        {description}
-      </Box>
-      {loaded > 0 && (
-        <Box
-          component="span"
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            display: "inline-flex",
-            alignItems: "center",
-            borderRadius: 999,
-            padding: "4px 10px",
-            fontSize: 12,
-            fontWeight: 600,
-            lineHeight: 1.3,
-            whiteSpace: "nowrap",
-            color: FLOW_COLORS.ok,
-            backgroundColor: FLOW_COLORS.okBackground,
-          }}
-        >
-          {t("common:farmsUpload:loadedCount", { count: loaded })}
-        </Box>
-      )}
-    </ButtonBase>
-  );
-};
-
-const SummaryStat: React.FC<{
-  icon: React.ReactNode;
-  count: number;
-  label: string;
-}> = ({ icon, count, label }) => (
-  <Box
-    component="span"
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      gap: 1,
-      fontSize: 14,
-      color: FLOW_COLORS.ink2,
-      "& svg": { color: FLOW_COLORS.muted },
-    }}
-  >
-    {icon}
-    <Box component="b" sx={{ color: FLOW_COLORS.ink, fontSize: 16 }}>
-      {count}
-    </Box>
-    {label}
-  </Box>
-);
-
-interface PairDropZoneProps {
-  file: File | null;
-  onFile: (file: File | null) => void;
-  accept: Accept;
-  disabled?: boolean;
-  title: string;
-  extensions: string;
-  invalidTypeMessage: string;
-}
-
-/** One of option 3's two files: a drop zone, or the chosen file. */
-const PairDropZone: React.FC<PairDropZoneProps> = ({
-  file,
-  onFile,
-  accept,
-  disabled,
-  title,
-  extensions,
-  invalidTypeMessage,
-}) => {
-  const { t } = useTranslation();
-  if (file)
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          minHeight: 160,
-          padding: 2,
-          borderRadius: "12px",
-          border: `1.5px solid ${FLOW_COLORS.line}`,
-          backgroundColor: FLOW_COLORS.white,
-        }}
-      >
-        <Box component="b" sx={{ fontSize: 14, color: FLOW_COLORS.ink2 }}>
-          {title}
-        </Box>
-        <Chip
-          label={file.name}
-          onDelete={() => onFile(null)}
-          sx={{ maxWidth: "100%" }}
-        />
-      </Box>
-    );
-  return (
-    <Box sx={{ display: "flex" }}>
-      <DropZone
-        appearance="flow"
-        compact
-        disabled={disabled}
-        onDrop={(files) => onFile(files[0] ?? null)}
-        accept={accept}
-        invalidTypeMessage={invalidTypeMessage}
-        texts={{
-          inactiveDragzoneCallToAction: title,
-          activeDragzoneCallToAction: t("common:farmsUpload:dropzoneActive"),
-          text: t("common:farmsUpload:browsePrefix"),
-          buttonText: t("common:farmsUpload:browse"),
-          allowedExtensions: extensions,
-        }}
-      />
-    </Box>
-  );
-};
-
-interface FileNoticeProps {
-  source: Exclude<UploadSource, ManualSource>;
-  onRemove: () => void;
-  onShowErrors: () => void;
-  onAttachExcel: () => void;
-  onDetachExcel: () => void;
-}
-
-/**
- * A listed file, above its farms' rows: its name, its farms or its problem, and
- * what applies to the whole file (show errors, attach or remove the Excel, remove
- * the file). A file with problems stands out; one without them is a plain line.
- */
-const FileNotice: React.FC<FileNoticeProps> = ({
-  source,
-  onRemove,
-  onShowErrors,
-  onAttachExcel,
-  onDetachExcel,
-}) => {
-  const { t } = useTranslation();
-  const errors = sourceErrors(source);
-  const problem = sourceProblem(source, t);
-  const geoExcel = source.kind === "geo" ? source.excel : null;
-  const missingData = isMissingData(source);
-  const tone = problem ? (missingData ? "warn" : "bad") : "neutral";
-  const colors = {
-    warn: { text: FLOW_COLORS.warn, background: FLOW_COLORS.warnBackground },
-    bad: { text: FLOW_COLORS.bad, background: FLOW_COLORS.badBackground },
-    neutral: { text: FLOW_COLORS.ink2, background: FLOW_COLORS.blue25 },
-  }[tone];
-
-  const count = t("common:farmsUpload:farmCount", {
-    count: sourceRows(source).length,
-  });
-  const detail =
-    problem ??
-    (geoExcel
-      ? `${count} · ${t("common:farmsUpload:joinedWith", {
-          name: geoExcel.name,
-          interpolation: { escapeValue: false },
-        })}`
-      : count);
-  const Icon =
-    tone === "warn"
-      ? WarningAmberRoundedIcon
-      : tone === "bad"
-        ? ErrorOutlineRoundedIcon
-        : InsertDriveFileOutlinedIcon;
-
-  return (
-    <Box
-      role={problem ? "alert" : undefined}
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        columnGap: 1.5,
-        rowGap: 0.75,
-        padding: "10px 14px",
-        borderRadius: "10px",
-        backgroundColor: colors.background,
-        border: `1px solid ${tone === "neutral" ? FLOW_COLORS.line : "transparent"}`,
-      }}
-    >
-      <Icon aria-hidden sx={{ fontSize: 20, color: colors.text }} />
-      <Box sx={{ flex: "1 1 260px", minWidth: 0, fontSize: 14 }}>
-        <Box component="b" sx={{ color: FLOW_COLORS.ink, wordBreak: "break-word" }}>
-          {source.name}
-        </Box>
-        <Box component="span" sx={{ color: colors.text }}>
-          {" · "}
-          {detail}
-        </Box>
-      </Box>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.5,
-          marginLeft: "auto",
-        }}
-      >
-        {errors.length > 1 && (
-          <Button size="small" onClick={onShowErrors}>
-            {t("common:farmsUpload:showErrors")}
-          </Button>
-        )}
-        {geoExcel && (
-          <Button size="small" onClick={onDetachExcel}>
-            {t("common:farmsUpload:removeExcel")}
-          </Button>
-        )}
-        {missingData && (
-          <Button size="small" variant="outlined" onClick={onAttachExcel}>
-            {t("common:farmsUpload:attachExcel")}
-          </Button>
-        )}
-        <Button size="small" color="inherit" onClick={onRemove}>
-          {t("common:farmsUpload:removeFile")}
-        </Button>
-      </Box>
-    </Box>
-  );
-};
-
-/** "48,5 kg", in the user's language; empty when the row has no quantity. */
-const productionText = (row: FarmRow, language: string): string => {
-  const quantity = row.productionQuantity;
-  if (quantity === null || quantity === undefined || quantity === "") return "";
-  const amount =
-    typeof quantity === "number" ? quantity.toLocaleString(language) : quantity;
-  return [amount, row.productionQuantityUnit].filter(Boolean).join(" ");
-};
-
-const EMPTY_CELL = "—";
-
-// Read by screen readers, not shown
-const VISUALLY_HIDDEN = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-} as const;
-
-interface FarmRowsTableProps {
-  sources: UploadSource[];
-  onRemoveRow: (source: UploadSource, index: number) => void;
-  onEdit: (source: ManualSource) => void;
-}
-
-// On a phone the crop and the production give way to the rest
-const WIDE_ONLY = { display: { xs: "none", sm: "table-cell" } } as const;
-
-/**
- * One row per farm to upload, in list order: its ID, producer, crop, production,
- * kind and where it came from, with a button to delete it (and to edit a drawn
- * one). The area isn't known yet: the API computes it. Long lists scroll inside.
- */
-const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
-  sources,
-  onRemoveRow,
-  onEdit,
-}) => {
-  const { t, i18n } = useTranslation();
-  const rows = sources.flatMap((source) =>
-    sourceListedRows(source).map(({ row, index }) => ({ source, row, index }))
-  );
-  if (rows.length === 0) return null;
-
-  const header = (key: string) => t(`common:farmsUpload:table:${key}`);
-  return (
-    <Box sx={{ ...FLOW_TABLE_FRAME, maxHeight: 520 }}>
-      <Table
-        stickyHeader
-        aria-label={t("common:farmsUpload:listTitle")}
-        sx={FLOW_TABLE_SX}
-      >
-        <TableHead>
-          <TableRow>
-            <TableCell>{header("id")}</TableCell>
-            <TableCell>{header("producer")}</TableCell>
-            <TableCell sx={WIDE_ONLY}>{header("crop")}</TableCell>
-            <TableCell sx={WIDE_ONLY}>{header("production")}</TableCell>
-            <TableCell>{header("type")}</TableCell>
-            <TableCell>{header("origin")}</TableCell>
-            <TableCell align="right">
-              <Box component="span" sx={VISUALLY_HIDDEN}>
-                {header("actions")}
-              </Box>
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map(({ source, row, index }) => {
-            const id = row.id ? String(row.id) : null;
-            const name = id ?? row.producerName ?? t("common:farmsUpload:manualFarm");
-            return (
-              <TableRow key={`${source.key}-${index}`} hover>
-                <TableCell>
-                  <Box component="span" sx={FLOW_TABLE_ID}>
-                    {id ?? EMPTY_CELL}
-                  </Box>
-                </TableCell>
-                <TableCell>{row.producerName || EMPTY_CELL}</TableCell>
-                <TableCell sx={WIDE_ONLY}>{row.cropType || EMPTY_CELL}</TableCell>
-                <TableCell sx={{ ...WIDE_ONLY, whiteSpace: "nowrap" }}>
-                  {productionText(row, i18n.language) || EMPTY_CELL}
-                </TableCell>
-                <TableCell>
-                  <FarmTypeLabel point={row.geometryType === "Point"} />
-                </TableCell>
-                <TableCell sx={{ color: `${FLOW_COLORS.ink2} !important` }}>
-                  {source.kind === "manual"
-                    ? t("common:farmsUpload:table:drawn")
-                    : source.name}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ whiteSpace: "nowrap", paddingY: "0 !important", paddingX: "8px !important" }}
-                >
-                  {source.kind === "manual" && (
-                    <Tooltip title={t("common:farmsUpload:edit")}>
-                      <IconButton
-                        size="small"
-                        aria-label={t("common:farmsUpload:table:editRow", {
-                          name,
-                          interpolation: { escapeValue: false },
-                        })}
-                        onClick={() => onEdit(source)}
-                      >
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  <Tooltip title={t("common:farmsUpload:remove")}>
-                    <IconButton
-                      size="small"
-                      aria-label={t("common:farmsUpload:table:removeRow", {
-                        name,
-                        interpolation: { escapeValue: false },
-                      })}
-                      onClick={() => onRemoveRow(source, index)}
-                    >
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
     </Box>
   );
 };

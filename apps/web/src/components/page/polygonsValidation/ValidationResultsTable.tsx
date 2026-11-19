@@ -32,6 +32,7 @@ import { useResultsFilter } from "@/hooks/useResultsFilter";
 import { useSearch } from "@/hooks/useSearch";
 import { useSortedTable } from "@/hooks/useSortedTable";
 import { FarmData } from "@/interfaces/Farm";
+import { formatNumber } from "@/utils/numbers";
 import { formatArea, knownArea } from "@/utils/polygons";
 import { removeDiacritics } from "@/utils/strings";
 import {
@@ -189,7 +190,7 @@ const originText = (
 };
 
 const productionText = (farm: FarmData, language: string) =>
-  `${farm.production.toLocaleString(language)} ${farm.productionQuantityUnit}`;
+  `${formatNumber(farm.production, 2, language)} ${farm.productionQuantityUnit}`;
 
 /** The order of the statuses when sorting by them: what needs a look first. */
 const KIND_ORDER: Record<FarmValidationView["kind"], number> = {
@@ -228,7 +229,8 @@ type Review =
  * can be validated manually; a geometry error opens its explanation.
  */
 export const ValidationResultsTable: React.FC = () => {
-  const { farmsData, polygonsValidationResults } = useContext(DataContext);
+  const { farmsData, polygonsValidationResults, stageOneUploadSources } =
+    useContext(DataContext);
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -371,13 +373,17 @@ export const ValidationResultsTable: React.FC = () => {
           {t("polygonValidation:results:showAll")}
         </Button>
       )}
-      <Button
-        startIcon={<AddRoundedIcon />}
-        onClick={() => router.push("/polygons-validation/upload-data")}
-        sx={{ textTransform: "none", fontSize: 15, fontWeight: 500 }}
-      >
-        {t("polygonValidation:results:addMore")}
-      </Button>
+      {/* Only over stage 1's own list: farms uploaded on stage 2 have none to go
+          back to, and an empty list would replace them all */}
+      {stageOneUploadSources.length > 0 && (
+        <Button
+          startIcon={<AddRoundedIcon />}
+          onClick={() => router.push("/polygons-validation/upload-data")}
+          sx={{ textTransform: "none", fontSize: 15, fontWeight: 500 }}
+        >
+          {t("polygonValidation:results:addMore")}
+        </Button>
+      )}
     </Box>
   );
 
@@ -387,24 +393,26 @@ export const ValidationResultsTable: React.FC = () => {
       subtitle={subtitle}
       icon={<PentagonOutlinedIcon />}
       action={actions}
+      // As tall as its rows, up to the viewport: from there the table scrolls
       sx={{
-        height: RESULTS_SECTION_HEIGHT,
+        maxHeight: RESULTS_SECTION_HEIGHT,
         display: "flex",
         flexDirection: "column",
-        minHeight: 0,
       }}
     >
-      <Box sx={{ ...FLOW_TABLE_FRAME, ...FLOW_TABLE_SX, flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{ ...FLOW_TABLE_FRAME, ...FLOW_TABLE_SX, flex: "0 1 auto", minHeight: 0 }}
+      >
         {rows.length === 0 ? (
           <Box
             sx={{
-              height: "100%",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               gap: 2,
               padding: 3,
+              minHeight: 240,
             }}
           >
             <MomboIcon sx={{ fontSize: 64 }} />

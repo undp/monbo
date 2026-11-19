@@ -196,6 +196,26 @@ describe("FarmsUploadStep", () => {
     expect(upload.removeRow).toHaveBeenCalledWith(source, 1);
   });
 
+  it("puts only the rows in view in the page when the list is long", async () => {
+    // jsdom lays nothing out: a 520 px frame, and rows of one line each
+    const frame = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(520);
+    const line = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(53);
+    const rows = Array.from({ length: 2000 }, (_, index) => row(`F${index + 1}`));
+    await renderStep(uploadState([excel(rows)]));
+    frame.mockRestore();
+    line.mockRestore();
+
+    const table = screen.getByRole("table", { name: "Polígonos y puntos cargados" });
+    const shown = within(table)
+      .getAllByRole("row")
+      .filter((tr) => tr.getAttribute("aria-rowindex") && tr.closest("tbody"));
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.length).toBeLessThan(100);
+    expect(within(shown[0]).getByText("F1")).toBeTruthy();
+    // Screen readers still hear how many there are
+    expect(table.getAttribute("aria-rowcount")).toBe("2001");
+  });
+
   it("shows a file's problem and its actions above the rows", async () => {
     const upload = uploadState([kmzMissingData()]);
     await renderStep(upload);
@@ -203,9 +223,9 @@ describe("FarmsUploadStep", () => {
     const notice = screen.getByRole("alert");
     expect(notice.textContent).toContain("lotes.kmz");
     expect(notice.textContent).toContain("12");
-    fireEvent.click(within(notice).getByRole("button", { name: "Quitar archivo" }));
+    fireEvent.click(within(notice).getByRole("button", { name: "Quitar archivo: lotes.kmz" }));
     expect(upload.remove).toHaveBeenCalledOnce();
-    expect(within(notice).getByRole("button", { name: "Adjuntar Excel de producción" })).toBeTruthy();
+    expect(within(notice).getByRole("button", { name: "Adjuntar Excel de producción: lotes.kmz" })).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
 });

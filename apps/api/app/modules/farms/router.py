@@ -23,7 +23,9 @@ def parse_farms(
     Endpoint to parse farm data and generate polygon information.
 
     Args:
-        body (list[InputFarmData]): List of unprocessed farm data
+        body (list[InputFarmData]): List of unprocessed farm data. Each farm may
+            carry its `origin` (the upload method and file name), echoed back as
+            is and never stored
         locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'
 
     Returns:

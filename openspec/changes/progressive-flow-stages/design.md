@@ -161,8 +161,9 @@ Below the `md` breakpoint the grid becomes one column, and the bars are hidden.
   two `FlowSection` cards, and a sticky bar with the counts and the button) and `embedded` on
   stage 2, whose page keeps its own card and bar. `FlowPage` and `FlowPageHead` give stage 1's
   two pages the mockup's background and head; the validation results page adds
-  `ValidationKpis` above its tables. The tables themselves stay as they are: the mockup's
-  single table with a status per polygon would change how overlaps are validated manually.
+  `ValidationKpis` above its tables. The tables themselves stayed as they were here: the
+  mockup's single table with a status per polygon changes how overlaps are validated
+  manually, so it is its own change, `stage-one-unified-table`.
 
 ### 7. Forest image
 

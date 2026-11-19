@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
-import { DataContext } from "@/context/DataContext";
+import { DataContext, readFlowGeneration } from "@/context/DataContext";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { notifyUploadErrors } from "@/utils/uploadErrors";
 import {
@@ -89,9 +89,12 @@ export const useUploadSources = (
     keep: (source: UploadSource) => boolean = () => true
   ) => {
     setReading((count) => count + files.length);
+    const generation = readFlowGeneration();
     for (const file of files) {
       try {
         const source = await settled(await read(file), context.selectedCountry);
+        // Started over meanwhile: the file belongs to the list that was cleared
+        if (readFlowGeneration() !== generation) continue;
         if (keep(source)) setSources((current) => [...current, source]);
         // A geo file missing the farms' data waits for its Excel: the list says
         // so and how, and its errors are one click away
@@ -121,11 +124,13 @@ export const useUploadSources = (
 
   const attach = async (source: GeoSource, file: File) => {
     setReading((count) => count + 1);
+    const generation = readFlowGeneration();
     try {
       const joined = await settled(
         await attachExcel(source, file, context),
         context.selectedCountry
       );
+      if (readFlowGeneration() !== generation) return;
       replace(joined);
       notifyErrors(joined);
     } finally {

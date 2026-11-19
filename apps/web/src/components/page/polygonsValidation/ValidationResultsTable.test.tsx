@@ -13,6 +13,7 @@ import { makeFarm } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
 import { router, setPathname, setSearchParams } from "@/test/navigation";
 import { makeDataContext } from "@/test/renderWithData";
+import type { ManualSource, UploadSource } from "@/utils/uploadSources";
 import { ValidationResultsTable } from "./ValidationResultsTable";
 
 // The modals draw on Google Maps; these tests read their lists and controls.
@@ -85,7 +86,11 @@ const RESULTS: ValidateFarmsResponse = {
 };
 
 /** The table over a real results state, so a manual validation shows up. */
-const Harness = () => {
+const STAGE_ONE_LIST: UploadSource[] = [
+  { kind: "manual", key: "drawn-1", row: {} as ManualSource["row"] },
+];
+
+const Harness = ({ uploadedOnStageOne }: { uploadedOnStageOne: boolean }) => {
   const [results, setResults] = useState<ValidateFarmsResponse | null>(RESULTS);
   return (
     <DataContext.Provider
@@ -93,6 +98,7 @@ const Harness = () => {
         farmsData: FARMS,
         polygonsValidationResults: results,
         setPolygonsValidationResults: setResults,
+        stageOneUploadSources: uploadedOnStageOne ? STAGE_ONE_LIST : [],
       })}
     >
       <ValidationResultsTable />
@@ -100,11 +106,11 @@ const Harness = () => {
   );
 };
 
-const renderTable = async () => {
+const renderTable = async ({ uploadedOnStageOne = true } = {}) => {
   const i18n = await createTestI18n("es");
   render(
     <I18nextProvider i18n={i18n}>
-      <Harness />
+      <Harness uploadedOnStageOne={uploadedOnStageOne} />
     </I18nextProvider>
   );
 };
@@ -213,5 +219,12 @@ describe("ValidationResultsTable", () => {
     fireEvent.click(screen.getByRole("button", { name: "Agregar más polígonos" }));
 
     expect(router.push).toHaveBeenCalledWith("/polygons-validation/upload-data");
+  });
+
+  it("doesn't offer to add polygons to farms uploaded on stage 2", async () => {
+    // There is no stage 1 list to go back to: an empty one would replace them all
+    await renderTable({ uploadedOnStageOne: false });
+
+    expect(screen.queryByRole("button", { name: "Agregar más polígonos" })).toBeNull();
   });
 });
