@@ -8,68 +8,59 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { generateFarmsData } from "@/api/farms";
 import { analyzeLayers } from "@/api/layerAnalysis";
 import {
   type AnalysisDraft,
   DataContext,
-  readFlowGeneration,
   readSelectedCountry,
 } from "@/context/DataContext";
 import { localizedPath } from "@/utils/languageChange";
 import { useRouter } from "next/navigation";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { LoadingScreen } from "@/components/reusable/LoadingScreen";
-import { FarmsUploadStep } from "@/components/page/uploadData/FarmsUploadStep";
-import { useUploadSources } from "@/components/page/uploadData/useUploadSources";
-import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import type { MapData } from "@/interfaces/LayerAnalysis";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import { MessageBox } from "@/components/reusable/MessageBox";
-import { Text } from "@/components/reusable/Text";
-import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
-import {
-  Alert,
-  Box,
-  Button,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-} from "@mui/material";
+import { FlowPage } from "@/components/page/flow/FlowPage";
+import { FlowPageHead } from "@/components/page/flow/FlowPageHead";
+import { FlowSection } from "@/components/page/flow/FlowSection";
+import { FlowBottomBar } from "@/components/page/flow/FlowBottomBar";
+import { SummaryStat } from "@/components/page/flow/SummaryStat";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { Box, Button, Link } from "@mui/material";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import NorthEastRoundedIcon from "@mui/icons-material/NorthEastRounded";
 import { getCountryName } from "@/utils/countries";
-import { FarmRow } from "@/interfaces/FarmRow";
 import { LayerCategoryPicker } from "./LayerCategoryPicker";
+import { SubsetBanner } from "./SubsetBanner";
 import { groupLayersByCategory } from "@/utils/layerResults";
-
-// Where "Subir polígonos" scrolls to.
-const UPLOAD_STEP_ID = "territorial-analysis-upload";
 
 type PolygonsSubset = AnalysisDraft["polygonsSubset"];
 
 /**
- * What starts an analysis: `draft` runs the page's choices ("Analizar", or a file
- * uploaded here); `recalculate` re-runs the analysed choices after a layer change
- * invalidated the results.
+ * What starts an analysis: `draft` runs the page's choices ("Analizar");
+ * `recalculate` re-runs the analysed choices after a layer change invalidated the
+ * results.
  */
 type AnalysisMode = "draft" | "recalculate";
 
 /**
- * Stage 2's selection page: the polygon subset (after a validation), the layers by
- * category and the farms. What the user picks here is a draft (`analysisDraft`):
- * the current results, and the report, keep the subset and layers they were
- * analysed with (`territorialAnalysisParams`) until a new analysis succeeds.
- * The analysis starts only from "Analizar", after a file is uploaded here, or to
- * recalculate an analysis a layer change invalidated; never because the page
- * opened with farms and layers loaded (e.g. through the browser's back button).
- * A layer that isn't offered (hidden, or with no category) never enters an
- * analysis.
+ * Stage 2's layers page: the polygon subset (after a validation) and the layers
+ * by category, for the farms uploaded before (on stage 1, or on stage 2's upload
+ * page). What the user picks here is a draft (`analysisDraft`): the current
+ * results, and the report, keep the subset and layers they were analysed with
+ * (`territorialAnalysisParams`) until a new analysis succeeds. The analysis
+ * starts only from "Analizar", or to recalculate an analysis a layer change
+ * invalidated; never because the page opened with farms and layers loaded (e.g.
+ * through the browser's back button). A layer that isn't offered (hidden, or with
+ * no category) never enters an analysis. Without farms, the page sends the user
+ * to the upload.
  */
-export function TerritorialAnalysisUploadDataPageContent() {
+export function TerritorialAnalysisLayersPageContent() {
   const { openSnackbar } = useContext(SnackbarContext);
   const router = useRouter();
   const {
@@ -77,10 +68,7 @@ export function TerritorialAnalysisUploadDataPageContent() {
     availableCategories,
     availableMapsError,
     farmsData,
-    setFarmsData,
     polygonsValidationResults,
-    setPolygonsValidationResults,
-    setStageOneUploadSources,
     territorialAnalysisParams: {
       selectedMaps: analysedMaps,
       polygonsSubset: analysedSubset,
@@ -101,9 +89,18 @@ export function TerritorialAnalysisUploadDataPageContent() {
     refreshAvailableMaps();
   }, [refreshAvailableMaps]);
 
+  // Nothing to analyse yet: the polygons are uploaded first.
+  useEffect(() => {
+    if (!farmsData)
+      router.replace(
+        localizedPath("/territorial-analysis/upload-data", i18n.language)
+      );
+  }, [farmsData, router, i18n.language]);
+
   // The page's choices: the stored draft, or else the analysed ones. Kept here so
   // the page shows each change at once, and stored so they survive a visit to
-  // stage 1; never written to the analysed params until an analysis succeeds.
+  // another page; never written to the analysed params until an analysis
+  // succeeds.
   const [draft, setDraft] = useState<AnalysisDraft>(
     () =>
       analysisDraft ?? {
@@ -129,8 +126,6 @@ export function TerritorialAnalysisUploadDataPageContent() {
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode | null>(() =>
     recalculateOnOpen ? "recalculate" : null
   );
-  // The upload step is open when there are no farms; with farms, behind a button.
-  const [uploadOpen, setUploadOpen] = useState(() => !farmsData);
   // The inputs of the latest analysis request, and whether the page is mounted:
   // a request only stores its results while both still hold.
   const prevDataRef = useRef<string | null>(null);
@@ -195,16 +190,20 @@ export function TerritorialAnalysisUploadDataPageContent() {
     [draftLayers]
   );
 
-  const validFarmsCount = useMemo(
+  // The farms the validation left out, in upload order.
+  const notValidIds = useMemo(
     () =>
-      farmsData?.filter(
-        (farm) =>
-          polygonsValidationResults?.farmResults.find(
-            ({ farmId }) => farmId === farm.id
-          )?.status !== FarmValidationStatus.NOT_VALID
-      ).length ?? 0,
+      farmsData
+        ?.filter(
+          (farm) =>
+            polygonsValidationResults?.farmResults.find(
+              ({ farmId }) => farmId === farm.id
+            )?.status === FarmValidationStatus.NOT_VALID
+        )
+        .map(({ id }) => id) ?? [],
     [farmsData, polygonsValidationResults]
   );
+  const validFarmsCount = (farmsData?.length ?? 0) - notValidIds.length;
   const hasValidation = !!farmsData && !!polygonsValidationResults;
   const subset = draft.polygonsSubset;
   const analysedFarmsCount =
@@ -243,52 +242,6 @@ export function TerritorialAnalysisUploadDataPageContent() {
       });
     },
     [updateDraft]
-  );
-
-  const performFarmsGeneration = useCallback(
-    async (data: Record<string, unknown>[]) => {
-      const generation = readFlowGeneration();
-      try {
-        // The upload has no country column: every farm is in the analysis country.
-        const results = await generateFarmsData(
-          data.map((row) => ({ ...row, country: selectedCountry })),
-          i18n.language,
-          { country: selectedCountry, module: "deforestation-analysis" }
-        );
-        // Started over or left meanwhile: don't bring the farms back.
-        if (!mountedRef.current || readFlowGeneration() !== generation) return;
-        // The country can change while the parser request is in flight.
-        setFarmsData(
-          results.map((farm) => ({
-            ...farm,
-            country: readSelectedCountry() ?? farm.country,
-          }))
-        );
-        // A validation of earlier farms doesn't describe these: without it,
-        // stage 1 shows as not done and no farm is hidden as invalid. Nor does
-        // stage 1's kept list: these farms replace it.
-        setPolygonsValidationResults(null);
-        setStageOneUploadSources([]);
-        setAnalysisMode("draft");
-      } catch (error) {
-        console.error(error);
-        openSnackbar({
-          message: t("common:snackbarAlerts:parsingFarmsDataError"),
-          type: "error",
-        });
-        setLoading(false);
-        return;
-      }
-    },
-    [
-      openSnackbar,
-      setFarmsData,
-      setPolygonsValidationResults,
-      setStageOneUploadSources,
-      t,
-      i18n.language,
-      selectedCountry,
-    ]
   );
 
   const performAnalysis = useCallback(
@@ -395,29 +348,22 @@ export function TerritorialAnalysisUploadDataPageContent() {
     performAnalysis,
   ]);
 
-  const upload = useUploadSources(selectedCountry);
-
-  const onUpload = useCallback(
-    (rows: FarmRow[]) => {
-      // A new upload is a new analysis, not a recalculation of an outdated one.
-      setAnalysisOutdated(false);
-      setLoading(true);
-      performFarmsGeneration(rows);
-    },
-    [performFarmsGeneration, setAnalysisOutdated]
-  );
-
   const onAnalyze = useCallback(() => setAnalysisMode("draft"), []);
 
-  const openUpload = useCallback(() => {
-    setUploadOpen(true);
-    // After the step renders.
-    setTimeout(() =>
-      document
-        .getElementById(UPLOAD_STEP_ID)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-  }, []);
+  // After a validation the polygons are seen with their status; uploaded here,
+  // in the list they came from.
+  const onSeePolygons = useCallback(
+    () =>
+      router.push(
+        localizedPath(
+          hasValidation
+            ? "/polygons-validation"
+            : "/territorial-analysis/upload-data",
+          i18n.language
+        )
+      ),
+    [router, hasValidation, i18n.language]
+  );
 
   // A recalculation whose layers are all hidden now has nothing to run: the form
   // shows, so the user can pick others.
@@ -434,104 +380,62 @@ export function TerritorialAnalysisUploadDataPageContent() {
       />
     );
 
-  const canAnalyze = !!farmsData && draftLayers.length > 0;
+  // On its way to the upload
+  if (!farmsData) return null;
+
+  const canAnalyze = draftLayers.length > 0;
 
   return (
-    <Box
-      sx={{
-        padding: 1.5,
-        paddingTop: 3,
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-      }}
-    >
-      <Box sx={{ marginLeft: 1.5 }}>
-        <StageEyebrow />
-        <Text variant="h3" bold>
-          {t("territorialAnalysis:uploadDataPage:title")}
-        </Text>
-        <Text sx={{ color: "text.secondary", marginTop: 0.5 }}>
-          {t("territorialAnalysis:uploadDataPage:subtitle", {
-            country: countryName,
-          })}
-        </Text>
-      </Box>
+    <FlowPage>
+      <FlowPageHead
+        title={t("territorialAnalysis:uploadDataPage:title")}
+        subtitle={t("territorialAnalysis:uploadDataPage:subtitle", {
+          country: countryName,
+        })}
+      />
 
-      {!farmsData && (
-        <Alert
-          severity="warning"
-          action={
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button color="inherit" size="small" onClick={openUpload}>
-                {t("territorialAnalysis:uploadDataPage:directEntry.upload")}
-              </Button>
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() =>
-                  router.push(
-                    localizedPath("/polygons-validation/upload-data", i18n.language)
-                  )
-                }
-              >
-                {t("territorialAnalysis:uploadDataPage:directEntry.validate")}
-              </Button>
-            </Box>
-          }
-          sx={{
-            alignItems: "center",
-            flexWrap: { xs: "wrap", sm: "nowrap" },
-            "& .MuiAlert-action": { marginLeft: { xs: 0, sm: "auto" } },
-          }}
-        >
-          {t("territorialAnalysis:uploadDataPage:directEntry.message")}
-        </Alert>
-      )}
+      <SubsetBanner
+        count={analysedFarmsCount}
+        validation={
+          hasValidation
+            ? {
+                subset,
+                onSubsetChange,
+                validCount: validFarmsCount,
+                allCount: farmsData.length,
+                notValidIds,
+              }
+            : null
+        }
+        onSeePolygons={onSeePolygons}
+      />
 
-      {hasValidation && (
-        <Alert severity="info" icon={false} sx={{ alignItems: "center" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-            <span>
-              {t("territorialAnalysis:uploadDataPage:subset.message", {
-                count: analysedFarmsCount,
-              })}
-            </span>
-            <RadioGroup
-              row
-              value={subset}
-              onChange={(_, value) => onSubsetChange(value as PolygonsSubset)}
-              aria-label={t("territorialAnalysis:uploadDataPage:subset.label")}
-              sx={{ columnGap: 3 }}
-            >
-              <FormControlLabel
-                value="valid"
-                control={<Radio size="small" />}
-                label={t("territorialAnalysis:uploadDataPage:subset.valid", {
-                  count: validFarmsCount,
-                })}
-              />
-              <FormControlLabel
-                value="all"
-                control={<Radio size="small" />}
-                label={t("territorialAnalysis:uploadDataPage:subset.all", {
-                  count: farmsData.length,
-                })}
-              />
-            </RadioGroup>
-          </Box>
-        </Alert>
-      )}
-
-      <TextHeaderStepContainer
-        title={t(
-          "territorialAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
-        )}
-        subtitle={t(
-          "territorialAnalysis:uploadDataPage:mapSelectionStep:subtitle",
-          { country: countryName }
-        )}
+      <FlowSection
+        title={t("territorialAnalysis:uploadDataPage:mapSelectionStep:stepTitle")}
+        subtitle={t("territorialAnalysis:uploadDataPage:mapSelectionStep:subtitle", {
+          country: countryName,
+        })}
         icon={<LayersOutlinedIcon />}
+        action={
+          <Link
+            href={localizedPath("/documentation#layers", i18n.language)}
+            target="_blank"
+            rel="noopener"
+            underline="hover"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.5,
+              fontSize: 14.5,
+              fontWeight: 500,
+              color: FLOW_COLORS.blue,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t("territorialAnalysis:uploadDataPage:mapSelectionStep:howToRead")}
+            <NorthEastRoundedIcon sx={{ fontSize: 16 }} aria-hidden />
+          </Link>
+        }
       >
         {offeredGroups.length > 0 ? (
           <LayerCategoryPicker
@@ -550,86 +454,45 @@ export function TerritorialAnalysisUploadDataPageContent() {
             )}
           />
         )}
-      </TextHeaderStepContainer>
+      </FlowSection>
 
-      <Box id={UPLOAD_STEP_ID} sx={{ scrollMarginTop: 16 }}>
-        <TextHeaderStepContainer
-          title={t("territorialAnalysis:uploadDataPage:uploadStep:stepTitle")}
-          subtitle={t("common:farmsUpload:intro")}
-          icon={<FileUploadOutlinedIcon />}
-        >
-          {uploadOpen ? (
-            <FarmsUploadStep
-              upload={upload}
-              country={selectedCountry}
-              submitLabel={t(
-                "territorialAnalysis:uploadDataPage:uploadStep:submit"
-              )}
-              onSubmit={onUpload}
-              disabled={draftLayers.length === 0}
-            />
-          ) : (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 2,
-              }}
-            >
-              <span>
-                {t("territorialAnalysis:uploadDataPage:uploadStep:loadedFarms", {
-                  count: farmsData?.length ?? 0,
-                })}
-              </span>
-              <Button variant="outlined" onClick={openUpload}>
-                {t("territorialAnalysis:uploadDataPage:uploadStep:uploadAnother")}
-              </Button>
-            </Box>
-          )}
-        </TextHeaderStepContainer>
-      </Box>
-
-      <Box
-        sx={{
-          position: "sticky",
-          bottom: 0,
-          zIndex: 2,
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 2,
-          padding: "12px 16px",
-          borderRadius: 3,
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #DEDEDE",
-          boxShadow: "0 -6px 18px rgba(11, 37, 69, 0.08)",
-        }}
+      <FlowBottomBar
+        action={
+          <Button
+            variant="contained"
+            endIcon={<ArrowForwardRoundedIcon />}
+            disabled={!canAnalyze}
+            onClick={onAnalyze}
+          >
+            {t("territorialAnalysis:uploadDataPage:analyze")}
+          </Button>
+        }
       >
-        <Text sx={{ color: "text.secondary" }}>
-          {t("territorialAnalysis:uploadDataPage:summary", {
-            polygons: t("territorialAnalysis:results.polygonCount", {
-              count: analysedFarmsCount,
-            }),
-            layers: t("territorialAnalysis:results.layerCount", {
-              count: draftLayers.length,
-            }),
-            categories: t("territorialAnalysis:uploadDataPage:categoryCount", {
-              count: selectedCategoriesCount,
-            }),
+        <SummaryStat
+          icon={<PentagonOutlinedIcon fontSize="small" />}
+          count={analysedFarmsCount}
+          label={t("territorialAnalysis:uploadDataPage:polygonsLabel", {
+            count: analysedFarmsCount,
           })}
-        </Text>
-        <Button
-          variant="contained"
-          endIcon={<ArrowForwardRoundedIcon />}
-          disabled={!canAnalyze}
-          onClick={onAnalyze}
-          sx={{ marginLeft: "auto" }}
-        >
-          {t("territorialAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
-        </Button>
-      </Box>
-    </Box>
+        />
+        <SummaryStat
+          icon={<LayersOutlinedIcon fontSize="small" />}
+          count={draftLayers.length}
+          label={
+            <span>
+              {t("territorialAnalysis:uploadDataPage:layersInLabel", {
+                count: draftLayers.length,
+              })}{" "}
+              <Box component="b" sx={{ color: FLOW_COLORS.ink, fontSize: 16 }}>
+                {selectedCategoriesCount}
+              </Box>{" "}
+              {t("territorialAnalysis:uploadDataPage:categoriesLabel", {
+                count: selectedCategoriesCount,
+              })}
+            </span>
+          }
+        />
+      </FlowBottomBar>
+    </FlowPage>
   );
 }

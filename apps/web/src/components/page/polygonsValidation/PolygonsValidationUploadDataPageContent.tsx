@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
 import { generateFarmsData } from "@/api/farms";
 import { validatePolygons } from "@/api/polygonValidation";
@@ -41,7 +35,8 @@ export function PolygonsValidationUploadDataPageContent() {
     setTerritorialAnalysisResults,
     setAnalysisOutdated,
     setReportGenerationParams,
-    stageOneUploadSources,
+    uploadSourcesRevision,
+    setFarmsSourcesRevision,
     selectedCountry,
   } = useContext(DataContext);
   const router = useRouter();
@@ -122,6 +117,8 @@ export function PolygonsValidationUploadDataPageContent() {
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
       const generation = readFlowGeneration();
+      // The list as it is now: the farms parsed from it remember which one
+      const revision = uploadSourcesRevision;
       // The farms validated by hand before "Agregar más polígonos", and what
       // they overlapped: kept only where nothing new overlaps them.
       const pending = pendingValidations.current;
@@ -145,6 +142,7 @@ export function PolygonsValidationUploadDataPageContent() {
           country: readSelectedCountry() ?? farm.country,
         }));
         setFarmsData(farms);
+        setFarmsSourcesRevision(revision);
         // The earlier results describe the earlier farms: if the validation
         // fails, no farm may show as ready without having been validated
         setPolygonsValidationResults(null);
@@ -173,6 +171,8 @@ export function PolygonsValidationUploadDataPageContent() {
     [
       openSnackbar,
       setFarmsData,
+      setFarmsSourcesRevision,
+      uploadSourcesRevision,
       setPolygonsValidationResults,
       setTerritorialAnalysisResults,
       setAnalysisOutdated,
@@ -185,23 +185,6 @@ export function PolygonsValidationUploadDataPageContent() {
       selectedCountry,
     ]
   );
-
-  // Farms uploaded on stage 2 and not validated yet are validated on entry, as
-  // before. With stage 1's own list kept (back from "Agregar más polígonos"),
-  // nothing runs until the user presses the button.
-  const validatedOnEntry = useRef(false);
-  useEffect(() => {
-    if (validatedOnEntry.current) return;
-    validatedOnEntry.current = true;
-    if (!farmsData || polygonsValidationResults) return;
-    if (stageOneUploadSources.length > 0) return;
-    performValidationAnalysis(farmsData);
-  }, [
-    farmsData,
-    polygonsValidationResults,
-    stageOneUploadSources,
-    performValidationAnalysis,
-  ]);
 
   const upload = useUploadSources(selectedCountry, { kept: true });
 

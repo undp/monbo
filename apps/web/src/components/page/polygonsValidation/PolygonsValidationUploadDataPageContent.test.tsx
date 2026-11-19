@@ -65,6 +65,8 @@ const AFTER: ValidateFarmsResponse = {
   inconsistencies: [overlap("A", "B")],
 };
 
+const setFarmsSourcesRevision = vi.fn();
+
 /** The page over real farms and results state, as the flow keeps them. */
 const Harness = () => {
   const [farms, setFarms] = useState<FarmData[] | null>([farm("A"), farm("B")]);
@@ -82,8 +84,10 @@ const Harness = () => {
           setFarmsData: setFarms,
           polygonsValidationResults: results,
           setPolygonsValidationResults: setResults,
-          // Back from "Agregar más polígonos": stage 1's list is there
-          stageOneUploadSources: [{ kind: "manual", key: "k" } as UploadSource],
+          // Back from "Agregar más polígonos": the flow's list is there
+          uploadSources: [{ kind: "manual", key: "k" } as UploadSource],
+          uploadSourcesRevision: 7,
+          setFarmsSourcesRevision,
         })}
       >
         <PolygonsValidationUploadDataPageContent />
@@ -120,11 +124,41 @@ describe("PolygonsValidationUploadDataPageContent", () => {
     vi.mocked(generateFarmsData).mockResolvedValue([farm("A"), farm("B"), farm("N")]);
   });
 
-  it("doesn't validate on entry when stage 1's list is there", async () => {
+  it("doesn't validate on entry when the flow's list is there", async () => {
     await renderPage();
 
     expect(validatePolygons).not.toHaveBeenCalled();
     expect(statusOf("A")).toBe("VALID_MANUALLY");
+  });
+
+  it("doesn't validate on entry the farms uploaded on stage 2", async () => {
+    const i18n = await createTestI18n("es");
+    render(
+      <I18nextProvider i18n={i18n}>
+        <DataContext.Provider
+          value={makeDataContext({
+            selectedCountry: "CO",
+            farmsData: [farm("A"), farm("B")],
+            polygonsValidationResults: null,
+            uploadSources: [{ kind: "manual", key: "k" } as UploadSource],
+          })}
+        >
+          <PolygonsValidationUploadDataPageContent />
+        </DataContext.Provider>
+      </I18nextProvider>
+    );
+
+    expect(validatePolygons).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "upload" })).toBeTruthy();
+  });
+
+  it("remembers which list the farms were parsed from", async () => {
+    vi.mocked(validatePolygons).mockResolvedValue(AFTER);
+    await renderPage();
+
+    await upload();
+
+    expect(setFarmsSourcesRevision).toHaveBeenCalledWith(7);
   });
 
   it("keeps a manual validation where nothing new overlaps it", async () => {

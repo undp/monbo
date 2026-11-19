@@ -43,8 +43,11 @@ export const makeDataContext = (
   selectedCountry: null,
   setSelectedCountry: vi.fn(),
   countryHydrated: true,
-  stageOneUploadSources: [],
-  setStageOneUploadSources: vi.fn(),
+  uploadSources: [],
+  setUploadSources: vi.fn(),
+  uploadSourcesRevision: 0,
+  farmsSourcesRevision: null,
+  setFarmsSourcesRevision: vi.fn(),
   resetAnalysis: vi.fn(),
   ...overrides,
 });

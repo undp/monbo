@@ -30,13 +30,14 @@ const upra = makeMap({ id: 5, alias: "UPRA", categoryId: frontier.id });
 
 const renderTable = async (
   context: Partial<DataContextValue>,
-  locale: TestLocale = "es"
+  locale: TestLocale = "es",
+  farmColumns?: "compact" | "full"
 ) => {
   const i18n = await createTestI18n(locale);
   return render(
     <I18nextProvider i18n={i18n}>
       <DataContext.Provider value={makeDataContext(context)}>
-        <LayerResultsTable />
+        <LayerResultsTable farmColumns={farmColumns} />
       </DataContext.Provider>
     </I18nextProvider>
   );
@@ -136,5 +137,45 @@ describe("LayerResultsTable", () => {
 
     expect(screen.getByText("Agricultural frontier")).toBeTruthy();
     expect(screen.getByText("18% · Outside the agricultural frontier")).toBeTruthy();
+  });
+
+  it("shows only the ID and the producer on stage 2, and every farm column on the report", async () => {
+    const context = {
+      farmsData: [makeFarm({ id: "F01" })],
+      territorialAnalysisParams: { polygonsSubset: "all" as const, selectedMaps: [gfw] },
+      territorialAnalysisResults: [makeMapResults(1, { F01: 0 })],
+      availableCategories: [deforestation],
+    };
+    const headers = () =>
+      within(screen.getAllByRole("row")[1])
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent);
+
+    const compact = await renderTable(context, "es", "compact");
+    expect(headers()).toEqual(["ID", "Productor", "GFW"]);
+    // The group row spans the farm columns shown
+    expect(
+      within(screen.getAllByRole("row")[0])
+        .getAllByRole("columnheader")[0]
+        .getAttribute("colspan")
+    ).toBe("2");
+    compact.unmount();
+
+    await renderTable(context);
+    expect(headers()).toHaveLength(5);
+  });
+
+  it("marks an ok result with a check, and a finding without one", async () => {
+    await renderTable({
+      farmsData: ["F01", "F02"].map((id) => makeFarm({ id })),
+      territorialAnalysisParams: { polygonsSubset: "all", selectedMaps: [gfw] },
+      territorialAnalysisResults: [makeMapResults(1, { F01: 0, F02: 0.05 })],
+      availableCategories: [deforestation],
+    });
+
+    const ok = screen.getByText("Libre de deforestación").closest(".MuiChip-root")!;
+    const flagged = screen.getByText("5% · Con deforestación").closest(".MuiChip-root")!;
+    expect(ok.querySelector("svg")).not.toBeNull();
+    expect(flagged.querySelector("svg")).toBeNull();
   });
 });

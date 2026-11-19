@@ -20,7 +20,9 @@ import { useTranslation } from "react-i18next";
 import { DropZone } from "@/components/reusable/DropZone";
 import { Text } from "@/components/reusable/Text";
 import { sum } from "lodash";
+import { FlowBottomBar } from "@/components/page/flow/FlowBottomBar";
 import { FlowSection } from "@/components/page/flow/FlowSection";
+import { SummaryStat } from "@/components/page/flow/SummaryStat";
 import {
   FLOW_COLORS,
 } from "@/components/page/flow/flowStyles";
@@ -51,7 +53,6 @@ import { HowToSteps } from "./HowToSteps";
 import { ManualFarmModal } from "./manualFarm/ManualFarmModal";
 import { MethodButton } from "./MethodButton";
 import { PairDropZone } from "./PairDropZone";
-import { SummaryStat } from "./SummaryStat";
 import { HOW_TO_LINK, HowToLink } from "./uploadStepStyles";
 import { UploadSourcesState } from "./useUploadSources";
 
@@ -439,27 +440,17 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
           {list}
         </FlowSection>
         {(sources.length > 0 || reading) && (
-          <Box
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              zIndex: 2,
-              // The band spans the viewport while its content stays aligned with
-              // the page's (FlowPage clips the overflow)
-              marginX: "calc(50% - 50vw)",
-              paddingX: "calc(50vw - 50%)",
-              marginBottom: { xs: -1.5, md: -3 },
-              minHeight: 72,
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              columnGap: 2.25,
-              rowGap: 1,
-              paddingY: 1.5,
-              backgroundColor: FLOW_COLORS.white,
-              borderTop: `1px solid ${FLOW_COLORS.line}`,
-              boxShadow: "0 -8px 24px rgba(11, 37, 69, 0.06)",
-            }}
+          <FlowBottomBar
+            action={
+              <Button
+                variant="contained"
+                onClick={submit}
+                disabled={!canSubmit}
+                endIcon={<ArrowForwardRoundedIcon />}
+              >
+                {submitLabel}
+              </Button>
+            }
           >
             <SummaryStat
               icon={<PentagonOutlinedIcon fontSize="small" />}
@@ -482,16 +473,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
                 })}
               </Box>
             )}
-            <Button
-              variant="contained"
-              onClick={submit}
-              disabled={!canSubmit}
-              endIcon={<ArrowForwardRoundedIcon />}
-              sx={{ marginLeft: "auto" }}
-            >
-              {submitLabel}
-            </Button>
-          </Box>
+          </FlowBottomBar>
         )}
         {hidden}
       </>

@@ -229,7 +229,7 @@ type Review =
  * can be validated manually; a geometry error opens its explanation.
  */
 export const ValidationResultsTable: React.FC = () => {
-  const { farmsData, polygonsValidationResults, stageOneUploadSources } =
+  const { farmsData, polygonsValidationResults, uploadSources } =
     useContext(DataContext);
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -373,9 +373,9 @@ export const ValidationResultsTable: React.FC = () => {
           {t("polygonValidation:results:showAll")}
         </Button>
       )}
-      {/* Only over stage 1's own list: farms uploaded on stage 2 have none to go
-          back to, and an empty list would replace them all */}
-      {stageOneUploadSources.length > 0 && (
+      {/* Only over the flow's upload list: without one there is nothing to go
+          back to, and an empty list would replace every farm */}
+      {uploadSources.length > 0 && (
         <Button
           startIcon={<AddRoundedIcon />}
           onClick={() => router.push("/polygons-validation/upload-data")}

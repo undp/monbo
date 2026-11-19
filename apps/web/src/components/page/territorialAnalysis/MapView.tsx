@@ -1,23 +1,31 @@
 "use client";
 
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
-import { Text } from "@/components/reusable/Text";
-import { Box, Divider } from "@mui/material";
+import { Box, ButtonBase } from "@mui/material";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { FarmsList } from "@/components/page/territorialAnalysis/FarmsList";
 import { SelectedPolygonsMap } from "@/components/page/territorialAnalysis/SelectedPolygonsMap";
 import { useTranslation } from "react-i18next";
 import { useSelectedMap } from "@/hooks/useSelectedMapName";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysisPage";
 import { useSearchParams } from "next/navigation";
-import { ClassicTabs } from "@/components/reusable/ClassicTabs";
-import { groupFarmsByResult } from "@/utils/layerResults";
+import { groupFarmsByResult, type ResultClass } from "@/utils/layerResults";
 import { useLayerReading } from "@/hooks/useLayerRules";
 import { localizedText } from "@/utils/localizedText";
 import { categoryTints } from "@/utils/categoryColors";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { FLOW_RESULT_PILL } from "@/components/page/flow/flowTable";
 
+/** The layer's tiles, painted red whatever the category (the API's tiles). */
+const TILE_COLOR = "#ff0000";
+
+/**
+ * The results on the map, for the layer chosen in the section's header: at the
+ * left the farms, filtered by their result for that layer (with findings, without,
+ * no data) or by the search; at the right the map, with the layer's legend over
+ * it. Choosing a farm shows it alone on the map.
+ */
 export const MapView: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [selectedPolygonIdAtList, setSelectedPolygonIdAtList] =
@@ -25,6 +33,7 @@ export const MapView: React.FC = () => {
   const [selectedPolygonIdAtMap, setSelectedPolygonIdAtMap] = useState<
     string | null
   >(null);
+  const [group, setGroup] = useState<ResultClass>("flagged");
 
   const {
     id: selectedMapId,
@@ -42,11 +51,7 @@ export const MapView: React.FC = () => {
 
   // A farm without a result for this layer (or with a null one, or a layer whose
   // category is missing) is "no data", never ok.
-  const {
-    flagged: flaggedFarms,
-    ok: okFarms,
-    unknown: noDataFarms,
-  } = useMemo(
+  const farmsByResult = useMemo(
     () =>
       groupFarmsByResult(
         farmsData,
@@ -58,209 +63,192 @@ export const MapView: React.FC = () => {
     [farmsData, territorialAnalysisResults, selectedMapId, rule]
   );
 
-  // The groups are named with the layer's category labels.
-  const flaggedLabel = category
-    ? localizedText(category.resultLabels.flagged, i18n.language)
-    : t("territorialAnalysis:results.flagged");
-  const okLabel = category
-    ? localizedText(category.resultLabels.ok, i18n.language)
-    : t("territorialAnalysis:results.ok");
-
-  const onPolygonListClick = useCallback(
-    (id: string) => {
-      setSelectedPolygonIdAtList(id);
-      // Update the polygon selected inside the map
-      if (id === "all") {
-        setSelectedPolygonIdAtMap(null);
-      } else {
-        setSelectedPolygonIdAtMap(id);
-      }
-    },
-    [setSelectedPolygonIdAtList, setSelectedPolygonIdAtMap]
+  // The groups are named with the layer's category labels. "No data" only shows
+  // when it has farms; a layer without them falls back to the first group.
+  const groups = useMemo(
+    () =>
+      [
+        {
+          id: "flagged" as const,
+          label: category
+            ? localizedText(category.resultLabels.flagged, i18n.language)
+            : t("territorialAnalysis:results.flagged"),
+        },
+        {
+          id: "ok" as const,
+          label: category
+            ? localizedText(category.resultLabels.ok, i18n.language)
+            : t("territorialAnalysis:results.ok"),
+        },
+        { id: "unknown" as const, label: t("territorialAnalysis:noDataShortText") },
+      ].filter(({ id }) => id !== "unknown" || farmsByResult.unknown.length > 0),
+    [category, i18n.language, t, farmsByResult.unknown.length]
   );
+  const shownGroup = groups.some(({ id }) => id === group) ? group : "flagged";
 
-  const handleTabsChange = useCallback(() => {
+  const onPolygonListClick = useCallback((id: string) => {
+    setSelectedPolygonIdAtList(id);
+    // The farm chosen in the list is the one shown on the map
+    setSelectedPolygonIdAtMap(id === "all" ? null : id);
+  }, []);
+
+  const onGroupChange = useCallback((next: ResultClass) => {
+    setGroup(next);
     setSelectedPolygonIdAtList("all");
     setSelectedPolygonIdAtMap(null);
-  }, [setSelectedPolygonIdAtList, setSelectedPolygonIdAtMap]);
+  }, []);
 
-  const tabsOptions = useMemo(() => {
-    return [
-      {
-        id: 1,
-        title: `${flaggedLabel} (${flaggedFarms.length})`,
-        content: (
-          <FarmsList
-            farmsData={flaggedFarms}
-            selectedValue={selectedPolygonIdAtList}
-            onChange={onPolygonListClick}
-          />
-        ),
-      },
-      {
-        id: 2,
-        title: `${okLabel} (${okFarms.length})`,
-        content: (
-          <FarmsList
-            farmsData={okFarms}
-            selectedValue={selectedPolygonIdAtList}
-            onChange={onPolygonListClick}
-          />
-        ),
-      },
-      // Only when there is something to show: the column is narrow.
-      ...(noDataFarms.length > 0
-        ? [
-            {
-              id: 3,
-              title: `${t("territorialAnalysis:noDataShortText")} (${
-                noDataFarms.length
-              })`,
-              content: (
-                <FarmsList
-                  farmsData={noDataFarms}
-                  selectedValue={selectedPolygonIdAtList}
-                  onChange={onPolygonListClick}
-                />
-              ),
-            },
-          ]
-        : []),
-    ];
-  }, [
-    flaggedFarms,
-    okFarms,
-    noDataFarms,
-    onPolygonListClick,
-    selectedPolygonIdAtList,
-    flaggedLabel,
-    okLabel,
-    t,
-  ]);
+  const categoryName = category
+    ? localizedText(category.name, i18n.language)
+    : t("territorialAnalysis:categories.uncategorized");
 
   return (
     <Box
       sx={{
-        padding: 2,
-        pl: 0,
         display: "flex",
-        width: "100%",
-        gap: 2,
+        flexDirection: { xs: "column", md: "row" },
+        height: "100%",
+        minHeight: 0,
       }}
     >
       <Box
         sx={{
+          flex: { xs: "0 0 auto", md: "0 0 320px" },
+          maxHeight: { xs: 320, md: "none" },
+          minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          width: "22%",
+          borderRight: { md: `1px solid ${FLOW_COLORS.line}` },
+          borderBottom: { xs: `1px solid ${FLOW_COLORS.line}`, md: "none" },
+          backgroundColor: FLOW_COLORS.white,
         }}
       >
-        <Text sx={{ pl: 2 }} variant="h4" bold>
-          {t("common:polygons")}
-        </Text>
-        <Divider sx={{ marginTop: 1, marginBottom: 2, ml: 2 }} />
-        <Suspense>
-          <SearchBar
-            placeholder={t("territorialAnalysis:searchPlaceholder")}
-            style={{
-              width: "calc(100% - 16px)",
-              marginLeft: 2,
-              marginRight: 2,
-            }}
-          />
-        </Suspense>
-
-        {!searchValue && (
-          <ClassicTabs
-            tabs={tabsOptions}
-            fullWidth
-            onChange={handleTabsChange}
-            styles={{
-              root: {
-                display: "flex",
-                flexGrow: 1,
-                flexDirection: "column",
-                overflowY: "auto",
-                mt: 1,
-              },
-              tabsContainer: {
-                ml: 2,
-              },
-            }}
-          />
-        )}
-
-        {searchValue && (
-          <Box
-            sx={{
-              display: "flex",
-              flexGrow: 1,
-              flexDirection: "column",
-              overflowY: "auto",
-              mt: 2,
-            }}
-          >
-            <FarmsList
-              farmsData={farmsData}
-              selectedValue={selectedPolygonIdAtList}
-              onChange={onPolygonListClick}
+        <Box sx={{ padding: "14px 14px 10px" }}>
+          <Suspense>
+            <SearchBar
+              placeholder={t("territorialAnalysis:searchPlaceholder")}
+              style={{ width: "100%" }}
             />
-          </Box>
-        )}
+          </Suspense>
+          {!searchValue && (
+            <Box
+              role="tablist"
+              aria-label={t("common:polygons")}
+              sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, marginTop: 1.25 }}
+            >
+              {groups.map(({ id, label }) => {
+                const selected = shownGroup === id;
+                const count = farmsByResult[id].length;
+                return (
+                  <ButtonBase
+                    key={id}
+                    role="tab"
+                    aria-selected={selected}
+                    aria-label={`${label} (${count})`}
+                    onClick={() => onGroupChange(id)}
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                      padding: "5px 10px",
+                      borderRadius: "999px",
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: selected ? 600 : 500,
+                      textAlign: "left",
+                      border: "1px solid",
+                      borderColor: selected
+                        ? FLOW_RESULT_PILL[id].color
+                        : FLOW_COLORS.line,
+                      color: selected ? FLOW_RESULT_PILL[id].color : FLOW_COLORS.ink2,
+                      backgroundColor: selected
+                        ? FLOW_RESULT_PILL[id].backgroundColor
+                        : FLOW_COLORS.white,
+                      "&.Mui-focusVisible": {
+                        outline: `2px solid ${FLOW_COLORS.blue}`,
+                        outlineOffset: 2,
+                      },
+                    }}
+                  >
+                    {label}
+                    <Box component="b" sx={{ fontWeight: 700 }}>
+                      {count}
+                    </Box>
+                  </ButtonBase>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+        <Box
+          role={searchValue ? undefined : "tabpanel"}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            borderTop: `1px solid ${FLOW_COLORS.line}`,
+          }}
+        >
+          <FarmsList
+            farmsData={searchValue ? farmsData : farmsByResult[shownGroup]}
+            selectedValue={selectedPolygonIdAtList}
+            onChange={onPolygonListClick}
+          />
+        </Box>
       </Box>
+
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          width: "78%",
-          gap: 1,
-          flexShrink: 0,
+          flex: 1,
+          minWidth: 0,
+          minHeight: { xs: 360, md: 0 },
+          position: "relative",
         }}
       >
-        <Box>
-          <Text variant="h4" bold>
-            {t("territorialAnalysis:map")}: {selectedMapName}
-          </Text>
-        </Box>
         <SelectedPolygonsMap
           farmsData={farmsData}
           allPolygonsSelected={selectedPolygonIdAtList === "all"}
           selectedPolygonIdAtMap={selectedPolygonIdAtMap}
           setSelectedPolygonIdAtMap={setSelectedPolygonIdAtMap}
         />
-
+        {/* The layer's legend, over the map's free corner */}
         <Box
+          aria-label={t("territorialAnalysis:mapLegend")}
+          role="note"
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
+            position: "absolute",
+            top: 12,
+            right: 12,
+            maxWidth: "min(320px, calc(100% - 24px))",
+            padding: "10px 14px",
+            borderRadius: "12px",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            boxShadow: "0 4px 16px rgba(11, 37, 69, 0.18)",
+            fontSize: 13,
+            color: FLOW_COLORS.ink2,
+            pointerEvents: "none",
           }}
         >
-          <Text
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
+          <Box sx={{ fontWeight: 600, fontSize: 14, color: FLOW_COLORS.ink }}>
             {selectedMapName}
-            {baseline !== null && comparedAgainst !== null && (
-              <>
-                &nbsp;&nbsp;|&nbsp;&nbsp;
-                {t("territorialAnalysis:mapFooter", {
-                  baselineYear: baseline,
-                  comparedToYear: comparedAgainst,
-                })}
-              </>
-            )}
-            &nbsp;&nbsp;|&nbsp;&nbsp;
-            {/* Tiles are red for every category; the legend names the category. */}
-            <FiberManualRecordIcon
+          </Box>
+          {baseline !== null && comparedAgainst !== null && (
+            <Box>
+              {t("territorialAnalysis:mapFooter", {
+                baselineYear: baseline,
+                comparedToYear: comparedAgainst,
+              })}
+            </Box>
+          )}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, marginTop: 0.75 }}>
+            <Box
+              aria-hidden
               sx={{
-                width: 18,
-                height: 18,
-                color: "red",
-                mr: 1,
+                width: 12,
+                height: 12,
+                flex: "none",
+                borderRadius: "3px",
+                backgroundColor: TILE_COLOR,
               }}
             />
             <Box
@@ -269,24 +257,17 @@ export const MapView: React.FC = () => {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.5,
+                fontWeight: 600,
                 color: categoryTints(category?.color).color,
-                fontWeight: 500,
               }}
             >
-              <LayerCategoryIcon icon={category?.icon} sx={{ fontSize: 18 }} />
-              {category
-                ? localizedText(category.name, i18n.language)
-                : t("territorialAnalysis:categories.uncategorized")}
+              <LayerCategoryIcon icon={category?.icon} sx={{ fontSize: 16 }} />
+              {categoryName}
             </Box>
-          </Text>
-          <Text
-            sx={{
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
+          </Box>
+          <Box sx={{ marginTop: 0.75, fontSize: 11.5, color: FLOW_COLORS.muted }}>
             {t("territorialAnalysis:satelliteImageryDisclaimer")}
-          </Text>
+          </Box>
         </Box>
       </Box>
     </Box>

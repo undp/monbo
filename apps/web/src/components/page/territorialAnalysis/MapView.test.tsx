@@ -69,8 +69,9 @@ const renderMapView = async () => {
 /** The farm ids listed in a tab panel, sorted. */
 const listedFarms = (panel: HTMLElement) =>
   within(panel)
-    .queryAllByText(/^Ana - F\d+/)
-    .map((element) => element.textContent?.match(/^Ana - (F\d{2})/)?.[1])
+    .queryAllByRole("radio")
+    .map((row) => row.getAttribute("aria-label")?.match(/^(F\d{2}) Ana$/)?.[1])
+    .filter(Boolean)
     .sort();
 
 beforeEach(() => {

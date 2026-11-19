@@ -25,6 +25,7 @@ describe("stageFromPathname", () => {
     ["/polygons-validation/upload-data", 1],
     ["/en/polygons-validation", 1],
     ["/es/territorial-analysis/upload-data", 2],
+    ["/territorial-analysis/layers", 2],
     ["/territorial-analysis", 2],
     ["/report-generation", 3],
     ["/report-generation/preview", 3],
@@ -109,7 +110,17 @@ describe("stageHref", () => {
 
   it("goes to a stage's upload page otherwise", () => {
     expect(stageHref(1, NOTHING)).toBe("/polygons-validation/upload-data");
-    expect(stageHref(2, VALIDATED)).toBe("/territorial-analysis/upload-data");
+    expect(stageHref(2, NOTHING)).toBe("/territorial-analysis/upload-data");
+  });
+
+  it("goes to stage 2's layers when farms are loaded, before an analysis", () => {
+    expect(stageHref(2, VALIDATED, { farmsLoaded: true })).toBe(
+      "/territorial-analysis/layers"
+    );
+    expect(stageHref(2, NOTHING, { farmsLoaded: true })).toBe(
+      "/territorial-analysis/layers"
+    );
+    expect(stageHref(2, BOTH, { farmsLoaded: true })).toBe("/territorial-analysis");
   });
 });
 

@@ -45,3 +45,10 @@ export const FLOW_TABLE_ID = {
   fontWeight: 600,
   whiteSpace: "nowrap",
 } as const;
+
+/** A result's pill: the class's color on its tint (ok, with findings, no data). */
+export const FLOW_RESULT_PILL = {
+  ok: { color: FLOW_COLORS.ok, backgroundColor: FLOW_COLORS.okBackground },
+  flagged: { color: FLOW_COLORS.bad, backgroundColor: FLOW_COLORS.badBackground },
+  unknown: { color: FLOW_COLORS.muted, backgroundColor: FLOW_COLORS.blue50 },
+} as const;

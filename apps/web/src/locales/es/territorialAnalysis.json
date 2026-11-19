@@ -6,36 +6,37 @@
     "recalculatingText": "Cambió una capa. Estamos recalculando el análisis…",
     "analysisUpdated": "Recalculamos el análisis con la capa actualizada.",
     "title": "Análisis territorial",
-    "mapSelectionStep": {
-      "stepTitle": "Paso 1: Elige las capas",
-      "noMapsAvailable": "No hay capas disponibles para {{country}}",
-      "mapsLoadError": "No se pudieron cargar las capas de {{country}}. Recarga la página para intentarlo de nuevo.",
-      "subtitle": "Agrupadas por categoría. Las define el equipo de {{country}}."
-    },
-    "uploadStep": {
-      "stepTitle": "Paso 2: Agrega tus polígonos",
-      "loadedFarms_one": "Ya cargaste {{count}} polígono o punto.",
-      "loadedFarms_other": "Ya cargaste {{count}} polígonos o puntos.",
-      "analyzeLoadedFarms": "Analizar",
-      "submit": "Subir y analizar",
-      "uploadAnother": "Cargar otro archivo"
-    },
     "subtitle": "Elige con qué capas de {{country}} quieres cruzar tus polígonos.",
-    "directEntry": {
-      "message": "Llegaste directo: aún no tienes polígonos cargados. Súbelos aquí o empieza por la validación para revisar errores antes.",
-      "upload": "Subir polígonos",
-      "validate": "Ir a validación"
+    "uploadSubtitle": "Súbelos como prefieras. Puedes combinar métodos: todo se suma en la misma lista.",
+    "continue": "Continuar",
+    "analyze": "Analizar",
+    "mapSelectionStep": {
+      "stepTitle": "Capas para el análisis",
+      "subtitle": "Agrupadas por categoría. Las definió el equipo de {{country}}.",
+      "howToRead": "Cómo leer cada capa",
+      "noMapsAvailable": "No hay capas disponibles para {{country}}",
+      "mapsLoadError": "No se pudieron cargar las capas de {{country}}. Recarga la página para intentarlo de nuevo."
     },
     "subset": {
       "label": "Polígonos que se analizan",
       "message_one": "Usarás {{count}} polígono de la validación.",
       "message_other": "Usarás {{count}} polígonos de la validación.",
+      "unvalidated_one": "Usarás {{count}} polígono. No pasó por la validación.",
+      "unvalidated_other": "Usarás {{count}} polígonos. No pasaron por la validación.",
+      "leftOut_one": "{{ids}} queda fuera porque no pasó la validación.",
+      "leftOut_other": "{{ids}} quedan fuera porque no pasaron la validación.",
+      "idsAndMore_one": "{{ids}} y {{count}} más",
+      "idsAndMore_other": "{{ids}} y {{count}} más",
       "valid": "Solo los válidos ({{count}})",
-      "all": "Todos ({{count}})"
+      "all": "Todos ({{count}})",
+      "seePolygons": "Ver polígonos"
     },
-    "summary": "{{polygons}} · {{layers}} en {{categories}}",
-    "categoryCount_one": "{{count}} categoría",
-    "categoryCount_other": "{{count}} categorías"
+    "polygonsLabel_one": "polígono",
+    "polygonsLabel_other": "polígonos",
+    "layersInLabel_one": "capa en",
+    "layersInLabel_other": "capas en",
+    "categoriesLabel_one": "categoría",
+    "categoriesLabel_other": "categorías"
   },
   "noDataShortText": "Sin dato",
   "map": "Mapa",
@@ -67,10 +68,15 @@
     "changeLayers": "Cambiar capas",
     "flagged": "Con observaciones",
     "ok": "Sin observaciones",
-    "layerResult": "Resultado"
+    "layerResult": "Resultado",
+    "byPolygonTitle": "Resultado por polígono y capa",
+    "byPolygonSubtitle": "Porcentaje del polígono que coincide con cada capa.",
+    "seeOnMap": "Ver en el mapa",
+    "seeTable": "Ver tabla"
   },
   "layerPicker": {
     "tickedOfTotal_one": "{{ticked}} de {{count}} capa",
     "tickedOfTotal_other": "{{ticked}} de {{count}} capas"
-  }
+  },
+  "mapLegend": "Leyenda de la capa"
 }

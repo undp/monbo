@@ -98,7 +98,7 @@ const Harness = ({ uploadedOnStageOne }: { uploadedOnStageOne: boolean }) => {
         farmsData: FARMS,
         polygonsValidationResults: results,
         setPolygonsValidationResults: setResults,
-        stageOneUploadSources: uploadedOnStageOne ? STAGE_ONE_LIST : [],
+        uploadSources: uploadedOnStageOne ? STAGE_ONE_LIST : [],
       })}
     >
       <ValidationResultsTable />

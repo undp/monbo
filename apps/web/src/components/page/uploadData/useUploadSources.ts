@@ -24,19 +24,19 @@ import {
 /**
  * The upload step's list of sources. It lives in the upload page, not in the step,
  * so it survives the loading screen: when /farms/parse rejects the upload, the user
- * gets the same list back to fix it. With `kept` (stage 1) the list lives in the
- * flow's state instead, so it is still there when the user comes back from the
- * results to add more polygons.
+ * gets the same list back to fix it. With `kept` (both stages' upload pages) the
+ * list is the flow's, in its state, so it is still there when the user comes back
+ * to add or remove polygons, from either stage.
  */
 export const useUploadSources = (
   selectedCountry: string | null,
   { kept = false }: { kept?: boolean } = {}
 ) => {
   const [localSources, setLocalSources] = useState<UploadSource[]>([]);
-  const { stageOneUploadSources, setStageOneUploadSources } =
+  const { uploadSources, setUploadSources } =
     useContext(DataContext);
-  const sources = kept ? stageOneUploadSources : localSources;
-  const setSources = kept ? setStageOneUploadSources : setLocalSources;
+  const sources = kept ? uploadSources : localSources;
+  const setSources = kept ? setUploadSources : setLocalSources;
   const [reading, setReading] = useState(0);
   const { openSnackbar } = useContext(SnackbarContext);
   const { t, i18n } = useTranslation();

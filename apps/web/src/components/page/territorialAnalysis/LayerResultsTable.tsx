@@ -28,11 +28,13 @@ import { NoObservationsCounterChip } from "@/components/page/territorialAnalysis
 import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import {
-  getResultChipBackgroundColor,
-  getResultChipColor,
-} from "@/utils/styling";
-import { findingRatio, groupLayersByCategory } from "@/utils/layerResults";
+  classifyResult,
+  findingRatio,
+  groupLayersByCategory,
+} from "@/utils/layerResults";
+import { FLOW_RESULT_PILL, FLOW_TABLE_ID } from "@/components/page/flow/flowTable";
 import { layerLabel } from "@/utils/layerLabel";
 import { localizedText } from "@/utils/localizedText";
 import { categoryTints } from "@/utils/categoryColors";
@@ -48,17 +50,26 @@ const indexResults = (results: Results) =>
     ])
   );
 
-// Category labels can be long: the chip wraps them instead of widening the column.
+// A result pill: the class's color on its tint. Category labels can be long: the
+// pill wraps them instead of widening the column.
 const RESULT_CHIP_SX = {
   height: "auto",
-  maxWidth: 200,
+  maxWidth: 220,
+  borderRadius: "999px",
   textTransform: "none",
+  fontSize: 13,
+  fontWeight: 600,
   "& .MuiChip-label": {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 0.5,
     whiteSpace: "normal",
     textAlign: "center",
     paddingY: 0.5,
+    paddingX: 1.25,
   },
 };
+
 
 // A line between categories.
 const GROUP_START_SX = { borderLeft: "1px solid", borderLeftColor: "divider" };
@@ -70,7 +81,8 @@ const parseRows = (
   readLayer: (layerId: number) => LayerReading,
   polygonsValidationResults: DataContextValue["polygonsValidationResults"],
   t: TFunction<"translation", undefined>,
-  language: string
+  language: string,
+  compact: boolean
 ): RowData<FarmData>[] => {
   const resultsByMap = indexResults(results);
   const statusByFarm = new Map(
@@ -81,7 +93,15 @@ const parseRows = (
   );
   return data.map((farm) => ({
     cells: {
-      id: { value: farm.id },
+      id: {
+        value: compact ? (
+          <Box component="span" sx={FLOW_TABLE_ID}>
+            {farm.id}
+          </Box>
+        ) : (
+          farm.id
+        ),
+      },
       producer: { value: farm.producer },
       type: {
         icon: (
@@ -97,16 +117,19 @@ const parseRows = (
       ...layers.reduce<Record<string, CellData>>((acc, layer) => {
         const { category, rule } = readLayer(layer.id);
         const value = resultsByMap.get(layer.id)?.get(farm.id) ?? null;
+        const resultClass = classifyResult(value, rule);
+        const text = layerResultText(value, category, t, language);
         acc[`map_${layer.id}`] = {
-          value: layerResultText(value, category, t, language),
-          chipStyle: {
-            ...RESULT_CHIP_SX,
-            color: getResultChipColor(value, rule),
-            backgroundColor: getResultChipBackgroundColor(
-              value,
-              rule
+          value:
+            resultClass === "ok" ? (
+              <>
+                <CheckRoundedIcon sx={{ fontSize: 16 }} aria-hidden />
+                {text}
+              </>
+            ) : (
+              text
             ),
-          },
+          chipStyle: { ...RESULT_CHIP_SX, ...FLOW_RESULT_PILL[resultClass] },
         };
         return acc;
       }, {}),
@@ -117,10 +140,13 @@ const parseRows = (
 // Stable, so the search index isn't rebuilt on every render.
 const SEARCH_OPTIONS = { keys: ["id", "producer"] };
 
-// The farm columns before the layer columns.
-const FARM_COLUMNS = 4;
+// The farm columns before the layer columns: ID and producer on stage 2, and
+// also the kind and the crop on the report stage.
+const FARM_COLUMNS = { compact: 2, full: 4 } as const;
 
 interface Props {
+  /** "compact" (stage 2): ID and producer; "full" (the report): also kind and crop. */
+  farmColumns?: keyof typeof FARM_COLUMNS;
   /** Passed to the generic table: the report stage makes the rows selectable. */
   tableProps?: Partial<TableProps<FarmData>>;
   /** Only these layers' columns (the report's layers); every analysed layer otherwise. */
@@ -134,9 +160,11 @@ interface Props {
  * report stage.
  */
 export const LayerResultsTable: React.FC<Props> = ({
+  farmColumns = "full",
   tableProps,
   mapsSubset,
 }) => {
+  const compact = farmColumns === "compact";
   const {
     polygonsValidationResults,
     availableCategories,
@@ -244,25 +272,39 @@ export const LayerResultsTable: React.FC<Props> = ({
 
   const headers = useMemo<Header[]>(
     () => [
+      ...(compact
+        ? []
+        : [
+            {
+              name: t("common:tableColumns:type"),
+              attr: "type",
+              type: "icon" as const,
+              columnStyle: { width: 100 },
+            },
+          ]),
       {
-        name: t("common:tableColumns:type"),
-        attr: "type",
-        type: "icon",
-        columnStyle: { width: 100 },
+        name: "ID",
+        attr: "id",
+        type: "label",
+        sortable: true,
+        ...(compact && { columnStyle: { width: "1%", whiteSpace: "nowrap" } }),
       },
-      { name: "Id", attr: "id", type: "label", sortable: true },
       {
         name: t("common:tableColumns:producer"),
         attr: "producer",
         type: "label",
         sortable: true,
       },
-      {
-        name: t("common:tableColumns:cropType"),
-        attr: "cropType",
-        type: "label",
-        sortable: true,
-      },
+      ...(compact
+        ? []
+        : [
+            {
+              name: t("common:tableColumns:cropType"),
+              attr: "cropType",
+              type: "label" as const,
+              sortable: true,
+            },
+          ]),
       ...layers.map<Header>((layer) => ({
         name: layerLabel(layer, "short"),
         attr: `map_${layer.id}`,
@@ -275,12 +317,12 @@ export const LayerResultsTable: React.FC<Props> = ({
         },
       })),
     ],
-    [t, layers, groupStarts]
+    [t, layers, groupStarts, compact]
   );
 
   const headerGroups = useMemo<HeaderGroup[]>(
     () => [
-      { key: "farm", span: FARM_COLUMNS },
+      { key: "farm", span: FARM_COLUMNS[farmColumns] },
       ...groups.map(({ category, layers }) => {
         const { color } = categoryTints(category?.color);
         return {
@@ -307,7 +349,7 @@ export const LayerResultsTable: React.FC<Props> = ({
         };
       }),
     ],
-    [groups, i18n.language, t]
+    [groups, i18n.language, t, farmColumns]
   );
 
   // Memoized, so the table's rows only re-render when they change (selection
@@ -321,9 +363,11 @@ export const LayerResultsTable: React.FC<Props> = ({
         readLayer,
         polygonsValidationResults,
         t,
-        i18n.language
+        i18n.language,
+        compact
       ),
     [
+      compact,
       sortedData,
       layers,
       territorialAnalysisResults,

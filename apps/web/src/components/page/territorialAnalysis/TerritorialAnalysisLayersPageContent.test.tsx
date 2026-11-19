@@ -10,7 +10,6 @@ import {
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
-import { generateFarmsData } from "@/api/farms";
 import { analyzeLayers } from "@/api/layerAnalysis";
 import { createTestI18n } from "@/test/i18n";
 import { makeDataContext } from "@/test/renderWithData";
@@ -24,16 +23,9 @@ import {
   makeValidationResults,
 } from "@/test/factories";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
-import { TerritorialAnalysisUploadDataPageContent } from "./TerritorialAnalysisUploadDataPageContent";
+import { TerritorialAnalysisLayersPageContent } from "./TerritorialAnalysisLayersPageContent";
 
-vi.mock("@/api/farms", () => ({ generateFarmsData: vi.fn() }));
 vi.mock("@/api/layerAnalysis", () => ({ analyzeLayers: vi.fn() }));
-// The upload step itself is covered elsewhere: here it only hands rows over.
-vi.mock("@/components/page/uploadData/FarmsUploadStep", () => ({
-  FarmsUploadStep: ({ onSubmit }: { onSubmit: (rows: unknown[]) => void }) => (
-    <button onClick={() => onSubmit([{ id: "new-1" }])}>upload</button>
-  ),
-}));
 
 const frontier = makeFrontierCategory();
 const gfw = makeMap({ id: 1, name: "Global Forest Watch", alias: "GFW", availableCountriesCodes: ["CO"] });
@@ -60,13 +52,14 @@ const renderPage = async (overrides: Partial<DataContextValue>) => {
     selectedCountry: "CO",
     availableMaps: [gfw, tmf, upra],
     availableCategories: categories,
+    farmsData: farms,
     ...overrides,
   });
   const i18n = await createTestI18n("es");
   render(
     <I18nextProvider i18n={i18n}>
       <DataContext.Provider value={context}>
-        <TerritorialAnalysisUploadDataPageContent />
+        <TerritorialAnalysisLayersPageContent />
       </DataContext.Provider>
     </I18nextProvider>
   );
@@ -76,7 +69,19 @@ const renderPage = async (overrides: Partial<DataContextValue>) => {
 /** Lets pending effects and promises settle. */
 const settle = () => act(async () => {});
 
-describe("TerritorialAnalysisUploadDataPageContent", () => {
+/** The bottom bar's counts, as read: "3 polígonos · 2 capas en 2 categorías". */
+const summary = () =>
+  screen
+    .getByRole("button", { name: "Analizar" })
+    .closest("div")!
+    .parentElement!.textContent!.replace("Analizar", "")
+    .replace(/(\d)([a-zá])/g, "$1 $2")
+    .replace(/s(\d)/g, "s · $1");
+
+const isChosen = (name: string) =>
+  screen.getByRole("radio", { name }).getAttribute("aria-checked") === "true";
+
+describe("TerritorialAnalysisLayersPageContent", () => {
   it("groups the country's layers by category", async () => {
     await renderPage({
       territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [gfw] },
@@ -109,7 +114,7 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
       polygonsSubset: "valid",
       selectedMapIds: [1, 5],
     });
-    expect(screen.getByText("3 polígonos · 2 capas en 2 categorías")).toBeTruthy();
+    expect(summary()).toBe("3 polígonos · 2 capas en 2 categorías");
     await settle();
     expect(analyzeLayers).not.toHaveBeenCalled();
     // The analysed choices only change when an analysis succeeds.
@@ -131,10 +136,7 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
       "checked",
       false
     );
-    expect(screen.getByRole("radio", { name: "Todos (3)" })).toHaveProperty(
-      "checked",
-      true
-    );
+    expect(isChosen("Todos (3)")).toBe(true);
   });
 
   it("leaves the analysed results alone when the choices change without Analizar", async () => {
@@ -188,7 +190,7 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
     });
 
     // Neither counted nor shown.
-    expect(screen.getByText("3 polígonos · 1 capa en 1 categoría")).toBeTruthy();
+    expect(summary()).toBe("3 polígonos · 1 capa en 1 categoría");
     expect(screen.queryByRole("checkbox", { name: /Tropical Moist Forests/ })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Analizar" }));
@@ -213,14 +215,10 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
 
     expect(analyzeLayers).not.toHaveBeenCalled();
     expect(screen.getByText("Usarás 2 polígonos de la validación.")).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Solo los válidos (2)" })).toHaveProperty(
-      "checked",
-      true
-    );
-    expect(screen.getByRole("radio", { name: "Todos (3)" })).toHaveProperty(
-      "checked",
-      false
-    );
+    expect(isChosen("Solo los válidos (2)")).toBe(true);
+    expect(isChosen("Todos (3)")).toBe(false);
+    // The polygon the valid subset leaves out is named
+    expect(screen.getByText("F03 queda fuera porque no pasó la validación.")).toBeTruthy();
   });
 
   it("analyses the draft when the user presses Analizar, and only then stores it", async () => {
@@ -299,35 +297,68 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
     expect(context.setAnalysisDraft).not.toHaveBeenCalled();
   });
 
-  it("guides a direct entry without polygons, without blocking it", async () => {
-    await renderPage({
-      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
-    });
+  it("sends the user to the upload when no polygons are loaded", async () => {
+    await renderPage({ farmsData: null });
 
-    expect(screen.getByText(/Llegaste directo/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Analizar" })).toHaveProperty(
-      "disabled",
-      true
-    );
-    // The layers and the upload step are there.
-    expect(screen.getByRole("checkbox", { name: /Global Forest Watch/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "upload" })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Ir a validación" }));
-    expect(router.push).toHaveBeenCalledWith("/polygons-validation/upload-data");
+    expect(router.replace).toHaveBeenCalledWith("/territorial-analysis/upload-data");
+    expect(screen.queryByRole("button", { name: "Analizar" })).toBeNull();
   });
 
-  it("drops the validation of earlier farms when new ones are uploaded", async () => {
-    vi.mocked(generateFarmsData).mockResolvedValue([makeFarm({ id: "new-1" })]);
-    const context = await renderPage({
-      // The stage 1 validation of another file, with no analysis yet.
-      polygonsValidationResults: makeValidationResults({}),
+  it("only informs which polygons it will use without a validation", async () => {
+    await renderPage({
       territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [gfw] },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "upload" }));
+    expect(
+      screen.getByText("Usarás 3 polígonos. No pasaron por la validación.")
+    ).toBeTruthy();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(summary()).toBe("3 polígonos · 1 capa en 1 categoría");
+  });
 
-    await waitFor(() => expect(context.setFarmsData).toHaveBeenCalled());
-    expect(context.setPolygonsValidationResults).toHaveBeenCalledWith(null);
+  it("shows the polygons where they were uploaded, or their validation", async () => {
+    await renderPage({});
+    fireEvent.click(screen.getByRole("button", { name: "Ver polígonos" }));
+    expect(router.push).toHaveBeenLastCalledWith("/territorial-analysis/upload-data");
+
+    cleanup();
+    await renderPage({ polygonsValidationResults: validation });
+    fireEvent.click(screen.getByRole("button", { name: "Ver polígonos" }));
+    expect(router.push).toHaveBeenLastCalledWith("/polygons-validation");
+  });
+
+  it("names three left-out polygons, then counts the rest", async () => {
+    const many = ["A1", "A2", "A3", "A4", "A5", "OK"].map((id) => makeFarm({ id }));
+    await renderPage({
+      farmsData: many,
+      polygonsValidationResults: makeValidationResults({
+        A1: FarmValidationStatus.NOT_VALID,
+        A2: FarmValidationStatus.NOT_VALID,
+        A3: FarmValidationStatus.NOT_VALID,
+        A4: FarmValidationStatus.NOT_VALID,
+        A5: FarmValidationStatus.NOT_VALID,
+        OK: FarmValidationStatus.VALID,
+      }),
+    });
+
+    expect(
+      screen.getByText("A1, A2, A3 y 2 más quedan fuera porque no pasaron la validación.")
+    ).toBeTruthy();
+
+    // With every polygon, none is left out
+    fireEvent.click(screen.getByRole("radio", { name: "Todos (6)" }));
+    expect(screen.queryByText(/quedan fuera/)).toBeNull();
+  });
+
+  it("moves the subset choice with the arrow keys", async () => {
+    const context = await renderPage({ polygonsValidationResults: validation });
+
+    fireEvent.keyDown(screen.getByRole("radiogroup"), { key: "ArrowRight" });
+
+    expect(isChosen("Todos (3)")).toBe(true);
+    expect(context.setAnalysisDraft).toHaveBeenLastCalledWith({
+      polygonsSubset: "all",
+      selectedMapIds: [],
+    });
   });
 });

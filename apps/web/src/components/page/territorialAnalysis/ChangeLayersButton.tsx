@@ -25,7 +25,7 @@ export const ChangeLayersButton: React.FC = () => {
       onClick={() => {
         setAnalysisDraft(null);
         router.push(
-          localizedPath("/territorial-analysis/upload-data", i18n.language)
+          localizedPath("/territorial-analysis/layers", i18n.language)
         );
       }}
       sx={{ whiteSpace: "nowrap" }}

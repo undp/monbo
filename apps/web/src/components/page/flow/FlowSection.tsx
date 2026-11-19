@@ -27,7 +27,17 @@ export const FlowSection: React.FC<Props> = ({
     aria-label={title}
     sx={{ ...STAGE_CARD, padding: { xs: 2, md: "22px 24px" }, ...sx }}
   >
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, marginBottom: 2 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 1.5,
+        // A wide action (a search) goes under the heading on a narrow screen
+        rowGap: 1.5,
+        marginBottom: 2,
+      }}
+    >
       <Box
         aria-hidden
         sx={{

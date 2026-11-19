@@ -103,7 +103,9 @@ export const FlowStepper: React.FC = () => {
   const {
     reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
     territorialAnalysisParams: { selectedMaps: analysisMaps },
+    farmsData,
   } = useContext(DataContext);
+  const farmsLoaded = !!farmsData;
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const goToReport = useCallback(
@@ -120,9 +122,20 @@ export const FlowStepper: React.FC = () => {
       });
       if (action === "reportModal") setReportModalOpen(true);
       else if (action === "navigate")
-        router.push(localizedPath(stageHref(stage, flags), i18n.language));
+        router.push(
+          localizedPath(stageHref(stage, flags, { farmsLoaded }), i18n.language)
+        );
     },
-    [current, flags, reportMaps, analysisMaps, reportFarms.length, router, i18n.language]
+    [
+      current,
+      flags,
+      farmsLoaded,
+      reportMaps,
+      analysisMaps,
+      reportFarms.length,
+      router,
+      i18n.language,
+    ]
   );
 
   return (

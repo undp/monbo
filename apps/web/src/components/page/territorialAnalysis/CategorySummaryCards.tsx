@@ -8,12 +8,17 @@ import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysis
 import { summarizeCategories, type ResultClass } from "@/utils/layerResults";
 import { localizedText } from "@/utils/localizedText";
 import { categoryTints } from "@/utils/categoryColors";
-import { resultClassColor } from "@/utils/styling";
 import { formatNumber } from "@/utils/numbers";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
-import { HEADING_FONT } from "@/components/page/flow/flowStyles";
+import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
 
 const METER_ORDER: ResultClass[] = ["ok", "flagged", "unknown"];
+// As the mockup: green for the farms without findings, a soft red for the rest
+const METER_COLORS: Record<ResultClass, string> = {
+  ok: FLOW_COLORS.ok,
+  flagged: "#f2b8b2",
+  unknown: "#c7d3df",
+};
 
 /**
  * One card per analysed category: how many of the visible farms are ok, have
@@ -68,10 +73,11 @@ export const CategorySummaryCards: React.FC = () => {
             key={category.id}
             aria-label={name}
             sx={{
-              border: "1px solid #DEDEDE",
-              borderRadius: 3.5,
-              backgroundColor: "#FFFFFF",
-              padding: 2,
+              border: `1px solid ${FLOW_COLORS.line}`,
+              borderRadius: "14px",
+              backgroundColor: FLOW_COLORS.white,
+              boxShadow: "0 1px 2px rgba(11, 37, 69, 0.04)",
+              padding: "18px 20px",
               display: "flex",
               flexDirection: "column",
               gap: 1.25,
@@ -81,8 +87,8 @@ export const CategorySummaryCards: React.FC = () => {
               <Box
                 aria-hidden
                 sx={{
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   flex: "none",
                   borderRadius: 2.5,
                   display: "grid",
@@ -95,13 +101,18 @@ export const CategorySummaryCards: React.FC = () => {
               </Box>
               <Box
                 component="span"
-                sx={{ fontFamily: HEADING_FONT, fontWeight: 700, fontSize: 15 }}
+                sx={{
+                  fontFamily: HEADING_FONT,
+                  fontWeight: 700,
+                  fontSize: 16,
+                  color: FLOW_COLORS.ink,
+                }}
               >
                 {name}
               </Box>
               <Box
                 component="span"
-                sx={{ marginLeft: "auto", fontSize: 12, color: "text.secondary" }}
+                sx={{ marginLeft: "auto", fontSize: 13, color: FLOW_COLORS.muted }}
               >
                 {t("territorialAnalysis:results.layerCount", {
                   count: layerIds.length,
@@ -114,8 +125,9 @@ export const CategorySummaryCards: React.FC = () => {
                 sx={{
                   fontFamily: HEADING_FONT,
                   fontWeight: 800,
-                  fontSize: 26,
+                  fontSize: 30,
                   lineHeight: 1,
+                  color: FLOW_COLORS.ink,
                 }}
               >
                 {t("territorialAnalysis:results.okOfTotal", {
@@ -123,7 +135,7 @@ export const CategorySummaryCards: React.FC = () => {
                   total: formatNumber(total, 0),
                 })}
               </Box>{" "}
-              <Box component="span" sx={{ fontSize: 14, color: "text.secondary" }}>
+              <Box component="span" sx={{ fontSize: 15, color: FLOW_COLORS.ink2 }}>
                 {localizedText(category.resultLabels.ok, i18n.language)}
               </Box>
             </Box>
@@ -131,10 +143,10 @@ export const CategorySummaryCards: React.FC = () => {
               aria-hidden
               sx={{
                 height: 8,
-                borderRadius: 2,
+                borderRadius: "999px",
                 overflow: "hidden",
                 display: "flex",
-                backgroundColor: "#EEEEEE",
+                backgroundColor: FLOW_COLORS.blue50,
               }}
             >
               {METER_ORDER.map((resultClass) => (
@@ -142,15 +154,12 @@ export const CategorySummaryCards: React.FC = () => {
                   key={resultClass}
                   sx={{
                     width: `${total ? (100 * counts[resultClass]) / total : 0}%`,
-                    backgroundColor:
-                      resultClass === "unknown"
-                        ? "#BDBDBD"
-                        : resultClassColor(resultClass),
+                    backgroundColor: METER_COLORS[resultClass],
                   }}
                 />
               ))}
             </Box>
-            <Box sx={{ fontSize: 13, color: "text.secondary" }}>
+            <Box sx={{ fontSize: 13, color: FLOW_COLORS.muted }}>
               {t("territorialAnalysis:results.flaggedAndNoData", {
                 flagged: formatNumber(counts.flagged, 0),
                 unknown: formatNumber(counts.unknown, 0),

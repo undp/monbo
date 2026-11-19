@@ -97,13 +97,21 @@ export const flowProgress = (
 
 /**
  * Where pressing a stage goes: its results when it has them, its upload page
- * otherwise. Stage 3 always goes to the report (it is only pressable with results).
+ * otherwise. Stage 2 with farms loaded goes to its layers, where the polygon subset
+ * and the layers are chosen. Stage 3 always goes to the report (it is only
+ * pressable with results).
  */
-export const stageHref = (stage: FlowStage, { validationDone, analysisDone }: FlowFlags) => {
+export const stageHref = (
+  stage: FlowStage,
+  { validationDone, analysisDone }: FlowFlags,
+  { farmsLoaded = false }: { farmsLoaded?: boolean } = {}
+) => {
   if (stage === 1)
     return validationDone ? "/polygons-validation" : "/polygons-validation/upload-data";
-  if (stage === 2)
-    return analysisDone ? "/territorial-analysis" : "/territorial-analysis/upload-data";
+  if (stage === 2) {
+    if (analysisDone) return "/territorial-analysis";
+    return farmsLoaded ? "/territorial-analysis/layers" : "/territorial-analysis/upload-data";
+  }
   return "/report-generation";
 };
 
