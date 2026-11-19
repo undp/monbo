@@ -184,7 +184,7 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
           marginTop: 2,
           padding: 1.5,
           borderRadius: 2,
-          border: "1px solid #DEDEDE",
+          border: `1px solid ${FLOW_COLORS.line}`,
         }}
       >
         <FormControlLabel
