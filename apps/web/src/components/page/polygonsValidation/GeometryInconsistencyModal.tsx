@@ -11,6 +11,7 @@ import {
   getPolygonVertices,
   parseLatitude,
   parseLongitude,
+  knownArea,
   parseAreaToHectares,
 } from "@/utils/polygons";
 import { IconButton, SxProps, Box, Button } from "@mui/material";
@@ -150,8 +151,8 @@ const generateRows = (
         },
         id: { value: farm.id },
         area: {
-          value: farm.polygon.area
-            ? parseAreaToHectares(farm.polygon.area, 2, false, language)
+          value: knownArea(farm.polygon.area)
+            ? parseAreaToHectares(farm.polygon.area!, 2, false, language)
             : t("common:na"),
         },
       },

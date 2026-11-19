@@ -28,6 +28,9 @@ export const FLOW_COLORS = {
   badBackground: "#fdeceb",
 } as const;
 
+/** Width of the flow header's content (the stepper) and of a stage page's body. */
+export const FLOW_CONTENT_MAX_WIDTH = 1180;
+
 export const FOREST_IMAGE = "/images/aerial-river-rainforest.jpg";
 
 /** Navy-to-forest gradient over the forest image, for the flow header. */

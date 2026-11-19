@@ -13,7 +13,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import { FarmData } from "@/interfaces/Farm";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import { formatOverlapPercentage } from "@/utils/numbers";
-import { parseAreaToHectares } from "@/utils/polygons";
+import { formatArea } from "@/utils/polygons";
 import { FarmValidationView, withFarmStatus } from "@/utils/validationResults";
 import { BasePolygonModal } from "./BasePolygonModal";
 
@@ -111,7 +111,7 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
         },
         producer: { value: neighbour(neighbourId)?.producer ?? "" },
         area: {
-          value: parseAreaToHectares(data.area, 2, true, i18n.language),
+          value: formatArea(data.area, i18n.language),
           cellStyle: { whiteSpace: "nowrap" },
         },
         percentage: {

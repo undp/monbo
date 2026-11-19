@@ -12,7 +12,11 @@ import { localizedPath } from "@/utils/languageChange";
 import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { FlowStepper } from "./FlowStepper";
-import { FLOW_COLORS, flowHeaderBackground } from "./flowStyles";
+import {
+  FLOW_COLORS,
+  FLOW_CONTENT_MAX_WIDTH,
+  flowHeaderBackground,
+} from "./flowStyles";
 
 /**
  * The band above every stage page: the analysis country, the free-use note and
@@ -37,7 +41,7 @@ export const FlowHeader: React.FC = () => {
         paddingX: { xs: 2, md: 3 },
       }}
     >
-      <Box sx={{ maxWidth: 1180, marginX: "auto" }}>
+      <Box sx={{ maxWidth: FLOW_CONTENT_MAX_WIDTH, marginX: "auto" }}>
         <Box
           sx={{
             display: "flex",

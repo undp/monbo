@@ -13,6 +13,8 @@ If you upload the farms directly in the territorial analysis, overlaps aren't lo
 Each farm has a **Status**. **Review** shows its overlaps and lets you validate it manually; **Add more polygons** adds farms to the list.
 
 :::details[More detail: statuses and new uploads]
+The summary cards filter the table; another click on the same card shows every farm.
+
 - **Ready:** it has no problems.
 - **Overlaps…:** it overlaps another farm, or several. **Review** shows them on a map and lets you **validate it manually**, to include it in the analysis anyway. Each farm of an overlap is validated from its own row.
 - **Validated manually:** you included it despite the overlap. **Review** lets you undo it.

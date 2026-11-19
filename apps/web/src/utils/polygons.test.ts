@@ -3,6 +3,7 @@ import { createTestI18n } from "@/test/i18n";
 import { makeMultiPolygonFarm, makePolygonFarm } from "@/test/factories";
 import type { PolygonPart } from "@/interfaces/Map";
 import {
+  formatArea,
   getPolygonVertices,
   parseAreaToHectares,
   parseLatitude,
@@ -21,6 +22,18 @@ describe("parsePolygonArea", () => {
     expect(parsePolygonArea(5001, "es")).toBe("0,5 ha");
     expect(parsePolygonArea(67074.88, "es")).toBe("6,71 ha");
     expect(parsePolygonArea(67074.88, "en")).toBe("6.71 ha");
+  });
+});
+
+describe("formatArea", () => {
+  it("shows a small area in m² and a large one in hectares", () => {
+    expect(formatArea(35.93, "es")).toBe("36 m²");
+    expect(formatArea(67074.88, "es")).toBe("6,71 ha");
+  });
+
+  it("shows a dash when the area couldn't be computed", () => {
+    expect(formatArea(null)).toBe("—");
+    expect(formatArea(-1)).toBe("—");
   });
 });
 

@@ -13,6 +13,8 @@ Si cargas las fincas directamente en el análisis territorial, no se buscan tras
 Cada finca tiene un **Estado**. **Revisar** muestra sus traslapes y permite validarla manualmente; **Agregar más polígonos** suma fincas a la lista.
 
 :::details[Más detalle: estados y nuevas cargas]
+Las tarjetas de resumen filtran la tabla; otro clic en la misma muestra todas las fincas.
+
 - **Listo:** no tiene problemas.
 - **Se superpone con…:** se traslapa con otra finca, o con varias. **Revisar** las muestra en un mapa y permite **validarla manualmente** para incluirla igual en el análisis. Cada finca del traslape se valida desde su propia fila.
 - **Validado manualmente:** la incluiste a pesar del traslape. **Revisar** permite deshacerlo.

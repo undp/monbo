@@ -51,8 +51,10 @@
     "error": "con error de geometría: corrígelos en tu archivo"
   },
   "results": {
-    "count_one": "{{count}} polígono o punto",
-    "count_other": "{{count}} polígonos y puntos",
+    "title": "Resultado de la validación",
+    "items_one": "{{count}} elemento",
+    "items_other": "{{count}} elementos",
+    "showAll": "Mostrar todos",
     "addMore": "Agregar más polígonos",
     "review": "Revisar",
     "reviewFarm": "Revisar {{id}}",
@@ -70,7 +72,7 @@
     "status": {
       "ready": "Listo",
       "validatedManually": "Validado manualmente",
-      "overlapWith": "Se superpone con {{id}} ({{area}})",
+      "overlapWith": "Se superpone con {{id}}",
       "overlapMany_one": "Se superpone con {{count}} polígono",
       "overlapMany_other": "Se superpone con {{count}} polígonos",
       "emptyPolygon": "El polígono no tiene vértices",

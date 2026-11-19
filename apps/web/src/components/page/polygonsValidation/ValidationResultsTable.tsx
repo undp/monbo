@@ -3,8 +3,9 @@
 import React, { useContext, useMemo, useState } from "react";
 import { Box, Button } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { orderBy } from "lodash";
@@ -14,23 +15,36 @@ import { useTranslation } from "react-i18next";
 import { Table, RowData, Header } from "@/components/reusable/Table";
 import { Text } from "@/components/reusable/Text";
 import { MomboIcon } from "@/components/icons/MomboIcon";
+import { FarmTypeLabel } from "@/components/page/flow/FarmTypeLabel";
+import { FlowSection } from "@/components/page/flow/FlowSection";
+import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import {
+  FLOW_TABLE_FRAME,
+  FLOW_TABLE_ID,
+  FLOW_TABLE_SX,
+} from "@/components/page/flow/flowTable";
 import { PolygonDetailModal } from "@/components/page/polygonsValidation/PolygonDetailModal";
 import { GeometryInconsistencyModal } from "@/components/page/polygonsValidation/GeometryInconsistencyModal";
 import { FarmOverlapsModal } from "@/components/page/polygonsValidation/FarmOverlapsModal";
 import { DataContext } from "@/context/DataContext";
+import { useResultsFilter } from "@/hooks/useResultsFilter";
 import { useSearch } from "@/hooks/useSearch";
 import { useSortedTable } from "@/hooks/useSortedTable";
 import { FarmData } from "@/interfaces/Farm";
-import { parseAreaToHectares } from "@/utils/polygons";
+import { formatArea, knownArea } from "@/utils/polygons";
 import { removeDiacritics } from "@/utils/strings";
 import {
   FarmValidationView,
   GeometryInconsistency,
   farmValidationViews,
+  matchesResultsFilter,
 } from "@/utils/validationResults";
 
 const EMPTY_CELL = "—";
+// A column as narrow as its content, so the producer, origin and status get the
+// rest of the row
+const NARROW = { width: "1%", whiteSpace: "nowrap" } as const;
 const SEARCH_KEYS = ["farm.id", "farm.producer", "farm.cropType"];
 
 /** What a geometry error means, in words: the API's reason is GEOS's text. */
@@ -53,8 +67,7 @@ const geometryErrorText = (
 /** The farm's status in words, as its row shows it. */
 export const statusText = (
   view: FarmValidationView,
-  t: TFunction<"translation", undefined>,
-  language: string
+  t: TFunction<"translation", undefined>
 ): string => {
   switch (view.kind) {
     case "geometryError":
@@ -65,7 +78,6 @@ export const statusText = (
       return view.overlaps.length === 1
         ? t("polygonValidation:results:status:overlapWith", {
             id: view.overlaps[0].neighbourId,
-            area: parseAreaToHectares(view.overlaps[0].data.area, 2, true, language),
             interpolation: { escapeValue: false },
           })
         : t("polygonValidation:results:status:overlapMany", {
@@ -78,12 +90,12 @@ export const statusText = (
 
 const STATUS_STYLE: Record<
   FarmValidationView["kind"],
-  { color: string; background: string; Icon: typeof CheckCircleOutlineRoundedIcon }
+  { color: string; background: string; Icon: typeof CheckRoundedIcon }
 > = {
   ready: {
     color: FLOW_COLORS.ok,
     background: FLOW_COLORS.okBackground,
-    Icon: CheckCircleOutlineRoundedIcon,
+    Icon: CheckRoundedIcon,
   },
   validatedManually: {
     color: FLOW_COLORS.blue,
@@ -98,16 +110,16 @@ const STATUS_STYLE: Record<
   geometryError: {
     color: FLOW_COLORS.bad,
     background: FLOW_COLORS.badBackground,
-    Icon: ErrorOutlineRoundedIcon,
+    Icon: CloseRoundedIcon,
   },
 };
 
-/** "Listo", "Se superpone con CO-006 (0,12 ha)"…, and "Revisar" when it applies. */
+/** "Listo", "Se superpone con CO-006"…, and "Revisar" when it applies. */
 const StatusCell: React.FC<{
   view: FarmValidationView;
   onReview: () => void;
 }> = ({ view, onReview }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { color, background, Icon } = STATUS_STYLE[view.kind];
   return (
     <Box
@@ -115,7 +127,8 @@ const StatusCell: React.FC<{
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        columnGap: 1.5,
+        justifyContent: "space-between",
+        columnGap: 2,
         rowGap: 0.5,
       }}
     >
@@ -128,14 +141,14 @@ const StatusCell: React.FC<{
           borderRadius: 999,
           padding: "4px 10px",
           fontSize: 12.5,
-          fontWeight: 600,
+          fontWeight: 700,
           lineHeight: 1.3,
           color,
           backgroundColor: background,
         }}
       >
         <Icon aria-hidden sx={{ fontSize: 16 }} />
-        {statusText(view, t, i18n.language)}
+        {statusText(view, t)}
       </Box>
       {view.kind !== "ready" && (
         <Button
@@ -149,7 +162,14 @@ const StatusCell: React.FC<{
             event.stopPropagation();
             onReview();
           }}
-          sx={{ minWidth: 0, padding: "2px 8px", fontWeight: 600 }}
+          sx={{
+            minWidth: 0,
+            padding: "2px 6px",
+            fontSize: 14.5,
+            fontWeight: 500,
+            textTransform: "none",
+            whiteSpace: "nowrap",
+          }}
         >
           {t("polygonValidation:results:review")}
         </Button>
@@ -190,7 +210,7 @@ const sortKey = (attr: string, view: FarmValidationView, numericIds: boolean) =>
     case "production":
       return view.farm.production;
     case "area":
-      return view.farm.polygon.area ?? -1;
+      return knownArea(view.farm.polygon.area) ?? -1;
     case "status":
       return KIND_ORDER[view.kind];
     default:
@@ -216,6 +236,7 @@ export const ValidationResultsTable: React.FC = () => {
   const [sortedBy, setSortedBy] = useSortedTable();
   const [detail, setDetail] = useState<RowData<FarmData> | null>(null);
   const [review, setReview] = useState<Review | null>(null);
+  const [filter, setFilter] = useResultsFilter();
 
   const views = useMemo(
     () =>
@@ -224,8 +245,25 @@ export const ValidationResultsTable: React.FC = () => {
         : [],
     [farmsData, polygonsValidationResults]
   );
+  const filtered = useMemo(
+    () =>
+      filter ? views.filter((view) => matchesResultsFilter(view, filter)) : views,
+    [views, filter]
+  );
   const searchOptions = useMemo(() => ({ keys: SEARCH_KEYS }), []);
-  const found = useSearch<FarmValidationView>(views, searchValue, searchOptions);
+  const found = useSearch<FarmValidationView>(filtered, searchValue, searchOptions);
+  const points = views.filter(({ farm }) => farm.polygon.type === "point").length;
+  const kinds = [
+    views.length - points > 0 &&
+      t("common:farmsUpload:summary:polygons", { count: views.length - points }),
+    points > 0 && t("common:farmsUpload:summary:points", { count: points }),
+  ].filter(Boolean);
+  const subtitle = [
+    t("polygonValidation:results:items", { count: views.length }),
+    kinds.join(` ${t("common:farmsUpload:summary:and")} `),
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const shown = useMemo(() => {
     if (!sortedBy) return found;
     const numericIds = found.every(({ farm }) => !isNaN(Number(farm.id)));
@@ -242,7 +280,13 @@ export const ValidationResultsTable: React.FC = () => {
       : null;
 
   const headers: Header[] = [
-    { name: t("polygonValidation:results:columns:id"), attr: "id", type: "label", sortable: true },
+    {
+      name: t("polygonValidation:results:columns:id"),
+      attr: "id",
+      type: "label",
+      sortable: true,
+      columnStyle: NARROW,
+    },
     { name: t("polygonValidation:results:columns:producer"), attr: "producer", type: "label", sortable: true },
     { name: t("polygonValidation:results:columns:crop"), attr: "cropType", type: "label", sortable: true },
     {
@@ -250,16 +294,21 @@ export const ValidationResultsTable: React.FC = () => {
       attr: "production",
       type: "label",
       sortable: true,
-      columnStyle: { textAlign: "right" },
+      columnStyle: { ...NARROW, textAlign: "right" },
     },
     {
       name: t("polygonValidation:results:columns:area"),
       attr: "area",
       type: "label",
       sortable: true,
-      columnStyle: { textAlign: "right" },
+      columnStyle: { ...NARROW, textAlign: "right" },
     },
-    { name: t("polygonValidation:results:columns:type"), attr: "type", type: "label" },
+    {
+      name: t("polygonValidation:results:columns:type"),
+      attr: "type",
+      type: "label",
+      columnStyle: NARROW,
+    },
     { name: t("polygonValidation:results:columns:origin"), attr: "origin", type: "label" },
     { name: t("polygonValidation:results:columns:status"), attr: "status", type: "label", sortable: true },
   ];
@@ -269,7 +318,13 @@ export const ValidationResultsTable: React.FC = () => {
     return {
       data: farm,
       cells: {
-        id: { value: farm.id, cellStyle: { fontWeight: 600 } },
+        id: {
+          value: (
+            <Box component="span" sx={FLOW_TABLE_ID}>
+              {farm.id}
+            </Box>
+          ),
+        },
         producer: { value: farm.producer },
         cropType: { value: farm.cropType },
         production: {
@@ -277,18 +332,16 @@ export const ValidationResultsTable: React.FC = () => {
           cellStyle: { textAlign: "right", whiteSpace: "nowrap" },
         },
         area: {
-          value:
-            farm.polygon.area === null
-              ? EMPTY_CELL
-              : parseAreaToHectares(farm.polygon.area, 2, true, i18n.language),
+          value: formatArea(farm.polygon.area, i18n.language),
           cellStyle: { textAlign: "right", whiteSpace: "nowrap" },
         },
-        type: {
-          value: t(farm.polygon.type === "point" ? "common:point" : "common:polygon"),
-        },
+        type: { value: <FarmTypeLabel point={farm.polygon.type === "point"} /> },
         origin: {
-          value: originText(farm, t),
-          cellStyle: { maxWidth: 200, wordBreak: "break-word" },
+          value: (
+            <Box component="span" sx={{ color: FLOW_COLORS.ink2 }}>
+              {originText(farm, t)}
+            </Box>
+          ),
         },
         status: {
           value: (
@@ -308,38 +361,40 @@ export const ValidationResultsTable: React.FC = () => {
     };
   });
 
+  const actions = (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      {filter && (
+        <Button
+          onClick={() => setFilter(null)}
+          sx={{ textTransform: "none", fontSize: 15, fontWeight: 500 }}
+        >
+          {t("polygonValidation:results:showAll")}
+        </Button>
+      )}
+      <Button
+        startIcon={<AddRoundedIcon />}
+        onClick={() => router.push("/polygons-validation/upload-data")}
+        sx={{ textTransform: "none", fontSize: 15, fontWeight: 500 }}
+      >
+        {t("polygonValidation:results:addMore")}
+      </Button>
+    </Box>
+  );
+
   return (
-    <Box
+    <FlowSection
+      title={t("polygonValidation:results:title")}
+      subtitle={subtitle}
+      icon={<PentagonOutlinedIcon />}
+      action={actions}
       sx={{
+        height: RESULTS_SECTION_HEIGHT,
         display: "flex",
         flexDirection: "column",
-        gap: 1,
-        width: "100%",
         minHeight: 0,
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1,
-          paddingX: 1,
-          paddingTop: 0.5,
-        }}
-      >
-        <Text variant="body1" bold>
-          {t("polygonValidation:results:count", { count: views.length })}
-        </Text>
-        <Button
-          startIcon={<AddRoundedIcon />}
-          onClick={() => router.push("/polygons-validation/upload-data")}
-          sx={{ marginLeft: "auto", fontWeight: 600 }}
-        >
-          {t("polygonValidation:results:addMore")}
-        </Button>
-      </Box>
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+      <Box sx={{ ...FLOW_TABLE_FRAME, ...FLOW_TABLE_SX, flex: 1, minHeight: 0 }}>
         {rows.length === 0 ? (
           <Box
             sx={{
@@ -349,6 +404,7 @@ export const ValidationResultsTable: React.FC = () => {
               alignItems: "center",
               justifyContent: "center",
               gap: 2,
+              padding: 3,
             }}
           >
             <MomboIcon sx={{ fontSize: 64 }} />
@@ -359,7 +415,6 @@ export const ValidationResultsTable: React.FC = () => {
         ) : (
           <Table
             headers={headers}
-            headerStyle={{ backgroundColor: "#fff" }}
             rows={rows}
             onRowClick={setDetail}
             sortedBy={sortedBy}
@@ -385,6 +440,6 @@ export const ValidationResultsTable: React.FC = () => {
             : null
         }
       />
-    </Box>
+    </FlowSection>
   );
 };

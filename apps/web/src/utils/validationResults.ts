@@ -136,3 +136,28 @@ export const reconcileManualValidations = (
   });
   return { results: { ...results, farmResults }, dropped };
 };
+
+/** The summary cards above the results, each of them a filter of the table. */
+export type ResultsFilter = "ready" | "overlap" | "error";
+
+const RESULTS_FILTERS: ResultsFilter[] = ["ready", "overlap", "error"];
+
+/** The filter in the URL's `status`, or null for none (or an unknown one). */
+export const parseResultsFilter = (value: string | null): ResultsFilter | null =>
+  RESULTS_FILTERS.find((filter) => filter === value) ?? null;
+
+/**
+ * Whether a farm counts in a summary card, and so shows when the card filters
+ * the table: ready to analyze (valid, or validated manually), or still not valid
+ * because of an overlap or of its geometry. A farm with both is in both.
+ */
+export const matchesResultsFilter = (
+  view: FarmValidationView,
+  filter: ResultsFilter
+): boolean => {
+  if (filter === "ready") return view.status !== FarmValidationStatus.NOT_VALID;
+  if (view.status !== FarmValidationStatus.NOT_VALID) return false;
+  return filter === "overlap"
+    ? view.overlaps.length > 0
+    : view.geometryInconsistency !== null;
+};

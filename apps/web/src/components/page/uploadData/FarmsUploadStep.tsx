@@ -36,7 +36,13 @@ import { useTranslation } from "react-i18next";
 import { DropZone } from "@/components/reusable/DropZone";
 import { Text } from "@/components/reusable/Text";
 import { sum } from "lodash";
+import { FarmTypeLabel } from "@/components/page/flow/FarmTypeLabel";
 import { FlowSection } from "@/components/page/flow/FlowSection";
+import {
+  FLOW_TABLE_FRAME,
+  FLOW_TABLE_ID,
+  FLOW_TABLE_SX,
+} from "@/components/page/flow/flowTable";
 import {
   FLOW_COLORS,
   FOREST_IMAGE,
@@ -594,9 +600,11 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
               position: "sticky",
               bottom: 0,
               zIndex: 2,
-              marginX: { xs: -1.5, md: -3 },
+              // The band spans the viewport while its content stays aligned with
+              // the page's (FlowPage clips the overflow)
+              marginX: "calc(50% - 50vw)",
+              paddingX: "calc(50vw - 50%)",
               marginBottom: { xs: -1.5, md: -3 },
-              paddingX: { xs: 2, md: 3 },
               minHeight: 72,
               display: "flex",
               flexWrap: "wrap",
@@ -1034,6 +1042,9 @@ interface FarmRowsTableProps {
   onEdit: (source: ManualSource) => void;
 }
 
+// On a phone the crop and the production give way to the rest
+const WIDE_ONLY = { display: { xs: "none", sm: "table-cell" } } as const;
+
 /**
  * One row per farm to upload, in list order: its ID, producer, crop, production,
  * kind and where it came from, with a button to delete it (and to edit a drawn
@@ -1052,38 +1063,18 @@ const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
 
   const header = (key: string) => t(`common:farmsUpload:table:${key}`);
   return (
-    <Box
-      sx={{
-        maxHeight: 420,
-        overflow: "auto",
-        border: `1px solid ${FLOW_COLORS.line}`,
-        borderRadius: "12px",
-      }}
-    >
+    <Box sx={{ ...FLOW_TABLE_FRAME, maxHeight: 520 }}>
       <Table
-        size="small"
         stickyHeader
         aria-label={t("common:farmsUpload:listTitle")}
-        sx={{
-          "& th": {
-            fontSize: 11.5,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: FLOW_COLORS.muted,
-            backgroundColor: FLOW_COLORS.blue25,
-            whiteSpace: "nowrap",
-          },
-          "& td": { fontSize: 14, color: FLOW_COLORS.ink2 },
-          "& tbody tr:last-of-type td": { borderBottom: "none" },
-        }}
+        sx={FLOW_TABLE_SX}
       >
         <TableHead>
           <TableRow>
             <TableCell>{header("id")}</TableCell>
             <TableCell>{header("producer")}</TableCell>
-            <TableCell>{header("crop")}</TableCell>
-            <TableCell>{header("production")}</TableCell>
+            <TableCell sx={WIDE_ONLY}>{header("crop")}</TableCell>
+            <TableCell sx={WIDE_ONLY}>{header("production")}</TableCell>
             <TableCell>{header("type")}</TableCell>
             <TableCell>{header("origin")}</TableCell>
             <TableCell align="right">
@@ -1099,23 +1090,28 @@ const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
             const name = id ?? row.producerName ?? t("common:farmsUpload:manualFarm");
             return (
               <TableRow key={`${source.key}-${index}`} hover>
-                <TableCell sx={{ fontWeight: 600, color: `${FLOW_COLORS.ink} !important` }}>
-                  {id ?? EMPTY_CELL}
+                <TableCell>
+                  <Box component="span" sx={FLOW_TABLE_ID}>
+                    {id ?? EMPTY_CELL}
+                  </Box>
                 </TableCell>
                 <TableCell>{row.producerName || EMPTY_CELL}</TableCell>
-                <TableCell>{row.cropType || EMPTY_CELL}</TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                <TableCell sx={WIDE_ONLY}>{row.cropType || EMPTY_CELL}</TableCell>
+                <TableCell sx={{ ...WIDE_ONLY, whiteSpace: "nowrap" }}>
                   {productionText(row, i18n.language) || EMPTY_CELL}
                 </TableCell>
                 <TableCell>
-                  {t(row.geometryType === "Point" ? "common:point" : "common:polygon")}
+                  <FarmTypeLabel point={row.geometryType === "Point"} />
                 </TableCell>
-                <TableCell sx={{ maxWidth: 220, wordBreak: "break-word" }}>
+                <TableCell sx={{ color: `${FLOW_COLORS.ink2} !important` }}>
                   {source.kind === "manual"
                     ? t("common:farmsUpload:table:drawn")
                     : source.name}
                 </TableCell>
-                <TableCell align="right" sx={{ whiteSpace: "nowrap", paddingY: 0 }}>
+                <TableCell
+                  align="right"
+                  sx={{ whiteSpace: "nowrap", paddingY: "0 !important", paddingX: "8px !important" }}
+                >
                   {source.kind === "manual" && (
                     <Tooltip title={t("common:farmsUpload:edit")}>
                       <IconButton

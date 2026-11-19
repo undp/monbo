@@ -1,5 +1,4 @@
 import { Box } from "@mui/material";
-import { SectionBackground } from "@/components/reusable/SectionBackground";
 import { DownloadPageData } from "@/components/page/polygonsValidation/DownloadPageData";
 import { ValidationResultsTable } from "@/components/page/polygonsValidation/ValidationResultsTable";
 import { PageFooter } from "@/components/page/polygonsValidation/PageFooter";
@@ -12,7 +11,6 @@ import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHom
 import { FlowPage } from "@/components/page/flow/FlowPage";
 import { FlowPageHead } from "@/components/page/flow/FlowPageHead";
 import { ValidationKpis } from "@/components/page/polygonsValidation/ValidationKpis";
-import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
 const namespaces = ["common", "polygonValidation", "territorialAnalysis", "flow"];
 
@@ -53,14 +51,12 @@ export default async function PolygonsValidationPage({
             </Box>
           }
         />
-        <ValidationKpis />
-        <SectionBackground
-          sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT }}
-        >
-          <Suspense>
-            <ValidationResultsTable />
-          </Suspense>
-        </SectionBackground>
+        <Suspense>
+          <ValidationKpis />
+        </Suspense>
+        <Suspense>
+          <ValidationResultsTable />
+        </Suspense>
         <PageFooter />
       </FlowPage>
     </TranslationsProvider>

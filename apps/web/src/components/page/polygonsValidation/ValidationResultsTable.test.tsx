@@ -11,7 +11,7 @@ import type {
 } from "@/interfaces/PolygonValidation";
 import { makeFarm } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
-import { router, setSearchParams } from "@/test/navigation";
+import { router, setPathname, setSearchParams } from "@/test/navigation";
 import { makeDataContext } from "@/test/renderWithData";
 import { ValidationResultsTable } from "./ValidationResultsTable";
 
@@ -50,6 +50,16 @@ const FARMS: FarmData[] = [
     producer: "Jorge Ruiz",
     polygon: { type: "polygon", area: null, details: null },
   }),
+  makeFarm({
+    id: "CO-008",
+    producer: "Rosa León",
+    polygon: { type: "point", area: 35.93, details: { center: { lat: 0, lng: 0 }, radius: 3 } },
+  }),
+  makeFarm({
+    id: "CO-009",
+    producer: "Pedro Soto",
+    polygon: { type: "polygon", area: -1, details: null },
+  }),
 ];
 
 const RESULTS: ValidateFarmsResponse = {
@@ -59,11 +69,18 @@ const RESULTS: ValidateFarmsResponse = {
     { farmId: "CO-006", status: "NOT_VALID" },
     { farmId: "CO-007", status: "NOT_VALID" },
     { farmId: "CO-005", status: "NOT_VALID" },
+    { farmId: "CO-008", status: "VALID" },
+    { farmId: "CO-009", status: "NOT_VALID" },
   ],
   inconsistencies: [
     overlap("CO-003", "CO-006", 1200),
     overlap("CO-007", "CO-006", 800),
     { type: "empty_polygon", farmIds: ["CO-005"], data: null },
+    {
+      type: "invalid_geometry",
+      farmIds: ["CO-009"],
+      data: { reason: "Self-intersection[0 0]" },
+    },
   ],
 };
 
@@ -111,7 +128,7 @@ describe("ValidationResultsTable", () => {
     expect(screen.getAllByRole("table")).toHaveLength(1);
     expect(within(rowOf("CO-001")).getByText("Listo")).toBeTruthy();
     expect(within(rowOf("CO-001")).queryByRole("button", { name: /Revisar/ })).toBeNull();
-    expect(within(rowOf("CO-003")).getByText("Se superpone con CO-006 (0,12 ha)")).toBeTruthy();
+    expect(within(rowOf("CO-003")).getByText("Se superpone con CO-006")).toBeTruthy();
     expect(within(rowOf("CO-006")).getByText("Se superpone con 2 polígonos")).toBeTruthy();
     expect(within(rowOf("CO-005")).getByText("El polígono no tiene vértices")).toBeTruthy();
   });
@@ -124,6 +141,9 @@ describe("ValidationResultsTable", () => {
     expect(within(rowOf("CO-007")).getByText("Dibujo")).toBeTruthy();
     // Without area or origin
     expect(within(rowOf("CO-005")).getAllByText("—")).toHaveLength(2);
+    // A small polygon in m², not "0 ha"; an area that failed is not a number
+    expect(within(rowOf("CO-008")).getByText("36 m²")).toBeTruthy();
+    expect(within(rowOf("CO-009")).getAllByText("—")).toHaveLength(2);
   });
 
   it("validates a farm with two neighbours from its review", async () => {
@@ -141,7 +161,7 @@ describe("ValidationResultsTable", () => {
 
     expect(within(rowOf("CO-006")).getByText("Validado manualmente")).toBeTruthy();
     // The neighbours keep their own status
-    expect(within(rowOf("CO-003")).getByText("Se superpone con CO-006 (0,12 ha)")).toBeTruthy();
+    expect(within(rowOf("CO-003")).getByText("Se superpone con CO-006")).toBeTruthy();
   });
 
   it("opens a geometry error without a manual validation", async () => {
@@ -159,6 +179,32 @@ describe("ValidationResultsTable", () => {
 
     expect(screen.getByText("CO-007")).toBeTruthy();
     expect(screen.queryByText("CO-001")).toBeNull();
+  });
+
+  it("titles the results with what they hold", async () => {
+    await renderTable();
+
+    expect(screen.getByRole("heading", { name: "Resultado de la validación" })).toBeTruthy();
+    expect(screen.getByText("7 elementos · 2 polígonos y 5 puntos")).toBeTruthy();
+  });
+
+  it("shows only the farms of the summary card chosen, until all are asked for", async () => {
+    setPathname("/es/polygons-validation");
+    setSearchParams({ status: "overlap", search: "Marta" });
+    await renderTable();
+
+    // The overlapping farms, narrowed by the search
+    expect(rowOf("CO-007")).toBeTruthy();
+    expect(screen.queryByText("Ana Gómez")).toBeNull();
+    expect(screen.queryByText("Coop. Río")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar todos" }));
+
+    // The search stays
+    expect(router.replace).toHaveBeenCalledWith(
+      "/es/polygons-validation?search=Marta",
+      { scroll: false }
+    );
   });
 
   it("goes back to the upload list to add more polygons, without starting over", async () => {

@@ -1,43 +1,40 @@
 "use client";
 
 import { useContext, useMemo } from "react";
-import { Box } from "@mui/material";
+import { Box, ButtonBase } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { DataContext } from "@/context/DataContext";
-import { useValidFarmsDataForValidationPage } from "@/hooks/useValidFarmsDataForValidationPage";
-import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
+import { useResultsFilter } from "@/hooks/useResultsFilter";
 import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
+import {
+  ResultsFilter,
+  farmValidationViews,
+  matchesResultsFilter,
+} from "@/utils/validationResults";
 
 /**
  * The validation in three numbers: the polygons ready to analyze (valid or
  * validated manually), and the ones still not valid because they overlap or
- * because their geometry is wrong. A polygon with both counts in both.
+ * because their geometry is wrong. A polygon with both counts in both. Each card
+ * filters the table to its polygons; pressing it again shows them all.
  */
 export const ValidationKpis: React.FC = () => {
   const { t } = useTranslation();
-  const { polygonsValidationResults } = useContext(DataContext);
-  const { farmsData: validFarms } = useValidFarmsDataForValidationPage();
+  const { farmsData, polygonsValidationResults } = useContext(DataContext);
+  const [filter, setFilter] = useResultsFilter();
 
-  const { overlapping, withErrors } = useMemo(() => {
-    const notValid = new Set(
-      polygonsValidationResults?.farmResults
-        .filter(({ status }) => status === FarmValidationStatus.NOT_VALID)
-        .map(({ farmId }) => farmId) ?? []
-    );
-    const overlapping = new Set<string>();
-    const withErrors = new Set<string>();
-    polygonsValidationResults?.inconsistencies.forEach((inconsistency) =>
-      inconsistency.farmIds
-        .filter((farmId) => notValid.has(farmId))
-        .forEach((farmId) =>
-          (inconsistency.type === "overlap" ? overlapping : withErrors).add(farmId)
-        )
-    );
-    return { overlapping: overlapping.size, withErrors: withErrors.size };
-  }, [polygonsValidationResults]);
+  const counts = useMemo(() => {
+    const views =
+      farmsData && polygonsValidationResults
+        ? farmValidationViews(farmsData, polygonsValidationResults)
+        : [];
+    const count = (kind: ResultsFilter) =>
+      views.filter((view) => matchesResultsFilter(view, kind)).length;
+    return { ready: count("ready"), overlap: count("overlap"), error: count("error") };
+  }, [farmsData, polygonsValidationResults]);
 
   return (
     <Box
@@ -50,20 +47,26 @@ export const ValidationKpis: React.FC = () => {
       <Kpi
         tone="ok"
         icon={<CheckRoundedIcon fontSize="small" />}
-        count={validFarms.length}
+        count={counts.ready}
         label={t("polygonValidation:kpis:ready")}
+        active={filter === "ready"}
+        onClick={() => setFilter("ready")}
       />
       <Kpi
         tone="warn"
         icon={<WarningAmberRoundedIcon fontSize="small" />}
-        count={overlapping}
+        count={counts.overlap}
         label={t("polygonValidation:kpis:overlap")}
+        active={filter === "overlap"}
+        onClick={() => setFilter("overlap")}
       />
       <Kpi
         tone="bad"
         icon={<CloseRoundedIcon fontSize="small" />}
-        count={withErrors}
+        count={counts.error}
         label={t("polygonValidation:kpis:error")}
+        active={filter === "error"}
+        onClick={() => setFilter("error")}
       />
     </Box>
   );
@@ -80,50 +83,69 @@ const Kpi: React.FC<{
   icon: React.ReactNode;
   count: number;
   label: string;
-}> = ({ tone, icon, count, label }) => (
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      gap: 1.5,
-      padding: "14px 16px",
-      borderRadius: "12px",
-      border: `1px solid ${FLOW_COLORS.line}`,
-      backgroundColor: FLOW_COLORS.white,
-    }}
-  >
-    <Box
-      aria-hidden
+  /** Whether the table shows only this card's polygons. */
+  active: boolean;
+  onClick: () => void;
+}> = ({ tone, icon, count, label, active, onClick }) => {
+  const { color, background } = TONES[tone];
+  return (
+    <ButtonBase
+      aria-pressed={active}
+      onClick={onClick}
       sx={{
-        width: 36,
-        height: 36,
-        flex: "none",
-        borderRadius: "50%",
-        display: "grid",
-        placeItems: "center",
-        color: TONES[tone].color,
-        backgroundColor: TONES[tone].background,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        gap: 1.5,
+        padding: "14px 16px",
+        borderRadius: "12px",
+        textAlign: "left",
+        fontFamily: "inherit",
+        // The same box when active: the border's color changes, not its width
+        border: `1px solid ${active ? color : FLOW_COLORS.line}`,
+        boxShadow: active ? `inset 0 0 0 1px ${color}` : "none",
+        backgroundColor: FLOW_COLORS.white,
+        transition: "border-color 120ms, box-shadow 120ms",
+        "&:hover": { borderColor: color },
+        "&.Mui-focusVisible": {
+          outline: `2px solid ${FLOW_COLORS.blue}`,
+          outlineOffset: 2,
+        },
       }}
     >
-      {icon}
-    </Box>
-    <Box>
       <Box
-        component="span"
+        aria-hidden
         sx={{
-          display: "block",
-          fontFamily: HEADING_FONT,
-          fontSize: 26,
-          fontWeight: 800,
-          lineHeight: 1,
-          color: FLOW_COLORS.ink,
+          width: 36,
+          height: 36,
+          flex: "none",
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          color,
+          backgroundColor: background,
         }}
       >
-        {count}
+        {icon}
       </Box>
-      <Box component="small" sx={{ display: "block", fontSize: 13, color: FLOW_COLORS.ink2 }}>
-        {label}
+      <Box>
+        <Box
+          component="span"
+          sx={{
+            display: "block",
+            fontFamily: HEADING_FONT,
+            fontSize: 26,
+            fontWeight: 800,
+            lineHeight: 1,
+            color: FLOW_COLORS.ink,
+          }}
+        >
+          {count}
+        </Box>
+        <Box component="span" sx={{ display: "block", fontSize: 13, color: FLOW_COLORS.ink2 }}>
+          {label}
+        </Box>
       </Box>
-    </Box>
-  </Box>
-);
+    </ButtonBase>
+  );
+};

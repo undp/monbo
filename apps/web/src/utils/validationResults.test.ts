@@ -7,6 +7,8 @@ import type {
 import {
   farmValidationViews,
   manualValidationsOf,
+  matchesResultsFilter,
+  parseResultsFilter,
   reconcileManualValidations,
   withFarmStatus,
 } from "./validationResults";
@@ -161,5 +163,31 @@ describe("reconcileManualValidations", () => {
     );
 
     expect(statusOf(reconciled, "A-2")).toBe("NOT_VALID");
+  });
+});
+
+describe("the summary cards' filters", () => {
+  const views = farmValidationViews(
+    ["A", "B", "C", "D"].map((id) => makeFarm({ id })),
+    results({ A: "VALID", B: "NOT_VALID", C: "NOT_VALID", D: "VALID_MANUALLY" }, [
+      overlap("B", "D"),
+      invalid("C"),
+    ])
+  );
+  const idsOf = (filter: "ready" | "overlap" | "error") =>
+    views
+      .filter((view) => matchesResultsFilter(view, filter))
+      .map(({ farm }) => farm.id);
+
+  it("counts a farm validated manually as ready, not as overlapping", () => {
+    expect(idsOf("ready")).toEqual(["A", "D"]);
+    expect(idsOf("overlap")).toEqual(["B"]);
+    expect(idsOf("error")).toEqual(["C"]);
+  });
+
+  it("reads only the known filters from the URL", () => {
+    expect(parseResultsFilter("overlap")).toBe("overlap");
+    expect(parseResultsFilter("all")).toBeNull();
+    expect(parseResultsFilter(null)).toBeNull();
   });
 });

@@ -51,8 +51,10 @@
     "error": "with a geometry error: fix them in your file"
   },
   "results": {
-    "count_one": "{{count}} polygon or point",
-    "count_other": "{{count}} polygons and points",
+    "title": "Validation result",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "showAll": "Show all",
     "addMore": "Add more polygons",
     "review": "Review",
     "reviewFarm": "Review {{id}}",
@@ -70,7 +72,7 @@
     "status": {
       "ready": "Ready",
       "validatedManually": "Validated manually",
-      "overlapWith": "Overlaps {{id}} ({{area}})",
+      "overlapWith": "Overlaps {{id}}",
       "overlapMany_one": "Overlaps {{count}} polygon",
       "overlapMany_other": "Overlaps {{count}} polygons",
       "emptyPolygon": "The polygon has no vertices",

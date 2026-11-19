@@ -7,12 +7,12 @@ The stage 1 results page (`/polygons-validation`) SHALL show every validated far
 - Productor;
 - Cultivo;
 - Producción, with its unit;
-- Área, in hectares, from the parsed farm;
+- Área, from the parsed farm: in m² up to 5000 m², in hectares above, so a small polygon never reads "0 ha";
 - Tipo (polygon or point);
 - Origen;
 - Estado.
 
-A farm whose area could not be computed SHALL show "—" as its area, never a number. The page's search SHALL filter the table by ID, producer and crop. The KPI cards, the downloads and the next-stage card SHALL stay as they are. The design is the Etapa 1 results screen of mockup v2, without its "Nombre" column.
+A farm whose area could not be computed (null, or the negative sentinel) SHALL show "—" as its area, never a number such as "-0 ha". The page's search SHALL filter the table by ID, producer and crop. The KPI cards, the downloads and the next-stage card SHALL stay as they are. The design is the Etapa 1 results screen of mockup v2, without its "Nombre" column.
 
 #### Scenario: Ready and overlapping farms together
 
@@ -21,8 +21,13 @@ A farm whose area could not be computed SHALL show "—" as its area, never a nu
 
 #### Scenario: A polygon without area
 
-- **WHEN** a farm's polygon is empty, so its area is null
+- **WHEN** a farm's polygon is empty, so its area is null, or crosses itself, so its area comes as -1
 - **THEN** its Área cell shows "—"
+
+#### Scenario: A very small polygon
+
+- **WHEN** a farm's polygon measures 36 m²
+- **THEN** its Área cell shows "36 m²"
 
 #### Scenario: Searching
 
@@ -34,7 +39,7 @@ A farm whose area could not be computed SHALL show "—" as its area, never a nu
 The Estado column SHALL show one status per farm, chosen in this order:
 1. **a geometry error:** the farm has an `invalid_geometry` or `empty_polygon` inconsistency. The status SHALL say the error in words (for example, that the polygon crosses itself) and offer "Revisar".
 2. **"Validado manualmente":** the farm's status is `VALID_MANUALLY`. It SHALL offer "Revisar", to undo it.
-3. **an overlap:** the farm is `NOT_VALID` with at least one `overlap`. With one neighbour, the status SHALL say "Se superpone con <neighbour ID> (<area>)", with the overlap's area in hectares. With more, it SHALL say "Se superpone con <N> polígonos". It SHALL offer "Revisar".
+3. **an overlap:** the farm is `NOT_VALID` with at least one `overlap`. With one neighbour, the status SHALL say "Se superpone con <neighbour ID>"; the overlap's area is in "Revisar", so the status stays short. With more, it SHALL say "Se superpone con <N> polígonos". It SHALL offer "Revisar".
 4. **"Listo":** any other farm. It SHALL offer no "Revisar".
 
 Pressing a row outside "Revisar" SHALL open the farm's detail, as today.
@@ -42,7 +47,7 @@ Pressing a row outside "Revisar" SHALL open the farm's detail, as today.
 #### Scenario: One neighbour
 
 - **WHEN** CO-003 overlaps only CO-006, by 0.12 ha
-- **THEN** CO-003's status reads "Se superpone con CO-006 (0,12 ha)", with "Revisar"
+- **THEN** CO-003's status reads "Se superpone con CO-006", with "Revisar"
 
 #### Scenario: Two neighbours
 
@@ -86,6 +91,20 @@ Checking the control SHALL set the farm's status to `VALID_MANUALLY`, and its ro
 
 - **WHEN** the user opens "Revisar" on a farm with an `empty_polygon` inconsistency
 - **THEN** the modal explains the problem and has no control to validate the farm
+
+### Requirement: The summary cards filter the table
+
+The three summary cards above the results (ready to analyze, overlapping, with a geometry error) SHALL be buttons. Pressing one SHALL show only its farms in the table; pressing the active card again, or "Mostrar todos", SHALL show every farm again. A card's number and the rows it shows SHALL come from the same rule: ready means valid or validated manually, overlapping means not valid with an overlap, and with an error means not valid with a geometry inconsistency. The filter SHALL be kept in the URL (`?status=`) next to the search, and SHALL combine with it.
+
+#### Scenario: Filtering by the overlaps
+
+- **WHEN** the results have 10 farms ready and 2 overlapping, and the user presses the overlapping card
+- **THEN** the table shows the 2 overlapping farms and the card shows as pressed
+
+#### Scenario: Removing the filter
+
+- **WHEN** the table is filtered by the overlapping card and the user presses that card again
+- **THEN** the table shows every farm, and the search the user typed is kept
 
 ### Requirement: Adding more polygons after a validation
 

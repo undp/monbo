@@ -72,6 +72,13 @@
   - a geometry error opens the modal without a checkbox;
   - "Agregar más polígonos" navigates without resetting
 
+## 5b. Mockup adjustments
+
+- [x] 5b.1 Center a stage page's body at the flow header's width (`FLOW_CONTENT_MAX_WIDTH`), with the upload's bottom bar still spanning the viewport
+- [x] 5b.2 Share the mockup's table look between the upload list and the results (`flowTable.ts`): headers on a light band, roomy rows, a blue ID, the type with its icon, and wrapping texts instead of a sideways scroll
+- [x] 5b.3 Put the results in a card titled "Resultado de la validación", with the count of items, polygons and points, "Revisar" and "Agregar más polígonos" as links
+- [x] 5b.4 Make the summary cards filter the table through `?status=`, with the same rule for their numbers and their rows (`matchesResultsFilter`), plus tests
+
 ## 6. Docs and checks
 
 - [x] 6.1 Update `content/documentation/{es,en}/` (upload and validation results) and `docs/onboarding.md`: the list per farm, the single table, "Revisar" and "Agregar más polígonos"

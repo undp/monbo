@@ -8,7 +8,7 @@ Stage 1 still differs from the Etapa 1 screen of mockup v2 in the parts that mat
 - **The Estado column and its "Revisar" button.** The states are:
   - "Listo";
   - "Validado manualmente";
-  - "Se superpone con X (área)", or "Se superpone con N polígonos";
+  - "Se superpone con X" (the overlapping area is in "Revisar"), or "Se superpone con N polígonos";
   - the geometry error.
 
   "Revisar" on an overlap opens a new modal with **all of that farm's overlaps**: a map, the list of its neighbours, and the checkbox that validates the farm manually. A geometry error keeps its current informational modal and can't be validated manually.
