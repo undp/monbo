@@ -26,13 +26,13 @@ describe("ChangeLayersButton", () => {
   it("goes to the selection page in the current language", async () => {
     await renderButton("en");
     fireEvent.click(screen.getByRole("button", { name: "Change layers" }));
-    expect(router.push).toHaveBeenCalledWith("/en/territorial-analysis/upload-data");
+    expect(router.push).toHaveBeenCalledWith("/en/territorial-analysis/layers");
   });
 
   it("starts from the analysed choices, dropping an unanalysed draft", async () => {
     const context = await renderButton("es");
     fireEvent.click(screen.getByRole("button", { name: "Cambiar capas" }));
     expect(context.setAnalysisDraft).toHaveBeenCalledWith(null);
-    expect(router.push).toHaveBeenCalledWith("/territorial-analysis/upload-data");
+    expect(router.push).toHaveBeenCalledWith("/territorial-analysis/layers");
   });
 });

@@ -6,36 +6,37 @@
     "recalculatingText": "A layer changed. Recalculating the analysis…",
     "analysisUpdated": "The analysis was recalculated with the updated layer.",
     "title": "Territorial analysis",
-    "mapSelectionStep": {
-      "stepTitle": "Step 1: Choose the layers",
-      "noMapsAvailable": "No layers available for {{country}}",
-      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again.",
-      "subtitle": "Grouped by category, as defined by the {{country}} team."
-    },
-    "uploadStep": {
-      "stepTitle": "Step 2: Add your polygons",
-      "loadedFarms_one": "You already loaded {{count}} polygon or point.",
-      "loadedFarms_other": "You already loaded {{count}} polygons or points.",
-      "analyzeLoadedFarms": "Analyze",
-      "submit": "Upload and analyze",
-      "uploadAnother": "Upload another file"
-    },
     "subtitle": "Choose which {{country}} layers to cross your polygons with.",
-    "directEntry": {
-      "message": "You came in directly: you have no polygons loaded yet. Upload them here, or start with the validation to check them for errors first.",
-      "upload": "Upload polygons",
-      "validate": "Go to validation"
+    "uploadSubtitle": "Upload them however you like. You can combine methods: everything goes into the same list.",
+    "continue": "Continue",
+    "analyze": "Analyze",
+    "mapSelectionStep": {
+      "stepTitle": "Layers for the analysis",
+      "subtitle": "Grouped by category, as defined by the {{country}} team.",
+      "howToRead": "How to read each layer",
+      "noMapsAvailable": "No layers available for {{country}}",
+      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again."
     },
     "subset": {
       "label": "Polygons to analyze",
       "message_one": "You will use {{count}} polygon from the validation.",
       "message_other": "You will use {{count}} polygons from the validation.",
+      "unvalidated_one": "You will use {{count}} polygon. It wasn't validated.",
+      "unvalidated_other": "You will use {{count}} polygons. They weren't validated.",
+      "leftOut_one": "{{ids}} is left out because it didn't pass the validation.",
+      "leftOut_other": "{{ids}} are left out because they didn't pass the validation.",
+      "idsAndMore_one": "{{ids}} and {{count}} more",
+      "idsAndMore_other": "{{ids}} and {{count}} more",
       "valid": "Valid only ({{count}})",
-      "all": "All ({{count}})"
+      "all": "All ({{count}})",
+      "seePolygons": "See polygons"
     },
-    "summary": "{{polygons}} · {{layers}} in {{categories}}",
-    "categoryCount_one": "{{count}} category",
-    "categoryCount_other": "{{count}} categories"
+    "polygonsLabel_one": "polygon",
+    "polygonsLabel_other": "polygons",
+    "layersInLabel_one": "layer in",
+    "layersInLabel_other": "layers in",
+    "categoriesLabel_one": "category",
+    "categoriesLabel_other": "categories"
   },
   "noDataShortText": "No data",
   "map": "Map",
@@ -67,10 +68,16 @@
     "changeLayers": "Change layers",
     "flagged": "With findings",
     "ok": "No findings",
-    "layerResult": "Result"
+    "layerResult": "Result",
+    "byPolygonTitle": "Result by polygon and layer",
+    "byPolygonSubtitle": "Share of the polygon that falls in each layer.",
+    "seeOnMap": "See on the map",
+    "seeTable": "See table"
   },
   "layerPicker": {
     "tickedOfTotal_one": "{{ticked}} of {{count}} layer",
     "tickedOfTotal_other": "{{ticked}} of {{count}} layers"
-  }
+  },
+  "mapLegend": "Layer legend",
+  "mapFilters": "Filter by result"
 }

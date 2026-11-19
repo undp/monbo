@@ -66,11 +66,12 @@ const renderMapView = async () => {
   return { ...rendered, rerender: () => rendered.rerender(ui()) };
 };
 
-/** The farm ids listed in a tab panel, sorted. */
+/** The farm ids listed, sorted. */
 const listedFarms = (panel: HTMLElement) =>
   within(panel)
-    .queryAllByText(/^Ana - F\d+/)
-    .map((element) => element.textContent?.match(/^Ana - (F\d{2})/)?.[1])
+    .queryAllByRole("radio")
+    .map((row) => row.getAttribute("aria-label")?.match(/^(F\d{2}) Ana:/)?.[1])
+    .filter(Boolean)
     .sort();
 
 beforeEach(() => {
@@ -85,20 +86,20 @@ describe("MapView", () => {
   it("groups the farms with the shared classification, with no-data farms apart", async () => {
     await renderMapView();
 
-    expect(screen.getByRole("tab", { name: "Con deforestación (1)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Con deforestación (1)" })).toBeTruthy();
     // 0, 0.005 and 0.02 are at or below the 2% threshold.
-    fireEvent.click(screen.getByRole("tab", { name: "Libre de deforestación (3)" }));
-    expect(listedFarms(screen.getByRole("tabpanel"))).toEqual([
+    fireEvent.click(screen.getByRole("button", { name: "Libre de deforestación (3)" }));
+    expect(listedFarms(screen.getByRole("radiogroup", { name: "Polígonos" }))).toEqual([
       "F01",
       "F02",
       "F03",
     ]);
 
     // A null result is "no data", never deforestation-free.
-    fireEvent.click(screen.getByRole("tab", { name: "Sin dato (1)" }));
-    expect(listedFarms(screen.getByRole("tabpanel"))).toEqual(["F05"]);
+    fireEvent.click(screen.getByRole("button", { name: "Sin dato (1)" }));
+    expect(listedFarms(screen.getByRole("radiogroup", { name: "Polígonos" }))).toEqual(["F05"]);
     // Its chip uses the tab's wording, not "N/D".
-    expect(within(screen.getByRole("tabpanel")).getByText("Sin dato")).toBeTruthy();
+    expect(within(screen.getByRole("radiogroup", { name: "Polígonos" })).getByText("Sin dato")).toBeTruthy();
   });
 
   it("names and fills the groups with a required layer's category", async () => {
@@ -106,11 +107,11 @@ describe("MapView", () => {
     await renderMapView();
 
     fireEvent.click(
-      screen.getByRole("tab", { name: "Fuera de la frontera agrícola (1)" })
+      screen.getByRole("button", { name: "Fuera de la frontera agrícola (1)" })
     );
-    expect(listedFarms(screen.getByRole("tabpanel"))).toEqual(["F02"]);
+    expect(listedFarms(screen.getByRole("radiogroup", { name: "Polígonos" }))).toEqual(["F02"]);
     expect(
-      screen.getByRole("tab", { name: "Dentro de la frontera agrícola (4)" })
+      screen.getByRole("button", { name: "Dentro de la frontera agrícola (4)" })
     ).toBeTruthy();
     // The legend names the layer's category.
     expect(screen.getByText("Frontera agrícola")).toBeTruthy();
@@ -120,33 +121,55 @@ describe("MapView", () => {
     setSearchParams({ selectedMap: "9" });
     await renderMapView();
 
-    expect(screen.getByRole("tab", { name: "Con observaciones (0)" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Sin observaciones (0)" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Sin dato (5)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Con observaciones (0)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sin observaciones (0)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sin dato (5)" })).toBeTruthy();
   });
 
   it("hides the no-data tab when every farm has a result", async () => {
     setSearchParams({ selectedMap: "2" });
     await renderMapView();
 
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
-    expect(screen.getByRole("tab", { name: "Libre de deforestación (4)" })).toBeTruthy();
-    expect(screen.queryByRole("tab", { name: /Sin dato/ })).toBeNull();
+    expect(within(screen.getByRole("group", { name: "Filtrar por resultado" })).getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Libre de deforestación (4)" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Sin dato/ })).toBeNull();
   });
 
   it("survives switching to a layer without no-data farms from the no-data tab", async () => {
     const { rerender } = await renderMapView();
-    fireEvent.click(screen.getByRole("tab", { name: "Sin dato (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sin dato (1)" }));
 
     // The layer travels in ?selectedMap=, so MapView re-renders, not remounts.
     setSearchParams({ selectedMap: "2" });
     rerender();
 
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(within(screen.getByRole("group", { name: "Filtrar por resultado" })).getAllByRole("button")).toHaveLength(2);
     expect(
       screen
-        .getByRole("tab", { name: "Con deforestación (1)" })
-        .getAttribute("aria-selected")
+        .getByRole("button", { name: "Con deforestación (1)" })
+        .getAttribute("aria-pressed")
     ).toBe("true");
+  });
+
+  it("announces each farm's result, and moves the choice with the arrow keys", async () => {
+    await renderMapView();
+    const list = screen.getByRole("radiogroup", { name: "Polígonos" });
+
+    // The finding is in the row's name, as the pill shows it
+    const f04 = within(list).getByRole("radio", { name: /^F04 Ana: / });
+    expect(f04.getAttribute("aria-label")).toMatch(/^F04 Ana: 5\s?%$/);
+
+    // One Tab stop: the chosen row ("Todos")
+    const rows = within(list).getAllByRole("radio");
+    expect(rows.map((row) => row.tabIndex)).toEqual([0, -1]);
+
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(rows[1].getAttribute("aria-checked")).toBe("true");
+    expect(document.activeElement).toBe(rows[1]);
+    // The Tab stop follows the choice
+    expect(rows.map((row) => row.tabIndex)).toEqual([-1, 0]);
+    fireEvent.keyDown(list, { key: "ArrowUp" });
+    expect(rows[0].getAttribute("aria-checked")).toBe("true");
+    expect(document.activeElement).toBe(rows[0]);
   });
 });

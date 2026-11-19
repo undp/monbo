@@ -151,6 +151,18 @@ describe("FarmsUploadStep", () => {
     expect(screen.queryByRole("button", { name: /Validar polígonos/ })).toBeNull();
   });
 
+  it("keeps the bar, with its button off, on an emptied list with farms loaded from it", async () => {
+    await renderStep(uploadState(), { keepBar: true });
+
+    expect(
+      screen.getByText("La lista está vacía: agrega polígonos para continuar.")
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Validar polígonos" })).toHaveProperty(
+      "disabled",
+      true
+    );
+  });
+
   it("counts what each method loaded and submits every row", async () => {
     const upload = uploadState([
       excel([row("F1"), row("F2"), row("F3", "Point")]),

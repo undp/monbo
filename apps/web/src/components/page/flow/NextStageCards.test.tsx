@@ -30,7 +30,7 @@ describe("next-stage cards", () => {
 
     fireEvent.click(within(card()).getByRole("button", { name: "Continuar" }));
     // No modal: the stage 2 page asks for the polygon subset and the layers.
-    expect(router.push).toHaveBeenCalledWith("/territorial-analysis/upload-data");
+    expect(router.push).toHaveBeenCalledWith("/territorial-analysis/layers");
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

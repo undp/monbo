@@ -86,11 +86,14 @@ const RESULTS: ValidateFarmsResponse = {
 };
 
 /** The table over a real results state, so a manual validation shows up. */
-const STAGE_ONE_LIST: UploadSource[] = [
+const FLOW_LIST: UploadSource[] = [
   { kind: "manual", key: "drawn-1", row: {} as ManualSource["row"] },
 ];
 
-const Harness = ({ uploadedOnStageOne }: { uploadedOnStageOne: boolean }) => {
+/** The flow's upload list: kept, emptied after the farms were parsed from it, or none. */
+type ListState = "kept" | "emptied" | "none";
+
+const Harness = ({ list }: { list: ListState }) => {
   const [results, setResults] = useState<ValidateFarmsResponse | null>(RESULTS);
   return (
     <DataContext.Provider
@@ -98,7 +101,8 @@ const Harness = ({ uploadedOnStageOne }: { uploadedOnStageOne: boolean }) => {
         farmsData: FARMS,
         polygonsValidationResults: results,
         setPolygonsValidationResults: setResults,
-        stageOneUploadSources: uploadedOnStageOne ? STAGE_ONE_LIST : [],
+        uploadSources: list === "kept" ? FLOW_LIST : [],
+        farmsSourcesRevision: list === "none" ? null : 3,
       })}
     >
       <ValidationResultsTable />
@@ -106,11 +110,11 @@ const Harness = ({ uploadedOnStageOne }: { uploadedOnStageOne: boolean }) => {
   );
 };
 
-const renderTable = async ({ uploadedOnStageOne = true } = {}) => {
+const renderTable = async ({ list = "kept" as ListState } = {}) => {
   const i18n = await createTestI18n("es");
   render(
     <I18nextProvider i18n={i18n}>
-      <Harness uploadedOnStageOne={uploadedOnStageOne} />
+      <Harness list={list} />
     </I18nextProvider>
   );
 };
@@ -221,11 +225,17 @@ describe("ValidationResultsTable", () => {
     expect(router.push).toHaveBeenCalledWith("/polygons-validation/upload-data");
   });
 
-  it("doesn't offer to add polygons to farms uploaded on stage 2", async () => {
-    // There is no stage 1 list to go back to: an empty one would replace them all
-    await renderTable({ uploadedOnStageOne: false });
+  it("doesn't offer to add polygons to farms that came from no list", async () => {
+    // There is no list to go back to: an empty one would replace them all
+    await renderTable({ list: "none" });
 
     expect(screen.queryByRole("button", { name: "Agregar más polígonos" })).toBeNull();
+  });
+
+  it("still offers to add polygons after the list they came from was emptied", async () => {
+    await renderTable({ list: "emptied" });
+
+    expect(screen.getByRole("button", { name: "Agregar más polígonos" })).toBeTruthy();
   });
 
   it("scrolls the rows inside the frame only, so the header stays in view", async () => {

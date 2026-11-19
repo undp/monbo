@@ -10,7 +10,7 @@ import { layerLabel } from "@/utils/layerLabel";
 import { localizedText } from "@/utils/localizedText";
 import { categoryTints } from "@/utils/categoryColors";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
-import { HEADING_FONT } from "@/components/page/flow/flowStyles";
+import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
 
 interface Props {
   /** The country's layers. */
@@ -32,8 +32,9 @@ const Tag: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       textTransform: "uppercase",
       padding: "3px 6px",
       borderRadius: 1,
-      backgroundColor: "#EEF2F6",
-      color: "text.secondary",
+      backgroundColor: FLOW_COLORS.blue25,
+      border: `1px solid ${FLOW_COLORS.line}`,
+      color: FLOW_COLORS.muted,
       maxWidth: "100%",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -77,10 +78,10 @@ export const LayerCategoryPicker: React.FC<Props> = ({
             role="group"
             aria-label={name}
             sx={{
-              border: "1px solid #DEDEDE",
-              borderRadius: 3.5,
-              padding: { xs: 1.5, sm: "16px 18px" },
-              backgroundColor: "#FFFFFF",
+              border: `1px solid ${FLOW_COLORS.line}`,
+              borderRadius: "14px",
+              padding: { xs: 1.5, sm: "18px 20px" },
+              backgroundColor: FLOW_COLORS.white,
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -106,14 +107,15 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                     display: "block",
                     fontFamily: HEADING_FONT,
                     fontWeight: 700,
-                    fontSize: 16,
+                    fontSize: 17,
+                    color: FLOW_COLORS.ink,
                   }}
                 >
                   {name}
                 </Box>
                 <Box
                   component="span"
-                  sx={{ display: "block", fontSize: 13, color: "text.secondary" }}
+                  sx={{ display: "block", fontSize: 13.5, color: FLOW_COLORS.muted }}
                 >
                   {localizedText(category.description, i18n.language)}
                 </Box>
@@ -123,8 +125,8 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                 sx={{
                   marginLeft: "auto",
                   flex: "none",
-                  fontSize: 13,
-                  color: "text.secondary",
+                  fontSize: 13.5,
+                  color: FLOW_COLORS.muted,
                 }}
               >
                 {t("territorialAnalysis:layerPicker.tickedOfTotal", {
@@ -141,8 +143,8 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                   sm: "repeat(2, minmax(0, 1fr))",
                   md: "repeat(3, minmax(0, 1fr))",
                 },
-                gap: 1.25,
-                marginTop: 1.5,
+                gap: 1.5,
+                marginTop: 2,
               }}
             >
               {layers.map((layer) => {
@@ -152,7 +154,9 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                     ? `${layer.baseline} → ${layer.comparedAgainst}`
                     : null;
                 const name = layer.name?.trim() || layerLabel(layer);
+                // Who publishes it, or else its short name
                 const alias = layer.alias?.trim();
+                const origin = layer.source?.trim() || (alias !== name ? alias : null);
                 return (
                   <Box
                     key={layer.id}
@@ -162,12 +166,14 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                       alignItems: "flex-start",
                       gap: 0.5,
                       minWidth: 0,
-                      padding: "8px 12px 10px 4px",
-                      borderRadius: 2.5,
+                      padding: "10px 14px 12px 6px",
+                      borderRadius: "12px",
                       border: "1.5px solid",
-                      borderColor: checked ? tints.color : "#DEDEDE",
-                      backgroundColor: checked ? tints.faintBackground : "#FFFFFF",
+                      borderColor: checked ? tints.color : FLOW_COLORS.line,
+                      backgroundColor: checked ? tints.faintBackground : FLOW_COLORS.white,
                       cursor: "pointer",
+                      transition: "border-color 120ms, background-color 120ms",
+                      "&:hover": { borderColor: tints.color },
                     }}
                   >
                     <Checkbox
@@ -182,21 +188,30 @@ export const LayerCategoryPicker: React.FC<Props> = ({
                     <Box sx={{ minWidth: 0 }}>
                       <Box
                         component="span"
-                        sx={{ display: "block", fontSize: 14, fontWeight: 500 }}
+                        sx={{
+                          display: "block",
+                          fontSize: 14.5,
+                          fontWeight: 600,
+                          color: FLOW_COLORS.ink,
+                        }}
                       >
                         {name}
                       </Box>
-                      {alias && alias !== name && (
+                      {origin && (
                         <Box
                           component="span"
+                          title={origin}
                           sx={{
-                            display: "block",
-                            fontSize: 12.5,
-                            color: "text.secondary",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            fontSize: 13,
+                            color: FLOW_COLORS.muted,
                             marginTop: 0.25,
                           }}
                         >
-                          {alias}
+                          {origin}
                         </Box>
                       )}
                       {(period || layer.resolution) && (

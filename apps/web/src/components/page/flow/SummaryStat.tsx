@@ -1,11 +1,11 @@
 import { Box } from "@mui/material";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 
-/** A count of the upload's bottom bar: "5 polígonos". */
+/** A count of a stage's bottom bar: "5 polígonos". */
 export const SummaryStat: React.FC<{
   icon: React.ReactNode;
   count: number;
-  label: string;
+  label: React.ReactNode;
 }> = ({ icon, count, label }) => (
   <Box
     component="span"

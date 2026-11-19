@@ -1,17 +1,22 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { Text } from "@/components/reusable/Text";
 import { useTranslation } from "react-i18next";
 import { Box, IconButton } from "@mui/material";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import { FlowPageHead } from "@/components/page/flow/FlowPageHead";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { MapsDetailsModal } from "./MapsDetailsModal";
 import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysisPage";
 import { DataContext } from "@/context/DataContext";
 import { getCountryName } from "@/utils/countries";
 
-/** The results' title, and how many polygons were crossed with how many layers. */
-export const PageTitle: React.FC = () => {
+/**
+ * The results' head: "Etapa 2 de 3", the title and how many polygons were crossed
+ * with how many layers, with the page's actions at the right (changing the layers,
+ * the download) after the button to the layers' details.
+ */
+export const PageTitle: React.FC<{ actions?: React.ReactNode }> = ({ actions }) => {
   const { t, i18n } = useTranslation();
   const { selectedCountry } = useContext(DataContext);
   const { farmsData, territorialAnalysisResults } =
@@ -24,19 +29,9 @@ export const PageTitle: React.FC = () => {
 
   return (
     <>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Text variant="h3" bold>
-          {t("territorialAnalysis:results.title")}
-        </Text>
-        <IconButton
-          onClick={() => setOpen(true)}
-          aria-label={t("territorialAnalysis:mapsInfoModal:title")}
-        >
-          <InfoOutlined />
-        </IconButton>
-      </Box>
-      <Text sx={{ color: "text.secondary" }}>
-        {t("territorialAnalysis:results.subtitle", {
+      <FlowPageHead
+        title={t("territorialAnalysis:results.title")}
+        subtitle={t("territorialAnalysis:results.subtitle", {
           polygons: t("territorialAnalysis:results.polygonCount", {
             count: farmsData.length,
           }),
@@ -45,7 +40,19 @@ export const PageTitle: React.FC = () => {
           }),
           country,
         })}
-      </Text>
+        actions={
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25 }}>
+            <IconButton
+              onClick={() => setOpen(true)}
+              aria-label={t("territorialAnalysis:mapsInfoModal:title")}
+              sx={{ color: FLOW_COLORS.blue }}
+            >
+              <InfoOutlined />
+            </IconButton>
+            {actions}
+          </Box>
+        }
+      />
       <MapsDetailsModal open={open} onClose={() => setOpen(false)} />
     </>
   );

@@ -20,7 +20,9 @@ import { useTranslation } from "react-i18next";
 import { DropZone } from "@/components/reusable/DropZone";
 import { Text } from "@/components/reusable/Text";
 import { sum } from "lodash";
+import { FlowBottomBar } from "@/components/page/flow/FlowBottomBar";
 import { FlowSection } from "@/components/page/flow/FlowSection";
+import { SummaryStat } from "@/components/page/flow/SummaryStat";
 import {
   FLOW_COLORS,
 } from "@/components/page/flow/flowStyles";
@@ -51,7 +53,6 @@ import { HowToSteps } from "./HowToSteps";
 import { ManualFarmModal } from "./manualFarm/ManualFarmModal";
 import { MethodButton } from "./MethodButton";
 import { PairDropZone } from "./PairDropZone";
-import { SummaryStat } from "./SummaryStat";
 import { HOW_TO_LINK, HowToLink } from "./uploadStepStyles";
 import { UploadSourcesState } from "./useUploadSources";
 
@@ -86,10 +87,16 @@ interface FarmsUploadStepProps {
   disabled?: boolean;
   /**
    * "page": the methods and the list as two cards, and a bar at the bottom with
-   * the counts and the button (stage 1). "embedded": all of it inside the card
-   * of a page that has its own bar (stage 2).
+   * the counts and the button (both stages' upload pages). "embedded": all of it
+   * inside the card of a page that has its own bar.
    */
   variant?: "page" | "embedded";
+  /**
+   * Keep the bottom bar when the list is emptied: farms were loaded from it, and
+   * an emptied list must not look confirmed. The button stays off until the list
+   * has a farm again.
+   */
+  keepBar?: boolean;
 }
 
 /**
@@ -105,6 +112,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
   onSubmit,
   disabled,
   variant = "embedded",
+  keepBar = false,
 }) => {
   const { t, i18n } = useTranslation();
   const { openSnackbar } = useContext(SnackbarContext);
@@ -438,28 +446,18 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         >
           {list}
         </FlowSection>
-        {(sources.length > 0 || reading) && (
-          <Box
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              zIndex: 2,
-              // The band spans the viewport while its content stays aligned with
-              // the page's (FlowPage clips the overflow)
-              marginX: "calc(50% - 50vw)",
-              paddingX: "calc(50vw - 50%)",
-              marginBottom: { xs: -1.5, md: -3 },
-              minHeight: 72,
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              columnGap: 2.25,
-              rowGap: 1,
-              paddingY: 1.5,
-              backgroundColor: FLOW_COLORS.white,
-              borderTop: `1px solid ${FLOW_COLORS.line}`,
-              boxShadow: "0 -8px 24px rgba(11, 37, 69, 0.06)",
-            }}
+        {(sources.length > 0 || reading || keepBar) && (
+          <FlowBottomBar
+            action={
+              <Button
+                variant="contained"
+                onClick={submit}
+                disabled={!canSubmit}
+                endIcon={<ArrowForwardRoundedIcon />}
+              >
+                {submitLabel}
+              </Button>
+            }
           >
             <SummaryStat
               icon={<PentagonOutlinedIcon fontSize="small" />}
@@ -475,6 +473,11 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
                 count: summary.points,
               })}
             />
+            {sources.length === 0 && !reading && (
+              <Box component="span" sx={{ fontSize: 14, color: FLOW_COLORS.ink2 }}>
+                {t("common:farmsUpload:summary:emptyList")}
+              </Box>
+            )}
             {summary.sourcesWithProblems > 0 && (
               <Box component="span" sx={{ fontSize: 14, color: FLOW_COLORS.warn }}>
                 {t("common:farmsUpload:summary:sourcesWithProblems", {
@@ -482,16 +485,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
                 })}
               </Box>
             )}
-            <Button
-              variant="contained"
-              onClick={submit}
-              disabled={!canSubmit}
-              endIcon={<ArrowForwardRoundedIcon />}
-              sx={{ marginLeft: "auto" }}
-            >
-              {submitLabel}
-            </Button>
-          </Box>
+          </FlowBottomBar>
         )}
         {hidden}
       </>

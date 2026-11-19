@@ -256,7 +256,7 @@ describe("useUploadSources", () => {
   });
 });
 
-describe("useUploadSources, kept for stage 1", () => {
+describe("useUploadSources, kept for the flow", () => {
   const mountKept = async () => {
     const i18n = await createTestI18n("es");
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -289,6 +289,36 @@ describe("useUploadSources, kept for stage 1", () => {
 
     act(() => second.result.current.context.resetAnalysis());
     expect(second.result.current.upload.sources).toEqual([]);
+  });
+
+  it("counts every change to the list, so an unchanged one can be told apart", async () => {
+    const { result } = await mountKept();
+    const revision = () => result.current.context.uploadSourcesRevision;
+    const start = revision();
+
+    act(() => result.current.upload.saveManual(MANUAL_ROW));
+    const added = revision();
+    expect(added).toBeGreaterThan(start);
+
+    act(() =>
+      result.current.upload.saveManual(
+        { ...MANUAL_ROW, producerName: "Otra" },
+        result.current.upload.sources[0].key
+      )
+    );
+    const edited = revision();
+    expect(edited).toBeGreaterThan(added);
+
+    act(() =>
+      result.current.upload.removeRow(result.current.upload.sources[0], 0)
+    );
+    expect(revision()).toBeGreaterThan(edited);
+
+    // Nothing else moves it
+    const settled = revision();
+    act(() => result.current.context.setFarmsSourcesRevision(settled));
+    expect(revision()).toBe(settled);
+    expect(result.current.context.farmsSourcesRevision).toBe(settled);
   });
 
   it("deletes one farm of the list", async () => {

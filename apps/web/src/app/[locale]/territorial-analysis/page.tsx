@@ -1,25 +1,15 @@
-import { Suspense } from "react";
-import { SearchBar } from "@/components/reusable/inputs/SearchBar";
-import { SectionBackground } from "@/components/reusable/SectionBackground";
 import TranslationsProvider from "@/context/TranslationProvider";
 import { PageWithSearchParams } from "@/interfaces";
 import initTranslations from "@/utils/i18n";
-import { Box, ButtonGroup } from "@mui/material";
-import { LayerResultsTable } from "@/components/page/territorialAnalysis/LayerResultsTable";
-import { MapView } from "@/components/page/territorialAnalysis/MapView";
+import { FlowPage } from "@/components/page/flow/FlowPage";
 import { PageFooter } from "@/components/page/territorialAnalysis/PageFooter";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import TravelExploreIcon from "@mui/icons-material/TravelExplore";
-import { SearchParamButton } from "@/components/reusable/SearchParamButton";
 import { PageTitle } from "@/components/page/territorialAnalysis/PageTitle";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
-import { ResultsMapSelector } from "@/components/page/territorialAnalysis/ResultsMapSelector";
 import { DownloadPageData } from "@/components/page/territorialAnalysis/DownloadPageData";
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
-import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
-import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 import { CategorySummaryCards } from "@/components/page/territorialAnalysis/CategorySummaryCards";
 import { ChangeLayersButton } from "@/components/page/territorialAnalysis/ChangeLayersButton";
+import { LayerResultsSection } from "@/components/page/territorialAnalysis/LayerResultsSection";
 
 const namespaces = ["common", "territorialAnalysis", "reportGeneration", "flow"];
 
@@ -34,9 +24,7 @@ export default async function TerritorialAnalysis({
 }: PageWithSearchParams<SearchParams>) {
   const { locale } = await params;
   const { view } = await searchParams;
-  const { t, resources } = await initTranslations(locale, namespaces);
-
-  const selectedView = view ?? "table";
+  const { resources } = await initTranslations(locale, namespaces);
 
   return (
     <TranslationsProvider
@@ -46,77 +34,19 @@ export default async function TerritorialAnalysis({
     >
       <AnalysisOutdatedGuard locale={locale}>
         <NavigateHomepageWhenEmptyData />
-        <Box
-          sx={{
-            padding: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: 2,
-            }}
-          >
-            <Box>
-              <StageEyebrow />
-              <PageTitle />
-            </Box>
-            <ChangeLayersButton />
-          </Box>
+        <FlowPage>
+          <PageTitle
+            actions={
+              <>
+                <ChangeLayersButton />
+                <DownloadPageData />
+              </>
+            }
+          />
           <CategorySummaryCards />
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-              {selectedView === "table" && (
-                <Suspense>
-                  <SearchBar
-                    placeholder={t("territorialAnalysis:searchPlaceholder")}
-                    style={{ minWidth: { xs: "100%", sm: "400px" } }}
-                  />
-                </Suspense>
-              )}
-              {selectedView === "map" && <ResultsMapSelector />}
-              <ButtonGroup>
-                <SearchParamButton
-                  searchParamKey="view"
-                  searchParamValue="table"
-                  variant={selectedView == "table" ? "contained" : undefined}
-                  sx={{ padding: 0.6 }}
-                >
-                  <FormatListBulletedIcon />
-                </SearchParamButton>
-                <SearchParamButton
-                  searchParamKey="view"
-                  searchParamValue="map"
-                  variant={selectedView == "map" ? "contained" : undefined}
-                  sx={{ padding: 0.6 }}
-                >
-                  <TravelExploreIcon />
-                </SearchParamButton>
-              </ButtonGroup>
-              <DownloadPageData />
-            </Box>
-          </Box>
-          <SectionBackground
-            sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT, padding: 0 }}
-          >
-            {selectedView == "map" ? <MapView /> : <LayerResultsTable />}
-          </SectionBackground>
+          <LayerResultsSection view={view === "map" ? "map" : "table"} />
           <PageFooter />
-        </Box>
+        </FlowPage>
       </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );

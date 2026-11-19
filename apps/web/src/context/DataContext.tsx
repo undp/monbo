@@ -96,10 +96,16 @@ export interface DataContextValue {
   setSelectedCountry: (code: string | null) => void;
   // False until `selectedCountry` has been read from sessionStorage.
   countryHydrated: boolean;
-  /** Stage 1's upload list, kept so "Agregar más polígonos" finds it again. A
-   * stage 2 upload clears it: its farms replace the listed ones. */
-  stageOneUploadSources: UploadSource[];
-  setStageOneUploadSources: Dispatch<SetStateAction<UploadSource[]>>;
+  /** The flow's upload list: both stages' upload pages show and edit it, so it
+   * is still there when the user comes back to add or remove polygons. */
+  uploadSources: UploadSource[];
+  setUploadSources: Dispatch<SetStateAction<UploadSource[]>>;
+  /** Goes up on every change to `uploadSources`. */
+  uploadSourcesRevision: number;
+  /** The `uploadSourcesRevision` the loaded farms were parsed from; null when
+   * they came from no list. Equal to it: the list didn't change since. */
+  farmsSourcesRevision: number | null;
+  setFarmsSourcesRevision: Dispatch<SetStateAction<number | null>>;
   // Drops the loaded farms, every result and the analysis and report params.
   resetAnalysis: () => void;
 }
@@ -188,8 +194,11 @@ export const DataContext = createContext<DataContextValue>({
   selectedCountry: null,
   setSelectedCountry: () => {},
   countryHydrated: false,
-  stageOneUploadSources: [],
-  setStageOneUploadSources: () => {},
+  uploadSources: [],
+  setUploadSources: () => {},
+  uploadSourcesRevision: 0,
+  farmsSourcesRevision: null,
+  setFarmsSourcesRevision: () => {},
   resetAnalysis: () => {},
 });
 
@@ -206,7 +215,9 @@ type KeptKey =
   | "territorialAnalysisResults"
   | "analysisOutdated"
   | "reportGenerationParams"
-  | "stageOneUploadSources";
+  | "uploadSources"
+  | "uploadSourcesRevision"
+  | "farmsSourcesRevision";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
 
 /**
@@ -268,9 +279,28 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     initialReportGenerationParams
   );
 
-  const [stageOneUploadSources, setStageOneUploadSources] = useKeptState(
-    "stageOneUploadSources",
+  const [uploadSources, setUploadSourcesState] = useKeptState(
+    "uploadSources",
     []
+  );
+  const [uploadSourcesRevision, setUploadSourcesRevision] = useKeptState(
+    "uploadSourcesRevision",
+    0
+  );
+  // Every change to the list counts, even one that leaves it equal: confirming
+  // it then re-parses it, which is the safe direction.
+  const setUploadSources = useCallback<
+    Dispatch<SetStateAction<UploadSource[]>>
+  >(
+    (action) => {
+      setUploadSourcesState(action);
+      setUploadSourcesRevision((revision) => revision + 1);
+    },
+    [setUploadSourcesState, setUploadSourcesRevision]
+  );
+  const [farmsSourcesRevision, setFarmsSourcesRevision] = useKeptState(
+    "farmsSourcesRevision",
+    null
   );
 
   const invalidateAnalysis = useCallback(() => {
@@ -335,9 +365,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setTerritorialAnalysisParams(initialTerritorialAnalysisParams);
     setAnalysisDraft(null);
     setReportGenerationParams(initialReportGenerationParams);
-    setStageOneUploadSources([]);
+    setUploadSources([]);
+    setFarmsSourcesRevision(null);
   }, [
-    setStageOneUploadSources,
+    setUploadSources,
+    setFarmsSourcesRevision,
     setAnalysisDraft,
     setFarmsData,
     setPolygonsValidationResults,
@@ -591,8 +623,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       selectedCountry,
       setSelectedCountry: writeSelectedCountry,
       countryHydrated,
-      stageOneUploadSources,
-      setStageOneUploadSources,
+      uploadSources,
+      setUploadSources,
+      uploadSourcesRevision,
+      farmsSourcesRevision,
+      setFarmsSourcesRevision,
       resetAnalysis,
     };
   }, [
@@ -623,8 +658,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     availableCountriesError,
     selectedCountry,
     countryHydrated,
-    stageOneUploadSources,
-    setStageOneUploadSources,
+    uploadSources,
+    setUploadSources,
+    uploadSourcesRevision,
+    farmsSourcesRevision,
+    setFarmsSourcesRevision,
     resetAnalysis,
   ]);
 
