@@ -70,9 +70,9 @@ Each stage's state is a pure function of the route and `DataContext` (`utils/flo
 The results pages of modules 1 and 2 end with a "Next stage" card: module 1's goes to module 2's selection page, and module 2's opens the report layer modal. The application header has no module buttons.
 
 **Module 1 — Validation**
-1. The upload step (`components/page/uploadData/`, shared by modules 1 and 2) offers four ways to bring the farms, one card each, and builds **one list of sources** from any mix of them (`useUploadSources` + `utils/uploadSources.ts`):
+1. The upload step (`components/page/uploadData/`, shared by modules 1 and 2) offers four ways to bring the farms, as methods to choose from with a "how to" panel for the selected one, and builds **one list of sources** from any mix of them (`useUploadSources` + `utils/uploadSources.ts`):
    - **Excel template** (`public/files/m1-upload-file-template-{en,es}.xlsx`), with each farm's coordinates in a cell. The frontend reads it with `exceljs`/`xlsx` and validates the required columns (`utils/excel.ts`).
-   - **Geo file with data** (GeoJSON, KML, KMZ or zipped Shapefile): the browser sends the file to **`POST /farms/import`** (`modules/farms/geo_import.py`, GDAL through pyogrio), which answers each feature's attributes and its geometry as WKT in EPSG:4326, holes and MultiPolygons kept. The farms' data is read from fixed attribute names (`utils/geoFile.ts`).
+   - **Geo file**, carrying the farms' data (GeoJSON, KML, KMZ or zipped Shapefile): the browser sends the file to **`POST /farms/import`** (`modules/farms/geo_import.py`, GDAL through pyogrio), which answers each feature's attributes and its geometry as WKT in EPSG:4326, holes and MultiPolygons kept. The farms' data is read from fixed attribute names (`utils/geoFile.ts`).
    - **Geo file + Excel**: the same import, joined by farm ID to the production Excel, which has its own template without coordinate columns (`utils/geoFileJoin.ts`).
    - **Drawing on the map**: a modal with our own drawing tool on Google Maps (`components/page/uploadData/manualFarm/`, with the rules in `utils/drawing.ts`).
 

@@ -62,3 +62,11 @@
 - [x] 9.2 The report layer modal closes when "Continue" is pressed
 - [x] 9.3 Tests for stage 2 pressed on stage 2 and stage 3 pressed on the report (`flowStages.test.ts`, `FlowHeader.test.tsx`)
 - [x] 9.4 Spec notes the browser back-button path as known and left to GC-6; pending item posted on undp/monbo#116
+
+## 10. Stage 1 as in mockup v2 (local run, 2026-11-18)
+
+- [x] 10.1 `FlowPage`, `FlowPageHead` and `FlowSection`, with the mockup's colors in `flowStyles.ts`
+- [x] 10.2 `FarmsUploadStep`: the methods, the "Cómo hacerlo" panel, the list card, "Quitar todos" and the stage 1 bottom bar; `DropZone` gets the `flow` appearance
+- [x] 10.3 The validation results page: the new head and `ValidationKpis`
+- [x] 10.4 Copy in `es` and `en`, and the methodology's upload page names "Archivo geográfico"
+- [x] 10.5 `FarmsUploadStep.test.tsx`, and the web CI checks

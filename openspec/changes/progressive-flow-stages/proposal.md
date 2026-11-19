@@ -28,8 +28,13 @@ undp/monbo#116).
   (analysis results). It replaces the fixed footer's "Analizar" and "Crear reporte" buttons and
   opens the same modals they opened.
 - **Stage 1 upload sections** get an icon next to their title, and the "how to" lines of the
-  upload cards lose their digits (chevron bullets instead), so nothing on stage 1 is numbered
+  upload methods lose their digits (chevron bullets instead), so nothing on stage 1 is numbered
   like a stage.
+- **Stage 1 follows the mockup's Etapa 1 screen** (adjusted on `feat/layer-manager` after the
+  local run of 2026-11-18): the page head "Valida tus polígonos", the four upload methods as
+  choices with one "Cómo hacerlo" panel for the selected one, the list of polygons and points in
+  its own card, a bottom bar with the counts and "Validar polígonos", and on the validation
+  results three counts (ready, overlapping, with a geometry error) above the tables.
 - A page heading eyebrow "Etapa N de 3" on the stage pages.
 - The flow pages scroll instead of fitting exactly into the viewport: the tables keep a fixed
   usable height, with the header above and the card below.
@@ -44,8 +49,9 @@ undp/monbo#116).
 
 ### Modified Capabilities
 
-- `farm-upload`: the upload cards' "how to" lines are bullets without digits, and the upload
-  sections carry an icon with their title.
+- `farm-upload`: the four ways to upload become methods to choose from, with one "how to"
+  panel for the selected one; its lines are bullets without digits, and the upload sections
+  carry an icon with their title.
 
 ## Impact
 

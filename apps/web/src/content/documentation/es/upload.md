@@ -9,11 +9,11 @@
 ### ¿Qué forma de carga uso?
 
 - **Plantilla Excel:** tienes las coordenadas de cada finca como texto (WKT o GeoJSON).
-- **Archivo geográfico con datos:** tus fincas están en un GeoJSON, KML/KMZ o Shapefile que trae sus datos (productor, fecha, cantidad, unidad, cultivo).
+- **Archivo geográfico:** tus fincas están en un GeoJSON, KML/KMZ o Shapefile que trae sus datos (productor, fecha, cantidad, unidad, cultivo).
 - **Archivo geográfico + Excel:** tus fincas están en un archivo geográfico (por ejemplo, de Google Earth) y sus datos en un Excel; se unen por ID.
 - **Dibujar en el mapa:** tus fincas no están en un archivo, o son pocas.
 
-En el paso de carga, cada opción muestra sus pasos, su plantilla y un ejemplo.
+En la carga eliges un método, y el panel «Cómo hacerlo» muestra sus pasos, su plantilla y un ejemplo.
 
 ### ¿Qué geometrías se aceptan?
 
@@ -27,7 +27,7 @@ Las coordenadas son longitud y latitud en grados (WGS84, el sistema del GPS). Un
 La **superficie declarada** en el Excel o en el archivo geográfico, o **1 ha** si no se indica. Al dibujar un punto, la superficie es obligatoria. Ver [Superficie de las fincas](#area).
 
 :::details[Más detalle: nombres de atributos, sistemas de coordenadas y límites]
-**Nombres de atributos.** En «Archivo geográfico con datos», los datos de cada finca se leen de estos atributos (en GeoJSON, KML o KMZ · en Shapefile). Las mayúsculas no importan.
+**Nombres de atributos.** En «Archivo geográfico», los datos de cada finca se leen de estos atributos (en GeoJSON, KML o KMZ · en Shapefile). Las mayúsculas no importan.
 
 - Obligatorios: productor (`producerName` · `PRODUCTOR`), fecha de producción (`productionDate` · `FECHA_PROD`), cantidad (`productionQuantity` · `CANTIDAD`), unidad (`productionQuantityUnit` · `UNIDAD`) y cultivo (`cropType` · `CULTIVO`).
 - Opcionales: ID (`id` · `ID`), superficie en hectáreas (`area` · `AREA_HA`), región (`region` · `REGION`), asociación (`association` · `ASOCIACION`) y país (`ProducerCountry` · `PAIS`), que solo se compara con el país elegido.

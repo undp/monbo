@@ -1,5 +1,5 @@
 {
-  "title": "Polygon Validation",
+  "title": "Validate your polygons",
   "validPolygons_one": "validated polygon",
   "validPolygons_other": "validated polygons",
   "inconsistenciesTypes": {
@@ -32,11 +32,11 @@
   },
   "uploadDataPage": {
     "loadingText": "Loading the data",
-    "title": "Upload Polygons or Points",
+    "title": "Validate your polygons",
     "uploadStep": {
-      "stepTitle": "Add your farms",
       "submit": "Validate polygons"
-    }
+    },
+    "subtitle": "Upload them however you like. You can combine methods: everything adds up in the same list."
   },
   "overlapModal": {
     "title": "Overlap Analysis",
@@ -56,5 +56,11 @@
     "tableTitle": "Polygon Information",
     "contentTitle": "Inconsistency Information",
     "systemFeedback": "System feedback"
+  },
+  "subtitle": "We checked your polygons and points. Fix the ones with issues or continue with the ones that are ready.",
+  "kpis": {
+    "ready": "ready to analyze",
+    "overlap": "overlap: you can validate them manually",
+    "error": "with a geometry error: fix them in your file"
   }
 }

@@ -9,11 +9,11 @@
 ### Which way should I use?
 
 - **Excel template:** you have each farm's coordinates as text (WKT or GeoJSON).
-- **Geo file with data:** your farms are in a GeoJSON, KML/KMZ or Shapefile that carries their data (producer, date, quantity, unit, crop).
+- **Geo file:** your farms are in a GeoJSON, KML/KMZ or Shapefile that carries their data (producer, date, quantity, unit, crop).
 - **Geo file + Excel:** your farms are in a geo file (for example, from Google Earth) and their data in an Excel; they are joined by ID.
 - **Draw on the map:** your farms aren't in a file, or there are only a few.
 
-In the upload step, each option shows its steps, its template and an example.
+In the upload you choose a method, and the "How to do it" panel shows its steps, its template and an example.
 
 ### Which geometries are accepted?
 
@@ -27,7 +27,7 @@ Coordinates are longitude and latitude in degrees (WGS84, the GPS system). A lin
 The **area declared** in the Excel or in the geo file, or **1 ha** if none is given. When drawing a point, its area is required. See [Farm area](#area).
 
 :::details[More detail: attribute names, coordinate systems and limits]
-**Attribute names.** In "Geo file with data", each farm's data is read from these attributes (in GeoJSON, KML or KMZ · in a Shapefile). Case doesn't matter.
+**Attribute names.** In "Geo file", each farm's data is read from these attributes (in GeoJSON, KML or KMZ · in a Shapefile). Case doesn't matter.
 
 - Required: producer (`producerName` · `PRODUCTOR`), production date (`productionDate` · `FECHA_PROD`), quantity (`productionQuantity` · `CANTIDAD`), unit (`productionQuantityUnit` · `UNIDAD`) and crop (`cropType` · `CULTIVO`).
 - Optional: ID (`id` · `ID`), area in hectares (`area` · `AREA_HA`), region (`region` · `REGION`), association (`association` · `ASOCIACION`) and country (`ProducerCountry` · `PAIS`), which is only checked against the selected country.

@@ -167,6 +167,8 @@ export const useUploadSources = (selectedCountry: string | null) => {
   const remove = (source: UploadSource) =>
     setSources((current) => current.filter((item) => item.key !== source.key));
 
+  const removeAll = () => setSources([]);
+
   /** Adds a manual farm, or replaces the one being edited. */
   const saveManual = (row: FarmRow, key?: string) =>
     setSources((current) =>
@@ -189,6 +191,7 @@ export const useUploadSources = (selectedCountry: string | null) => {
     attach,
     detach,
     remove,
+    removeAll,
     saveManual,
     notifyErrors,
   };

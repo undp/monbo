@@ -21,11 +21,9 @@ import { LoadingScreen } from "@/components/reusable/LoadingScreen";
 import { FarmsUploadStep } from "@/components/page/uploadData/FarmsUploadStep";
 import { useUploadSources } from "@/components/page/uploadData/useUploadSources";
 import { useTranslation } from "react-i18next";
-import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
 import { FarmRow } from "@/interfaces/FarmRow";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -144,20 +142,17 @@ export function PolygonsValidationUploadDataPageContent() {
     );
 
   return (
-    <UploadPageContent title={t("polygonValidation:uploadDataPage:title")}>
-      <TextHeaderStepContainer
-        title={t("polygonValidation:uploadDataPage:uploadStep:stepTitle")}
-        subtitle={t("common:farmsUpload:intro")}
-        icon={<FileUploadOutlinedIcon />}
-        sx={{ flexGrow: 1 }}
-      >
-        <FarmsUploadStep
-          upload={upload}
-          country={selectedCountry}
-          submitLabel={t("polygonValidation:uploadDataPage:uploadStep:submit")}
-          onSubmit={onUpload}
-        />
-      </TextHeaderStepContainer>
+    <UploadPageContent
+      title={t("polygonValidation:uploadDataPage:title")}
+      subtitle={t("polygonValidation:uploadDataPage:subtitle")}
+    >
+      <FarmsUploadStep
+        variant="page"
+        upload={upload}
+        country={selectedCountry}
+        submitLabel={t("polygonValidation:uploadDataPage:uploadStep:submit")}
+        onSubmit={onUpload}
+      />
     </UploadPageContent>
   );
 }

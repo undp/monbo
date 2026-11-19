@@ -1,5 +1,4 @@
 import { Box } from "@mui/material";
-import { Text } from "@/components/reusable/Text";
 import { SectionBackground } from "@/components/reusable/SectionBackground";
 import { Tabs } from "@/components/reusable/Tabs";
 import { DownloadPageData } from "@/components/page/polygonsValidation/DownloadPageData";
@@ -13,7 +12,9 @@ import initTranslations from "@/utils/i18n";
 import { SearchBar } from "@/components/reusable/inputs/SearchBar";
 import { Suspense } from "react";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
-import { StageEyebrow } from "@/components/page/flow/StageEyebrow";
+import { FlowPage } from "@/components/page/flow/FlowPage";
+import { FlowPageHead } from "@/components/page/flow/FlowPageHead";
+import { ValidationKpis } from "@/components/page/polygonsValidation/ValidationKpis";
 import { RESULTS_SECTION_HEIGHT } from "@/components/page/flow/flowLayoutSizes";
 
 const namespaces = ["common", "polygonValidation", "territorialAnalysis", "flow"];
@@ -31,47 +32,31 @@ export default async function PolygonsValidationPage({
       resources={resources}
     >
       <NavigateHomepageWhenEmptyData />
-      <Box
-        sx={{
-          padding: 3,
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 2,
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-          }}
-        >
-          <Box>
-            <StageEyebrow />
-            <Text variant="h3" bold>
-              {t("polygonValidation:title")}
-            </Text>
-          </Box>
-          {/* On a phone the search bar takes the row, next to the download button. */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            <Suspense>
-              <SearchBar
-                placeholder={t("polygonValidation:searchPlaceholder")}
-                style={{ flex: { xs: 1, sm: "none" }, minWidth: { xs: 0, sm: "400px" } }}
-              />
-            </Suspense>
-            <DownloadPageData />
-          </Box>
-        </Box>
+      <FlowPage>
+        <FlowPageHead
+          title={t("polygonValidation:title")}
+          subtitle={t("polygonValidation:subtitle")}
+          actions={
+            // On a phone the search bar takes the row, next to the download button.
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                width: { xs: "100%", sm: "auto" },
+              }}
+            >
+              <Suspense>
+                <SearchBar
+                  placeholder={t("polygonValidation:searchPlaceholder")}
+                  style={{ flex: { xs: 1, sm: "none" }, minWidth: { xs: 0, sm: "400px" } }}
+                />
+              </Suspense>
+              <DownloadPageData />
+            </Box>
+          }
+        />
+        <ValidationKpis />
         <SectionBackground
           sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT }}
         >
@@ -93,7 +78,7 @@ export default async function PolygonsValidationPage({
           </Suspense>
         </SectionBackground>
         <PageFooter />
-      </Box>
+      </FlowPage>
     </TranslationsProvider>
   );
 }

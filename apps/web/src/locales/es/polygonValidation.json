@@ -1,5 +1,5 @@
 {
-  "title": "Validación de polígonos",
+  "title": "Valida tus polígonos",
   "validPolygons_one": "polígono validado",
   "validPolygons_other": "polígonos validados",
   "inconsistenciesTypes": {
@@ -32,11 +32,11 @@
   },
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
-    "title": "Carga de polígonos o puntos",
+    "title": "Valida tus polígonos",
     "uploadStep": {
-      "stepTitle": "Agrega tus fincas",
       "submit": "Validar polígonos"
-    }
+    },
+    "subtitle": "Súbelos como prefieras. Puedes combinar métodos: todo se suma en la misma lista."
   },
   "overlapModal": {
     "title": "Análisis de traslape",
@@ -56,5 +56,11 @@
     "tableTitle": "Información del polígono",
     "contentTitle": "Información de la inconsistencia",
     "systemFeedback": "Mensaje del sistema"
+  },
+  "subtitle": "Revisamos tus polígonos y puntos. Corrige los que tienen observaciones o continúa con los que están listos.",
+  "kpis": {
+    "ready": "listos para analizar",
+    "overlap": "se superponen: puedes validarlos manualmente",
+    "error": "con error de geometría: corrígelos en tu archivo"
   }
 }
