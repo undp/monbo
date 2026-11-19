@@ -15,6 +15,8 @@
 
 En la carga eliges un método, y el panel «Cómo hacerlo» muestra sus pasos, su plantilla y un ejemplo.
 
+Cada fila de la lista se puede quitar con el basurero.
+
 ### ¿Qué geometrías se aceptan?
 
 - **Polígonos**, con o sin **huecos** (una laguna, por ejemplo), de una o **varias partes**.

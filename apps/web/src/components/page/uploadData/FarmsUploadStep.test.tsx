@@ -3,7 +3,12 @@ import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { createTestI18n } from "@/test/i18n";
 import { FarmRow } from "@/interfaces/FarmRow";
-import { ExcelSource, ManualSource, UploadSource } from "@/utils/uploadSources";
+import {
+  ExcelSource,
+  GeoSource,
+  ManualSource,
+  UploadSource,
+} from "@/utils/uploadSources";
 import { FarmsUploadStep } from "./FarmsUploadStep";
 import { UploadSourcesState } from "./useUploadSources";
 
@@ -15,6 +20,9 @@ vi.mock("./manualFarm/ManualFarmModal", () => ({
 const row = (id: string, geometryType = "Polygon"): FarmRow => ({
   id,
   producerName: "Ana",
+  cropType: "Cacao",
+  productionQuantity: 48.5,
+  productionQuantityUnit: "kg",
   geometryType,
   farmCoordinates: "POINT (0 0)",
   documents: [],
@@ -23,12 +31,27 @@ const row = (id: string, geometryType = "Polygon"): FarmRow => ({
 const excel = (rows: FarmRow[]): ExcelSource => ({
   kind: "excel",
   key: "excel-1",
+  removedRows: [],
   name: "fincas.xlsx",
   file: new File([""], "fincas.xlsx"),
   readFor: "CO",
   rows,
   errorMessages: [],
   withoutCoordinates: false,
+});
+
+const kmzMissingData = (): GeoSource => ({
+  kind: "geo",
+  key: "geo-1",
+  removedRows: [],
+  name: "lotes.kmz",
+  file: new File([""], "lotes.kmz"),
+  readFor: "CO",
+  geoFile: { format: "kmz", features: [] },
+  attributeRows: [],
+  attributeErrors: ["Falta el productor"],
+  attributeMissing: { attributes: ["producerName"], features: 12 },
+  excel: null,
 });
 
 const manual = (farm: FarmRow): ManualSource => ({
@@ -47,6 +70,7 @@ const uploadState = (sources: UploadSource[] = []): UploadSourcesState => ({
   detach: vi.fn(),
   remove: vi.fn(),
   removeAll: vi.fn(),
+  removeRow: vi.fn(),
   saveManual: vi.fn(),
   notifyErrors: vi.fn(),
 });
@@ -73,6 +97,10 @@ const renderStep = async (
 };
 
 const method = (name: RegExp) => screen.getByRole("button", { name });
+const drawArea = () =>
+  screen.getByRole("button", {
+    name: "Dibuja un polígono o marca un punto en el mapa",
+  });
 
 describe("FarmsUploadStep", () => {
   it("shows one method at a time, with its steps and its control", async () => {
@@ -86,7 +114,22 @@ describe("FarmsUploadStep", () => {
 
     expect(method(/Plantilla Excel/).getAttribute("aria-pressed")).toBe("false");
     expect(screen.queryByText("Descarga la plantilla.")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir mapa" }));
+    fireEvent.click(drawArea());
+    expect(screen.getByTestId("manual-farm-modal")).toBeTruthy();
+  });
+
+  it("opens the map from anywhere in the drawing area, also with the keyboard", async () => {
+    await renderStep(uploadState());
+    fireEvent.click(method(/Dibujar en el mapa/));
+
+    const area = drawArea();
+    // One native button, so Enter and Space open it, and nothing nested inside
+    expect(area.tagName).toBe("BUTTON");
+    expect(within(area).queryByRole("button")).toBeNull();
+    area.focus();
+    expect(document.activeElement).toBe(area);
+    fireEvent.click(within(area).getByText("Abrir mapa"));
+
     expect(screen.getByTestId("manual-farm-modal")).toBeTruthy();
   });
 
@@ -124,11 +167,45 @@ describe("FarmsUploadStep", () => {
     expect(upload.removeAll).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByRole("button", { name: /Validar polígonos/ }));
+    const excelOrigin = { method: "excel", fileName: "fincas.xlsx" };
     expect(onSubmit).toHaveBeenCalledWith([
-      row("F1"),
-      row("F2"),
-      row("F3", "Point"),
-      row("F4"),
+      { ...row("F1"), origin: excelOrigin },
+      { ...row("F2"), origin: excelOrigin },
+      { ...row("F3", "Point"), origin: excelOrigin },
+      { ...row("F4"), origin: { method: "manual", fileName: null } },
     ]);
+  });
+
+  it("lists one row per farm, with its data, its origin and a delete button", async () => {
+    const source = excel([row("F1"), row("F2", "Point")]);
+    const drawn = manual({ ...row("F4"), producerName: "José" });
+    const upload = uploadState([source, drawn]);
+    await renderStep(upload);
+
+    const table = screen.getByRole("table", { name: "Polígonos y puntos cargados" });
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows.map((tr) => within(tr).getAllByRole("cell").slice(0, 6).map((td) => td.textContent))).toEqual([
+      ["F1", "Ana", "Cacao", "48,5 kg", "Polígono", "fincas.xlsx"],
+      ["F2", "Ana", "Cacao", "48,5 kg", "Punto", "fincas.xlsx"],
+      ["F4", "José", "Cacao", "48,5 kg", "Polígono", "Dibujo"],
+    ]);
+    // Only the drawn farm can be edited
+    expect(within(table).getAllByRole("button", { name: /^Editar/ })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar F2 de la lista" }));
+    expect(upload.removeRow).toHaveBeenCalledWith(source, 1);
+  });
+
+  it("shows a file's problem and its actions above the rows", async () => {
+    const upload = uploadState([kmzMissingData()]);
+    await renderStep(upload);
+
+    const notice = screen.getByRole("alert");
+    expect(notice.textContent).toContain("lotes.kmz");
+    expect(notice.textContent).toContain("12");
+    fireEvent.click(within(notice).getByRole("button", { name: "Quitar archivo" }));
+    expect(upload.remove).toHaveBeenCalledOnce();
+    expect(within(notice).getByRole("button", { name: "Adjuntar Excel de producción" })).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
   });
 });

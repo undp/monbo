@@ -247,7 +247,20 @@
     "emptyHint": "Use one or more of the methods above and your polygons will show up here.",
     "removeAll": "Remove all",
     "drawTitle": "Draw a polygon or place a point on the map",
-    "openMap": "Open map"
+    "openMap": "Open map",
+    "removeFile": "Remove file",
+    "table": {
+      "id": "ID",
+      "producer": "Producer",
+      "crop": "Crop",
+      "production": "Production",
+      "type": "Type",
+      "origin": "Origin",
+      "actions": "Actions",
+      "drawn": "Drawing",
+      "removeRow": "Remove {{name}} from the list",
+      "editRow": "Edit {{name}}"
+    }
   },
   "layerResults": {
     "categoryLayer": "{{- category}} · {{- layer}}",

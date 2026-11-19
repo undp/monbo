@@ -8,6 +8,19 @@
 
 Si cargas las fincas directamente en el análisis territorial, no se buscan traslapes. Las geometrías aceptadas están en [Carga de las fincas](#upload).
 
+### ¿Cómo reviso los resultados?
+
+Cada finca tiene un **Estado**. **Revisar** muestra sus traslapes y permite validarla manualmente; **Agregar más polígonos** suma fincas a la lista.
+
+:::details[Más detalle: estados y nuevas cargas]
+- **Listo:** no tiene problemas.
+- **Se superpone con…:** se traslapa con otra finca, o con varias. **Revisar** las muestra en un mapa y permite **validarla manualmente** para incluirla igual en el análisis. Cada finca del traslape se valida desde su propia fila.
+- **Validado manualmente:** la incluiste a pesar del traslape. **Revisar** permite deshacerlo.
+- **Un error de geometría:** **Revisar** explica el problema. No se puede validar manualmente: hay que corregirla en el archivo.
+
+Al validar de nuevo tras **Agregar más polígonos**, se revisan todas las fincas juntas. Una finca validada manualmente lo sigue estando solo si se traslapa con las mismas fincas que antes; si una finca nueva la pisa, vuelve a quedar por revisar.
+:::
+
 ### ¿Por qué mi finca aparece como no válida?
 
 Porque su geometría es inválida o porque se traslapa con otra finca. Las geometrías inválidas son:

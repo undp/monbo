@@ -15,6 +15,8 @@
 
 In the upload you choose a method, and the "How to do it" panel shows its steps, its template and an example.
 
+Each row of the list can be removed with the trash can.
+
 ### Which geometries are accepted?
 
 - **Polygons**, with or without **holes** (a lagoon, for example), in one or **several parts**.

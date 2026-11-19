@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
+import { DataContext } from "@/context/DataContext";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { notifyUploadErrors } from "@/utils/uploadErrors";
 import {
@@ -17,15 +18,25 @@ import {
   rereadSources,
   sourceErrors,
   sourceLabel,
+  withoutRow,
 } from "@/utils/uploadSources";
 
 /**
  * The upload step's list of sources. It lives in the upload page, not in the step,
  * so it survives the loading screen: when /farms/parse rejects the upload, the user
- * gets the same list back to fix it.
+ * gets the same list back to fix it. With `kept` (stage 1) the list lives in the
+ * flow's state instead, so it is still there when the user comes back from the
+ * results to add more polygons.
  */
-export const useUploadSources = (selectedCountry: string | null) => {
-  const [sources, setSources] = useState<UploadSource[]>([]);
+export const useUploadSources = (
+  selectedCountry: string | null,
+  { kept = false }: { kept?: boolean } = {}
+) => {
+  const [localSources, setLocalSources] = useState<UploadSource[]>([]);
+  const { stageOneUploadSources, setStageOneUploadSources } =
+    useContext(DataContext);
+  const sources = kept ? stageOneUploadSources : localSources;
+  const setSources = kept ? setStageOneUploadSources : setLocalSources;
   const [reading, setReading] = useState(0);
   const { openSnackbar } = useContext(SnackbarContext);
   const { t, i18n } = useTranslation();
@@ -52,7 +63,7 @@ export const useUploadSources = (selectedCountry: string | null) => {
       setSources((current) =>
         current.map((item) => (item.key === source.key ? source : item))
       ),
-    []
+    [setSources]
   );
 
   /**
@@ -162,12 +173,22 @@ export const useUploadSources = (selectedCountry: string | null) => {
         console.error(error);
         done();
       });
-  }, [sources, selectedCountry, t, i18n.language, notifyErrors]);
+  }, [sources, setSources, selectedCountry, t, i18n.language, notifyErrors]);
 
   const remove = (source: UploadSource) =>
     setSources((current) => current.filter((item) => item.key !== source.key));
 
   const removeAll = () => setSources([]);
+
+  /** Deletes one farm of the list; a source left without farms leaves it. */
+  const removeRow = (source: UploadSource, index: number) =>
+    setSources((current) =>
+      current.flatMap((item) => {
+        if (item.key !== source.key) return [item];
+        const left = withoutRow(item, index);
+        return left ? [left] : [];
+      })
+    );
 
   /** Adds a manual farm, or replaces the one being edited. */
   const saveManual = (row: FarmRow, key?: string) =>
@@ -192,6 +213,7 @@ export const useUploadSources = (selectedCountry: string | null) => {
     detach,
     remove,
     removeAll,
+    removeRow,
     saveManual,
     notifyErrors,
   };

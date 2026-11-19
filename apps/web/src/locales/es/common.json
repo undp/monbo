@@ -247,7 +247,20 @@
     "emptyHint": "Usa uno o varios métodos de arriba y tus polígonos aparecerán aquí.",
     "removeAll": "Quitar todos",
     "drawTitle": "Dibuja un polígono o marca un punto en el mapa",
-    "openMap": "Abrir mapa"
+    "openMap": "Abrir mapa",
+    "removeFile": "Quitar archivo",
+    "table": {
+      "id": "ID",
+      "producer": "Productor",
+      "crop": "Cultivo",
+      "production": "Producción",
+      "type": "Tipo",
+      "origin": "Origen",
+      "actions": "Acciones",
+      "drawn": "Dibujo",
+      "removeRow": "Quitar {{name}} de la lista",
+      "editRow": "Editar {{name}}"
+    }
   },
   "layerResults": {
     "categoryLayer": "{{- category}} · {{- layer}}",

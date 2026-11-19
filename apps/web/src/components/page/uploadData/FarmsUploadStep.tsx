@@ -9,18 +9,20 @@ import {
   CircularProgress,
   Divider,
   IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Tooltip,
 } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
@@ -57,7 +59,7 @@ import {
   isMissingData,
   isUploadable,
   sourceErrors,
-  sourceLabel,
+  sourceListedRows,
   sourceProblem,
   sourceRows,
   uploadSummary,
@@ -272,7 +274,10 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
       </Box>
     ),
     manual: (
-      <Box
+      // The whole area opens the map: it is one button, named by its text.
+      <ButtonBase
+        onClick={() => setManualFarm({ open: true, editing: null })}
+        disabled={disabled}
         sx={{
           flexGrow: 1,
           minHeight: 160,
@@ -286,6 +291,12 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
           gap: 1,
           padding: "22px",
           textAlign: "center",
+          transition: "border-color .15s",
+          "&:hover": { borderColor: FLOW_COLORS.blue },
+          "&.Mui-focusVisible": {
+            outline: `2px solid ${FLOW_COLORS.blue}`,
+            outlineOffset: 2,
+          },
         }}
       >
         <Box
@@ -305,16 +316,26 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         <Box component="b" sx={{ color: FLOW_COLORS.ink, fontSize: 14 }}>
           {t("common:farmsUpload:drawTitle")}
         </Box>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddLocationAltOutlinedIcon />}
-          onClick={() => setManualFarm({ open: true, editing: null })}
-          disabled={disabled}
+        {/* Looks like a button; the whole area is the control */}
+        <Box
+          component="span"
+          aria-hidden
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            borderRadius: "8px",
+            padding: "5px 12px",
+            fontSize: 13,
+            fontWeight: 600,
+            color: FLOW_COLORS.white,
+            backgroundColor: FLOW_COLORS.blue,
+          }}
         >
+          <AddLocationAltOutlinedIcon sx={{ fontSize: 18 }} />
           {t("common:farmsUpload:openMap")}
-        </Button>
-      </Box>
+        </Box>
+      </ButtonBase>
     ),
   };
 
@@ -462,6 +483,11 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
       </Box>
     ) : null;
 
+  const fileSources = sources.filter(
+    (source): source is Exclude<UploadSource, ManualSource> =>
+      source.kind !== "manual"
+  );
+
   const list =
     sources.length === 0 && !reading ? (
       <Box
@@ -477,39 +503,38 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         {t("common:farmsUpload:emptyHint")}
       </Box>
     ) : (
-      <List
-        dense
-        disablePadding
-        sx={{
-          border: `1px solid ${FLOW_COLORS.line}`,
-          borderRadius: "12px",
-          overflow: "hidden",
-          "& > li:last-of-type": { borderBottom: "none" },
-        }}
-      >
-        {sources.map((source) => (
-          <SourceItem
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+        {fileSources.map((source) => (
+          <FileNotice
             key={source.key}
             source={source}
             onRemove={() => upload.remove(source)}
             onShowErrors={() => upload.notifyErrors(source)}
             onAttachExcel={() => chooseExcelFor(source)}
             onDetachExcel={() => canAttachExcel(source) && upload.detach(source)}
-            onEdit={() =>
-              source.kind === "manual" &&
-              setManualFarm({ open: true, editing: source })
-            }
           />
         ))}
+        <FarmRowsTable
+          sources={sources}
+          onRemoveRow={upload.removeRow}
+          onEdit={(source) => setManualFarm({ open: true, editing: source })}
+        />
         {reading && (
-          <ListItem>
-            <ListItemIcon>
-              <CircularProgress size={20} />
-            </ListItemIcon>
-            <ListItemText primary={t("common:farmsUpload:reading")} />
-          </ListItem>
+          <Box
+            role="status"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              fontSize: 14,
+              color: FLOW_COLORS.ink2,
+            }}
+          >
+            <CircularProgress size={18} />
+            {t("common:farmsUpload:reading")}
+          </Box>
         )}
-      </List>
+      </Box>
     );
 
   const listSubtitle =
@@ -875,39 +900,42 @@ const PairDropZone: React.FC<PairDropZoneProps> = ({
   );
 };
 
-interface SourceItemProps {
-  source: UploadSource;
+interface FileNoticeProps {
+  source: Exclude<UploadSource, ManualSource>;
   onRemove: () => void;
   onShowErrors: () => void;
   onAttachExcel: () => void;
   onDetachExcel: () => void;
-  onEdit: () => void;
 }
 
-const SOURCE_ICONS = {
-  excel: <DescriptionOutlinedIcon />,
-  geo: <PublicOutlinedIcon />,
-  manual: <DrawOutlinedIcon />,
-};
-
-const SourceItem: React.FC<SourceItemProps> = ({
+/**
+ * A listed file, above its farms' rows: its name, its farms or its problem, and
+ * what applies to the whole file (show errors, attach or remove the Excel, remove
+ * the file). A file with problems stands out; one without them is a plain line.
+ */
+const FileNotice: React.FC<FileNoticeProps> = ({
   source,
   onRemove,
   onShowErrors,
   onAttachExcel,
   onDetachExcel,
-  onEdit,
 }) => {
   const { t } = useTranslation();
   const errors = sourceErrors(source);
   const problem = sourceProblem(source, t);
   const geoExcel = source.kind === "geo" ? source.excel : null;
   const missingData = isMissingData(source);
+  const tone = problem ? (missingData ? "warn" : "bad") : "neutral";
+  const colors = {
+    warn: { text: FLOW_COLORS.warn, background: FLOW_COLORS.warnBackground },
+    bad: { text: FLOW_COLORS.bad, background: FLOW_COLORS.badBackground },
+    neutral: { text: FLOW_COLORS.ink2, background: FLOW_COLORS.blue25 },
+  }[tone];
 
   const count = t("common:farmsUpload:farmCount", {
     count: sourceRows(source).length,
   });
-  const secondary =
+  const detail =
     problem ??
     (geoExcel
       ? `${count} · ${t("common:farmsUpload:joinedWith", {
@@ -915,32 +943,45 @@ const SourceItem: React.FC<SourceItemProps> = ({
           interpolation: { escapeValue: false },
         })}`
       : count);
+  const Icon =
+    tone === "warn"
+      ? WarningAmberRoundedIcon
+      : tone === "bad"
+        ? ErrorOutlineRoundedIcon
+        : InsertDriveFileOutlinedIcon;
 
   return (
-    <ListItem divider sx={{ flexWrap: "wrap", columnGap: 1, rowGap: 0.5 }}>
-      <ListItemIcon sx={{ minWidth: 40 }}>{SOURCE_ICONS[source.kind]}</ListItemIcon>
-      <ListItemText
-        sx={{ flex: "1 1 260px", margin: 0 }}
-        primary={sourceLabel(source, t)}
-        secondary={secondary}
-        slotProps={{
-          secondary: {
-            color: problem
-              ? missingData
-                ? "warning.dark"
-                : "error"
-              : "text.secondary",
-          },
-        }}
-      />
+    <Box
+      role={problem ? "alert" : undefined}
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 1.5,
+        rowGap: 0.75,
+        padding: "10px 14px",
+        borderRadius: "10px",
+        backgroundColor: colors.background,
+        border: `1px solid ${tone === "neutral" ? FLOW_COLORS.line : "transparent"}`,
+      }}
+    >
+      <Icon aria-hidden sx={{ fontSize: 20, color: colors.text }} />
+      <Box sx={{ flex: "1 1 260px", minWidth: 0, fontSize: 14 }}>
+        <Box component="b" sx={{ color: FLOW_COLORS.ink, wordBreak: "break-word" }}>
+          {source.name}
+        </Box>
+        <Box component="span" sx={{ color: colors.text }}>
+          {" · "}
+          {detail}
+        </Box>
+      </Box>
       <Box
         sx={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           gap: 0.5,
           marginLeft: "auto",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
         }}
       >
         {errors.length > 1 && (
@@ -958,19 +999,155 @@ const SourceItem: React.FC<SourceItemProps> = ({
             {t("common:farmsUpload:attachExcel")}
           </Button>
         )}
-        {source.kind === "manual" && (
-          <Tooltip title={t("common:farmsUpload:edit")}>
-            <IconButton aria-label={t("common:farmsUpload:edit")} onClick={onEdit}>
-              <EditOutlinedIcon />
-            </IconButton>
-          </Tooltip>
-        )}
-        <Tooltip title={t("common:farmsUpload:remove")}>
-          <IconButton aria-label={t("common:farmsUpload:remove")} onClick={onRemove}>
-            <DeleteOutlineIcon />
-          </IconButton>
-        </Tooltip>
+        <Button size="small" color="inherit" onClick={onRemove}>
+          {t("common:farmsUpload:removeFile")}
+        </Button>
       </Box>
-    </ListItem>
+    </Box>
+  );
+};
+
+/** "48,5 kg", in the user's language; empty when the row has no quantity. */
+const productionText = (row: FarmRow, language: string): string => {
+  const quantity = row.productionQuantity;
+  if (quantity === null || quantity === undefined || quantity === "") return "";
+  const amount =
+    typeof quantity === "number" ? quantity.toLocaleString(language) : quantity;
+  return [amount, row.productionQuantityUnit].filter(Boolean).join(" ");
+};
+
+const EMPTY_CELL = "—";
+
+// Read by screen readers, not shown
+const VISUALLY_HIDDEN = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+} as const;
+
+interface FarmRowsTableProps {
+  sources: UploadSource[];
+  onRemoveRow: (source: UploadSource, index: number) => void;
+  onEdit: (source: ManualSource) => void;
+}
+
+/**
+ * One row per farm to upload, in list order: its ID, producer, crop, production,
+ * kind and where it came from, with a button to delete it (and to edit a drawn
+ * one). The area isn't known yet: the API computes it. Long lists scroll inside.
+ */
+const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
+  sources,
+  onRemoveRow,
+  onEdit,
+}) => {
+  const { t, i18n } = useTranslation();
+  const rows = sources.flatMap((source) =>
+    sourceListedRows(source).map(({ row, index }) => ({ source, row, index }))
+  );
+  if (rows.length === 0) return null;
+
+  const header = (key: string) => t(`common:farmsUpload:table:${key}`);
+  return (
+    <Box
+      sx={{
+        maxHeight: 420,
+        overflow: "auto",
+        border: `1px solid ${FLOW_COLORS.line}`,
+        borderRadius: "12px",
+      }}
+    >
+      <Table
+        size="small"
+        stickyHeader
+        aria-label={t("common:farmsUpload:listTitle")}
+        sx={{
+          "& th": {
+            fontSize: 11.5,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: FLOW_COLORS.muted,
+            backgroundColor: FLOW_COLORS.blue25,
+            whiteSpace: "nowrap",
+          },
+          "& td": { fontSize: 14, color: FLOW_COLORS.ink2 },
+          "& tbody tr:last-of-type td": { borderBottom: "none" },
+        }}
+      >
+        <TableHead>
+          <TableRow>
+            <TableCell>{header("id")}</TableCell>
+            <TableCell>{header("producer")}</TableCell>
+            <TableCell>{header("crop")}</TableCell>
+            <TableCell>{header("production")}</TableCell>
+            <TableCell>{header("type")}</TableCell>
+            <TableCell>{header("origin")}</TableCell>
+            <TableCell align="right">
+              <Box component="span" sx={VISUALLY_HIDDEN}>
+                {header("actions")}
+              </Box>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map(({ source, row, index }) => {
+            const id = row.id ? String(row.id) : null;
+            const name = id ?? row.producerName ?? t("common:farmsUpload:manualFarm");
+            return (
+              <TableRow key={`${source.key}-${index}`} hover>
+                <TableCell sx={{ fontWeight: 600, color: `${FLOW_COLORS.ink} !important` }}>
+                  {id ?? EMPTY_CELL}
+                </TableCell>
+                <TableCell>{row.producerName || EMPTY_CELL}</TableCell>
+                <TableCell>{row.cropType || EMPTY_CELL}</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  {productionText(row, i18n.language) || EMPTY_CELL}
+                </TableCell>
+                <TableCell>
+                  {t(row.geometryType === "Point" ? "common:point" : "common:polygon")}
+                </TableCell>
+                <TableCell sx={{ maxWidth: 220, wordBreak: "break-word" }}>
+                  {source.kind === "manual"
+                    ? t("common:farmsUpload:table:drawn")
+                    : source.name}
+                </TableCell>
+                <TableCell align="right" sx={{ whiteSpace: "nowrap", paddingY: 0 }}>
+                  {source.kind === "manual" && (
+                    <Tooltip title={t("common:farmsUpload:edit")}>
+                      <IconButton
+                        size="small"
+                        aria-label={t("common:farmsUpload:table:editRow", {
+                          name,
+                          interpolation: { escapeValue: false },
+                        })}
+                        onClick={() => onEdit(source)}
+                      >
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip title={t("common:farmsUpload:remove")}>
+                    <IconButton
+                      size="small"
+                      aria-label={t("common:farmsUpload:table:removeRow", {
+                        name,
+                        interpolation: { escapeValue: false },
+                      })}
+                      onClick={() => onRemoveRow(source, index)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Box>
   );
 };

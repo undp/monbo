@@ -24,6 +24,10 @@ import { useTranslation } from "react-i18next";
 import { FarmData } from "@/interfaces/Farm";
 import { sum } from "lodash";
 import { FarmRow } from "@/interfaces/FarmRow";
+import {
+  manualValidationsOf,
+  reconcileManualValidations,
+} from "@/utils/validationResults";
 
 export function PolygonsValidationUploadDataPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -31,12 +35,16 @@ export function PolygonsValidationUploadDataPageContent() {
   const {
     farmsData,
     setFarmsData,
+    polygonsValidationResults,
     setPolygonsValidationResults,
+    setTerritorialAnalysisResults,
+    setAnalysisOutdated,
+    setReportGenerationParams,
+    stageOneUploadSources,
     selectedCountry,
   } = useContext(DataContext);
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const prevDataRef = useRef<string | null>(null);
   // A parser response that arrives after the page was left is dropped.
   const mountedRef = useRef(false);
   useEffect(() => {
@@ -46,49 +54,27 @@ export function PolygonsValidationUploadDataPageContent() {
     };
   }, []);
 
-  const performFarmsGeneration = useCallback(
-    async (data: Record<string, unknown>[]) => {
-      const generation = readFlowGeneration();
-      try {
-        // The upload has no country column: every farm is in the analysis country.
-        const results = await generateFarmsData(
-          data.map((row) => ({ ...row, country: selectedCountry })),
-          i18n.language,
-          { country: selectedCountry, module: "polygons-validation" }
-        );
-        // Started over or left meanwhile: don't bring the farms back.
-        if (!mountedRef.current || readFlowGeneration() !== generation) return;
-        // The country can change while the parser request is in flight.
-        setFarmsData(
-          results.map((farm) => ({
-            ...farm,
-            country: readSelectedCountry() ?? farm.country,
-          }))
-        );
-      } catch (error) {
-        console.error(error);
-        openSnackbar({
-          message: t("common:snackbarAlerts:parsingFarmsDataError"),
-          type: "error",
-        });
-        setLoading(false);
-        return;
-      }
-    },
-    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
-  );
-
   const performValidationAnalysis = useCallback(
-    async (data: FarmData[]) => {
+    async (data: FarmData[], validatedBefore = manualValidationsOf(null)) => {
       setLoading(true);
       try {
-        const response = await validatePolygons(data, selectedCountry);
+        const { results: response, dropped } = reconcileManualValidations(
+          validatedBefore,
+          await validatePolygons(data, selectedCountry)
+        );
         setPolygonsValidationResults(response);
         router.push("/polygons-validation");
         openSnackbar({
           message: t("common:snackbarAlerts:dataAnalyzedSuccessfully"),
           type: "success",
         });
+        if (dropped > 0)
+          openSnackbar({
+            message: t("polygonValidation:manualValidationsDropped", {
+              count: dropped,
+            }),
+            type: "warning",
+          });
 
         const inconsistenciesCount = sum(
           response.inconsistencies.map(({ farmIds }) => farmIds.length)
@@ -116,17 +102,79 @@ export function PolygonsValidationUploadDataPageContent() {
     [setPolygonsValidationResults, router, openSnackbar, t, selectedCountry]
   );
 
+  const performFarmsGeneration = useCallback(
+    async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
+      // The farms validated by hand before "Agregar más polígonos", and what
+      // they overlapped: kept only where nothing new overlaps them.
+      const validatedBefore = manualValidationsOf(polygonsValidationResults);
+      try {
+        // The upload has no country column: every farm is in the analysis country.
+        const results = await generateFarmsData(
+          data.map((row) => ({ ...row, country: selectedCountry })),
+          i18n.language,
+          { country: selectedCountry, module: "polygons-validation" }
+        );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
+        // The country can change while the parser request is in flight.
+        const farms = results.map((farm) => ({
+          ...farm,
+          country: readSelectedCountry() ?? farm.country,
+        }));
+        setFarmsData(farms);
+        // An analysis of the earlier farms doesn't describe these
+        setTerritorialAnalysisResults(null);
+        setAnalysisOutdated(false);
+        setReportGenerationParams((prev) => ({
+          ...prev,
+          selectedMaps: [],
+          selectedFarms: [],
+          downloadType: null,
+        }));
+        await performValidationAnalysis(farms, validatedBefore);
+      } catch (error) {
+        console.error(error);
+        openSnackbar({
+          message: t("common:snackbarAlerts:parsingFarmsDataError"),
+          type: "error",
+        });
+        setLoading(false);
+        return;
+      }
+    },
+    [
+      openSnackbar,
+      setFarmsData,
+      setTerritorialAnalysisResults,
+      setAnalysisOutdated,
+      setReportGenerationParams,
+      performValidationAnalysis,
+      polygonsValidationResults,
+      t,
+      i18n.language,
+      selectedCountry,
+    ]
+  );
+
+  // Farms uploaded on stage 2 and not validated yet are validated on entry, as
+  // before. With stage 1's own list kept (back from "Agregar más polígonos"),
+  // nothing runs until the user presses the button.
+  const validatedOnEntry = useRef(false);
   useEffect(() => {
-    const serializedData = JSON.stringify(farmsData?.map((d) => d.id));
-    if (serializedData === prevDataRef.current) return;
-
-    prevDataRef.current = serializedData;
-    if (!farmsData) return;
-
+    if (validatedOnEntry.current) return;
+    validatedOnEntry.current = true;
+    if (!farmsData || polygonsValidationResults) return;
+    if (stageOneUploadSources.length > 0) return;
     performValidationAnalysis(farmsData);
-  }, [farmsData, performValidationAnalysis]);
+  }, [
+    farmsData,
+    polygonsValidationResults,
+    stageOneUploadSources,
+    performValidationAnalysis,
+  ]);
 
-  const upload = useUploadSources(selectedCountry);
+  const upload = useUploadSources(selectedCountry, { kept: true });
 
   const onUpload = useCallback(
     (rows: FarmRow[]) => {

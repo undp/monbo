@@ -1,3 +1,5 @@
+import type { FarmOrigin } from "@/interfaces/Farm";
+
 /**
  * One farm as the upload sends it to `/farms/parse`: the keys the Excel template's
  * headers map to (see `headerKeywordsMappings` in utils/excel.ts). Every source
@@ -21,4 +23,6 @@ export type FarmRow = Record<string, unknown> & {
   // Hectares; the radius of a point farm comes from it
   area?: number | string | null;
   documents: { name: string; url: string }[];
+  // Set by the upload from the row's source; /farms/parse returns it as is
+  origin?: FarmOrigin | null;
 };

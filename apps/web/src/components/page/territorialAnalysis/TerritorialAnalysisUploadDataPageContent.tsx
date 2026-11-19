@@ -80,6 +80,7 @@ export function TerritorialAnalysisUploadDataPageContent() {
     setFarmsData,
     polygonsValidationResults,
     setPolygonsValidationResults,
+    setStageOneUploadSources,
     territorialAnalysisParams: {
       selectedMaps: analysedMaps,
       polygonsSubset: analysedSubset,
@@ -264,8 +265,10 @@ export function TerritorialAnalysisUploadDataPageContent() {
           }))
         );
         // A validation of earlier farms doesn't describe these: without it,
-        // stage 1 shows as not done and no farm is hidden as invalid.
+        // stage 1 shows as not done and no farm is hidden as invalid. Nor does
+        // stage 1's kept list: these farms replace it.
         setPolygonsValidationResults(null);
+        setStageOneUploadSources([]);
         setAnalysisMode("draft");
       } catch (error) {
         console.error(error);
@@ -281,6 +284,7 @@ export function TerritorialAnalysisUploadDataPageContent() {
       openSnackbar,
       setFarmsData,
       setPolygonsValidationResults,
+      setStageOneUploadSources,
       t,
       i18n.language,
       selectedCountry,

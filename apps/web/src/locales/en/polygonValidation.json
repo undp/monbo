@@ -1,24 +1,16 @@
 {
   "title": "Validate your polygons",
-  "validPolygons_one": "validated polygon",
-  "validPolygons_other": "validated polygons",
   "inconsistenciesTypes": {
     "overlap": "Overlap",
     "empty_polygon": "Empty Polygon",
     "invalid_geometry": "Invalid Geometry"
   },
-  "inconsistentPolygons": {
-    "singular": "inconsistent polygon",
-    "plural": "inconsistent polygons"
-  },
   "inconsistentPolygonsFound": {
     "singular": "{{count}} inconsistent polygon was found",
     "plural": "{{count}} inconsistent polygons were found"
   },
-  "errorPolygons": "Polygons with Errors",
   "searchPlaceholder": "Search polygon or producer",
   "noResults": "No results found",
-  "noInconsistencies": "No inconsistencies found",
   "export": {
     "validSheet": "Valid polygons",
     "inconsistentSheet": "Inconsistent polygons"
@@ -27,8 +19,7 @@
     "snackbarAlert": {
       "included": "included in manual validation",
       "excluded": "excluded from manual validation"
-    },
-    "tableHeader": "Manual validation"
+    }
   },
   "uploadDataPage": {
     "loadingText": "Loading the data",
@@ -39,17 +30,13 @@
     "subtitle": "Upload them however you like. You can combine methods: everything adds up in the same list."
   },
   "overlapModal": {
-    "title": "Overlap Analysis",
-    "producers": "producers",
-    "area": "Overlapping Area",
     "headers": {
       "producer": "Producer",
       "producerId": "Producer ID",
       "type": "Type",
       "id": "ID",
       "area": "Area (ha)"
-    },
-    "callToAction": "Save Changes"
+    }
   },
   "geometryInconsistencyModal": {
     "title": "Geometry Inconsistency",
@@ -62,5 +49,55 @@
     "ready": "ready to analyze",
     "overlap": "overlap: you can validate them manually",
     "error": "with a geometry error: fix them in your file"
-  }
+  },
+  "results": {
+    "count_one": "{{count}} polygon or point",
+    "count_other": "{{count}} polygons and points",
+    "addMore": "Add more polygons",
+    "review": "Review",
+    "reviewFarm": "Review {{id}}",
+    "drawn": "Drawing",
+    "columns": {
+      "id": "ID",
+      "producer": "Producer",
+      "crop": "Crop",
+      "production": "Production",
+      "area": "Area",
+      "type": "Type",
+      "origin": "Origin",
+      "status": "Status"
+    },
+    "status": {
+      "ready": "Ready",
+      "validatedManually": "Validated manually",
+      "overlapWith": "Overlaps {{id}} ({{area}})",
+      "overlapMany_one": "Overlaps {{count}} polygon",
+      "overlapMany_other": "Overlaps {{count}} polygons",
+      "emptyPolygon": "The polygon has no vertices",
+      "selfIntersection": "The polygon crosses itself",
+      "tooFewPoints": "The polygon has fewer than 3 vertices",
+      "holeOutside": "A hole lies outside the polygon",
+      "invalidGeometry": "The geometry is not valid"
+    }
+  },
+  "farmOverlapsModal": {
+    "title": "Overlaps of {{id}}",
+    "summary_one": "Overlaps {{count}} polygon",
+    "summary_other": "Overlaps {{count}} polygons",
+    "headers": {
+      "id": "Overlaps",
+      "producer": "Producer",
+      "area": "Overlapping area",
+      "percentage": "% of the smaller",
+      "criticality": "Criticality"
+    },
+    "criticality": {
+      "HIGH": "High",
+      "MEDIUM": "Medium"
+    },
+    "validate": "Validate {{id}} manually",
+    "validateHint": "It is included in the analysis even though it overlaps these polygons. Each neighbour is validated from its own row."
+  },
+  "manualValidationsDropped_one": "{{count}} manual validation was removed: that polygon now overlaps others. Review it again.",
+  "manualValidationsDropped_other": "{{count}} manual validations were removed: those polygons now overlap others. Review them again."
 }

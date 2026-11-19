@@ -14,6 +14,7 @@ import {
 } from "react";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
+import type { UploadSource } from "@/utils/uploadSources";
 import {
   LayerAnalysisMapResults,
   MapData,
@@ -95,6 +96,10 @@ export interface DataContextValue {
   setSelectedCountry: (code: string | null) => void;
   // False until `selectedCountry` has been read from sessionStorage.
   countryHydrated: boolean;
+  /** Stage 1's upload list, kept so "Agregar más polígonos" finds it again. A
+   * stage 2 upload clears it: its farms replace the listed ones. */
+  stageOneUploadSources: UploadSource[];
+  setStageOneUploadSources: Dispatch<SetStateAction<UploadSource[]>>;
   // Drops the loaded farms, every result and the analysis and report params.
   resetAnalysis: () => void;
 }
@@ -183,6 +188,8 @@ export const DataContext = createContext<DataContextValue>({
   selectedCountry: null,
   setSelectedCountry: () => {},
   countryHydrated: false,
+  stageOneUploadSources: [],
+  setStageOneUploadSources: () => {},
   resetAnalysis: () => {},
 });
 
@@ -198,7 +205,8 @@ type KeptKey =
   | "analysisDraft"
   | "territorialAnalysisResults"
   | "analysisOutdated"
-  | "reportGenerationParams";
+  | "reportGenerationParams"
+  | "stageOneUploadSources";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
 
 /**
@@ -258,6 +266,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const [reportGenerationParams, setReportGenerationParams] = useKeptState(
     "reportGenerationParams",
     initialReportGenerationParams
+  );
+
+  const [stageOneUploadSources, setStageOneUploadSources] = useKeptState(
+    "stageOneUploadSources",
+    []
   );
 
   const invalidateAnalysis = useCallback(() => {
@@ -322,7 +335,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setTerritorialAnalysisParams(initialTerritorialAnalysisParams);
     setAnalysisDraft(null);
     setReportGenerationParams(initialReportGenerationParams);
+    setStageOneUploadSources([]);
   }, [
+    setStageOneUploadSources,
     setAnalysisDraft,
     setFarmsData,
     setPolygonsValidationResults,
@@ -576,6 +591,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       selectedCountry,
       setSelectedCountry: writeSelectedCountry,
       countryHydrated,
+      stageOneUploadSources,
+      setStageOneUploadSources,
       resetAnalysis,
     };
   }, [
@@ -606,6 +623,8 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     availableCountriesError,
     selectedCountry,
     countryHydrated,
+    stageOneUploadSources,
+    setStageOneUploadSources,
     resetAnalysis,
   ]);
 

@@ -1,10 +1,7 @@
 import { Box } from "@mui/material";
 import { SectionBackground } from "@/components/reusable/SectionBackground";
-import { Tabs } from "@/components/reusable/Tabs";
 import { DownloadPageData } from "@/components/page/polygonsValidation/DownloadPageData";
-import { InconsistentFarmsTable } from "@/components/page/polygonsValidation/InconsistentFarmsTable";
-import { ValidFarmsTable } from "@/components/page/polygonsValidation/ValidFarmsTable";
-import { TabTitle } from "@/components/page/polygonsValidation/TabTitle";
+import { ValidationResultsTable } from "@/components/page/polygonsValidation/ValidationResultsTable";
 import { PageFooter } from "@/components/page/polygonsValidation/PageFooter";
 import TranslationsProvider from "@/context/TranslationProvider";
 import { BasePageProps } from "@/interfaces";
@@ -61,20 +58,7 @@ export default async function PolygonsValidationPage({
           sx={{ alignSelf: "stretch", height: RESULTS_SECTION_HEIGHT }}
         >
           <Suspense>
-            <Tabs
-              tabs={[
-                {
-                  id: "validated",
-                  title: <TabTitle type="valid" />,
-                  content: <ValidFarmsTable />,
-                },
-                {
-                  id: "inconsistents",
-                  title: <TabTitle type="inconsistent" />,
-                  content: <InconsistentFarmsTable />,
-                },
-              ]}
-            />
+            <ValidationResultsTable />
           </Suspense>
         </SectionBackground>
         <PageFooter />
