@@ -166,5 +166,10 @@ describe("MapView", () => {
     fireEvent.keyDown(list, { key: "ArrowDown" });
     expect(rows[1].getAttribute("aria-checked")).toBe("true");
     expect(document.activeElement).toBe(rows[1]);
+    // The Tab stop follows the choice
+    expect(rows.map((row) => row.tabIndex)).toEqual([-1, 0]);
+    fireEvent.keyDown(list, { key: "ArrowUp" });
+    expect(rows[0].getAttribute("aria-checked")).toBe("true");
+    expect(document.activeElement).toBe(rows[0]);
   });
 });

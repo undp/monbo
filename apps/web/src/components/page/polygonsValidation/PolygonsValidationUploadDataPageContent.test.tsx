@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateFarmsData } from "@/api/farms";
@@ -20,8 +20,16 @@ vi.mock("@/api/farms", () => ({ generateFarmsData: vi.fn() }));
 vi.mock("@/api/polygonValidation", () => ({ validatePolygons: vi.fn() }));
 // The upload step itself is covered elsewhere: here it only hands rows over.
 vi.mock("@/components/page/uploadData/FarmsUploadStep", () => ({
-  FarmsUploadStep: ({ onSubmit }: { onSubmit: (rows: unknown[]) => void }) => (
-    <button onClick={() => onSubmit([{ id: "A" }])}>upload</button>
+  FarmsUploadStep: ({
+    onSubmit,
+    keepBar,
+  }: {
+    onSubmit: (rows: unknown[]) => void;
+    keepBar?: boolean;
+  }) => (
+    <button data-keep-bar={keepBar} onClick={() => onSubmit([{ id: "A" }])}>
+      upload
+    </button>
   ),
 }));
 
@@ -186,5 +194,25 @@ describe("PolygonsValidationUploadDataPageContent", () => {
     await upload();
 
     expect(statusOf("A")).toBe("VALID_MANUALLY");
+  });
+
+  it("keeps the bar on an emptied list while farms are loaded from it", async () => {
+    const renderWith = async (farmsData: ReturnType<typeof farm>[] | null) => {
+      const i18n = await createTestI18n("es");
+      render(
+        <I18nextProvider i18n={i18n}>
+          <DataContext.Provider
+            value={makeDataContext({ selectedCountry: "CO", farmsData, uploadSources: [] })}
+          >
+            <PolygonsValidationUploadDataPageContent />
+          </DataContext.Provider>
+        </I18nextProvider>
+      );
+      return screen.getByRole("button", { name: "upload" }).getAttribute("data-keep-bar");
+    };
+
+    expect(await renderWith([farm("A")])).toBe("true");
+    cleanup();
+    expect(await renderWith(null)).toBe("false");
   });
 });
