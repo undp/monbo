@@ -227,4 +227,14 @@ describe("ValidationResultsTable", () => {
 
     expect(screen.queryByRole("button", { name: "Agregar más polígonos" })).toBeNull();
   });
+
+  it("scrolls the rows inside the frame only, so the header stays in view", async () => {
+    await renderTable();
+
+    const frame = screen.getByTestId("results-frame");
+    const container = frame.querySelector(".MuiTableContainer-root")!;
+    expect(getComputedStyle(frame).overflow).toBe("auto");
+    expect(getComputedStyle(container).overflowX).toBe("visible");
+    expect(getComputedStyle(container).overflowY).toBe("visible");
+  });
 });

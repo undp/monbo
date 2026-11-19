@@ -241,7 +241,30 @@ describe("reconcileManualValidations", () => {
 
     expect(statusOf(reconciled, "A")).toBe("NOT_VALID");
     expect(statusOf(reconciled, "A-copy")).toBe("NOT_VALID");
-    expect(dropped).toBe(2);
+    // One validation was lost, whatever the number of copies
+    expect(dropped).toBe(1);
+  });
+
+  it("counts it when the polygon changed: its ID is listed on another geometry", () => {
+    // A drawn farm edited, or a file with fixed coordinates
+    const { results: reconciled, dropped } = reconcileManualValidations(
+      before,
+      results({ A: "NOT_VALID", B: "NOT_VALID" }, [overlap("A", "B")]),
+      farmsOf({ A: "z", B: "b" })
+    );
+
+    expect(statusOf(reconciled, "A")).toBe("NOT_VALID");
+    expect(dropped).toBe(1);
+  });
+
+  it("doesn't count a changed polygon that needs no review now", () => {
+    const { dropped } = reconcileManualValidations(
+      before,
+      results({ A: "VALID", B: "VALID" }),
+      farmsOf({ A: "z", B: "b" })
+    );
+
+    expect(dropped).toBe(0);
   });
 });
 

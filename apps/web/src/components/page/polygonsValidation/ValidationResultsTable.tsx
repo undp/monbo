@@ -401,7 +401,21 @@ export const ValidationResultsTable: React.FC = () => {
       }}
     >
       <Box
-        sx={{ ...FLOW_TABLE_FRAME, ...FLOW_TABLE_SX, flex: "0 1 auto", minHeight: 0 }}
+        data-testid="results-frame"
+        sx={{
+          ...FLOW_TABLE_FRAME,
+          ...FLOW_TABLE_SX,
+          flex: "0 1 auto",
+          minHeight: 0,
+          // The frame is the only scroller, so the sticky header sticks to it:
+          // the table's own container would otherwise grow with its rows and
+          // scroll the header away
+          "& .MuiTableContainer-root": {
+            overflowX: "visible",
+            overflowY: "visible",
+            height: "auto",
+          },
+        }}
       >
         {rows.length === 0 ? (
           <Box

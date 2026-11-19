@@ -55,8 +55,12 @@ export function PolygonsValidationUploadDataPageContent() {
     };
   }, []);
 
+  /** Validates the farms; true when the results were set. */
   const performValidationAnalysis = useCallback(
-    async (data: FarmData[], validatedBefore: ManualValidations = new Map()) => {
+    async (
+      data: FarmData[],
+      validatedBefore: ManualValidations = new Map()
+    ): Promise<boolean> => {
       setLoading(true);
       try {
         const { results: response, dropped } = reconcileManualValidations(
@@ -92,6 +96,7 @@ export function PolygonsValidationUploadDataPageContent() {
             type: "warning",
           });
         }
+        return true;
       } catch (error) {
         console.error(error);
         openSnackbar({
@@ -99,17 +104,31 @@ export function PolygonsValidationUploadDataPageContent() {
           type: "error",
         });
         setLoading(false);
+        return false;
       }
     },
     [setPolygonsValidationResults, router, openSnackbar, t, selectedCountry]
   );
+
+  // The manual validations of a validation that failed: its results were
+  // cleared with the earlier farms, so a retry takes them from here. Only within
+  // the same flow: starting over forgets them.
+  const pendingValidations = useRef<{
+    generation: number;
+    validations: ManualValidations;
+  } | null>(null);
 
   const performFarmsGeneration = useCallback(
     async (data: Record<string, unknown>[]) => {
       const generation = readFlowGeneration();
       // The farms validated by hand before "Agregar más polígonos", and what
       // they overlapped: kept only where nothing new overlaps them.
-      const validatedBefore = manualValidationsOf(polygonsValidationResults, farmsData);
+      const pending = pendingValidations.current;
+      const validatedBefore = polygonsValidationResults
+        ? manualValidationsOf(polygonsValidationResults, farmsData)
+        : pending?.generation === generation
+          ? pending.validations
+          : new Map();
       try {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
@@ -137,7 +156,9 @@ export function PolygonsValidationUploadDataPageContent() {
           selectedFarms: [],
           downloadType: null,
         }));
-        await performValidationAnalysis(farms, validatedBefore);
+        pendingValidations.current = { generation, validations: validatedBefore };
+        if (await performValidationAnalysis(farms, validatedBefore))
+          pendingValidations.current = null;
       } catch (error) {
         console.error(error);
         openSnackbar({

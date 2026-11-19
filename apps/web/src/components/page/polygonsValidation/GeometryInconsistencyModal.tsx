@@ -152,7 +152,11 @@ const generateRows = (
         },
         id: { value: farm.id },
         area: {
-          value: area ? parseAreaToHectares(area, 2, false, language) : t("common:na"),
+          // 0 is a computed area; only a failed one is unknown
+          value:
+            area !== null
+              ? parseAreaToHectares(area, 2, false, language)
+              : t("common:na"),
         },
       },
       data,

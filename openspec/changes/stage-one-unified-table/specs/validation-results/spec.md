@@ -127,7 +127,7 @@ After a new validation from "Agregar más polígonos", a farm that was `VALID_MA
 - it has no geometry error;
 - it overlaps exactly the same polygons as when it was validated.
 
-Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps, and a validation SHALL never pass to another farm through its ID. When a validated farm still in the list loses its validation, the page SHALL say how many were dropped and why. A farm the user deleted SHALL NOT count.
+Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps, and a validation SHALL never pass to another farm through its ID. When a validated polygon still in the list loses its validation, or a farm with its ID is listed with another geometry, the page SHALL say how many validations were dropped and why, counting each once. A farm the user deleted SHALL NOT count. A validation that fails SHALL NOT leave the earlier results on the new farms, and a retry SHALL still put the manual validations back.
 
 #### Scenario: A new farm away from the validated ones
 
@@ -143,6 +143,11 @@ Otherwise it SHALL take the status the API returned, so nobody is validated with
 
 - **WHEN** CO-003 was validated manually over CO-006, and the user deletes CO-006 from the list and validates again
 - **THEN** CO-003 takes the API's status, `VALID`, and reads "Listo"
+
+#### Scenario: An edited drawing
+
+- **WHEN** a drawn farm was validated manually, and the user edits its drawing and validates again
+- **THEN** the farm takes the API's status, and the notice says 1 manual validation was dropped
 
 #### Scenario: Positional IDs shift after a deleted row
 

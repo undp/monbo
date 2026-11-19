@@ -88,6 +88,7 @@
 - [x] 5c.5 Name each file notice's buttons after their file; theme colors in the overlaps modal; production through `formatNumber`
 - [x] 5c.6 Split `FarmsUploadStep.tsx` into one file per component, and virtualize the upload list from 100 rows (`@tanstack/react-virtual`)
 - [x] 5c.7 Let the results card grow with its rows up to the viewport, scrolling from there
+- [x] 5c.8 Re-review: count a validation whose polygon changed (its ID on another geometry), each validation once; keep the results header sticky (only the frame scrolls); keep the manual validations for a retry after a failed validation, with a page test; show an area of 0
 
 ## 6. Docs and checks
 

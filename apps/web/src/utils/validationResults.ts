@@ -100,8 +100,14 @@ export const geometryKey = (farm: FarmData): string =>
       : (farm.polygon.details?.parts ?? null)
   );
 
-/** Each farm validated manually, by geometry, with the geometries it overlapped, sorted. */
-export type ManualValidations = Map<string, string[]>;
+/** A farm validated manually: its ID then, and the geometries it overlapped, sorted. */
+export interface ManualValidation {
+  farmId: string;
+  neighbours: string[];
+}
+
+/** Each farm validated manually, by its geometry. */
+export type ManualValidations = Map<string, ManualValidation>;
 
 const geometryKeys = (farms: FarmData[]) =>
   new Map(farms.map((farm) => [farm.id, geometryKey(farm)]));
@@ -126,7 +132,15 @@ export const manualValidationsOf = (
     results.farmResults.flatMap(({ farmId, status }) => {
       const key = keys.get(farmId);
       return status === FarmValidationStatus.VALID_MANUALLY && key !== undefined
-        ? [[key, neighbourKeys(farmId, results.inconsistencies, keys)] as const]
+        ? [
+            [
+              key,
+              {
+                farmId,
+                neighbours: neighbourKeys(farmId, results.inconsistencies, keys),
+              },
+            ] as const,
+          ]
         : [];
     })
   );
@@ -141,8 +155,14 @@ const sameKeys = (a: string[], b: string[]) =>
  * whatever its ID now), overlaps exactly the same polygons as when it was
  * validated, has no geometry error and no other farm in the list shares its
  * geometry: nobody stays validated over an overlap they didn't see, and a
- * validation never moves to another farm. `dropped` counts the validated farms
- * still in the list that need a review again; a deleted one needs none.
+ * validation never moves to another farm.
+ *
+ * `dropped` counts the earlier validations, each once, that now need a review:
+ * the polygon is still listed but didn't get it back, or a farm with its ID is
+ * listed with another geometry (an edited drawing, fixed coordinates). One that
+ * is gone from the list (deleted) needs none. Telling a changed polygon from a
+ * deleted one by its ID can warn once too often when positional IDs shift, never
+ * once too few.
  */
 export const reconcileManualValidations = (
   validated: ManualValidations,
@@ -150,9 +170,10 @@ export const reconcileManualValidations = (
   farms: FarmData[]
 ): { results: ValidateFarmsResponse; dropped: number } => {
   const keys = geometryKeys(farms);
-  const farmsPerKey = new Map<string, number>();
-  keys.forEach((key) => farmsPerKey.set(key, (farmsPerKey.get(key) ?? 0) + 1));
-  let dropped = 0;
+  const idsPerKey = new Map<string, string[]>();
+  keys.forEach((key, farmId) =>
+    idsPerKey.set(key, [...(idsPerKey.get(key) ?? []), farmId])
+  );
   const farmResults = results.farmResults.map((result) => {
     const key = keys.get(result.farmId);
     const before = key === undefined ? undefined : validated.get(key);
@@ -161,10 +182,26 @@ export const reconcileManualValidations = (
       ({ type, farmIds }) => type !== "overlap" && farmIds.includes(result.farmId)
     );
     const now = neighbourKeys(result.farmId, results.inconsistencies, keys);
-    if (!hasGeometryError && farmsPerKey.get(key!) === 1 && sameKeys(before, now))
-      return { ...result, status: FarmValidationStatus.VALID_MANUALLY };
-    dropped += 1;
-    return result;
+    return !hasGeometryError &&
+      idsPerKey.get(key!)?.length === 1 &&
+      sameKeys(before.neighbours, now)
+      ? { ...result, status: FarmValidationStatus.VALID_MANUALLY }
+      : result;
+  });
+
+  const statuses = new Map(farmResults.map(({ farmId, status }) => [farmId, status]));
+  const needsReview = (farmId: string) =>
+    statuses.get(farmId) === FarmValidationStatus.NOT_VALID;
+  let dropped = 0;
+  validated.forEach(({ farmId }, key) => {
+    const sameGeometry = idsPerKey.get(key);
+    if (sameGeometry) {
+      // Listed still: dropped unless one of them is validated (or valid) now
+      if (sameGeometry.every(needsReview)) dropped += 1;
+    } else if (keys.has(farmId) && needsReview(farmId)) {
+      // Its ID, on another geometry: the polygon changed
+      dropped += 1;
+    }
   });
   return { results: { ...results, farmResults }, dropped };
 };

@@ -130,7 +130,9 @@ After `validatePolygons` answers, a pure function, `reconcileManualValidations(s
 - it has no geometry inconsistency;
 - the geometries it overlaps now equal the old ones.
 
-The function returns the reconciled results and how many validations were dropped: the validated farms still in the list that now need a review. A deleted farm needs none and isn't counted. A count above zero shows a warning snackbar.
+The function returns the reconciled results and how many validations were dropped, each counted once: the validated polygon is still listed but didn't get its validation back, or a farm with its ID is listed with another geometry (an edited drawing, fixed coordinates). A polygon gone from the list was deleted, needs no review and isn't counted. Telling a changed polygon from a deleted one by its ID can warn once too often when positional IDs shift, never once too few. A count above zero shows a warning snackbar.
+
+If the validation request fails, the earlier results are already cleared with the earlier farms. The page keeps the snapshot until a validation succeeds, within the same flow, so a retry still puts the manual validations back.
 
 The stage 2 results are dropped through the existing invalidation, the same as a new upload.
 
@@ -144,7 +146,8 @@ The drawing panel becomes a `ButtonBase`. It covers the forest image, the icon, 
 
 ## Risks / Trade-offs
 
-- **[A farm whose geometry changes loses its manual validation.]** Editing a drawn farm or fixing a file's coordinates makes it another polygon. → It is counted in the "dropped" notice, so the user reviews it again. This is the safe direction: a validation can be lost, never wrongly kept.
+- **[A farm whose geometry changes loses its manual validation.]** Editing a drawn farm or fixing a file's coordinates makes it another polygon. → It is counted in the "dropped" notice through its ID, so the user reviews it again. This is the safe direction: a validation can be lost, never wrongly kept.
+- **[Deleting the row that causes a file's error doesn't clear the error.]** A file's errors are computed for the whole file when it is read, not per row. → Follow-up: keep the errors per row, so deleting a row drops its errors. Until then the file stays marked, and removing or fixing the file clears it.
 - **[A large Excel becomes thousands of rows in the list.]** → The list scrolls inside a fixed-height frame, and from 100 rows on only the rows in view are rendered (`@tanstack/react-virtual`, which measures each row, since long texts wrap).
 - **[Two open changes touch stage 1.]** → This change starts after `progressive-flow-stages` is committed. Its delta specs modify `farm-upload` requirements that `progressive-flow-stages` doesn't, so archiving both in order doesn't conflict.
 - **[A contract change touches both CI jobs.]** → The model, `openapi.json` and `schema.d.ts` go in one commit. The API test covers the echo and the 255-character limit (a 422).
