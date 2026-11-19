@@ -50,3 +50,12 @@
 - [x] 8.1 From `apps/web`: `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build`
 - [x] 8.2 `openspec validate stage-two-flow-redesign --strict`
 - [x] 8.3 Check by hand in `pnpm dev`: direct entry → upload → Continuar → layers → Analizar; "Ver polígonos" both ways; an unchanged and a changed list; the subset choice after a validation; results head, cards, table, map toggle, search and the report modal
+
+## 9. Review of #148
+
+- [x] 9.1 The map list announces each farm's finding and is one Tab stop with arrow keys; its result filters are toggle buttons (`aria-pressed`), not tabs
+- [x] 9.2 The banner's IDs are shown as text (`AS_TEXT`), never escaped
+- [x] 9.3 An emptied list keeps the upload bar, with its button off, while farms are loaded; "Agregar más polígonos" is offered whenever the farms came from the list
+- [x] 9.4 Leaving a recalculation with no layer to run doesn't bring the loading screen back
+- [x] 9.5 Onboarding and the `farm-upload` requirement say that only stage 2's "Continuar" keeps the results of an unchanged list
+- [x] 9.6 The stage 1 test covers the case the removed validate-on-entry effect handled (farms and no list)

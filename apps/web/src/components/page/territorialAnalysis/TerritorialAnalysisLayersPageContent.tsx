@@ -232,6 +232,10 @@ export function TerritorialAnalysisLayersPageContent() {
 
   const onMapSelectionChange = useCallback(
     (layer: MapData, checked: boolean) => {
+      // The form only shows while loading when a recalculation had no layer to
+      // run: leaving it, nothing is pending, so the loading screen must not come
+      // back.
+      setLoading(false);
       setAnalysisMode(null);
       updateDraft((prev) => {
         const others = prev.selectedMapIds.filter((id) => id !== layer.id);

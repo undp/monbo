@@ -87,10 +87,16 @@ interface FarmsUploadStepProps {
   disabled?: boolean;
   /**
    * "page": the methods and the list as two cards, and a bar at the bottom with
-   * the counts and the button (stage 1). "embedded": all of it inside the card
-   * of a page that has its own bar (stage 2).
+   * the counts and the button (both stages' upload pages). "embedded": all of it
+   * inside the card of a page that has its own bar.
    */
   variant?: "page" | "embedded";
+  /**
+   * Keep the bottom bar when the list is emptied: farms were loaded from it, and
+   * an emptied list must not look confirmed. The button stays off until the list
+   * has a farm again.
+   */
+  keepBar?: boolean;
 }
 
 /**
@@ -106,6 +112,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
   onSubmit,
   disabled,
   variant = "embedded",
+  keepBar = false,
 }) => {
   const { t, i18n } = useTranslation();
   const { openSnackbar } = useContext(SnackbarContext);
@@ -439,7 +446,7 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
         >
           {list}
         </FlowSection>
-        {(sources.length > 0 || reading) && (
+        {(sources.length > 0 || reading || keepBar) && (
           <FlowBottomBar
             action={
               <Button
@@ -466,6 +473,11 @@ export const FarmsUploadStep: React.FC<FarmsUploadStepProps> = ({
                 count: summary.points,
               })}
             />
+            {sources.length === 0 && !reading && (
+              <Box component="span" sx={{ fontSize: 14, color: FLOW_COLORS.ink2 }}>
+                {t("common:farmsUpload:summary:emptyList")}
+              </Box>
+            )}
             {summary.sourcesWithProblems > 0 && (
               <Box component="span" sx={{ fontSize: 14, color: FLOW_COLORS.warn }}>
                 {t("common:farmsUpload:summary:sourcesWithProblems", {

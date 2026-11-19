@@ -131,9 +131,10 @@ export const MapView: React.FC = () => {
             />
           </Suspense>
           {!searchValue && (
+            // Filters of the list below: each one shows its farms
             <Box
-              role="tablist"
-              aria-label={t("common:polygons")}
+              role="group"
+              aria-label={t("territorialAnalysis:mapFilters")}
               sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, marginTop: 1.25 }}
             >
               {groups.map(({ id, label }) => {
@@ -142,8 +143,7 @@ export const MapView: React.FC = () => {
                 return (
                   <ButtonBase
                     key={id}
-                    role="tab"
-                    aria-selected={selected}
+                    aria-pressed={selected}
                     aria-label={`${label} (${count})`}
                     onClick={() => onGroupChange(id)}
                     sx={{
@@ -181,7 +181,6 @@ export const MapView: React.FC = () => {
           )}
         </Box>
         <Box
-          role={searchValue ? undefined : "tabpanel"}
           sx={{
             flex: 1,
             minHeight: 0,

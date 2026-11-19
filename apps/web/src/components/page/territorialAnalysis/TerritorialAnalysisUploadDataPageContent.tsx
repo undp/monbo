@@ -153,6 +153,8 @@ export function TerritorialAnalysisUploadDataPageContent() {
         country={selectedCountry}
         submitLabel={t("territorialAnalysis:uploadDataPage:continue")}
         onSubmit={onContinue}
+        // Emptying the list doesn't drop the farms loaded from it on its own
+        keepBar={!!farmsData}
       />
     </UploadPageContent>
   );

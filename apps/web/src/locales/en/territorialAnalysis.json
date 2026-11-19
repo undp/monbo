@@ -78,5 +78,6 @@
     "tickedOfTotal_one": "{{ticked}} of {{count}} layer",
     "tickedOfTotal_other": "{{ticked}} of {{count}} layers"
   },
-  "mapLegend": "Layer legend"
+  "mapLegend": "Layer legend",
+  "mapFilters": "Filter by result"
 }

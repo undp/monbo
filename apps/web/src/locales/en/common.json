@@ -233,7 +233,8 @@
       "polygonsLabel_one": "polygon",
       "polygonsLabel_other": "polygons",
       "pointsLabel_one": "point",
-      "pointsLabel_other": "points"
+      "pointsLabel_other": "points",
+      "emptyList": "The list is empty: add polygons to continue."
     },
     "empty": "No items yet.",
     "methodsTitle": "How do you have your polygons or points?",

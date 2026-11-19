@@ -68,7 +68,7 @@ Each stage's state is a pure function of the route and `DataContext` (`utils/flo
   - the layers (`/territorial-analysis/layers`), where stage 2 goes once farms are loaded. A banner says which polygons the analysis uses. After a validation it lets the user choose the valid ones or all of them, and "Ver polígonos" goes back to the validation results, or to the upload list without one. The page shows the layers grouped by category and starts the analysis only from "Analizar" (or to recalculate an outdated analysis), never just because it opened. What the page edits is a draft (`analysisDraft` in `DataContext`): the results, the map and the report keep the subset and layers they were analysed with (`territorialAnalysisParams`) until a new analysis succeeds, and a layer hidden after it was chosen is never sent;
   - the results (`/territorial-analysis`);
 - stage 3 needs analysis results. It opens the report layer modal until the report's layers belong to the current analysis and it has farms;
-- confirming a changed upload list on either stage drops the results of the farms loaded before (on stage 2, the validation and the analysis). An unchanged list keeps them: `DataContext` counts the list's changes (`uploadSourcesRevision`) and remembers the count the farms were parsed from (`farmsSourcesRevision`).
+- on stage 2, "Continuar" with an unchanged list keeps the farms and their results; with a changed one it parses the list again and drops the validation and the analysis. `DataContext` counts the list's changes (`uploadSourcesRevision`) and remembers the count the farms were parsed from (`farmsSourcesRevision`). Stage 1's "Validar" always parses and validates again, and drops the analysis. Emptying the list drops nothing by itself: both upload pages keep their bar, with the button off, until the list has a farm again.
 
 The results pages of modules 1 and 2 end with a "Next stage" card: module 1's goes to module 2's layers page, and module 2's opens the report layer modal. The application header has no module buttons.
 
@@ -193,7 +193,7 @@ tests/                     # pytest, mirrors the modules/ structure; tests/regre
 app/[locale]/              # App Router; the language is a route segment (en/es)
 ├── page.tsx               #   Start page: the 3 steps and the country pills (/home redirects here, in proxy.tsx)
 ├── polygons-validation/   #   Module 1 (+ its own upload-data)
-├── territorial-analysis/  #   Module 2 (+ its own upload-data); /deforestation-analysis redirects here, in proxy.tsx
+├── territorial-analysis/  #   Module 2: upload-data/, layers/ and the results; /deforestation-analysis redirects here, in proxy.tsx
 ├── report-generation/     #   Module 3 (+ preview)
 └── admin/                 #   Admin: layers (login, layer list, create/edit, raster upload) and usage/ (every country's usage figures); not linked from the public pages
 api/                       # fetch clients to the backend (farms.ts, polygonValidation.ts, layerAnalysis.ts)

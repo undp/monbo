@@ -328,11 +328,11 @@ describe("TerritorialAnalysisLayersPageContent", () => {
   });
 
   it("names three left-out polygons, then counts the rest", async () => {
-    const many = ["A1", "A2", "A3", "A4", "A5", "OK"].map((id) => makeFarm({ id }));
+    const many = ["A/1", "A2", "A3", "A4", "A5", "OK"].map((id) => makeFarm({ id }));
     await renderPage({
       farmsData: many,
       polygonsValidationResults: makeValidationResults({
-        A1: FarmValidationStatus.NOT_VALID,
+        "A/1": FarmValidationStatus.NOT_VALID,
         A2: FarmValidationStatus.NOT_VALID,
         A3: FarmValidationStatus.NOT_VALID,
         A4: FarmValidationStatus.NOT_VALID,
@@ -342,7 +342,8 @@ describe("TerritorialAnalysisLayersPageContent", () => {
     });
 
     expect(
-      screen.getByText("A1, A2, A3 y 2 más quedan fuera porque no pasaron la validación.")
+      // Shown as text: an ID's "/" isn't escaped
+      screen.getByText("A/1, A2, A3 y 2 más quedan fuera porque no pasaron la validación.")
     ).toBeTruthy();
 
     // With every polygon, none is left out
@@ -360,5 +361,22 @@ describe("TerritorialAnalysisLayersPageContent", () => {
       polygonsSubset: "all",
       selectedMapIds: [],
     });
+  });
+
+  it("leaves the form usable when an outdated analysis had no layer left to recalculate", async () => {
+    // TMF was analysed, then changed, then hidden: nothing to recalculate.
+    await renderPage({
+      availableMaps: [gfw, upra],
+      analysisOutdated: true,
+      territorialAnalysisParams: { polygonsSubset: "all", selectedMaps: [tmf] },
+    });
+    expect(screen.getByRole("button", { name: "Analizar" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Global Forest Watch/ }));
+    await settle();
+
+    // Still the form, not a "recalculating" screen with no request behind it
+    expect(screen.getByRole("button", { name: "Analizar" })).toHaveProperty("disabled", false);
+    expect(analyzeLayers).not.toHaveBeenCalled();
   });
 });

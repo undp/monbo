@@ -2,8 +2,8 @@
 
 ### Requirement: Adding more polygons after a validation
 
-The results page SHALL offer "Agregar más polígonos" when the flow's upload list exists, whichever
-stage the farms were uploaded on. It SHALL go to `/polygons-validation/upload-data` with the upload
+The results page SHALL offer "Agregar más polígonos" when the farms were parsed from the flow's
+upload list, whichever stage they were uploaded on, also when the list was emptied since. It SHALL go to `/polygons-validation/upload-data` with the upload
 list as the user last left it, including the rows they deleted. The page SHALL NOT validate again
 until the user presses its button. Pressing it SHALL parse and validate every farm in the list
 together, old and new, because a new polygon can overlap an old one. The new validation SHALL drop

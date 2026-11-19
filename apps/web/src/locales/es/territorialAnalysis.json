@@ -78,5 +78,6 @@
     "tickedOfTotal_one": "{{ticked}} de {{count}} capa",
     "tickedOfTotal_other": "{{ticked}} de {{count}} capas"
   },
-  "mapLegend": "Leyenda de la capa"
+  "mapLegend": "Leyenda de la capa",
+  "mapFilters": "Filtrar por resultado"
 }

@@ -74,7 +74,8 @@ Alternative: two lists. Rejected, because the stage 2 list would be lost on a vi
 - The two confirmations behave differently:
   - Stage 2's "Continuar" compares the two counts. If they are equal, it goes to `layers` without parsing.
   - Otherwise it parses (`generateFarmsData`), sets `farmsData` and `farmsSourcesRevision`, and clears the rest: validation results, analysis results, `analysisOutdated` and the report choices (as stage 1 does).
-  - Stage 1's "Validar" always validates, which is what the button asks for, and records the count.
+  - Stage 1's "Validar" always validates, which is what the button asks for, records the count and drops the analysis.
+- Emptying the list drops nothing by itself. With farms loaded, both upload pages keep their bar (`keepBar`), say the list is empty and turn the button off. "Agregar más polígonos" is offered whenever the farms came from the list (`farmsSourcesRevision` set), so an emptied list can still be refilled.
 - Every change counts, including a re-read after a country change or an edit that leaves the list equal. Then the list reads as changed and the results are dropped. That direction is safe.
 - The draft (layers and subset) is kept: it is a choice, not a result.
 

@@ -140,7 +140,8 @@ describe("PolygonsValidationUploadDataPageContent", () => {
             selectedCountry: "CO",
             farmsData: [farm("A"), farm("B")],
             polygonsValidationResults: null,
-            uploadSources: [{ kind: "manual", key: "k" } as UploadSource],
+            // The case the removed effect validated: farms, and no list
+            uploadSources: [],
           })}
         >
           <PolygonsValidationUploadDataPageContent />

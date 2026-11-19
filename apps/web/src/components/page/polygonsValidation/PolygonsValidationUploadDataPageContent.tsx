@@ -212,6 +212,8 @@ export function PolygonsValidationUploadDataPageContent() {
         country={selectedCountry}
         submitLabel={t("polygonValidation:uploadDataPage:uploadStep:submit")}
         onSubmit={onUpload}
+        // Emptying the list doesn't drop the farms loaded from it on its own
+        keepBar={!!farmsData}
       />
     </UploadPageContent>
   );

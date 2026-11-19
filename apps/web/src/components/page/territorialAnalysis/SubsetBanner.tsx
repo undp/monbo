@@ -5,6 +5,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTranslation } from "react-i18next";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import type { AnalysisDraft } from "@/context/DataContext";
+import { AS_TEXT } from "@/utils/asText";
 
 type PolygonsSubset = AnalysisDraft["polygonsSubset"];
 
@@ -45,6 +46,7 @@ export const SubsetBanner: React.FC<Props> = ({ count, validation, onSeePolygons
       ? t("territorialAnalysis:uploadDataPage:subset.idsAndMore", {
           ids: named,
           count: leftOut.length - NAMED_IDS,
+          ...AS_TEXT,
         })
       : named;
 
@@ -79,7 +81,7 @@ export const SubsetBanner: React.FC<Props> = ({ count, validation, onSeePolygons
             {t("territorialAnalysis:uploadDataPage:subset.leftOut", {
               ids,
               count: leftOut.length,
-              interpolation: { escapeValue: false },
+              ...AS_TEXT,
             })}
           </Box>
         )}

@@ -67,14 +67,39 @@ export const FarmsList: React.FC<FarmsListProps> = ({
     [filteredData, valueByFarm, rule]
   );
 
+  // A radio group: one Tab stop (the chosen row, or else the first), and the
+  // arrows move the choice.
+  const ids = [...(searchValue === "" ? ["all"] : []), ...sortedData.map(({ id }) => id)];
+  const focusable = ids.includes(selectedValue ?? "") ? selectedValue : ids[0];
+  const onKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    const step = STEPS[event.key];
+    if (step === undefined || ids.length === 0) return;
+    event.preventDefault();
+    const current = Math.max(0, ids.indexOf(focusable ?? ""));
+    const next =
+      step === "first"
+        ? 0
+        : step === "last"
+          ? ids.length - 1
+          : Math.min(ids.length - 1, Math.max(0, current + step));
+    onChange(ids[next]);
+    // By its data, not a selector: a farm ID can hold any character
+    Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-row]"))
+      .find((row) => row.dataset.row === ids[next])
+      ?.focus();
+  };
+
   return (
     <Box
       role="radiogroup"
       aria-label={t("common:polygons")}
+      onKeyDown={onKeyDown}
       sx={{ display: "flex", flexDirection: "column", paddingY: 0.5 }}
     >
       {searchValue === "" && (
         <Row
+          id="all"
+          focusable={focusable === "all"}
           checked={selectedValue === "all"}
           onSelect={() => onChange("all")}
           label={`${t("common:all")} (${formatNumber(farmsData?.length || 0, 0)})`}
@@ -97,9 +122,12 @@ export const FarmsList: React.FC<FarmsListProps> = ({
         return (
           <Row
             key={farm.id}
+            id={farm.id}
+            focusable={focusable === farm.id}
             checked={selectedValue === farm.id}
             onSelect={() => onChange(farm.id)}
-            label={`${farm.id} ${farm.producer}`}
+            // The finding too: the pill is inside the row
+            label={`${farm.id} ${farm.producer}: ${finding}`}
           >
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Box
@@ -150,17 +178,31 @@ export const FarmsList: React.FC<FarmsListProps> = ({
   );
 };
 
+const STEPS: Record<string, number | "first" | "last"> = {
+  ArrowDown: 1,
+  ArrowRight: 1,
+  ArrowUp: -1,
+  ArrowLeft: -1,
+  Home: "first",
+  End: "last",
+};
+
 /** A choice of the list: the whole row is the control. */
 const Row: React.FC<{
+  id: string;
+  /** The group's single Tab stop. */
+  focusable: boolean;
   checked: boolean;
   onSelect: () => void;
   /** What a screen reader announces for the row. */
   label: string;
   children: React.ReactNode;
-}> = ({ checked, onSelect, label, children }) => (
+}> = ({ id, focusable, checked, onSelect, label, children }) => (
   <ButtonBase
     role="radio"
     aria-checked={checked}
+    data-row={id}
+    tabIndex={focusable ? 0 : -1}
     aria-label={label}
     onClick={onSelect}
     sx={{

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
@@ -17,10 +17,16 @@ vi.mock("@/components/page/uploadData/FarmsUploadStep", () => ({
   FarmsUploadStep: ({
     onSubmit,
     submitLabel,
+    keepBar,
   }: {
     onSubmit: (rows: unknown[]) => void;
     submitLabel: string;
-  }) => <button onClick={() => onSubmit([{ id: "new-1" }])}>{submitLabel}</button>,
+    keepBar?: boolean;
+  }) => (
+    <button data-keep-bar={keepBar} onClick={() => onSubmit([{ id: "new-1" }])}>
+      {submitLabel}
+    </button>
+  ),
 }));
 
 const renderPage = async (overrides: Partial<DataContextValue>) => {
@@ -114,5 +120,18 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
     );
     expect(context.setFarmsData).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("keeps the bar on an emptied list while farms are loaded from it", async () => {
+    await renderPage({ farmsData: [makeFarm({ id: "old" })] });
+    expect(
+      screen.getByRole("button", { name: "Continuar" }).getAttribute("data-keep-bar")
+    ).toBe("true");
+
+    cleanup();
+    await renderPage({ farmsData: null });
+    expect(
+      screen.getByRole("button", { name: "Continuar" }).getAttribute("data-keep-bar")
+    ).toBe("false");
   });
 });
