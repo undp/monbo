@@ -94,7 +94,7 @@
 
 - [x] 6.1 Update `content/documentation/{es,en}/` (upload and validation results) and `docs/onboarding.md`: the list per farm, the single table, "Revisar" and "Agregar más polígonos"
 - [x] 6.2 Run from `apps/web`: `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build`
-- [ ] 6.3 Check by hand in `pnpm dev`:
+- [x] 6.3 Check by hand in `pnpm dev`:
   - upload, then delete a row, then validate;
   - "Revisar" on a farm with 2 neighbours, validate it, then "Agregar más polígonos";
   - add a farm away from it, and the validation is kept;
