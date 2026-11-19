@@ -253,4 +253,5 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
         association=farm.association,
         documents=farm.documents,
         polygon=summary,
+        origin=farm.origin,
     )

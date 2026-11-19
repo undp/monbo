@@ -195,6 +195,7 @@ def test_parse_farms():
                 },
                 "area": expected_area,
             },
+            "origin": None,
         }
     ]
 

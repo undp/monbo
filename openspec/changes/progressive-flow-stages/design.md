@@ -155,6 +155,15 @@ Below the `md` breakpoint the grid becomes one column, and the bars are hidden.
 - `FarmsUploadStep`'s list title "Fincas a cargar" gets a list icon.
 - `OptionCard`'s `<ol>` keeps its order but renders a chevron per line instead of a digit, on both
   stages, since the component is shared.
+- Adjusted on 2026-11-18 to the mockup's Etapa 1 screen: `FarmsUploadStep` shows the four ways
+  as `MethodButton`s, one selected at a time, and a "Cómo hacerlo" panel with the selected one's
+  steps, downloads and control. Its `variant` is `page` on stage 1 (the methods and the list as
+  two `FlowSection` cards, and a sticky bar with the counts and the button) and `embedded` on
+  stage 2, whose page keeps its own card and bar. `FlowPage` and `FlowPageHead` give stage 1's
+  two pages the mockup's background and head; the validation results page adds
+  `ValidationKpis` above its tables. The tables themselves stayed as they were here: the
+  mockup's single table with a status per polygon changes how overlaps are validated
+  manually, so it is its own change, `stage-one-unified-table`.
 
 ### 7. Forest image
 

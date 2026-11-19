@@ -95,6 +95,7 @@ def test_parse_response_keeps_the_full_farm_shape():
                 },
                 "area": 40000.0,
             },
+            "origin": None,
         }
     ]
 

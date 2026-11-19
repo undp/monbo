@@ -1,7 +1,15 @@
-import { act, waitFor } from "@testing-library/react";
+import { useContext, type ReactNode } from "react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as XLSX from "xlsx";
 import { importGeoFile } from "@/api/farms";
+import { getCountries } from "@/api/countries";
+import DataProvider, {
+  DataContext,
+  resetDataStoreForTests,
+} from "@/context/DataContext";
+import { createTestI18n } from "@/test/i18n";
 import type { ImportedFile } from "@/interfaces/Farm";
 import { deferred } from "@/test/deferred";
 import { readPublicFile, toFile } from "@/test/files";
@@ -16,6 +24,7 @@ import {
 } from "@/utils/uploadSources";
 import { useUploadSources } from "./useUploadSources";
 
+vi.mock("@/api/countries", () => ({ getCountries: vi.fn() }));
 vi.mock("@/api/farms", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/farms")>()),
   importGeoFile: vi.fn(),
@@ -244,5 +253,81 @@ describe("useUploadSources", () => {
       row: { id: "F-9 bis" },
     });
     expect(sourceErrors(result.current.sources[0])).toEqual([OTHER_COUNTRY]);
+  });
+});
+
+describe("useUploadSources, kept for stage 1", () => {
+  const mountKept = async () => {
+    const i18n = await createTestI18n("es");
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <I18nextProvider i18n={i18n}>
+        <DataProvider locale="es">{children}</DataProvider>
+      </I18nextProvider>
+    );
+    return renderHook(
+      () => ({
+        upload: useUploadSources("CR", { kept: true }),
+        context: useContext(DataContext),
+      }),
+      { wrapper }
+    );
+  };
+
+  beforeEach(() => {
+    vi.mocked(getCountries).mockResolvedValue([]);
+    resetDataStoreForTests();
+  });
+
+  it("finds the list again when the page is mounted again, until the flow starts over", async () => {
+    const first = await mountKept();
+    act(() => first.result.current.upload.saveManual(MANUAL_ROW));
+    expect(first.result.current.upload.sources).toHaveLength(1);
+    first.unmount();
+
+    const second = await mountKept();
+    expect(second.result.current.upload.sources).toHaveLength(1);
+
+    act(() => second.result.current.context.resetAnalysis());
+    expect(second.result.current.upload.sources).toEqual([]);
+  });
+
+  it("deletes one farm of the list", async () => {
+    const { result } = await mountKept();
+    act(() => result.current.upload.saveManual(MANUAL_ROW));
+
+    act(() =>
+      result.current.upload.removeRow(result.current.upload.sources[0], 0)
+    );
+
+    expect(result.current.upload.sources).toEqual([]);
+  });
+
+  it("doesn't bring back a file whose read ends after the flow started over", async () => {
+    const imported = deferred<ImportedFile>();
+    vi.mocked(importGeoFile).mockReturnValue(imported.promise);
+    const { result } = await mountKept();
+
+    let adding!: Promise<void>;
+    act(() => {
+      adding = result.current.upload.addGeoFiles([
+        toFile(new Uint8Array([1]), "fincas.geojson"),
+      ]);
+    });
+    act(() => result.current.context.resetAnalysis());
+    await act(async () => {
+      imported.resolve(COLOMBIAN_FARM);
+      await adding;
+    });
+
+    expect(result.current.upload.sources).toEqual([]);
+    expect(result.current.upload.reading).toBe(false);
+  });
+
+  it("keeps the page-local list apart", async () => {
+    const { result } = await mountKept();
+    act(() => result.current.upload.saveManual(MANUAL_ROW));
+
+    const local = await renderUpload("CR");
+    expect(local.result.current.sources).toEqual([]);
   });
 });

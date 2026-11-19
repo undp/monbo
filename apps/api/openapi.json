@@ -1069,6 +1069,16 @@
             "title": "Id",
             "type": "string"
           },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "polygon": {
             "discriminator": {
               "mapping": {
@@ -1131,7 +1141,8 @@
           "region",
           "association",
           "documents",
-          "polygon"
+          "polygon",
+          "origin"
         ],
         "title": "FarmData",
         "type": "object"
@@ -1159,6 +1170,71 @@
           "value"
         ],
         "title": "FarmLayerResult",
+        "type": "object"
+      },
+      "FarmOrigin-Input": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "title": "FarmOrigin",
+        "type": "object"
+      },
+      "FarmOrigin-Output": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "fileName"
+        ],
+        "title": "FarmOrigin",
         "type": "object"
       },
       "FarmPolygonDetailData": {
@@ -1639,6 +1715,16 @@
               }
             ],
             "title": "Id"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "producerName": {
             "title": "Producername",
@@ -3862,7 +3948,7 @@
     },
     "/farms/parse": {
       "post": {
-        "description": "Endpoint to parse farm data and generate polygon information.\n\nArgs:\n    body (list[InputFarmData]): List of unprocessed farm data\n    locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'\n\nReturns:\n    list[FarmData]: List of processed farm data with polygon information\n\nRaises:\n    HTTPException: If there is an error in:\n        - Parsing farm coordinates\n        - Generating polygons\n        - Invalid locale format\n        - Invalid number formats for the given locale\n        - Invalid country codes\n        - Invalid document URLs\n        - Duplicate farm IDs (if IDs are provided)\n\nThe endpoint performs the following steps:\n1. Validates the locale and farm data inputs\n2. Parses and validates all numeric values according to the locale\n3. Validates country codes, coordinates format, and document URLs\n4. Generates polygon information based on the parsed coordinates\n5. Auto-generates IDs if needed:\n   - If all farms are missing IDs, sequential numbers are assigned\n   - If some farms have IDs, IDs matching the existing pattern are generated for\n   those missing IDs\n   - If all farms have IDs, no changes are made\n\nEach farm data includes:\n- Basic information such as id, producer, crop type, production details, etc.\n- Polygon type (either \"polygon\" or \"point\")\n- Polygon details including coordinates, area and other geometric properties",
+        "description": "Endpoint to parse farm data and generate polygon information.\n\nArgs:\n    body (list[InputFarmData]): List of unprocessed farm data. Each farm may\n        carry its `origin` (the upload method and file name), echoed back as\n        is and never stored\n    locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'\n\nReturns:\n    list[FarmData]: List of processed farm data with polygon information\n\nRaises:\n    HTTPException: If there is an error in:\n        - Parsing farm coordinates\n        - Generating polygons\n        - Invalid locale format\n        - Invalid number formats for the given locale\n        - Invalid country codes\n        - Invalid document URLs\n        - Duplicate farm IDs (if IDs are provided)\n\nThe endpoint performs the following steps:\n1. Validates the locale and farm data inputs\n2. Parses and validates all numeric values according to the locale\n3. Validates country codes, coordinates format, and document URLs\n4. Generates polygon information based on the parsed coordinates\n5. Auto-generates IDs if needed:\n   - If all farms are missing IDs, sequential numbers are assigned\n   - If some farms have IDs, IDs matching the existing pattern are generated for\n   those missing IDs\n   - If all farms have IDs, no changes are made\n\nEach farm data includes:\n- Basic information such as id, producer, crop type, production details, etc.\n- Polygon type (either \"polygon\" or \"point\")\n- Polygon details including coordinates, area and other geometric properties",
         "operationId": "parse_farms_farms_parse_post",
         "parameters": [
           {

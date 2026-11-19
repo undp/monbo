@@ -414,7 +414,9 @@ export interface paths {
          * @description Endpoint to parse farm data and generate polygon information.
          *
          *     Args:
-         *         body (list[InputFarmData]): List of unprocessed farm data
+         *         body (list[InputFarmData]): List of unprocessed farm data. Each farm may
+         *             carry its `origin` (the upload method and file name), echoed back as
+         *             is and never stored
          *         locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'
          *
          *     Returns:
@@ -1049,6 +1051,7 @@ export interface components {
             documents: components["schemas"]["Document"][];
             /** Id */
             id: string;
+            origin: components["schemas"]["FarmOrigin-Output"] | null;
             /** Polygon */
             polygon: components["schemas"]["PointSummary"] | components["schemas"]["PolygonShapeSummary"];
             /** Producer */
@@ -1070,6 +1073,34 @@ export interface components {
             farmId: string;
             /** Value */
             value: number | null;
+        };
+        /**
+         * FarmOrigin
+         * @description How a farm reached the upload: the method and its file. The API only echoes it
+         *     back in `FarmData`; it is never stored nor written to the usage events.
+         */
+        "FarmOrigin-Input": {
+            /** Filename */
+            fileName?: string | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "excel" | "geoFile" | "geoFileWithExcel" | "manual";
+        };
+        /**
+         * FarmOrigin
+         * @description How a farm reached the upload: the method and its file. The API only echoes it
+         *     back in `FarmData`; it is never stored nor written to the usage events.
+         */
+        "FarmOrigin-Output": {
+            /** Filename */
+            fileName: string | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "excel" | "geoFile" | "geoFileWithExcel" | "manual";
         };
         /** FarmPolygonDetailData */
         FarmPolygonDetailData: {
@@ -1235,6 +1266,7 @@ export interface components {
             geometryType: "Point" | "Polygon" | "MultiPolygon";
             /** Id */
             id?: string | number | null;
+            origin?: components["schemas"]["FarmOrigin-Input"] | null;
             /** Producername */
             producerName: string;
             /** Productiondate */

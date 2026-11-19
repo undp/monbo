@@ -8,6 +8,21 @@
 
 If you upload the farms directly in the territorial analysis, overlaps aren't looked for. The accepted geometries are in [Farm upload](#upload).
 
+### How do I review the results?
+
+Each farm has a **Status**. **Review** shows its overlaps and lets you validate it manually; **Add more polygons** adds farms to the list.
+
+:::details[More detail: statuses and new uploads]
+The summary cards filter the table; another click on the same card shows every farm.
+
+- **Ready:** it has no problems.
+- **Overlaps…:** it overlaps another farm, or several. **Review** shows them on a map and lets you **validate it manually**, to include it in the analysis anyway. Each farm of an overlap is validated from its own row.
+- **Validated manually:** you included it despite the overlap. **Review** lets you undo it.
+- **A geometry error:** **Review** explains the problem. It can't be validated manually: it has to be fixed in the file.
+
+When you validate again after **Add more polygons**, all the farms are checked together. A farm validated manually stays validated only if it overlaps the same farms as before; if a new farm overlaps it, it needs a review again.
+:::
+
 ### Why is my farm not valid?
 
 Because its geometry is invalid, or because it overlaps another farm. The invalid geometries are:
