@@ -112,7 +112,8 @@ export function PolygonsValidationUploadDataPageContent() {
 
   // The manual validations of a validation that failed: its results were
   // cleared with the earlier farms, so a retry takes them from here. Only within
-  // the same flow: starting over forgets them.
+  // the same flow and while the page is open: starting over, or leaving the page,
+  // forgets them, and those farms need their review again.
   const pendingValidations = useRef<{
     generation: number;
     validations: ManualValidations;

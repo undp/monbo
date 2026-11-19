@@ -130,9 +130,9 @@ After `validatePolygons` answers, a pure function, `reconcileManualValidations(s
 - it has no geometry inconsistency;
 - the geometries it overlaps now equal the old ones.
 
-The function returns the reconciled results and how many validations were dropped, each counted once: the validated polygon is still listed but didn't get its validation back, or a farm with its ID is listed with another geometry (an edited drawing, fixed coordinates). A polygon gone from the list was deleted, needs no review and isn't counted. Telling a changed polygon from a deleted one by its ID can warn once too often when positional IDs shift, never once too few. A count above zero shows a warning snackbar.
+The function returns the reconciled results and how many validations were dropped, each counted once: the validated polygon is still listed but didn't get its validation back, or a farm with its ID is listed with another geometry (an edited drawing, fixed coordinates). A polygon gone from the list was deleted, needs no review and isn't counted. Telling a changed polygon from a deleted one by its ID is a best effort: it can warn once too often when positional IDs shift, and it misses a polygon whose geometry and ID both changed (a file without IDs whose coordinates were fixed and a row deleted). The validation itself is never kept on a polygon nobody reviewed, so a missed notice only means the user finds that polygon to review again in the table, without the warning. A count above zero shows a warning snackbar.
 
-If the validation request fails, the earlier results are already cleared with the earlier farms. The page keeps the snapshot until a validation succeeds, within the same flow, so a retry still puts the manual validations back.
+If the validation request fails, the earlier results are already cleared with the earlier farms. The page keeps the snapshot until a validation succeeds, within the same flow and while the page stays open, so a retry from that page still puts the manual validations back. Leaving the page (or changing the language, which mounts it again) forgets the snapshot: the farms then need their review again, the safe direction.
 
 The stage 2 results are dropped through the existing invalidation, the same as a new upload.
 

@@ -161,8 +161,10 @@ const sameKeys = (a: string[], b: string[]) =>
  * the polygon is still listed but didn't get it back, or a farm with its ID is
  * listed with another geometry (an edited drawing, fixed coordinates). One that
  * is gone from the list (deleted) needs none. Telling a changed polygon from a
- * deleted one by its ID can warn once too often when positional IDs shift, never
- * once too few.
+ * deleted one by its ID is a best effort: it can warn once too often when
+ * positional IDs shift, and it misses a polygon whose geometry and ID both
+ * changed (no ID in the file, coordinates fixed and a row deleted). Either way
+ * the validation itself is never kept on a polygon nobody reviewed.
  */
 export const reconcileManualValidations = (
   validated: ManualValidations,

@@ -127,7 +127,7 @@ After a new validation from "Agregar más polígonos", a farm that was `VALID_MA
 - it has no geometry error;
 - it overlaps exactly the same polygons as when it was validated.
 
-Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps, and a validation SHALL never pass to another farm through its ID. When a validated polygon still in the list loses its validation, or a farm with its ID is listed with another geometry, the page SHALL say how many validations were dropped and why, counting each once. A farm the user deleted SHALL NOT count. A validation that fails SHALL NOT leave the earlier results on the new farms, and a retry SHALL still put the manual validations back.
+Otherwise it SHALL take the status the API returned, so nobody is validated without having seen each of their overlaps, and a validation SHALL never pass to another farm through its ID. When a validated polygon still in the list loses its validation, or a farm with its ID is listed with another geometry, the page SHALL say how many validations were dropped and why, counting each once. A farm the user deleted SHALL NOT count. A validation that fails SHALL NOT leave the earlier results on the new farms, and a retry from the same page, while it stays open, SHALL still put the manual validations back.
 
 #### Scenario: A new farm away from the validated ones
 
