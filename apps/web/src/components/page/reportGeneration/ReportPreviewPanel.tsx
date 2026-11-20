@@ -73,7 +73,7 @@ export const ReportPreviewPanel: React.FC = () => {
       }}
     >
       {/* Always in the page, so screen readers hear the notice when it appears */}
-      <Box role="status" sx={VISUALLY_HIDDEN}>
+      <Box role="status" data-testid="stale-announcer" sx={VISUALLY_HIDDEN}>
         {isPreviewStale &&
           [
             t("reportGeneration:preview.stale"),

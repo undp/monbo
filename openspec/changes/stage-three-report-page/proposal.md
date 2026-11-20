@@ -52,6 +52,7 @@ None.
   - the download modal offers the format and the GeoJSON;
   - selecting farms stays responsive in the new list.
 - `usage-tracking`: `report_requested` is sent on "Generar vista previa".
+- `frontend-unit-tests`: `useMapsForSelectedCountry` leaves the list of covered hooks; it was only used by the removed report modal.
 
 ## Impact
 

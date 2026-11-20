@@ -58,3 +58,5 @@
 - [x] 8.4 Remove `MultiSelectionStep` and `useMapsForSelectedCountry` (and its test), left unused with `MapSelectionModal`
 - [x] 8.5 The report texts say "polígonos" / "polygons" everywhere, also in the preview notices and the ZIP progress
 - [x] 8.6 The spec says "Descargar" is off while a large report's ZIP is built
+- [x] 8.7 `frontend-unit-tests` no longer lists `useMapsForSelectedCountry` among the covered hooks
+- [x] 8.8 The page test checks the stale notice's status region is in the page before the notice appears

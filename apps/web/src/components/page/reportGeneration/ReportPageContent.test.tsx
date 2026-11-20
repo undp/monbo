@@ -225,16 +225,17 @@ describe("ReportPageContent", () => {
     expect(previewButton().disabled).toBe(true);
     expect(screen.getByText("La vista previa está al día.")).toBeTruthy();
     const renders = client.render.mock.calls.length;
+    // The notice's status region is in the page, empty, before the notice
+    const announcer = screen.getByTestId("stale-announcer");
+    expect(announcer.textContent).toBe("");
 
     fireEvent.click(farmBox(/F01/));
 
     expect(screen.getByTestId("stale-notice")).toBeTruthy();
-    // Announced through a status region that was already in the page
-    expect(
-      screen
-        .getAllByRole("status")
-        .some((s) => s.textContent === "La vista previa no refleja los últimos cambios.")
-    ).toBe(true);
+    // Announced through the status region that was already in the page
+    expect(screen.getByTestId("stale-announcer")).toBe(announcer);
+    expect(announcer.getAttribute("role")).toBe("status");
+    expect(announcer.textContent).toBe("La vista previa no refleja los últimos cambios.");
     expect(screen.getByTitle("Vista previa del reporte")).toBeTruthy();
     expect(client.render).toHaveBeenCalledTimes(renders);
 
