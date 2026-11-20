@@ -30,14 +30,13 @@ const upra = makeMap({ id: 5, alias: "UPRA", categoryId: frontier.id });
 
 const renderTable = async (
   context: Partial<DataContextValue>,
-  locale: TestLocale = "es",
-  farmColumns?: "compact" | "full"
+  locale: TestLocale = "es"
 ) => {
   const i18n = await createTestI18n(locale);
   return render(
     <I18nextProvider i18n={i18n}>
       <DataContext.Provider value={makeDataContext(context)}>
-        <LayerResultsTable farmColumns={farmColumns} />
+        <LayerResultsTable />
       </DataContext.Provider>
     </I18nextProvider>
   );
@@ -85,7 +84,7 @@ describe("LayerResultsTable", () => {
       "Frontera agrícola",
     ]);
     expect(groupCells.map((cell) => cell.getAttribute("colspan"))).toEqual([
-      "4",
+      "2",
       "2",
       "1",
     ]);
@@ -93,7 +92,7 @@ describe("LayerResultsTable", () => {
     expect(
       within(headerRow)
         .getAllByRole("columnheader")
-        .slice(4)
+        .slice(2)
         .map((cell) => cell.textContent)
     ).toEqual(["GFW", "TMF", "UPRA"]);
   });
@@ -139,7 +138,7 @@ describe("LayerResultsTable", () => {
     expect(screen.getByText("18% · Outside the agricultural frontier")).toBeTruthy();
   });
 
-  it("shows only the ID and the producer on stage 2, and every farm column on the report", async () => {
+  it("shows only the ID and the producer before the layers", async () => {
     const context = {
       farmsData: [makeFarm({ id: "F01" })],
       territorialAnalysisParams: { polygonsSubset: "all" as const, selectedMaps: [gfw] },
@@ -151,7 +150,7 @@ describe("LayerResultsTable", () => {
         .getAllByRole("columnheader")
         .map((cell) => cell.textContent);
 
-    const compact = await renderTable(context, "es", "compact");
+    await renderTable(context);
     expect(headers()).toEqual(["ID", "Productor", "GFW"]);
     // The group row spans the farm columns shown
     expect(
@@ -159,10 +158,6 @@ describe("LayerResultsTable", () => {
         .getAllByRole("columnheader")[0]
         .getAttribute("colspan")
     ).toBe("2");
-    compact.unmount();
-
-    await renderTable(context);
-    expect(headers()).toHaveLength(5);
   });
 
   it("marks an ok result with a check, and a finding without one", async () => {

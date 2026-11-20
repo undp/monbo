@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useContext, useState } from "react";
+import { Fragment, useCallback, useContext } from "react";
 import { Box, ButtonBase } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,6 @@ import {
   type FlowStage,
   type FlowStageView,
 } from "@/utils/flowStages";
-import { MapSelectionModal } from "@/components/page/territorialAnalysis/MapSelectionModal";
 import { FLOW_COLORS, HEADING_FONT, REDUCED_MOTION, fill, rise } from "./flowStyles";
 
 // Entrance delays, in seconds: the stages one after another, each bar after the
@@ -93,35 +92,19 @@ const ProgressBar: React.FC<{ value: number; delay: number }> = ({ value, delay 
 /**
  * The flow's three stages, each with its state. Stages 1 and 2 can always be
  * opened; stage 3 only with analysis results (D5). Stage 2 goes to its page,
- * where the polygon subset and the layers are chosen; stage 3 without its choices
- * goes through the report layer modal, as the next-stage card does.
+ * where the polygon subset and the layers are chosen; stage 3 to the report page,
+ * where its polygons and layers are chosen. No dialog opens on the way.
  */
 export const FlowStepper: React.FC = () => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { current, stages, progress, flags } = useFlowStages();
-  const {
-    reportGenerationParams: { selectedMaps: reportMaps, selectedFarms: reportFarms },
-    territorialAnalysisParams: { selectedMaps: analysisMaps },
-    farmsData,
-  } = useContext(DataContext);
+  const { farmsData } = useContext(DataContext);
   const farmsLoaded = !!farmsData;
-  const [reportModalOpen, setReportModalOpen] = useState(false);
-
-  const goToReport = useCallback(
-    () => router.push(localizedPath(stageHref(3, flags), i18n.language)),
-    [router, flags, i18n.language]
-  );
 
   const openStage = useCallback(
     (stage: FlowStage) => {
-      const action = stageAction(stage, current, {
-        reportMapIds: reportMaps.map(({ id }) => id),
-        analysisMapIds: analysisMaps.map(({ id }) => id),
-        selectedFarmsCount: reportFarms.length,
-      });
-      if (action === "reportModal") setReportModalOpen(true);
-      else if (action === "navigate")
+      if (stageAction(stage, current) === "navigate")
         router.push(
           localizedPath(stageHref(stage, flags, { farmsLoaded }), i18n.language)
         );
@@ -130,9 +113,6 @@ export const FlowStepper: React.FC = () => {
       current,
       flags,
       farmsLoaded,
-      reportMaps,
-      analysisMaps,
-      reportFarms.length,
       router,
       i18n.language,
     ]
@@ -234,14 +214,6 @@ export const FlowStepper: React.FC = () => {
           })}
         </Box>
       </Box>
-      <MapSelectionModal
-        isOpen={reportModalOpen}
-        handleClose={() => setReportModalOpen(false)}
-        handleContinue={() => {
-          setReportModalOpen(false);
-          goToReport();
-        }}
-      />
     </>
   );
 };

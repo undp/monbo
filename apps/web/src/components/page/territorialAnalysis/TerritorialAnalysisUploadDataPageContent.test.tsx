@@ -87,6 +87,9 @@ describe("TerritorialAnalysisUploadDataPageContent", () => {
     expect(context.setPolygonsValidationResults).toHaveBeenCalledWith(null);
     expect(context.setTerritorialAnalysisResults).toHaveBeenCalledWith(null);
     expect(context.setAnalysisOutdated).toHaveBeenCalledWith(false);
+    expect(context.setReportGenerationParams).toHaveBeenCalledWith(
+      expect.objectContaining({ seeded: false, selectedFarms: [] })
+    );
     // The layers and the subset chosen stay
     expect(context.setAnalysisDraft).not.toHaveBeenCalled();
   });

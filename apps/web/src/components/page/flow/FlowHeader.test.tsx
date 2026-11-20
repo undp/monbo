@@ -142,41 +142,22 @@ describe("FlowHeader", () => {
     expect(router.push).toHaveBeenCalledWith("/en/territorial-analysis/upload-data");
   });
 
-  it("asks for the report's layers before opening stage 3", async () => {
+  it("opens stage 3 directly, with no dialog, before any report choice", async () => {
     await renderHeader("/territorial-analysis", ANALYZED);
 
     fireEvent.click(screen.getByRole("button", { name: /Reporte/ }));
 
-    expect(router.push).not.toHaveBeenCalled();
-    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(router.push).toHaveBeenCalledWith("/report-generation");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("asks again when the report has layers but no confirmed farms", async () => {
-    const map = makeMap();
-    await renderHeader("/territorial-analysis", {
-      ...ANALYZED,
-      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
-      reportGenerationParams: {
-        initialFarmSelection: "all",
-        selectedMaps: [map],
-        selectedFarms: [],
-        downloadType: null,
-      },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Reporte/ }));
-
-    expect(router.push).not.toHaveBeenCalled();
-    expect(await screen.findByRole("dialog")).toBeTruthy();
-  });
-
-  it("opens stage 3 directly once the report's choices are ready", async () => {
+  it("opens stage 3 directly when the report's choices are made", async () => {
     const map = makeMap();
     await renderHeader("/polygons-validation", {
       ...ANALYZED,
       territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [map] },
       reportGenerationParams: {
-        initialFarmSelection: "all",
+        seeded: true,
         selectedMaps: [map],
         selectedFarms: [makeFarm()],
         downloadType: null,

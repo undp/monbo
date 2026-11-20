@@ -50,6 +50,27 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  describe("the old report preview route", () => {
+    it.each([
+      ["/report-generation/preview", "/report-generation"],
+      // The URL keeps its trailing slash, as the stage 2 redirect does
+      ["/report-generation/preview/", "/report-generation/"],
+      ["/es/report-generation/preview", "/es/report-generation"],
+      ["/en/report-generation/preview", "/en/report-generation"],
+    ])("redirects %s permanently to %s", (path, target) => {
+      const response = proxy(request(path));
+
+      expect(response.status).toBe(308);
+      expect(locationOf(response)).toBe(target);
+    });
+
+    it("leaves the report page alone", () => {
+      const response = proxy(request("/report-generation"));
+
+      expect(locationOf(response)).toBeUndefined();
+    });
+  });
+
   describe("old stage 2 routes", () => {
     it.each([
       ["/deforestation-analysis", "/territorial-analysis"],

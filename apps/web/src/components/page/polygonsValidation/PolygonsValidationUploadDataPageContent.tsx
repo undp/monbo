@@ -6,6 +6,7 @@ import { generateFarmsData } from "@/api/farms";
 import { validatePolygons } from "@/api/polygonValidation";
 import {
   DataContext,
+  initialReportGenerationParams,
   readFlowGeneration,
   readSelectedCountry,
 } from "@/context/DataContext";
@@ -149,12 +150,7 @@ export function PolygonsValidationUploadDataPageContent() {
         // An analysis of the earlier farms doesn't describe these
         setTerritorialAnalysisResults(null);
         setAnalysisOutdated(false);
-        setReportGenerationParams((prev) => ({
-          ...prev,
-          selectedMaps: [],
-          selectedFarms: [],
-          downloadType: null,
-        }));
+        setReportGenerationParams(initialReportGenerationParams);
         pendingValidations.current = { generation, validations: validatedBefore };
         if (await performValidationAnalysis(farms, validatedBefore))
           pendingValidations.current = null;

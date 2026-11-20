@@ -16,6 +16,10 @@ const HOME = new RegExp(`^${LOCALE_PREFIX}/home/?$`);
 const OLD_STAGE_2 = new RegExp(`^${LOCALE_PREFIX}/deforestation-analysis(?=/|$)(.*)$`);
 const STAGE_2 = "/territorial-analysis";
 
+// The report's preview became part of the report page: its old route leads there.
+const OLD_REPORT_PREVIEW = new RegExp(`^${LOCALE_PREFIX}/report-generation/preview/?$`);
+const REPORT = "/report-generation";
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -23,6 +27,13 @@ export function proxy(request: NextRequest) {
   if (oldStage2) {
     const url = request.nextUrl.clone();
     url.pathname = `${oldStage2[1] ?? ""}${STAGE_2}${oldStage2[2]}`;
+    return NextResponse.redirect(url, 308);
+  }
+
+  const oldPreview = pathname.match(OLD_REPORT_PREVIEW);
+  if (oldPreview) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${oldPreview[1] ?? ""}${REPORT}`;
     return NextResponse.redirect(url, 308);
   }
 

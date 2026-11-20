@@ -34,12 +34,13 @@ describe("next-stage cards", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("closes stage 2 with the report, opening the report layer modal", async () => {
+  it("closes stage 2 with the report, going straight to its page", async () => {
     await renderCard(<AnalysisPageFooter />);
 
     expect(within(card()).getByRole("heading", { name: "Reporte" })).toBeTruthy();
 
     fireEvent.click(within(card()).getByRole("button", { name: "Continuar" }));
-    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(router.push).toHaveBeenCalledWith("/report-generation");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

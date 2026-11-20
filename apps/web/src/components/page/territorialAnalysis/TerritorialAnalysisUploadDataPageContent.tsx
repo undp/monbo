@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { generateFarmsData } from "@/api/farms";
 import {
   DataContext,
+  initialReportGenerationParams,
   readFlowGeneration,
   readSelectedCountry,
 } from "@/context/DataContext";
@@ -90,12 +91,7 @@ export function TerritorialAnalysisUploadDataPageContent() {
         setPolygonsValidationResults(null);
         setTerritorialAnalysisResults(null);
         setAnalysisOutdated(false);
-        setReportGenerationParams((prev) => ({
-          ...prev,
-          selectedMaps: [],
-          selectedFarms: [],
-          downloadType: null,
-        }));
+        setReportGenerationParams(initialReportGenerationParams);
         toLayers();
       } catch (error) {
         console.error(error);
