@@ -243,6 +243,10 @@ describe("TerritorialAnalysisLayersPageContent", () => {
       selectedMaps: [gfw],
     });
     expect(context.setAnalysisDraft).toHaveBeenCalledWith(null);
+    // A report choice of the earlier analysis is dropped with it
+    expect(context.setReportGenerationParams).toHaveBeenCalledWith(
+      expect.objectContaining({ seeded: false, selectedMaps: [], selectedFarms: [] })
+    );
     expect(router.push).toHaveBeenCalledWith("/territorial-analysis");
   });
 

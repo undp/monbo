@@ -29,7 +29,7 @@ const renderDownload = async () => {
   const data = makeDataContext({
     selectedCountry: "CR",
     reportGenerationParams: {
-      initialFarmSelection: "select",
+      seeded: true,
       selectedMaps: [],
       selectedFarms: [makeFarm({ id: "a" }), makeFarm({ id: "b" })],
       downloadType: null,

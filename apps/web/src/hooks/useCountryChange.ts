@@ -45,6 +45,7 @@ export function useCountryChange() {
       );
       setReportGenerationParams((prev) => ({
         ...prev,
+        seeded: false,
         selectedMaps: [],
         selectedFarms: prev.selectedFarms.map((farm) => ({
           ...farm,

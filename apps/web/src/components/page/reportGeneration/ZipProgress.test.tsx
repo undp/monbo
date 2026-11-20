@@ -15,12 +15,12 @@ const renderProgress = async (done: number, total: number, onCancel = vi.fn()) =
 };
 
 describe("ZipProgress", () => {
-  it("shows the farms done and the percentage", async () => {
+  it("shows the polygons done and the percentage", async () => {
     await renderProgress(340, 979);
 
     expect(screen.getByText("Generando el ZIP")).toBeTruthy();
     expect(screen.getByText("34%")).toBeTruthy(); // floor(340 / 979)
-    expect(screen.getByText("340 de 979 fincas")).toBeTruthy();
+    expect(screen.getByText("340 de 979 polígonos")).toBeTruthy();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("34");
   });
 

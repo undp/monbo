@@ -74,6 +74,7 @@ const AFTER: ValidateFarmsResponse = {
 };
 
 const setFarmsSourcesRevision = vi.fn();
+const setReportGenerationParams = vi.fn();
 
 /** The page over real farms and results state, as the flow keeps them. */
 const Harness = () => {
@@ -96,6 +97,7 @@ const Harness = () => {
           uploadSources: [{ kind: "manual", key: "k" } as UploadSource],
           uploadSourcesRevision: 7,
           setFarmsSourcesRevision,
+          setReportGenerationParams,
         })}
       >
         <PolygonsValidationUploadDataPageContent />
@@ -168,6 +170,10 @@ describe("PolygonsValidationUploadDataPageContent", () => {
     await upload();
 
     expect(setFarmsSourcesRevision).toHaveBeenCalledWith(7);
+    // The report page starts again from every new farm
+    expect(setReportGenerationParams).toHaveBeenCalledWith(
+      expect.objectContaining({ seeded: false, selectedFarms: [] })
+    );
   });
 
   it("keeps a manual validation where nothing new overlaps it", async () => {

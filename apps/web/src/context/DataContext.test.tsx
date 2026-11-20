@@ -246,7 +246,7 @@ describe("DataProvider polling with a selected layer", () => {
       if (withResults) {
         current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0.1 })]);
         current.setReportGenerationParams({
-          initialFarmSelection: "select",
+          seeded: true,
           selectedMaps: [gfw],
           selectedFarms: [farm],
           downloadType: "combined",
@@ -271,6 +271,7 @@ describe("DataProvider polling with a selected layer", () => {
     expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
     expect(result.current.reportGenerationParams).toMatchObject({
+      seeded: false,
       selectedMaps: [],
       selectedFarms: [],
       downloadType: null,
@@ -432,7 +433,12 @@ describe("DataProvider analysis flow", () => {
       territorialAnalysisResults: null,
       analysisOutdated: false,
       territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
-      reportGenerationParams: { selectedMaps: [], selectedFarms: [], downloadType: null },
+      reportGenerationParams: {
+        seeded: false,
+        selectedMaps: [],
+        selectedFarms: [],
+        downloadType: null,
+      },
     });
     expect(readFlowGeneration()).toBe(generation + 1);
     // The country is not part of the flow.

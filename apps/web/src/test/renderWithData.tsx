@@ -26,7 +26,7 @@ export const makeDataContext = (
   setAnalysisOutdated: vi.fn(),
   invalidateAnalysis: vi.fn(),
   reportGenerationParams: {
-    initialFarmSelection: "all",
+    seeded: false,
     selectedMaps: [],
     selectedFarms: [],
     downloadType: null,

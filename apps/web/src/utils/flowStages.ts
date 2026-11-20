@@ -115,49 +115,17 @@ export const stageHref = (
   return "/report-generation";
 };
 
-/** The report's choices, as far as the stepper needs them. */
-export interface ReportSelection {
-  /** Layers chosen for the report. */
-  reportMapIds: number[];
-  /** Layers of the current analysis. */
-  analysisMapIds: number[];
-  /** Farms chosen for the report. */
-  selectedFarmsCount: number;
-}
-
-/**
- * Whether the report can open as it is: its layers were chosen, all of them are
- * in the current analysis, and it has farms. Layers are saved as soon as they are
- * ticked in the report modal, but farms only when it is confirmed, so layers alone
- * don't mean the modal was completed.
- */
-export const isReportSelectionReady = ({
-  reportMapIds,
-  analysisMapIds,
-  selectedFarmsCount,
-}: ReportSelection) =>
-  reportMapIds.length > 0 &&
-  selectedFarmsCount > 0 &&
-  reportMapIds.every((id) => analysisMapIds.includes(id));
-
 /**
  * What pressing a stage does:
- * - `none`: the current stage. It is the page the user is on, so it opens no
- *   dialog and goes nowhere; the stepper doesn't render it as a control.
- * - `reportModal`: stage 3, pressed from another stage, opens the report layer
- *   modal unless the report's choices are ready.
- * - `navigate`: anything else goes to `stageHref`. Stage 2 without results goes
- *   to its selection page, where the polygon subset and the layers are chosen and
- *   nothing starts until "Analizar" (D5: stage 2 is open to everyone).
+ * - `none`: the current stage. It is the page the user is on, so it goes nowhere;
+ *   the stepper doesn't render it as a control.
+ * - `navigate`: anything else goes to `stageHref`, with no dialog on the way. Stage
+ *   2 without results goes to its selection page, where the polygon subset and the
+ *   layers are chosen and nothing starts until "Analizar" (D5); stage 3 goes to the
+ *   report page, where its polygons and layers are chosen and nothing renders until
+ *   "Generar vista previa".
  */
-export type StageAction = "none" | "navigate" | "reportModal";
+export type StageAction = "none" | "navigate";
 
-export const stageAction = (
-  stage: FlowStage,
-  current: FlowStage | null,
-  reportSelection: ReportSelection
-): StageAction => {
-  if (stage === current) return "none";
-  if (stage === 3 && !isReportSelectionReady(reportSelection)) return "reportModal";
-  return "navigate";
-};
+export const stageAction = (stage: FlowStage, current: FlowStage | null): StageAction =>
+  stage === current ? "none" : "navigate";

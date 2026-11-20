@@ -19,6 +19,8 @@ interface Props {
   categories: LayerCategory[];
   selectedIds: Set<number>;
   onChange: (layer: MapData, checked: boolean) => void;
+  /** The layer cards' columns on a wide screen: 1 in a narrow sidebar. */
+  columns?: 1 | 3;
 }
 
 const Tag: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -55,6 +57,7 @@ export const LayerCategoryPicker: React.FC<Props> = ({
   categories,
   selectedIds,
   onChange,
+  columns = 3,
 }) => {
   const { t, i18n } = useTranslation();
   const groups = useMemo(
@@ -138,11 +141,14 @@ export const LayerCategoryPicker: React.FC<Props> = ({
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: {
-                  xs: "minmax(0, 1fr)",
-                  sm: "repeat(2, minmax(0, 1fr))",
-                  md: "repeat(3, minmax(0, 1fr))",
-                },
+                gridTemplateColumns:
+                  columns === 1
+                    ? "minmax(0, 1fr)"
+                    : {
+                        xs: "minmax(0, 1fr)",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        md: "repeat(3, minmax(0, 1fr))",
+                      },
                 gap: 1.5,
                 marginTop: 2,
               }}

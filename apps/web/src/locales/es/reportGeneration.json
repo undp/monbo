@@ -1,13 +1,25 @@
 {
-  "title": "Selecciona los polígonos que quieres incluir en el reporte",
+  "page": {
+    "title": "Reporte",
+    "subtitle": "Elige los polígonos y las capas que quieres incluir, y revisa la vista previa antes de descargar."
+  },
   "searchPlaceholder": "Buscar por polígono o productor",
-  "paramsSelectionModal": {
-    "title": "Generación del reporte",
-    "selectFarmsTitle": "Elige los polígonos que quieres incluir",
-    "allFarms": "Todos ({{amount}})",
-    "selectFarms": "Seleccionar",
-    "selectMapsTitle": "Elige las capas que quieres incluir",
-    "button": "Continuar"
+  "sidebar": {
+    "title": "Opciones del reporte",
+    "farmsTitle": "Polígonos",
+    "farmsSubtitle": "{{selected}} de {{total}} seleccionados",
+    "selectAll": "Seleccionar todos ({{amount}})",
+    "noMatches": "Ningún polígono coincide con la búsqueda.",
+    "categoryResult": "{{category}}: {{result}}. {{findings}}",
+    "layersTitle": "Capas del reporte",
+    "layersSubtitle": "{{selected}} de {{total}} capas analizadas"
+  },
+  "actions": {
+    "generatePreview": "Generar vista previa",
+    "updatePreview": "Actualizar vista previa",
+    "noFarms": "Elige al menos un polígono.",
+    "noLayers": "Elige al menos una capa.",
+    "upToDate": "La vista previa está al día."
   },
   "words": {
     "association": "Asociación",
@@ -25,7 +37,6 @@
     "noDocumentation": "No disponible"
   },
   "buttons": {
-    "generateReport": "Generar reporte",
     "download": "Descargar",
     "downloadZip": "Descargar ZIP ({{count}} PDFs)"
   },
@@ -33,20 +44,31 @@
     "title": "Vista previa del reporte",
     "error": "No se pudo generar la vista previa del reporte",
     "retry": "Reintentar",
-    "largeReport": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca. La vista previa muestra la primera finca.",
-    "largeReportWithoutSatellite": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra la primera finca.",
-    "withoutSatellite": "Este reporte tiene más de {{limit}} fincas: los mapas se generan sin la imagen satelital de fondo."
+    "largeReport": "Este reporte tiene {{count}} polígonos: se descarga como un ZIP con un PDF por polígono. La vista previa muestra el primer polígono.",
+    "largeReportWithoutSatellite": "Este reporte tiene {{count}} polígonos: se descarga como un ZIP con un PDF por polígono y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra el primer polígono.",
+    "withoutSatellite": "Este reporte tiene más de {{limit}} polígonos: los mapas se generan sin la imagen satelital de fondo.",
+    "stale": "La vista previa no refleja los últimos cambios.",
+    "emptyTitle": "Aún no hay vista previa",
+    "emptyDescription": "Genera la vista previa para revisar el reporte antes de descargarlo.",
+    "loading": "Generando la vista previa…"
   },
-  "downloadTypeSelectionModal": {
-    "title": "¿Cómo quieres descargar el reporte?",
-    "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",
-    "separatedOptionText": "{{amount}} PDFs, un documento por polígono",
-    "button": "Descargar"
-  },
-  "emptyFarmsSelectionModal": {
-    "title": "Generación del reporte",
-    "description": "Elige al menos un polígono para generar el reporte.",
-    "button": "Aceptar"
+  "downloadFormatModal": {
+    "title": "Formato",
+    "combined": {
+      "title": "Un PDF con todo",
+      "description": "Un archivo con todos los polígonos."
+    },
+    "separated": {
+      "title": "Un PDF por polígono",
+      "description": "Se descargan en un .zip."
+    },
+    "single": {
+      "title": "Un PDF",
+      "description": "El reporte del polígono {{id}}."
+    },
+    "large": "Este reporte tiene {{amount}} polígonos: es demasiado grande para un solo PDF, así que se descarga como un .zip con un PDF por polígono.",
+    "downloadPdf": "Descargar PDF",
+    "downloadGeoJson": "Descargar GeoJSON"
   },
   "attributes": {
     "id": "ID",
@@ -75,7 +97,7 @@
   },
   "zipProgress": {
     "title": "Generando el ZIP",
-    "count": "{{done}} de {{total}} fincas",
+    "count": "{{done}} de {{total}} polígonos",
     "hint": "Puedes seguir en esta página. Si sales de ella, la descarga se cancela."
   },
   "footer": {

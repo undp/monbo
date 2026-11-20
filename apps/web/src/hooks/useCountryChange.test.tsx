@@ -55,10 +55,12 @@ describe("useCountryChange", () => {
 
     const report = nextState(context.setReportGenerationParams, {
       ...context.reportGenerationParams,
+      seeded: true,
       selectedMaps: [map],
       selectedFarms: [makeFarm({ country: "CR" })],
     });
     expect(report.selectedMaps).toEqual([]);
+    expect(report.seeded).toBe(false);
     expect(report.selectedFarms.map((f) => f.country)).toEqual(["PE"]);
   });
 

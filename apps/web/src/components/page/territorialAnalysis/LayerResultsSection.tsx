@@ -106,7 +106,7 @@ export const LayerResultsSection: React.FC<{ view: "table" | "map" }> = ({ view 
             "& thead tr:first-of-type th": { paddingBottom: 0.5 },
           }}
         >
-          <LayerResultsTable farmColumns="compact" />
+          <LayerResultsTable />
         </Box>
       )}
     </FlowSection>

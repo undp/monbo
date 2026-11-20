@@ -125,35 +125,25 @@ describe("stageHref", () => {
 });
 
 describe("stageAction", () => {
-  const READY = { reportMapIds: [1], analysisMapIds: [1, 2], selectedFarmsCount: 3 };
-
   it("goes straight to stage 2: no modal after a validation", () => {
     // The stage 2 page asks for the polygon subset itself (GC-6).
-    expect(stageAction(2, 1, READY)).toBe("navigate");
-    expect(stageAction(2, 3, READY)).toBe("navigate");
+    expect(stageAction(2, 1)).toBe("navigate");
+    expect(stageAction(2, 3)).toBe("navigate");
   });
 
-  it("opens the report only when its choices are ready", () => {
-    expect(stageAction(3, 2, READY)).toBe("navigate");
-  });
-
-  it.each([
-    ["no report layer", { ...READY, reportMapIds: [] }],
-    ["layers ticked but no farm confirmed", { ...READY, selectedFarmsCount: 0 }],
-    ["a report layer from an earlier analysis", { ...READY, reportMapIds: [3] }],
-  ])("asks for the report's choices with %s", (_, selection) => {
-    expect(stageAction(3, 2, selection)).toBe("reportModal");
+  it("goes straight to the report: its page holds the choices", () => {
+    expect(stageAction(3, 2)).toBe("navigate");
+    expect(stageAction(3, 1)).toBe("navigate");
   });
 
   it("navigates for stage 1", () => {
-    expect(stageAction(1, 2, READY)).toBe("navigate");
+    expect(stageAction(1, 2)).toBe("navigate");
   });
 
   it("does nothing for the current stage, and opens no dialog", () => {
     // On stage 2 while the analysis runs or after it fails: no analysis modal.
-    expect(stageAction(2, 2, READY)).toBe("none");
-    // On the report with no farm chosen: no report modal.
-    expect(stageAction(3, 3, { ...READY, selectedFarmsCount: 0 })).toBe("none");
-    expect(stageAction(1, 1, READY)).toBe("none");
+    expect(stageAction(2, 2)).toBe("none");
+    expect(stageAction(3, 3)).toBe("none");
+    expect(stageAction(1, 1)).toBe("none");
   });
 });

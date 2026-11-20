@@ -67,7 +67,11 @@ export interface DataContextValue {
   /** Drop results computed on a layer that changed since, and ask for a re-run. */
   invalidateAnalysis: () => void;
   reportGenerationParams: {
-    initialFarmSelection: "all" | "select";
+    /**
+     * The report page set its defaults (every farm and analysed layer) for the
+     * current analysis. Dropped with the choices, so the next visit sets them again.
+     */
+    seeded: boolean;
     selectedMaps: MapData[];
     selectedFarms: FarmData[];
     downloadType: "combined" | "separated" | null;
@@ -159,9 +163,10 @@ const initialTerritorialAnalysisParams: DataContextValue["territorialAnalysisPar
     selectedMaps: [],
   };
 
-const initialReportGenerationParams: DataContextValue["reportGenerationParams"] =
+/** No report choice: the report page sets its defaults on its next visit. */
+export const initialReportGenerationParams: DataContextValue["reportGenerationParams"] =
   {
-    initialFarmSelection: "all",
+    seeded: false,
     selectedMaps: [],
     selectedFarms: [],
     downloadType: null,
@@ -307,12 +312,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     // The API results and report used previous calculation inputs. Hide them
     // before the map or its interpretation switches to the new values.
     setTerritorialAnalysisResults(null);
-    setReportGenerationParams((prev) => ({
-      ...prev,
-      selectedMaps: [],
-      selectedFarms: [],
-      downloadType: null,
-    }));
+    setReportGenerationParams(initialReportGenerationParams);
     setAnalysisOutdated(true);
   }, [setTerritorialAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
 

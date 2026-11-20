@@ -12,6 +12,7 @@ import { analyzeLayers } from "@/api/layerAnalysis";
 import {
   type AnalysisDraft,
   DataContext,
+  initialReportGenerationParams,
   readSelectedCountry,
 } from "@/context/DataContext";
 import { localizedPath } from "@/utils/languageChange";
@@ -80,6 +81,7 @@ export function TerritorialAnalysisLayersPageContent() {
     selectedCountry,
     analysisOutdated,
     setAnalysisOutdated,
+    setReportGenerationParams,
     refreshAvailableMaps,
   } = useContext(DataContext);
   const { t, i18n } = useTranslation();
@@ -271,6 +273,9 @@ export function TerritorialAnalysisLayersPageContent() {
         // The results and the choices they were analysed with change together.
         setTerritorialAnalysisResults(response);
         setTerritorialAnalysisParams({ polygonsSubset, selectedMaps: maps });
+        // A report choice of the earlier analysis may name other farms or layers:
+        // the report page starts again from all of the new ones.
+        setReportGenerationParams(initialReportGenerationParams);
         // The draft was analysed: the page now starts from the results. A
         // recalculation re-ran the analysed choices, so a pending draft stays.
         if (mode === "draft") setAnalysisDraft(null);
@@ -298,6 +303,7 @@ export function TerritorialAnalysisLayersPageContent() {
       router,
       setTerritorialAnalysisResults,
       setTerritorialAnalysisParams,
+      setReportGenerationParams,
       setAnalysisDraft,
       setAnalysisOutdated,
       analysisOutdated,

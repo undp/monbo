@@ -25,9 +25,7 @@ import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysis
 import { useNoObservationsCountByMap } from "@/hooks/useNoObservationsCountByMap";
 import { useLayerRules, type LayerReading } from "@/hooks/useLayerRules";
 import { NoObservationsCounterChip } from "@/components/page/territorialAnalysis/NoObservationsCounterChip";
-import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
-import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import {
   classifyResult,
@@ -79,41 +77,20 @@ const parseRows = (
   layers: MapData[],
   results: Results,
   readLayer: (layerId: number) => LayerReading,
-  polygonsValidationResults: DataContextValue["polygonsValidationResults"],
   t: TFunction<"translation", undefined>,
-  language: string,
-  compact: boolean
+  language: string
 ): RowData<FarmData>[] => {
   const resultsByMap = indexResults(results);
-  const statusByFarm = new Map(
-    polygonsValidationResults?.farmResults.map(({ farmId, status }) => [
-      farmId,
-      status,
-    ])
-  );
   return data.map((farm) => ({
     cells: {
       id: {
-        value: compact ? (
+        value: (
           <Box component="span" sx={FLOW_TABLE_ID}>
             {farm.id}
           </Box>
-        ) : (
-          farm.id
         ),
       },
       producer: { value: farm.producer },
-      type: {
-        icon: (
-          <PolygonTypeIcon
-            polygonType={farm.polygon.type}
-            isValidManually={
-              statusByFarm.get(farm.id) === FarmValidationStatus.VALID_MANUALLY
-            }
-          />
-        ),
-      },
-      cropType: { value: farm.cropType },
       ...layers.reduce<Record<string, CellData>>((acc, layer) => {
         const { category, rule } = readLayer(layer.id);
         const value = resultsByMap.get(layer.id)?.get(farm.id) ?? null;
@@ -140,40 +117,20 @@ const parseRows = (
 // Stable, so the search index isn't rebuilt on every render.
 const SEARCH_OPTIONS = { keys: ["id", "producer"] };
 
-// The farm columns before the layer columns: ID and producer on stage 2, and
-// also the kind and the crop on the report stage.
-const FARM_COLUMNS = { compact: 2, full: 4 } as const;
-
-interface Props {
-  /** "compact" (stage 2): ID and producer; "full" (the report): also kind and crop. */
-  farmColumns?: keyof typeof FARM_COLUMNS;
-  /** Passed to the generic table: the report stage makes the rows selectable. */
-  tableProps?: Partial<TableProps<FarmData>>;
-  /** Only these layers' columns (the report's layers); every analysed layer otherwise. */
-  mapsSubset?: Set<number>;
-}
+// The farm columns before the layer columns: ID and producer.
+const FARM_COLUMNS = 2;
 
 /**
- * The analysis results: a row per visible farm and a column per layer, the layer
- * columns grouped under their category. Each cell reads its layer's result with the
- * layer's category. Used by stage 2 and, with `tableProps` and `mapsSubset`, by the
- * report stage.
+ * Stage 2's results: a row per visible farm (ID and producer) and a column per
+ * layer, the layer columns grouped under their category. Each cell reads its
+ * layer's result with the layer's category.
  */
-export const LayerResultsTable: React.FC<Props> = ({
-  farmColumns = "full",
-  tableProps,
-  mapsSubset,
-}) => {
-  const compact = farmColumns === "compact";
+export const LayerResultsTable: React.FC = () => {
   const {
-    polygonsValidationResults,
     availableCategories,
     territorialAnalysisParams: { selectedMaps },
   } = useContext(DataContext);
-  const {
-    farmsData,
-    territorialAnalysisResults: originalTerritorialAnalysisResults,
-  } = useVisibleDataForAnalysisPage();
+  const { farmsData, territorialAnalysisResults } = useVisibleDataForAnalysisPage();
   const readLayer = useLayerRules();
 
   const searchParams = useSearchParams();
@@ -186,13 +143,6 @@ export const LayerResultsTable: React.FC<Props> = ({
     useNoObservationsCountByMap();
 
   const filteredData = useSearch(farmsData, searchValue ?? "", SEARCH_OPTIONS);
-
-  const territorialAnalysisResults = useMemo(() => {
-    if (!mapsSubset) return originalTerritorialAnalysisResults;
-    return originalTerritorialAnalysisResults?.filter((m) =>
-      mapsSubset.has(m.mapId)
-    );
-  }, [originalTerritorialAnalysisResults, mapsSubset]);
 
   // The analysed layers, by category (the API's order), then by id.
   const groups = useMemo(
@@ -248,9 +198,7 @@ export const LayerResultsTable: React.FC<Props> = ({
     if (!territorialAnalysisResults || !!searchValue) return undefined;
 
     return {
-      type: null,
       id: null,
-      cropType: null,
       ...noObservationsCountByMap.reduce(
         (acc, current) => ({
           ...acc,
@@ -272,22 +220,12 @@ export const LayerResultsTable: React.FC<Props> = ({
 
   const headers = useMemo<Header[]>(
     () => [
-      ...(compact
-        ? []
-        : [
-            {
-              name: t("common:tableColumns:type"),
-              attr: "type",
-              type: "icon" as const,
-              columnStyle: { width: 100 },
-            },
-          ]),
       {
         name: "ID",
         attr: "id",
         type: "label",
         sortable: true,
-        ...(compact && { columnStyle: { width: "1%", whiteSpace: "nowrap" } }),
+        columnStyle: { width: "1%", whiteSpace: "nowrap" },
       },
       {
         name: t("common:tableColumns:producer"),
@@ -295,16 +233,6 @@ export const LayerResultsTable: React.FC<Props> = ({
         type: "label",
         sortable: true,
       },
-      ...(compact
-        ? []
-        : [
-            {
-              name: t("common:tableColumns:cropType"),
-              attr: "cropType",
-              type: "label" as const,
-              sortable: true,
-            },
-          ]),
       ...layers.map<Header>((layer) => ({
         name: layerLabel(layer, "short"),
         attr: `map_${layer.id}`,
@@ -317,12 +245,12 @@ export const LayerResultsTable: React.FC<Props> = ({
         },
       })),
     ],
-    [t, layers, groupStarts, compact]
+    [t, layers, groupStarts]
   );
 
   const headerGroups = useMemo<HeaderGroup[]>(
     () => [
-      { key: "farm", span: FARM_COLUMNS[farmColumns] },
+      { key: "farm", span: FARM_COLUMNS },
       ...groups.map(({ category, layers }) => {
         const { color } = categoryTints(category?.color);
         return {
@@ -349,39 +277,19 @@ export const LayerResultsTable: React.FC<Props> = ({
         };
       }),
     ],
-    [groups, i18n.language, t, farmColumns]
+    [groups, i18n.language, t]
   );
 
-  // Memoized, so the table's rows only re-render when they change (selection
-  // clicks re-render only the checkboxes).
+  // Memoized, so the table's rows only re-render when they change.
   const rows = useMemo(
     () =>
-      parseRows(
-        sortedData,
-        layers,
-        territorialAnalysisResults,
-        readLayer,
-        polygonsValidationResults,
-        t,
-        i18n.language,
-        compact
-      ),
-    [
-      compact,
-      sortedData,
-      layers,
-      territorialAnalysisResults,
-      readLayer,
-      polygonsValidationResults,
-      t,
-      i18n.language,
-    ]
+      parseRows(sortedData, layers, territorialAnalysisResults, readLayer, t, i18n.language),
+    [sortedData, layers, territorialAnalysisResults, readLayer, t, i18n.language]
   );
 
   // TODO: search some nice message into Table when no results found of text searching
   return (
     <Table
-      {...tableProps}
       headerStyle={{ backgroundColor: "#FFFFFF" }}
       headers={headers}
       headerGroups={headerGroups}
