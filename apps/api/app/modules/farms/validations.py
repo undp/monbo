@@ -289,6 +289,7 @@ def parse_farms_validation(
                 association=farm.association,
                 area=validate_area(farm.area, locale),
                 documents=validate_documents(farm.documents),
+                origin=farm.origin,
             )
         )
 

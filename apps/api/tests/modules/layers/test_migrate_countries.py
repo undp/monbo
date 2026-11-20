@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.modules.admin.auth import country_for_passkey
+from app.modules.layers.categories import DEFAULT_CATEGORY
 from app.modules.layers.migrate_countries import (
     MigrationError,
     id_mapping,
@@ -85,6 +86,20 @@ def test_layers_go_to_their_countries(migrated):
     for code in ("EC", "CO", "CR"):
         for entry in json.loads((root.root / code / "index.json").read_text()):
             assert "available_countries_codes" not in entry
+
+
+def test_every_country_stores_the_deforestation_category(migrated):
+    root, _ = migrated
+
+    for code in ("EC", "CO", "CR"):
+        stored = json.loads((root.root / code / "categories.json").read_text())
+        assert stored == [DEFAULT_CATEGORY]
+        store = root.country_store(code)
+        assert store.read_categories().errors == []
+        # Every migrated layer resolves to it and stays public.
+        layers = root.country_layers(code)
+        assert {layer["category_id"] for layer in layers} == {"deforestation"}
+        assert all(root.is_public(layer) for layer in layers)
 
 
 def test_rasters_are_copied_whole(migrated):

@@ -1,11 +1,11 @@
+import { getOverlapThreshold } from "@/config/runtime";
+import { isOverlapAboveThreshold } from "./overlap";
 import {
-  getDeforestationThreshold,
-  getOverlapThreshold,
-} from "@/config/runtime";
-import {
-  isDeforestationAboveThreshold,
-  isOverlapAboveThreshold,
-} from "./deforestation";
+  classifyResult,
+  deforestationRule,
+  findingRatio,
+  type ClassificationRule,
+} from "./layerResults";
 
 const languageLocale = {
   es: "es-CL",
@@ -60,9 +60,6 @@ const formattedBelowThreshold = (threshold: number, language: string): string =>
   `< ${formatThreshold(threshold, language)}`;
 
 // Computed per call: the thresholds come from GET /config at startup.
-const deforestationDecimalPlaces = () =>
-  getDecimalPlacesForThreshold(getDeforestationThreshold());
-
 const overlapDecimalPlaces = () =>
   getDecimalPlacesForThreshold(getOverlapThreshold());
 
@@ -147,14 +144,14 @@ export const formatOverlapPercentage = (
 ): string => {
   if (value === 0) return "0%";
 
-  // No threshold defined by user, so we use the default threshold for displaying deforestation
+  // No threshold defined by user, so we use the default threshold for displaying the overlap
   if (getOverlapThreshold() === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
     return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
   }
 
-  // Threshold defined by user, so we use it for displaying deforestation
+  // Threshold defined by user, so we use it for displaying the overlap
   if (!isOverlapAboveThreshold(value))
     return formattedBelowThreshold(getOverlapThreshold(), language);
 
@@ -162,34 +159,96 @@ export const formatOverlapPercentage = (
 };
 
 /**
- * Formats a deforestation value as a percentage string.
+ * Formats a layer result as the percentage of the farm that is a finding: `value`
+ * for an `avoid` rule, `1 − value` for a `required` one. Deforestation by default
+ * (the PDF and the exports, until they read categories).
  *
- * If a deforestation threshold is defined (getDeforestationThreshold() > 0),
- * values below the threshold are displayed as "< X%" where X is the threshold.
- * Otherwise, values below DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
+ * If the rule has a threshold (> 0), findings at or below it are displayed as
+ * "< X%" where X is the threshold. Otherwise, findings below
+ * DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
  *
- * Values of 0 are displayed as "0%".
- * All other values are formatted as percentages with deforestationDecimalPlaces decimal places.
+ * A finding of 0 is displayed as "0%". All other findings are formatted with the
+ * threshold's decimal places (at least DEFAULT_DECIMAL_PLACES).
  *
- * @param value - The deforestation value to format (between 0 and 1)
+ * @param value - The layer result to format (between 0 and 1)
  * @returns The formatted percentage string
  */
-export const formatDeforestationPercentage = (
+export const formatResultPercentage = (
   value: number,
-  language = "es"
+  language = "es",
+  rule: ClassificationRule = deforestationRule()
 ): string => {
-  if (value === 0) return "0%";
+  const finding = findingRatio(value, rule.polarity);
+  if (finding === 0) return "0%";
 
-  // No threshold defined by user, so we use the default threshold for displaying deforestation
-  if (getDeforestationThreshold() === 0) {
-    if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
+  // No threshold defined by user, so we use the default threshold for displaying the finding
+  if (rule.thresholdPercentage === 0) {
+    if (100 * finding < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
+    return formatPercentage(finding, DEFAULT_DECIMAL_PLACES, language);
   }
 
-  // Threshold defined by user, so we use it for displaying deforestation
-  if (!isDeforestationAboveThreshold(value))
-    return formattedBelowThreshold(getDeforestationThreshold(), language);
+  // Threshold defined by user, so we use it for displaying the finding
+  if (classifyResult(value, rule) === "ok")
+    return formattedBelowThreshold(rule.thresholdPercentage, language);
 
-  return formatPercentage(value, deforestationDecimalPlaces(), language);
+  return formatFindingPercentage(finding, rule.thresholdPercentage, language);
+};
+
+// The tolerance for "on the threshold": floating point puts 100 × 0.05 a hair above
+// 5. The same idea as the classification's (layerResults.ts), so a finding the
+// classification calls equal to the threshold is not shown as above or below it.
+const THRESHOLD_ROUNDING_ULPS = 8;
+
+/**
+ * A finding as a percentage next to its rule's threshold, for the stage 2 cells and
+ * the PDF. Meant for a `flagged` result; for a result of any class, use
+ * formatResultPercentage with the rule, which also covers results at or
+ * below the threshold.
+ *
+ * Contract (the text always agrees with the classification against the threshold):
+ * - Decimals: as many as the threshold has, and at least DEFAULT_DECIMAL_PLACES:
+ *   "18%", "2,4%", "2,44%" with a 2,25 threshold.
+ * - 0 reads "0%".
+ * - A finding above 0 that rounds to 0 (only possible with a threshold of 0, e.g.
+ *   0.0004 → 0.04%) reads "< 0,1%", never "0%".
+ * - A finding above the threshold that rounds to the threshold or below it reads
+ *   "> 5%" (the threshold, with its own decimals), never "5%": with a threshold of
+ *   5, 0.0504 reads "> 5%" and 0.0551 reads "5,5%".
+ * - A finding below the threshold that rounds to the threshold or above it reads
+ *   "< 5%" (e.g. 0.0496). A finding on the threshold reads "5%".
+ *
+ * Takes the finding, not `value`: for a `required` rule that is `1 − value`
+ * (`findingRatio`).
+ *
+ * @param finding - The share of the farm that is a finding (0-1)
+ * @param thresholdPercentage - The rule's threshold, in percent (0-100)
+ * @param language - "es" (default) or "en"
+ */
+export const formatFindingPercentage = (
+  finding: number,
+  thresholdPercentage: number,
+  language = "es"
+): string => {
+  const decimals = getDecimalPlacesForThreshold(thresholdPercentage);
+  const resolution = Math.pow(10, -decimals);
+  const percent = 100 * finding;
+  if (finding > 0 && percent < resolution)
+    return `< ${formatPercentage(resolution / 100, decimals, language)}`;
+
+  // The value as displayed, rounded exactly as formatPercentage rounds it.
+  const shown = Number(
+    formatPercentage(finding, decimals, "en").replace(/[%,]/g, "")
+  );
+  const tolerance =
+    THRESHOLD_ROUNDING_ULPS *
+    Number.EPSILON *
+    Math.max(Math.abs(percent), Math.abs(thresholdPercentage), 100);
+  const above = percent - thresholdPercentage > tolerance;
+  const below = thresholdPercentage - percent > tolerance;
+  if (above && shown <= thresholdPercentage)
+    return `> ${formatThreshold(thresholdPercentage, language)}`;
+  if (below && shown >= thresholdPercentage)
+    return `< ${formatThreshold(thresholdPercentage, language)}`;
+  return formatPercentage(finding, decimals, language);
 };

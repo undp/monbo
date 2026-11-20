@@ -121,6 +121,7 @@ export const AdminUsagePageContent: React.FC = () => {
 
   const okErrors = (ok: number, errors: number) =>
     t("admin:usage:countries:okErrors", {
+      count: errors,
       ok: format.count(ok),
       errors: format.count(errors),
     });
@@ -314,6 +315,7 @@ const UsageReportView: React.FC<ViewProps> = ({ report, format, okErrors, countr
           label={t("admin:usage:tiles:uploads")}
           value={format.count(totals.upload.ok)}
           detail={t("admin:usage:tiles:avgFarms", {
+            count: totals.upload.avgFarmsPerUpload ?? 0,
             value: format.average(totals.upload.avgFarmsPerUpload),
           })}
           source={server}
@@ -324,6 +326,7 @@ const UsageReportView: React.FC<ViewProps> = ({ report, format, okErrors, countr
           label={t("admin:usage:tiles:analyses")}
           value={format.count(totals.analysis.ok)}
           detail={t("admin:usage:tiles:analysisSessions", {
+            count: totals.analysis.sessions,
             value: format.count(totals.analysis.sessions),
           })}
           source={server}
@@ -334,6 +337,7 @@ const UsageReportView: React.FC<ViewProps> = ({ report, format, okErrors, countr
           label={t("admin:usage:tiles:reportsRequested")}
           value={format.count(totals.reports.requested)}
           detail={t("admin:usage:tiles:requestedSessions", {
+            count: totals.reports.requestedSessions,
             value: format.count(totals.reports.requestedSessions),
           })}
           source={browser}

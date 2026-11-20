@@ -4,15 +4,25 @@ import {
 } from "@/config/runtime";
 import { formatThreshold } from "./numbers";
 
-// The documentation page (/documentation): one Markdown file per section and
+// The methodology page (/documentation): one Markdown file per section and
 // language under src/content/documentation/<locale>/. The section ids are the
-// page's anchors, the same in every language.
+// page's anchors, the same in every language. The layers and limits sections add
+// each country's layers (from the API) below their Markdown.
 export const DOCUMENTATION_SECTIONS = [
+  "calculation",
+  "categories",
+  "layers",
+  "limits",
   "upload",
   "validation",
   "area",
-  "deforestation",
 ] as const;
+
+// Anchors that used to name a section, and the section they open now: old links
+// keep landing on the right place.
+export const FORMER_SECTION_ANCHORS: Partial<Record<DocumentationSection, string>> = {
+  calculation: "deforestation",
+};
 
 export type DocumentationSection = (typeof DOCUMENTATION_SECTIONS)[number];
 

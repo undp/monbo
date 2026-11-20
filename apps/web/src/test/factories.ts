@@ -1,8 +1,10 @@
+import type { AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
 import type { FarmData } from "@/interfaces/Farm";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
   FarmValidationStatus,
   ValidateFarmsResponse,
@@ -23,6 +25,7 @@ export const makeFarm = (overrides: Partial<FarmData> = {}): FarmData => ({
   cropType: "Café",
   association: null,
   documents: [],
+  origin: null,
   polygon: {
     type: "point",
     area: 10000,
@@ -96,6 +99,7 @@ export const makeMap = (overrides: Partial<MapData> = {}): MapData => ({
   alias: "GFW",
   availableCountriesCodes: ["CR"],
   baseline: 2020,
+  categoryId: "deforestation",
   comparedAgainst: 2023,
   considerations: null,
   contentDate: null,
@@ -116,7 +120,7 @@ export const makeMapResults = (
   mapId: number,
   values: Record<string, number | null>,
   version = 1
-): DeforestationAnalysisMapResults => ({
+): LayerAnalysisMapResults => ({
   mapId,
   version,
   farmResults: Object.entries(values).map(([farmId, value]) => ({
@@ -134,4 +138,108 @@ export const makeValidationResults = (
     status,
   })),
   inconsistencies: [],
+});
+
+/** The built-in deforestation category, as `GET /categories` returns it. */
+export const makeCategory = (
+  overrides: Partial<LayerCategory> = {}
+): LayerCategory => ({
+  id: "deforestation",
+  name: { es: "Deforestación", en: "Deforestation" },
+  description: {
+    es: "Pérdida de bosque después de la línea base.",
+    en: "Forest loss after the baseline.",
+  },
+  icon: "forest",
+  color: "#c62828",
+  polarity: "avoid",
+  thresholdPercentage: 0,
+  resultLabels: {
+    ok: { es: "Libre de deforestación", en: "Deforestation-free" },
+    flagged: { es: "Con deforestación", en: "With deforestation" },
+  },
+  temporal: true,
+  ...overrides,
+});
+
+/** An agricultural frontier category: being outside the layer is the finding. */
+export const makeFrontierCategory = (
+  overrides: Partial<LayerCategory> = {}
+): LayerCategory =>
+  makeCategory({
+    id: "agricultural_frontier",
+    name: { es: "Frontera agrícola", en: "Agricultural frontier" },
+    description: {
+      es: "Zonas donde se permite la producción agropecuaria.",
+      en: "Areas where farming is allowed.",
+    },
+    icon: "agriculture",
+    color: "#a8741a",
+    polarity: "required",
+    thresholdPercentage: 5,
+    resultLabels: {
+      ok: {
+        es: "Dentro de la frontera agrícola",
+        en: "Inside the agricultural frontier",
+      },
+      flagged: {
+        es: "Fuera de la frontera agrícola",
+        en: "Outside the agricultural frontier",
+      },
+    },
+    temporal: false,
+    ...overrides,
+  });
+
+/** A category as `GET /admin/categories` lists it: the built-in deforestation. */
+export const makeAdminCategory = (
+  overrides: Partial<AdminCategory> = {}
+): AdminCategory => ({
+  ...makeCategory(),
+  thresholdPercentage: null,
+  enabled: true,
+  layerCount: 0,
+  publishedLayerCount: 0,
+  ...overrides,
+});
+
+/** A layer as `GET /admin/layers` lists it: public, in deforestation. */
+export const makeAdminLayer = (overrides: Partial<AdminLayer> = {}): AdminLayer => ({
+  id: 0,
+  category_id: "deforestation",
+  category_issue: null,
+  category_enabled: true,
+  layer_issue: null,
+  pixel_size: 30,
+  baseline: 2020,
+  compared_against: 2023,
+  references: [],
+  enabled: true,
+  version: 1,
+  raster_filename: "layer-0-v1.tif",
+  has_raster: true,
+  attributes: {
+    en: {
+      name: "IDEAM deforestation",
+      alias: "IDEAM 2020-2023",
+      coverage: null,
+      source: null,
+      resolution: null,
+      contentDate: null,
+      updateFrequency: null,
+      publishDate: null,
+    },
+    es: {
+      name: "Deforestación IDEAM",
+      alias: "IDEAM 2020-2023",
+      coverage: null,
+      source: null,
+      resolution: null,
+      contentDate: null,
+      updateFrequency: null,
+      publishDate: null,
+    },
+  },
+  considerations: { en: null, es: null },
+  ...overrides,
 });

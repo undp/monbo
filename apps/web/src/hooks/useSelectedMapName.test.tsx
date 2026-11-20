@@ -5,7 +5,7 @@ import { makeDataContext, renderHookWithData } from "@/test/renderWithData";
 import { useSelectedMap } from "./useSelectedMapName";
 
 const withMaps = makeDataContext({
-  deforestationAnalysisParams: {
+  territorialAnalysisParams: {
     polygonsSubset: "valid",
     selectedMaps: [
       makeMap({ id: 1, name: "Global Forest Watch", alias: "GFW", version: 3 }),

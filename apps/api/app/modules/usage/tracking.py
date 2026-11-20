@@ -30,7 +30,7 @@ MODULE_HEADER = "x-monbo-module"
 TRACKED_ROUTES = {
     "/farms/parse": "upload",
     "/polygons_validation/validate": "validation",
-    "/deforestation_analysis/analize": "analysis",
+    "/layer_analysis/analyze": "analysis",
 }
 EVENTS_PATH = "/events"
 MAX_EVENT_BODY_BYTES = 2048

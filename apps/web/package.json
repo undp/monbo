@@ -29,6 +29,7 @@
     "@mui/material-nextjs": "^7.3.10",
     "@mui/x-charts": "^9.17.0",
     "@react-pdf/renderer": "^4.9.0",
+    "@tanstack/react-virtual": "^3.14.26",
     "@vis.gl/react-google-maps": "^1.10.2",
     "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",

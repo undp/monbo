@@ -19,10 +19,12 @@ import {
   readGeoFileWithExcel,
   rereadSources,
   sourceErrors,
+  sourceListedRows,
   sourceProblem,
   sourceRows,
   uploadSummary,
   uploadSummaryText,
+  withoutRow,
 } from "./uploadSources";
 
 vi.mock("@/api/farms", async (importOriginal) => ({
@@ -229,7 +231,7 @@ describe("attachExcel", () => {
 
     const source = await drop();
     expect(sourceErrors(source)).toEqual([
-      "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las que valen son las del Excel, súbelo solo en «Plantilla Excel».",
+      "Este Excel tiene coordenadas en 1 fila. Junto a un archivo geográfico, la ubicación de cada finca sale del archivo: usa la plantilla de «Archivo geográfico + Excel», que no tiene coordenadas, o borra las del Excel. Si las coordenadas correctas son las del Excel, súbelo solo en «Plantilla Excel».",
     ]);
     expect(sourceRows(source)).toEqual([]);
     expect(isUploadable(source)).toBe(false);
@@ -278,6 +280,52 @@ describe("collectUpload", () => {
     expect(rows.map((row) => row.id)).toEqual(["F01", "M-1", null]);
   });
 
+  it("tags each farm with its origin, for /farms/parse to echo", async () => {
+    const ctx = await context();
+    const file = await readFileSource(
+      excel([templateRow("F01", ["GeoJSON", "Polygon", GEOJSON_POLYGON])], "lote.xlsx"),
+      ctx
+    );
+    const joined = await readGeoFileWithExcel(
+      geoFile("poligonos.kmz", {
+        format: "kmz",
+        features: [feature(1, { Name: "F-1" })],
+      }),
+      excel([templateRow("F-1", [null, null, null])]),
+      ctx
+    );
+    const geo = await readFileSource(
+      geoFile("fincas.geojson", {
+        format: "geojson",
+        features: [feature(1, { id: "G-1", ...COMPLETE })],
+      }),
+      ctx
+    );
+
+    const { rows } = collectUpload([file, joined, geo, manual("M-1")], ctx.t);
+
+    expect(rows.map((row) => row.origin)).toEqual([
+      { method: "excel", fileName: "lote.xlsx" },
+      { method: "geoFileWithExcel", fileName: "poligonos.kmz" },
+      { method: "geoFile", fileName: "fincas.geojson" },
+      { method: "manual", fileName: null },
+    ]);
+  });
+
+  it("leaves out the farms deleted from the list", async () => {
+    const ctx = await context();
+    const file = await readFileSource(
+      excel([
+        templateRow("F01", ["GeoJSON", "Polygon", GEOJSON_POLYGON]),
+        templateRow("F02", ["GeoJSON", "Polygon", GEOJSON_POLYGON]),
+      ]),
+      ctx
+    );
+
+    const { rows } = collectUpload([withoutRow(file, 0)!], ctx.t);
+
+    expect(rows.map((row) => row.id)).toEqual(["F02"]);
+  });
   it("names both sources of a duplicated ID", async () => {
     const ctx = await context();
     const file = await readFileSource(
@@ -349,7 +397,7 @@ describe("sourceProblem", () => {
     );
 
     expect(sourceProblem(source, ctx.t)).toBe(
-      "2 IDs no cruzan entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
+      "2 IDs no coinciden entre los polígonos y el Excel: el ID de cada polígono (en un KML, su nombre) debe ser el ID de su fila."
     );
   });
 
@@ -444,5 +492,82 @@ describe("rereadSources", () => {
     // The rejected file is only marked as checked for the new country
     expect(reread).toEqual([{ ...rejected, readFor: "CR" }, drawn]);
     expect(importGeoFile).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("withoutRow", () => {
+  const threeFarms = async (selectedCountry = "CR") =>
+    readFileSource(
+      geoFile("fincas.geojson", {
+        format: "geojson",
+        features: [1, 2, 3].map((n) =>
+          feature(n, { id: `G-${n}`, ProducerCountry: "CO", ...COMPLETE })
+        ),
+      }),
+      await context(selectedCountry)
+    );
+
+  it("removes one farm and keeps the others with their positions", async () => {
+    const source = withoutRow(await threeFarms("CO"), 1)!;
+
+    expect(sourceListedRows(source).map(({ row, index }) => [row.id, index])).toEqual([
+      ["G-1", 0],
+      ["G-3", 2],
+    ]);
+    expect(uploadSummary([source]).farms).toBe(2);
+  });
+
+  it("keeps the deleted farm out when the file is read for another country", async () => {
+    const source = withoutRow(await threeFarms("CO"), 0)!;
+
+    const [inCostaRica] = await rereadSources([source], await context("CR"));
+    const [backInColombia] = await rereadSources([inCostaRica], await context("CO"));
+
+    expect(sourceRows(backInColombia).map((row) => row.id)).toEqual(["G-2", "G-3"]);
+  });
+
+  it("keeps the deleted farm out of a joined Excel read again", async () => {
+    const source = await readGeoFileWithExcel(
+      geoFile("poligonos.kmz", {
+        format: "kmz",
+        features: [feature(1, { Name: "F-1" }), feature(2, { Name: "F-2" })],
+      }),
+      excel([
+        templateRow("F-1", [null, null, null]),
+        templateRow("F-2", [null, null, null]),
+      ]),
+      await context("CO")
+    );
+    const [reread] = await rereadSources(
+      [withoutRow(source, 0)!],
+      await context("CR")
+    );
+
+    expect(sourceListedRows(reread).map(({ index }) => index)).toEqual([1]);
+  });
+
+  it("starts over when an Excel is detached, since the rows change", async () => {
+    const source = await readGeoFileWithExcel(
+      geoFile("poligonos.kmz", {
+        format: "kmz",
+        features: [feature(1, { Name: "F-1", ...COMPLETE })],
+      }),
+      excel([templateRow("F-1", [null, null, null])]),
+      await context()
+    );
+    const left = withoutRow(source, 0);
+    expect(left).toBeNull();
+
+    const detached = detachExcel(source);
+    expect(detached.kind === "geo" && detached.removedRows).toEqual([]);
+  });
+
+  it("drops the source with its last farm, and a manual farm at once", async () => {
+    let source: UploadSource | null = await threeFarms();
+    source = withoutRow(source, 0);
+    source = withoutRow(source!, 1);
+    expect(source).not.toBeNull();
+    expect(withoutRow(source!, 2)).toBeNull();
+    expect(withoutRow(manual("M-1"), 0)).toBeNull();
   });
 });

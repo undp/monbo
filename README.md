@@ -79,7 +79,7 @@ Start with [`docs/architecture.md`](docs/architecture.md): the Azure infrastruct
 
 How the deforestation percentage of each farm is calculated is in [`docs/deforestation_calculation.md`](docs/deforestation_calculation.md), and how a farm's area is measured in [`docs/polygon_area_calculation.md`](docs/polygon_area_calculation.md).
 
-The app explains these methods to its users on its documentation page (`/documentation`, the book button in the header). Its text lives in `apps/web/src/content/documentation/`: when a calculation or a validation changes, update it too (see the [frontend README](apps/web/README.md#documentation-page)).
+The app explains these methods, and which layers each country has, to its users on its methodology page (`/documentation`, the "Metodología" link in the header). Its text lives in `apps/web/src/content/documentation/`: when a calculation or a validation changes, update it too (see the [frontend README](apps/web/README.md#documentation-page)).
 
 ### Tools
 

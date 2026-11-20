@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from app.models.maps import COUNTRY_CODE_PATTERN, BaseMapData
 from app.modules.layers.store import get_layers_root
 from app.modules.maps.helpers import get_all_maps
-from app.utils.maps import read_attributes, read_considerations
+from app.utils.maps import parse_year, read_attributes, read_considerations
 
 router = APIRouter()
 
@@ -20,7 +20,9 @@ def get_maps(
 
     This endpoint reads the maps index file and their corresponding metadata
     files to return detailed information about each enabled map layer. Disabled
-    layers are left out here but remain usable by id for analysis and tiles.
+    layers, layers whose category is disabled or doesn't resolve, layers whose
+    years don't fit their category, and layers without a raster are left out here
+    but remain usable by id for analysis and tiles.
 
     Args:
         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -35,8 +37,9 @@ def get_maps(
           the country
         - name: Complete name of the layer (e.g., "Global Forest Watch")
         - alias: Short name or reference (e.g., "GFW 2020-2023")
-        - baseline: Base year for comparison
-        - comparedAgainst: Final year for comparison
+        - baseline: Base year for comparison (None for layers without years, in
+          categories that are not temporal)
+        - comparedAgainst: Final year for comparison (None likewise)
         - coverage: Geographic coverage of the layer
         - source: Origin of the layer data
         - resolution: Spatial resolution (e.g., "30 x 30 meters")
@@ -51,20 +54,24 @@ def get_maps(
         - availableCountriesCodes: The layer's country, as a one-element list of
           ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
           layer lists)
+        - categoryId: The id of the layer's category in its country (see
+          `GET /categories`)
         - version: Raster version, incremented on every raster replacement (the
           frontend appends it to tile URLs to bypass cached tiles)
         - pixelSize: Nominal pixel size in meters, used by the analysis formula
     """
-    enabled_countries = get_layers_root().enabled_countries()
+    root = get_layers_root()
+    enabled_countries = root.enabled_countries()
     maps = [
         map
         for map in get_all_maps()
-        if map["enabled"]
-        and (country is None or country in map["available_countries_codes"])
+        if (country is None or country in map["available_countries_codes"])
         and (
             enabled_countries is None
             or enabled_countries & set(map["available_countries_codes"])
         )
+        # Last: it checks the raster on the share, only for layers to be listed.
+        and root.is_public(map)
     ]
 
     parsed_maps = []
@@ -76,12 +83,11 @@ def get_maps(
             BaseMapData(
                 id=map["id"],
                 country=map.get("country"),
+                categoryId=map["category_id"],
                 name=attributes_dict.get("name") if attributes_dict else None,
                 alias=attributes_dict.get("alias") if attributes_dict else None,
-                baseline=int(map["baseline"]) if map["baseline"] else None,
-                comparedAgainst=(
-                    int(map["compared_against"]) if map["compared_against"] else None
-                ),
+                baseline=parse_year(map.get("baseline")),
+                comparedAgainst=parse_year(map.get("compared_against")),
                 coverage=attributes_dict.get("coverage") if attributes_dict else None,
                 source=attributes_dict.get("source") if attributes_dict else None,
                 resolution=(

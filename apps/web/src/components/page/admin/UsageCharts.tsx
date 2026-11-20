@@ -8,12 +8,15 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 import { useTranslation } from "react-i18next";
+import { Box } from "@mui/material";
+import { Text } from "@/components/reusable/Text";
 import type { UsageBlock, UsageReport } from "@/api/adminUsage";
 import {
   CountrySlice,
   OUTCOME_COLORS,
   TREND_COLORS,
   funnelStages,
+  hasUsage,
   stepOutcomes,
   weeklySeries,
 } from "./usageChartData";
@@ -23,6 +26,21 @@ const AXIS_SX = {
   "& .MuiChartsAxis-line, & .MuiChartsAxis-tick": { stroke: "#c3c2b7" },
   "& .MuiChartsAxis-tickLabel": { fill: "#52514e" },
   "& .MuiChartsGrid-line": { stroke: "#e1e0d9" },
+};
+
+/**
+ * In place of a chart whose range has no usage. The charts would draw lines and bars
+ * at 0, and their own no-data overlay only shows for an empty series.
+ */
+const ChartNoData: React.FC<{ height: number }> = ({ height }) => {
+  const { t } = useTranslation();
+  return (
+    <Box sx={{ height, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Text color="secondary" variant="body2">
+        {t("admin:usage:chartNoData")}
+      </Text>
+    </Box>
+  );
 };
 
 const useFormat = () => {
@@ -64,6 +82,7 @@ export const UsageFunnelChart: React.FC<{ totals: UsageBlock }> = ({ totals }) =
   const { t } = useTranslation();
   const format = useFormat();
   const stages = funnelStages(totals);
+  if (!hasUsage(stages.map(({ value }) => value))) return <ChartNoData height={260} />;
   return (
     <BarChart
       height={260}
@@ -124,6 +143,7 @@ export const UsageOutcomesChart: React.FC<{ totals: UsageBlock }> = ({ totals })
     stack: "outcomes",
     valueFormatter: (value: number | null) => format.count(value),
   }));
+  if (!hasUsage(series.flatMap(({ data }) => data))) return <ChartNoData height={260} />;
   return (
     <BarChart
       height={260}
@@ -196,6 +216,7 @@ export const UsageWeeklyChart: React.FC<{ weekly: UsageReport["weekly"] }> = ({
       valueFormatter: (value: number | null) => format.count(value),
     })
   );
+  if (!hasUsage(series.flatMap(({ data }) => data))) return <ChartNoData height={300} />;
 
   return (
     <LineChart

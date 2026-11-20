@@ -66,7 +66,7 @@ Before assigning **Discard — incorrect**, open the relevant file and the surro
 
 Bias toward **Fix** when the comment concerns correctness of deforestation/area results, geometry or unit handling, security of the public unauthenticated API, the API↔frontend contract, or a documented project convention (both locales, env var plumbing, map-layer metadata). Bias toward **Discard** when it is speculative, cosmetic, or would expand the PR's scope.
 
-Some comments are deliberately-designed behavior that reviewers often mistake for bugs. Discard them as **incorrect** (citing `docs/onboarding.md`) unless the PR itself changed that behavior: open CORS, no auth, state lost on refresh, the `analize` spelling, `value: null` / area `-1` for per-farm failures, `all_touched=True` over-counting at edges, and the `react-hooks/*` rules demoted to `warn` in `eslint.config.mjs`.
+Some comments are deliberately-designed behavior that reviewers often mistake for bugs. Discard them as **incorrect** (citing `docs/onboarding.md`) unless the PR itself changed that behavior: open CORS, no auth, state lost on refresh, `value: null` / area `-1` for per-farm failures, `all_touched=True` over-counting at edges, and the `react-hooks/*` rules demoted to `warn` in `eslint.config.mjs`.
 
 ---
 

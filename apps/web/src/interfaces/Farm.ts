@@ -7,3 +7,4 @@ export type FarmData = components["schemas"]["FarmData"];
 export type ImportedFile = components["schemas"]["ImportedFile"];
 export type ImportedFeature = components["schemas"]["ImportedFeature"];
 export type ImportIssue = components["schemas"]["ImportIssue"];
+export type FarmOrigin = components["schemas"]["FarmOrigin-Input"];

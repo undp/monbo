@@ -9,6 +9,7 @@ import { FarmData } from "@/interfaces/Farm";
 import { baseMapColor } from "@/config/theme";
 import {
   getPolygonVertices,
+  knownArea,
   parsePolygonArea,
   parseLatitude,
   parseLongitude,
@@ -88,7 +89,8 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
   const { t, i18n } = useTranslation();
 
   const data = row?.data;
-  const area = parsePolygonArea(data?.polygon.area || 0, i18n.language);
+  const known = knownArea(data?.polygon.area);
+  const area = known === null ? null : parsePolygonArea(known, i18n.language);
 
   const isManuallyValidated = useMemo(
     () =>
@@ -133,7 +135,9 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
             justifyContent: "space-between",
           }}
         >
-          <Text variant="body1" bold>{`${data.producer} · ${area}`}</Text>
+          <Text variant="body1" bold>
+            {area ? `${data.producer} · ${area}` : data.producer}
+          </Text>
           {isManuallyValidated && <ValidManuallyChip />}
         </Box>
       }

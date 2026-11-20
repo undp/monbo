@@ -5,16 +5,17 @@ import initTranslations from "@/utils/i18n";
 import i18nConfig from "@/i18nConfig";
 import { setRuntimeConfig } from "@/config/runtime";
 import {
-  DeforestationReportDocument,
+  ReportDocument,
   registerReportFonts,
-  type DeforestationReportImage,
-} from "@/utils/deforestationReport";
+  type ReportImage,
+} from "@/utils/report";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
-import type { DeforestationImageBlob } from "@/utils/deforestationImages";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
+import type { LayerImageBlob } from "@/utils/layerImages";
 import type {
   ReportPdfMessage,
   ReportPdfRequest,
@@ -29,7 +30,7 @@ import type {
 const scope = self as unknown as Worker;
 
 // The namespaces the report reads (it always prefixes its keys).
-const NAMESPACES = ["reportGeneration", "common", "deforestationAnalysis"];
+const NAMESPACES = ["reportGeneration", "common", "territorialAnalysis"];
 
 // Only this page messages the worker, but the locale picks the translations: use
 // the configured value that matches it, never the message's own string.
@@ -53,8 +54,8 @@ type Locale = ReturnType<typeof supportedLocale>;
 
 /** Object URLs for `images` while `callback` runs, revoked afterwards. */
 const withImageUrls = async <T,>(
-  images: DeforestationImageBlob[],
-  callback: (images: DeforestationReportImage[]) => Promise<T>
+  images: LayerImageBlob[],
+  callback: (images: ReportImage[]) => Promise<T>
 ): Promise<T> => {
   const withUrls = images.map(({ mapId, farmId, blob }) => ({
     mapId,
@@ -70,18 +71,22 @@ const withImageUrls = async <T,>(
 
 const renderDocument = (params: {
   farms: FarmData[];
-  results: DeforestationAnalysisMapResults[];
+  results: LayerAnalysisMapResults[];
   maps: MapData[];
-  images: DeforestationReportImage[];
+  categories: LayerCategory[];
+  satelliteBackground: boolean;
+  images: ReportImage[];
   t: TFunction;
   locale: Locale;
   showLinks: boolean;
 }) =>
   pdf(
-    <DeforestationReportDocument
+    <ReportDocument
       farmsData={params.farms}
-      deforestationAnalysisResults={params.results}
+      territorialAnalysisResults={params.results}
       mapsData={params.maps}
+      categories={params.categories}
+      satelliteBackground={params.satelliteBackground}
       images={params.images}
       t={params.t}
       language={params.locale}
@@ -102,6 +107,8 @@ const render = async (request: ReportPdfRequest): Promise<Blob> => {
         farms,
         results: request.results,
         maps: request.maps,
+        categories: request.categories,
+        satelliteBackground: request.satelliteBackground,
         images,
         t,
         locale,
@@ -125,6 +132,8 @@ interface ZipJob {
   locale: Locale;
   t: TFunction;
   maps: MapData[];
+  categories: LayerCategory[];
+  satelliteBackground: boolean;
   added: number;
 }
 const zipJobs = new Map<number, ZipJob>();
@@ -142,6 +151,8 @@ const runZipCommand = async (
       locale,
       t: await getT(locale),
       maps: command.maps,
+      categories: command.categories,
+      satelliteBackground: command.satelliteBackground,
       added: 0,
     });
     return { added: 0 };
@@ -165,6 +176,8 @@ const runZipCommand = async (
       farms: [command.farm],
       results: command.results,
       maps: state.maps,
+      categories: state.categories,
+      satelliteBackground: state.satelliteBackground,
       images,
       t: state.t,
       locale: state.locale,

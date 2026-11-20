@@ -1,64 +1,105 @@
 {
-  "title": "Polygon Validation",
-  "validPolygons": "Validated Polygons",
+  "title": "Validate your polygons",
   "inconsistenciesTypes": {
     "overlap": "Overlap",
     "empty_polygon": "Empty Polygon",
     "invalid_geometry": "Invalid Geometry"
   },
-  "inconsistentPolygons": {
-    "singular": "inconsistent polygon",
-    "plural": "inconsistent polygons"
-  },
   "inconsistentPolygonsFound": {
     "singular": "{{count}} inconsistent polygon was found",
     "plural": "{{count}} inconsistent polygons were found"
   },
-  "errorPolygons": "Polygons with Errors",
   "searchPlaceholder": "Search polygon or producer",
-  "analize": "Analyze Deforestation",
   "noResults": "No results found",
-  "noInconsistencies": "No inconsistencies found",
+  "export": {
+    "validSheet": "Valid polygons",
+    "inconsistentSheet": "Inconsistent polygons"
+  },
   "manualValidation": {
     "snackbarAlert": {
       "included": "included in manual validation",
       "excluded": "excluded from manual validation"
-    },
-    "tableHeader": "Manual validation"
-  },
-  "deforestationModal": {
-    "title": "Deforestation Analysis",
-    "polygonSelection": "Select the polygons to consider",
-    "all": "All",
-    "valid": "Validated polygons",
-    "mapsSelection": "Select map layers",
-    "continue": "Continue"
+    }
   },
   "uploadDataPage": {
     "loadingText": "Loading the data",
-    "title": "Upload Polygons or Points",
+    "title": "Validate your polygons",
     "uploadStep": {
-      "stepTitle": "Add your farms",
       "submit": "Validate polygons"
-    }
+    },
+    "subtitle": "Upload them however you like. You can combine methods: everything adds up in the same list."
   },
   "overlapModal": {
-    "title": "Overlap Analysis",
-    "producers": "producers",
-    "area": "Overlapping Area",
     "headers": {
       "producer": "Producer",
       "producerId": "Producer ID",
       "type": "Type",
       "id": "ID",
       "area": "Area (ha)"
-    },
-    "callToAction": "Save Changes"
+    }
   },
   "geometryInconsistencyModal": {
     "title": "Geometry Inconsistency",
     "tableTitle": "Polygon Information",
     "contentTitle": "Inconsistency Information",
     "systemFeedback": "System feedback"
-  }
+  },
+  "subtitle": "We checked your polygons and points. Fix the ones with issues or continue with the ones that are ready.",
+  "kpis": {
+    "ready": "ready to analyze",
+    "overlap": "overlap: you can validate them manually",
+    "error": "with a geometry error: fix them in your file"
+  },
+  "results": {
+    "title": "Validation result",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "showAll": "Show all",
+    "addMore": "Add more polygons",
+    "review": "Review",
+    "reviewFarm": "Review {{id}}",
+    "drawn": "Drawing",
+    "columns": {
+      "id": "ID",
+      "producer": "Producer",
+      "crop": "Crop",
+      "production": "Production",
+      "area": "Area",
+      "type": "Type",
+      "origin": "Origin",
+      "status": "Status"
+    },
+    "status": {
+      "ready": "Ready",
+      "validatedManually": "Validated manually",
+      "overlapWith": "Overlaps {{id}}",
+      "overlapMany_one": "Overlaps {{count}} polygon",
+      "overlapMany_other": "Overlaps {{count}} polygons",
+      "emptyPolygon": "The polygon has no vertices",
+      "selfIntersection": "The polygon crosses itself",
+      "tooFewPoints": "The polygon has fewer than 3 vertices",
+      "holeOutside": "A hole lies outside the polygon",
+      "invalidGeometry": "The geometry is not valid"
+    }
+  },
+  "farmOverlapsModal": {
+    "title": "Overlaps of {{id}}",
+    "summary_one": "Overlaps {{count}} polygon",
+    "summary_other": "Overlaps {{count}} polygons",
+    "headers": {
+      "id": "Overlaps",
+      "producer": "Producer",
+      "area": "Overlapping area",
+      "percentage": "% of the smaller",
+      "criticality": "Criticality"
+    },
+    "criticality": {
+      "HIGH": "High",
+      "MEDIUM": "Medium"
+    },
+    "validate": "Validate {{id}} manually",
+    "validateHint": "It is included in the analysis even though it overlaps these polygons. Each neighbour is validated from its own row."
+  },
+  "manualValidationsDropped_one": "{{count}} manual validation was removed: the polygon changed or its overlaps are no longer the same. Review it again.",
+  "manualValidationsDropped_other": "{{count}} manual validations were removed: the polygons changed or their overlaps are no longer the same. Review them again."
 }

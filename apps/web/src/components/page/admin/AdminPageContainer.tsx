@@ -53,6 +53,8 @@ export const AdminPageContainer: React.FC<Props> = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
+          // On a phone the actions go under the title instead of past the screen.
+          flexWrap: "wrap",
           gap: 2,
           marginBottom: subtitle ? 1.5 : 3,
         }}
@@ -72,7 +74,7 @@ export const AdminPageContainer: React.FC<Props> = ({
               }`}
           </Text>
         </Box>
-        <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {actions}
           <Button
             startIcon={<LogoutIcon />}

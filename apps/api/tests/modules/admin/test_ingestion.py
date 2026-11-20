@@ -13,6 +13,7 @@ from app.main import create_app
 from app.modules.admin import ingestion
 from app.modules.admin.ingestion import ingestion_slot, new_job
 from tests.modules.admin.support import COUNTRY_PASSKEYS, bearer, login
+from tests.modules.layers.test_categories import category, write_categories
 
 GFW = {
     "id": 0,
@@ -151,7 +152,7 @@ def test_valid_upload_is_converted_and_activated(
     )
     public = TestClient(create_app()).get("/maps").json()
     assert next(layer for layer in public if layer["id"] == 6)["version"] == 1
-    tile = client.get("/deforestation_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
+    tile = client.get("/layer_analysis/tiles/CO/6/dynamic/14/4710/8201.png")
     assert tile.status_code == 200
 
 
@@ -241,7 +242,9 @@ def test_declared_nodata_wins_over_the_requested_one(
 
 
 @pytest.mark.parametrize("declared", [True, False])
-def test_loss_value_cannot_be_nodata(layers, client, admin_headers, tmp_path, declared):
+def test_the_value_inside_the_layer_cannot_be_nodata(
+    layers, client, admin_headers, tmp_path, declared
+):
     content = write_tif(tmp_path / "in.tif", binary(), nodata=1 if declared else None)
     params = {} if declared else {"nodata": 1}
 
@@ -250,7 +253,7 @@ def test_loss_value_cannot_be_nodata(layers, client, admin_headers, tmp_path, de
     )
 
     assert job["status"] == "failed"
-    assert job["error"]["code"] == "nodata_is_loss"
+    assert job["error"]["code"] == "nodata_is_positive"
     assert entry(layers, 6)["raster_filename"] is None
 
 
@@ -299,7 +302,7 @@ def test_all_zeros_succeeds_with_a_warning(layers, client, admin_headers, tmp_pa
     job = job_for(client, admin_headers, upload(client, admin_headers, content))
 
     assert job["status"] == "succeeded"
-    assert [w["code"] for w in job["warnings"]] == ["no_loss_pixels"]
+    assert [w["code"] for w in job["warnings"]] == ["no_positive_pixels"]
 
 
 # --- Rejected rasters --------------------------------------------------------------
@@ -381,7 +384,7 @@ def test_only_the_gtiff_driver_parses_uploads(tmp_path, monkeypatch):
     monkeypatch.setattr(processing.rasterio, "open", spy)
 
     with pytest.raises(processing.IngestionError, match="GeoTIFF"):
-        processing.validate_raster(path, None)
+        processing.validate_raster(path, None, temporal=True)
     assert opened == ["GTiff"]
 
 
@@ -395,7 +398,8 @@ def test_loss_years_message_explains_what_to_do(
         upload(client, admin_headers, write_tif(tmp_path / "in.tif", data)),
     )
 
-    assert "look like loss years" in job["error"]["message"]
+    assert "look like years" in job["error"]["message"]
+    assert "baseline year" in job["error"]["message"]
 
 
 def test_verification_mismatch_leaves_the_layer_unchanged(
@@ -839,3 +843,101 @@ def test_an_upload_whose_client_left_starts_no_job(
     assert entry(layers, 6)["raster_filename"] is None
     assert_no_staging_left(layers, staging)
     assert ingestion_slot.job_id is None
+
+
+# --- Messages by category ----------------------------------------------------------
+
+# Layer 6 (no category_id) is `deforestation`, which is temporal.
+PROTECTED = {**NEW, "id": 8, "category_id": "protected_areas", "baseline": None}
+UNKNOWN = {**NEW, "id": 9, "category_id": "missing"}
+
+
+@pytest.fixture
+def categorized(layers, country_root):
+    """Colombia with a non-temporal category, a layer of it and a layer whose
+    category doesn't exist."""
+    layers.write_index([GFW, NEW, PROTECTED, UNKNOWN])
+    write_categories(country_root, "CO", [category("protected_areas")])
+    return layers
+
+
+def years(path):
+    return write_tif(
+        path, np.array([[0, 2021], [2022, 2023]] * 32, "uint16").repeat(32, 1)
+    )
+
+
+def failed_job(client, admin_headers, content, layer_id):
+    job = job_for(
+        client, admin_headers, upload(client, admin_headers, content, layer_id)
+    )
+    assert job["status"] == "failed"
+    return job["error"]
+
+
+def test_year_values_are_loss_years_only_in_a_temporal_category(
+    categorized, client, admin_headers, tmp_path
+):
+    temporal = failed_job(client, admin_headers, years(tmp_path / "a.tif"), 6)
+    assert temporal["code"] == "loss_years"
+    assert temporal["params"]["values"] == [2021, 2022, 2023]
+    assert "look like years" in temporal["message"]
+
+
+@pytest.mark.parametrize("layer_id", [8, 9], ids=["not-temporal", "unknown"])
+def test_year_values_are_not_binary_outside_a_temporal_category(
+    categorized, client, admin_headers, tmp_path, layer_id
+):
+    error = failed_job(client, admin_headers, years(tmp_path / "a.tif"), layer_id)
+
+    assert error["code"] == "not_binary"
+    assert error["params"]["values"] == [2021, 2022, 2023]
+    assert "0 = outside the layer, 1 = inside the layer" in error["message"]
+    for word in ("year", "baseline", "loss", "deforest"):
+        assert word not in error["message"].lower()
+
+
+@pytest.mark.parametrize("layer_id", [6, 8], ids=["temporal", "not-temporal"])
+def test_messages_describe_a_mask_whatever_the_category(
+    categorized, client, admin_headers, tmp_path, layer_id
+):
+    empty = job_for(
+        client,
+        admin_headers,
+        upload(
+            client,
+            admin_headers,
+            write_tif(tmp_path / "empty.tif", np.zeros((64, 64), "uint8")),
+            layer_id,
+        ),
+    )
+    assert empty["status"] == "succeeded"
+    [warning] = empty["warnings"]
+    assert warning["code"] == "no_positive_pixels"
+    assert warning["message"] == "No pixels inside the layer (value 1) were found"
+
+    nodata = failed_job(
+        client,
+        admin_headers,
+        write_tif(tmp_path / "nodata.tif", binary(), nodata=1),
+        layer_id,
+    )
+    assert nodata["code"] == "nodata_is_positive"
+
+    stray = failed_job(
+        client,
+        admin_headers,
+        write_tif(tmp_path / "s.tif", stray_value(binary())),
+        layer_id,
+    )
+    assert stray["code"] == "not_binary"
+
+    not_integer = failed_job(
+        client,
+        admin_headers,
+        write_tif(tmp_path / "f.tif", binary().astype("float32")),
+        layer_id,
+    )
+    for error in (nodata, stray, not_integer):
+        for word in ("loss", "deforest"):
+            assert word not in error["message"].lower()

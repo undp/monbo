@@ -151,6 +151,9 @@ describe("ManualFarmModal", () => {
     expect(
       screen.getByText(/haría que los bordes del polígono se crucen/)
     ).toBeTruthy();
+    // The warning's close button is named in Spanish, not MUI's default "Close"
+    const warning = screen.getByRole("alert");
+    expect(within(warning).getByRole("button", { name: "Cerrar" })).toBeTruthy();
     expect(map().drawing).toEqual(opened(square.slice(0, 3)));
   });
 

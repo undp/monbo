@@ -3,10 +3,25 @@
 :::summary
 - It checks that each farm has a correct geometry and doesn't overlap another farm.
 - A farm with any problem is marked **not valid**: you can fix it, or include it anyway through manual validation.
-- It is an **optional** step: a deforestation result doesn't show that the farms don't overlap.
+- It is an **optional** step: the territorial analysis doesn't show whether the farms overlap.
 :::
 
-If you upload the farms directly in the deforestation analysis, overlaps aren't looked for. The accepted geometries are in [Farm upload](#upload).
+If you upload the farms directly in the territorial analysis, overlaps aren't looked for. The accepted geometries are in [Farm upload](#upload).
+
+### How do I review the results?
+
+Each farm has a **Status**. **Review** shows its overlaps and lets you validate it manually; **Add more polygons** adds farms to the list.
+
+:::details[More detail: statuses and new uploads]
+The summary cards filter the table; another click on the same card shows every farm.
+
+- **Ready:** it has no problems.
+- **Overlaps…:** it overlaps another farm, or several. **Review** shows them on a map and lets you **validate it manually**, to include it in the analysis anyway. Each farm of an overlap is validated from its own row.
+- **Validated manually:** you included it despite the overlap. **Review** lets you undo it.
+- **A geometry error:** **Review** explains the problem. It can't be validated manually: it has to be fixed in the file.
+
+When you validate again after **Add more polygons**, all the farms are checked together. A farm validated manually stays validated only if it overlaps the same farms as before; if a new farm overlaps it, it needs a review again.
+:::
 
 ### Why is my farm not valid?
 
@@ -43,7 +58,7 @@ A 1 ha farm lying entirely inside a 200 ha farm has a 100% overlap, not 0.5%: th
 - Both farms of a reported overlap are marked not valid.
 
 :::details[More detail: edges, holes, several parts and points]
-- A farm with an invalid geometry isn't compared with the others, and the deforestation analysis shows it with no result (N/A).
+- A farm with an invalid geometry isn't compared with the others, and the territorial analysis shows it with no result (N/A).
 - Two farms that only share an edge or a corner don't overlap: they share no area.
 - A farm inside another farm's hole doesn't overlap it.
 - A farm with several parts is compared through all of them. Its area is the sum of its parts.

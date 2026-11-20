@@ -26,6 +26,18 @@ export interface Header {
   columnStyle?: SxProps<Theme>;
 }
 
+/**
+ * A cell of the row above the column headers, spanning `span` consecutive columns.
+ * The groups cover the headers in order; a group with no label leaves its columns
+ * ungrouped.
+ */
+export interface HeaderGroup {
+  key: string;
+  label?: React.ReactNode;
+  span: number;
+  sx?: SxProps<Theme>;
+}
+
 type Footer = Record<string, React.ReactNode>;
 
 export interface RowData<T> {
@@ -71,6 +83,8 @@ export interface SortBy {
 
 export interface TableProps<T> {
   headers: Header[];
+  /** An optional row above the column headers that groups them. */
+  headerGroups?: HeaderGroup[];
   headerStyle?: SxProps<Theme>;
   bodyStyle?: SxProps<Theme>;
   rows: RowData<T>[];
@@ -241,6 +255,7 @@ const BodyRow = React.memo(function BodyRow<T>({
 
 export function Table<T>({
   headers,
+  headerGroups,
   rows,
   footer,
   onRowClick,
@@ -270,6 +285,21 @@ export function Table<T>({
             ...props.headerStyle,
           }}
         >
+          {headerGroups && (
+            <TableRow>
+              {selectable ? <TableCell sx={{ borderBottom: 0 }} /> : null}
+              {headerGroups.map(({ key, label, span, sx }) => (
+                <TableCell
+                  key={key}
+                  colSpan={span}
+                  sx={{ borderBottom: 0, paddingBottom: 0, ...sx } as SxProps<Theme>}
+                >
+                  {label}
+                </TableCell>
+              ))}
+              {actions ? <TableCell sx={{ borderBottom: 0 }} /> : null}
+            </TableRow>
+          )}
           <TableRow>
             {selectable ? (
               <TableCell
@@ -330,6 +360,8 @@ export function Table<T>({
             sx={{ position: "sticky", bottom: 0, ...props.footerStyle }}
           >
             <TableRow>
+              {/* The selection checkbox's column, as in the header and the rows */}
+              {selectable ? <TableCell sx={{ border: "unset" }} /> : null}
               {headers.map((header) => (
                 <TableCell
                   key={header.attr}

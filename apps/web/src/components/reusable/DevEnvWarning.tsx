@@ -25,7 +25,7 @@ export const DevEnvWarning: React.FC = () => {
           variant="body2"
           sx={{ marginLeft: "5px", color: "#663C00", fontWeight: 500 }}
         >
-          {t("home:devWarning")}
+          {t("common:devWarning")}
         </Typography>
       </Box>
     </Box>

@@ -3,7 +3,7 @@
   "logout": "Log out",
   "login": {
     "title": "Admin access",
-    "subtitle": "Enter the admin passkey to manage the deforestation layers.",
+    "subtitle": "Enter the admin passkey to manage your country's layers and categories.",
     "passkeyLabel": "Admin passkey",
     "submit": "Log in",
     "errors": {
@@ -16,7 +16,7 @@
   },
   "layers": {
     "title": "Layers",
-    "subtitle": "Published layers appear in the deforestation analysis. Hidden layers are not shown, but earlier analyses that use them keep working.",
+    "subtitle": "Published layers appear in the territorial analysis. Hidden layers are not shown, but earlier analyses that use them keep working.",
     "new": "New layer",
     "edit": "Edit",
     "empty": "There are no layers.",
@@ -25,6 +25,7 @@
       "id": "ID",
       "name": "Name",
       "alias": "Alias",
+      "category": "Category",
       "raster": "Raster",
       "version": "Version",
       "published": "Published"
@@ -33,7 +34,155 @@
     "published": "Layer {{alias}} published.",
     "hidden": "Layer {{alias}} hidden.",
     "needsRaster": "Upload a raster before publishing the layer.",
-    "toggleError": "The layer's state could not be changed."
+    "toggleError": "The layer's state could not be changed.",
+    "categoryIssue": {
+      "unknown_category": "{{category}} · doesn't exist",
+      "invalid_category": "{{category}} · has an error",
+      "unreadable_categories": "{{category}} · can't be read"
+    },
+    "status": {
+      "blocked": "{{alias}} is published, but doesn't appear in the analysis: {{reason}}",
+      "reasons": {
+        "unknown_category": "its category “{{category}}” doesn't exist in your country.",
+        "invalid_category": "its category “{{category}}” has an error in the categories file.",
+        "unreadable_categories": "your country's categories file can't be read.",
+        "category_disabled": "its category “{{category}}” is disabled.",
+        "years_mismatch": "its years don't fit its category.",
+        "missing_raster": "it has no raster."
+      },
+      "fixes": {
+        "unknown_category": "Edit it and choose another category.",
+        "invalid_category": "Edit it and choose another category, or ask operations to fix the categories file.",
+        "unreadable_categories": "Ask operations to fix the categories file.",
+        "category_disabled": "Enable its category in Categories, or edit it and choose another one.",
+        "years_mismatch": "Edit it and fix its years: a category that compares two years needs a baseline and a comparison year; the others need none.",
+        "missing_raster": "Upload its raster."
+      },
+      "fixesPublished": {
+        "unknown_category": "Hide it and edit it to choose another category.",
+        "invalid_category": "Hide it and edit it to choose another category, or ask operations to fix the categories file.",
+        "unreadable_categories": "Ask operations to fix the categories file.",
+        "category_disabled": "Hide it; then enable its category and publish it again, or edit it and choose another category.",
+        "years_mismatch": "Edit it and fix its years: a category that compares two years needs a baseline and a comparison year; the others need none.",
+        "missing_raster": "Upload its raster."
+      }
+    },
+    "cannotPublish": "It can't be published: {{reason}} {{fix}}",
+    "refused": "The server refused the change: {{detail}}"
+  },
+  "categories": {
+    "title": "Categories",
+    "subtitle": "Group your country's layers in categories. Each one decides what counts as a finding, its threshold and how results look. Monbo's users see them when choosing layers, in the results, in the report and in the methodology.",
+    "new": "New category",
+    "edit": "Edit",
+    "loadError": "The categories couldn't be loaded.",
+    "unreadable": "Your country's categories file can't be read, so you can't create or edit categories. Ask operations to fix it:",
+    "rejected": "Some categories in the file have errors and aren't shown. Their layers stay hidden until operations fixes the file:",
+    "card": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enabledLabel": "Enable the category {{name}}",
+      "threshold": "Threshold: {{threshold}}",
+      "globalThreshold": "Global threshold: {{threshold}}",
+      "temporal": "Compares two years",
+      "ok": "No findings",
+      "flagged": "With findings",
+      "layers_one": "{{count}} layer",
+      "layers_other": "{{count}} layers",
+      "published_one": "{{count}} published",
+      "published_other": "{{count}} published",
+      "noLayers": "No layers yet."
+    },
+    "polarity": {
+      "avoid": "Marks what must be avoided: overlapping the layer is a finding.",
+      "required": "Marks what is allowed: falling outside the layer is a finding."
+    },
+    "locks": {
+      "enabled": "It has published layers ({{layers}}). Hide them to enable or disable the category.",
+      "polarity": "It can't change while layers are published ({{layers}}): their results would read the other way round. Hide them first.",
+      "temporal": "It can't change because the category has layers ({{layers}}): their years would stop fitting.",
+      "unreadable": "The categories file can't be read.",
+      "layerCount_one": "{{count}} layer",
+      "layerCount_other": "{{count}} layers"
+    },
+    "enabledDone": "Category {{name}} enabled.",
+    "disabledDone": "Category {{name}} disabled.",
+    "toggleError": "The category's state couldn't be changed.",
+    "form": {
+      "createTitle": "New category",
+      "editTitle": "Edit category",
+      "close": "Close",
+      "name": "Name",
+      "description": "Short description",
+      "descriptionHelp": "Shown in the analysis, the report and the methodology.",
+      "languages": {
+        "es": "ES",
+        "en": "EN"
+      },
+      "id": "Identifier",
+      "idHelp": "Permanent: it identifies the category in the layers and can't be changed or reused.",
+      "idReadOnly": "Identifier: {{id}}",
+      "iconAndColor": "Icon and color",
+      "icons": {
+        "forest": "Forest",
+        "shield": "Shield",
+        "agriculture": "Agriculture",
+        "water": "Water",
+        "mountain": "Mountain",
+        "wetland": "Wetland",
+        "fire": "Fire",
+        "layers": "Layers"
+      },
+      "icon": "Icon",
+      "color": "Color",
+      "swatch": "Color {{color}}",
+      "customColor": "Other color",
+      "polarity": "What do this category's layers mark?",
+      "polarityOptions": {
+        "avoid": {
+          "title": "What must be avoided",
+          "help": "For example, forest loss or protected areas. A polygon that overlaps the layer has a finding."
+        },
+        "required": {
+          "title": "What is allowed",
+          "help": "For example, the agricultural frontier. A polygon that falls outside the layer has a finding."
+        }
+      },
+      "temporal": "Layers compare two years",
+      "temporalHelp": "Turn it on if each layer has a baseline and a comparison year, like forest loss. Leave it off for layers without a period, like protected areas or the agricultural frontier.",
+      "threshold": "Threshold",
+      "useGlobalThreshold": "Use the global threshold ({{threshold}})",
+      "ownThreshold": "Category threshold (%)",
+      "thresholdHelp": "A polygon has findings when its finding is above the threshold.",
+      "resultLabels": "How the result looks",
+      "ok": "No findings",
+      "flagged": "With findings",
+      "publishedNote": "This category has published layers: changing the threshold or the texts changes how their results read from now on.",
+      "preview": {
+        "title": "Preview",
+        "choosePolarity": "Choose what the layers mark to see the preview.",
+        "unnamed": "Unnamed",
+        "avoid": "Polygon that overlaps the layer by {{finding}}",
+        "required": "Polygon with {{finding}} outside the layer",
+        "nothingFlagged": "With a 100% threshold no polygon has findings."
+      },
+      "cancel": "Cancel",
+      "create": "Create category",
+      "save": "Save",
+      "saving": "Saving…",
+      "created": "Category {{name}} created.",
+      "saved": "Changes saved.",
+      "saveError": "The category couldn't be saved.",
+      "errors": {
+        "required": "Required",
+        "id": "Use lowercase letters without accents, digits and _, starting with a letter (50 at most).",
+        "idTaken": "That identifier is already used in your country.",
+        "color": "Use a #rrggbb color",
+        "threshold": "A number from 0 to 100",
+        "polarity": "Choose what this category's layers mark.",
+        "invalid": "Check the marked fields."
+      }
+    }
   },
   "form": {
     "createTitle": "New layer",
@@ -109,11 +258,24 @@
       "year": "A year between 1900 and 2100",
       "baselineAfterComparison": "The baseline year can't be after the comparison year",
       "reference": "Must start with http:// or https://",
-      "invalid": "Check the highlighted fields."
+      "invalid": "Check the highlighted fields.",
+      "category": "Choose a category",
+      "categoryInvalid": "Choose a valid category"
+    },
+    "category": "Category",
+    "categoryHelp": "Decides what counts as a finding and how the layer's results read.",
+    "categoryLocked": "A published layer can't change category: hide it first.",
+    "categoryDisabledOption": "{{name}} (disabled)",
+    "noYears": "This category doesn't compare years: the layer has no baseline or comparison year.",
+    "categoriesLoadError": "The categories couldn't be loaded. Reload the page to choose the layer's category.",
+    "categoriesUnreadable": "Your country's categories file can't be read. You won't be able to save the layer until operations fixes it.",
+    "visibility": {
+      "blocked": "The layer is published, but doesn't appear in the analysis",
+      "hidden": "Before publishing this layer"
     }
   },
   "raster": {
-    "intro": "A single-band GeoTIFF with values 0 (no loss) and 1 (loss). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
+    "intro": "A single-band GeoTIFF with values 0 (outside the layer) and 1 (inside the layer). We check every pixel and convert it to an optimized GeoTIFF. The layer keeps its current raster until the new one is validated.",
     "steps": {
       "label": "Step {{number}}",
       "select": {
@@ -167,7 +329,7 @@
       "title": "Raster validated and active",
       "text": "{{filename}} · every pixel has the value 0 or 1."
     },
-    "publishNotice": "Not published yet. Until then, the layer doesn't show up in the deforestation analysis.",
+    "publishNotice": "Not published yet. Until then, the layer doesn't appear in the territorial analysis.",
     "publish": "Publish layer",
     "publishing": "Publishing…",
     "publishError": "The layer could not be published.",
@@ -186,20 +348,20 @@
     "issues": {
       "not_geotiff": "The file is not a readable GeoTIFF.",
       "band_count": "The raster must have exactly one band (it has {{bands}}).",
-      "not_integer": "The raster must have integer values (it has {{dtype}}). Use 0 for no loss and 1 for loss.",
+      "not_integer": "The raster must have integer values (it has {{dtype}}). Use 0 outside the layer and 1 inside it.",
       "no_crs": "The raster must have a coordinate reference system.",
-      "nodata_is_loss": "Nodata cannot be 1 because 1 represents forest loss. Use a different nodata value.",
+      "nodata_is_positive": "Nodata cannot be 1, because 1 marks the pixels inside the layer. Use a different nodata value.",
       "resolution_unavailable": "The raster's pixel size could not be determined from its reference system and grid.",
       "resolution_mismatch": "The layer pixel size ({{declared}} m) differs from the raster ({{measured}} m). Update the layer pixel size or choose another raster.",
       "resolution_varies": "The raster's pixel size varies from {{min}} m to {{max}} m across its latitudes, too much for a single layer pixel size. Reproject it to an equal-area reference system or split it.",
-      "not_binary": "The raster must be binary (0 = no loss, 1 = loss). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
-      "loss_years": "The raster has values that look like loss years ({{values}}). Binarize it against its baseline year before uploading.",
+      "not_binary": "The raster must be binary (0 = outside the layer, 1 = inside the layer). Other values found: {{values}}. If one of them marks nodata, upload it again with that value.",
+      "loss_years": "The raster has values that look like years ({{values}}). Binarize it against its baseline year before uploading.",
       "conversion_mismatch": "The conversion didn't keep every pixel, so nothing was changed.",
       "layer_not_found": "The layer no longer exists.",
       "interrupted": "The process was interrupted because the server restarted. Upload the file again.",
       "unexpected": "An unexpected error happened while processing the raster.",
       "nodata_ignored": "The file already declares nodata {{declared}}; the value {{requested}} was ignored.",
-      "no_loss_pixels": "The raster has no loss pixels (value 1)."
+      "no_positive_pixels": "The raster has no pixels inside the layer (value 1)."
     }
   },
   "usage": {
@@ -223,18 +385,21 @@
       "sessions": "Sessions",
       "sessionsDetail": "Browser tabs that used Monbo",
       "uploads": "Farm uploads",
-      "avgFarms": "{{value}} farms per upload on average",
-      "analyses": "Deforestation analyses",
-      "analysisSessions": "{{value}} sessions analyzed",
+      "avgFarms_one": "{{value}} farm per upload on average",
+      "avgFarms_other": "{{value}} farms per upload on average",
+      "analyses": "Territorial analyses",
+      "analysisSessions_one": "{{value}} session analyzed",
+      "analysisSessions_other": "{{value}} sessions analyzed",
       "reportsRequested": "Reports requested",
-      "requestedSessions": "from {{value}} sessions",
+      "requestedSessions_one": "from {{value}} session",
+      "requestedSessions_other": "from {{value}} sessions",
       "reportsDownloaded": "Reports downloaded",
       "downloadedFormats": "{{pdf}} as one PDF · {{zip}} as a ZIP",
       "trend": "{{label}}, week by week"
     },
     "funnel": {
       "title": "Usage funnel",
-      "subtitle": "Sessions that reached each step of the deforestation analysis, and their share of all sessions.",
+      "subtitle": "Sessions that reached each step of the analysis, and their share of all sessions.",
       "sessions": "Sessions",
       "uploaded": "Uploaded farms",
       "analyzed": "Ran an analysis",
@@ -272,7 +437,8 @@
       "analyses": "Analyses",
       "reportsRequested": "Reports requested",
       "reportsDownloaded": "Reports downloaded",
-      "okErrors": "{{ok}} ok · {{errors}} errors",
+      "okErrors_one": "{{ok}} ok · {{errors}} error",
+      "okErrors_other": "{{ok}} ok · {{errors}} errors",
       "unknown": "Unknown country",
       "empty": "There is no usage in this range.",
       "sources": "Uploads, validations and analyses are recorded by the server. Reports are reported by the browser."
@@ -284,6 +450,7 @@
       "reportsDownloaded": "Reports downloaded"
     },
     "notConfigured": "Usage metrics aren't configured on this server.",
-    "loadError": "The usage figures could not be loaded."
+    "loadError": "The usage figures could not be loaded.",
+    "chartNoData": "No data in this range."
   }
 }

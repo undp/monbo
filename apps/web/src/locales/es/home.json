@@ -1,41 +1,62 @@
 {
-  "title": "Aplicación para la producción sostenible",
-  "subtitle": "Analiza, valida y documenta que tu producción está libre de deforestación y cumple con normativas locales y EUDR",
-  "validation": {
-    "title": "Validación de polígonos y puntos",
-    "description": "Descarga la plantilla, completa los datos y cárgala para validar traslapes o duplicidades automáticamente.",
-    "button": "Validar polígonos"
-  },
-  "deforestation": {
-    "title": "Análisis de deforestación",
-    "description": "Identifica si hay deforestación de una o más fincas, compara con fuentes de mapas globales y locales.",
-    "button": "Analizar deforestación"
-  },
-  "report": {
-    "title": "Generación de reporte",
-    "description": "Descarga en formato pdf o GeoJSON el detalle de producción y análisis de deforestación para presentar en la Debida Diligencia.",
-    "button": "Generar reporte"
-  },
   "sameDataModal": {
     "polygonValidation": {
-      "title": "Se utilizarán los mismos datos para validar",
-      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+      "title": "Usarás los mismos datos para validar",
+      "description": "Puedes ver los datos que ya cargaste o subir datos nuevos."
     },
-    "deforestationAnalysis": {
-      "title": "Se utilizarán los mismos datos para el análisis de deforestación",
-      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+    "territorialAnalysis": {
+      "title": "Usarás los mismos datos en el análisis territorial",
+      "description": "Puedes ver los datos que ya cargaste o subir datos nuevos."
     },
-    "uploadNewData": "Subir nuevos datos",
+    "uploadNewData": "Subir datos nuevos",
     "sameData": "Continuar con los mismos datos"
   },
   "landing": {
-    "title": "¿Dónde está tu producción?",
-    "subtitle": "Elige el país para el análisis de deforestación. Solo puedes elegir países que tienen mapas disponibles.",
-    "noCountries": "No hay países con mapas disponibles en este momento.",
-    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo.",
-    "continueWith": "Continuar con {{country}}",
-    "continue": "Continuar",
-    "inviteTitle": "Tu país puede ser el próximo",
-    "inviteLink": "Contáctanos"
+    "badges": {
+      "free": "Gratis y de libre acceso",
+      "noSignUp": "Sin registro",
+      "noStorage": "No guardamos tus polígonos"
+    },
+    "eyebrow": "Monbo · Producción sostenible",
+    "title": "Revisa tu producción en <highlight>3 pasos</highlight>.",
+    "lead": "Sube tus polígonos, crúzalos con mapas oficiales y descarga un reporte para tu debida diligencia.",
+    "howItWorks": "Cómo funciona",
+    "stepsTitle": "Así funciona",
+    "stepsSubtitle": "Empieza por el paso 1. Si ya tienes tus polígonos validados, puedes ir directo al 2.",
+    "stepNumber": "Paso {{step}}:",
+    "steps": {
+      "validation": {
+        "title": "Valida tus polígonos",
+        "description": "Súbelos en Excel, archivo geográfico o dibújalos en el mapa. Revisamos errores y traslapes.",
+        "link": "Descargar plantilla"
+      },
+      "analysis": {
+        "title": "Análisis territorial",
+        "description": "Crúzalos con capas oficiales y globales. Las capas disponibles dependen de tu país.",
+        "link": "Ver capas por país"
+      },
+      "report": {
+        "title": "Descarga tu reporte",
+        "description": "En PDF o GeoJSON, listo para presentar en tu proceso de debida diligencia (EUDR).",
+        "link": "Ver ejemplo de reporte"
+      }
+    },
+    "categories": {
+      "deforestation": "Deforestación",
+      "protectedAreas": "Áreas protegidas",
+      "agriculturalFrontier": "Frontera agrícola"
+    },
+    "where": "¿Dónde produces?",
+    "start": "Empezar en {{country}}",
+    "startWithoutCountry": "Empezar",
+    "contact": "¿Tu país no está? Escríbenos",
+    "noCountries": "Todavía no hay países disponibles.",
+    "loadError": "No pudimos cargar los países. Recarga la página para intentarlo de nuevo.",
+    "trust": {
+      "undp": "Desarrollado por el PNUD",
+      "layers": "Capas globales y oficiales de cada país",
+      "languages": "Disponible en español e inglés"
+    },
+    "opensInNewTab": "(se abre en una pestaña nueva)"
   }
 }

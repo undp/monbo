@@ -13,7 +13,7 @@ from rasterio.transform import from_origin
 from shapely.geometry import box
 
 from app.helpers.GeometryCalculator import GeometryCalculator
-from app.modules.deforestation_analysis.helpers import get_tile
+from app.modules.layer_analysis.helpers import get_tile
 from app.utils.image_generation.constants import MapDefaults
 from app.utils.image_generation.errors import NoRasterDataOverlapError
 from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
@@ -213,9 +213,9 @@ def test_a_tile_reads_the_coarsest_overview_finer_than_its_pixel(
 
 def test_the_validation_farm_is_drawn_as_its_ratio_counts_it(tmp_path):
     """F-VALIDACION on a crop of the real GFW raster: its share drawn red on the
-    map is its ratio, 25% (see test_analize_the_validation_farm_on_real_gfw_pixels).
+    map is its ratio, 25% (see test_analyze_the_validation_farm_on_real_gfw_pixels).
     The old drawing, off by about half a pixel, showed it 17.7% red."""
-    from tests.modules.deforestation_analysis.test_router import (
+    from tests.modules.layer_analysis.test_router import (
         GFW_CROP,
         VALIDATION_FARM,
     )

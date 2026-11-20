@@ -1,22 +1,22 @@
 {
-  "title": "Mantenedor de capas",
+  "title": "Administración de capas",
   "logout": "Cerrar sesión",
   "login": {
     "title": "Acceso de administración",
-    "subtitle": "Ingresa la clave de administración para gestionar las capas de deforestación.",
+    "subtitle": "Ingresa la clave de administración para gestionar las capas y categorías de tu país.",
     "passkeyLabel": "Clave de administración",
     "submit": "Ingresar",
     "errors": {
       "invalid": "La clave no es correcta.",
-      "tooManyAttempts": "Demasiados intentos fallidos. Vuelve a intentar en {{minutes}} minutos.",
-      "notEnabled": "El mantenedor de capas no está habilitado en este servidor.",
+      "tooManyAttempts": "Demasiados intentos fallidos. Vuelve a intentarlo en {{minutes}} minutos.",
+      "notEnabled": "La administración de capas no está habilitada en este servidor.",
       "forbiddenOrigin": "Este sitio no está autorizado para administrar capas.",
       "network": "No se pudo conectar con el servidor."
     }
   },
   "layers": {
     "title": "Capas",
-    "subtitle": "Las capas publicadas aparecen en el análisis de deforestación. Las capas ocultas no se muestran, pero los análisis anteriores que las usan siguen funcionando.",
+    "subtitle": "Las capas publicadas aparecen en el análisis territorial. Las capas ocultas no se muestran, pero los análisis anteriores que las usan siguen funcionando.",
     "new": "Nueva capa",
     "edit": "Editar",
     "empty": "No hay capas.",
@@ -25,6 +25,7 @@
       "id": "ID",
       "name": "Nombre",
       "alias": "Alias",
+      "category": "Categoría",
       "raster": "Raster",
       "version": "Versión",
       "published": "Publicada"
@@ -33,7 +34,155 @@
     "published": "Capa {{alias}} publicada.",
     "hidden": "Capa {{alias}} oculta.",
     "needsRaster": "Sube un raster antes de publicar la capa.",
-    "toggleError": "No se pudo cambiar el estado de la capa."
+    "toggleError": "No se pudo cambiar el estado de la capa.",
+    "categoryIssue": {
+      "unknown_category": "{{category}} · no existe",
+      "invalid_category": "{{category}} · con error",
+      "unreadable_categories": "{{category}} · no se puede leer"
+    },
+    "status": {
+      "blocked": "{{alias}} está publicada, pero no aparece en el análisis: {{reason}}",
+      "reasons": {
+        "unknown_category": "su categoría «{{category}}» no existe en tu país.",
+        "invalid_category": "su categoría «{{category}}» tiene un error en el archivo de categorías.",
+        "unreadable_categories": "el archivo de categorías de tu país no se puede leer.",
+        "category_disabled": "su categoría «{{category}}» está deshabilitada.",
+        "years_mismatch": "sus años no coinciden con su categoría.",
+        "missing_raster": "no tiene raster."
+      },
+      "fixes": {
+        "unknown_category": "Edítala y elige otra categoría.",
+        "invalid_category": "Edítala y elige otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
+        "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
+        "category_disabled": "Habilita su categoría en Categorías, o edítala y elige otra.",
+        "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
+        "missing_raster": "Sube su raster."
+      },
+      "fixesPublished": {
+        "unknown_category": "Ocúltala y edítala para elegir otra categoría.",
+        "invalid_category": "Ocúltala y edítala para elegir otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
+        "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
+        "category_disabled": "Ocúltala; después habilita su categoría y vuelve a publicarla, o edítala y elige otra categoría.",
+        "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
+        "missing_raster": "Sube su raster."
+      }
+    },
+    "cannotPublish": "No se puede publicar: {{reason}} {{fix}}",
+    "refused": "El servidor no permitió el cambio: {{detail}}"
+  },
+  "categories": {
+    "title": "Categorías",
+    "subtitle": "Agrupa las capas de tu país en categorías. Cada una define qué cuenta como observación, su umbral y cómo se ven los resultados. Quienes usan Monbo las ven al elegir capas, en los resultados, en el reporte y en la metodología.",
+    "new": "Nueva categoría",
+    "edit": "Editar",
+    "loadError": "No se pudieron cargar las categorías.",
+    "unreadable": "El archivo de categorías de tu país no se puede leer, así que no puedes crear ni editar categorías. Pide al equipo de operaciones que lo corrija:",
+    "rejected": "Algunas categorías del archivo tienen errores y no se muestran. Sus capas quedan ocultas hasta que el equipo de operaciones corrija el archivo:",
+    "card": {
+      "enabled": "Habilitada",
+      "disabled": "Deshabilitada",
+      "enabledLabel": "Habilitar la categoría {{name}}",
+      "threshold": "Umbral: {{threshold}}",
+      "globalThreshold": "Umbral global: {{threshold}}",
+      "temporal": "Compara dos años",
+      "ok": "Sin observaciones",
+      "flagged": "Con observaciones",
+      "layers_one": "{{count}} capa",
+      "layers_other": "{{count}} capas",
+      "published_one": "{{count}} publicada",
+      "published_other": "{{count}} publicadas",
+      "noLayers": "Todavía no tiene capas."
+    },
+    "polarity": {
+      "avoid": "Marca lo que se debe evitar: coincidir con la capa es una observación.",
+      "required": "Marca lo permitido: quedar fuera de la capa es una observación."
+    },
+    "locks": {
+      "enabled": "Tiene capas publicadas ({{layers}}). Ocúltalas para habilitar o deshabilitar la categoría.",
+      "polarity": "No se puede cambiar mientras haya capas publicadas ({{layers}}): sus resultados se leerían al revés. Ocúltalas primero.",
+      "temporal": "No se puede cambiar porque la categoría tiene capas ({{layers}}): sus años dejarían de coincidir con ella.",
+      "unreadable": "El archivo de categorías no se puede leer.",
+      "layerCount_one": "{{count}} capa",
+      "layerCount_other": "{{count}} capas"
+    },
+    "enabledDone": "Categoría {{name}} habilitada.",
+    "disabledDone": "Categoría {{name}} deshabilitada.",
+    "toggleError": "No se pudo cambiar el estado de la categoría.",
+    "form": {
+      "createTitle": "Nueva categoría",
+      "editTitle": "Editar categoría",
+      "close": "Cerrar",
+      "name": "Nombre",
+      "description": "Descripción corta",
+      "descriptionHelp": "Se muestra en el análisis, en el reporte y en la metodología.",
+      "languages": {
+        "es": "ES",
+        "en": "EN"
+      },
+      "id": "Identificador",
+      "idHelp": "Es permanente: identifica la categoría en las capas y no se puede cambiar ni reutilizar.",
+      "idReadOnly": "Identificador: {{id}}",
+      "iconAndColor": "Ícono y color",
+      "icons": {
+        "forest": "Bosque",
+        "shield": "Escudo",
+        "agriculture": "Agricultura",
+        "water": "Agua",
+        "mountain": "Montaña",
+        "wetland": "Humedal",
+        "fire": "Fuego",
+        "layers": "Capas"
+      },
+      "icon": "Ícono",
+      "color": "Color",
+      "swatch": "Color {{color}}",
+      "customColor": "Otro color",
+      "polarity": "¿Qué marcan las capas de esta categoría?",
+      "polarityOptions": {
+        "avoid": {
+          "title": "Lo que se debe evitar",
+          "help": "Por ejemplo, pérdida de bosque o áreas protegidas. Un polígono que coincide con la capa tiene una observación."
+        },
+        "required": {
+          "title": "Lo permitido",
+          "help": "Por ejemplo, la frontera agrícola. Un polígono que queda fuera de la capa tiene una observación."
+        }
+      },
+      "temporal": "Las capas comparan dos años",
+      "temporalHelp": "Actívalo si cada capa tiene un año base y uno de comparación, como la pérdida de bosque. Déjalo apagado para capas sin período, como áreas protegidas o frontera agrícola.",
+      "threshold": "Umbral",
+      "useGlobalThreshold": "Usar el umbral global ({{threshold}})",
+      "ownThreshold": "Umbral de la categoría (%)",
+      "thresholdHelp": "Un polígono tiene observaciones cuando su hallazgo supera el umbral.",
+      "resultLabels": "Cómo se ve el resultado",
+      "ok": "Sin observaciones",
+      "flagged": "Con observaciones",
+      "publishedNote": "Esta categoría tiene capas publicadas: si cambias el umbral o los textos, cambia cómo se leen sus resultados desde ahora.",
+      "preview": {
+        "title": "Vista previa",
+        "choosePolarity": "Elige qué marcan las capas para ver la vista previa.",
+        "unnamed": "Sin nombre",
+        "avoid": "Polígono que coincide {{finding}} con la capa",
+        "required": "Polígono que queda {{finding}} fuera de la capa",
+        "nothingFlagged": "Con un umbral de 100 % ningún polígono tiene observaciones."
+      },
+      "cancel": "Cancelar",
+      "create": "Crear categoría",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "created": "Categoría {{name}} creada.",
+      "saved": "Cambios guardados.",
+      "saveError": "No se pudo guardar la categoría.",
+      "errors": {
+        "required": "Obligatorio",
+        "id": "Usa minúsculas sin tildes, números y _, empezando con una letra (máximo 50).",
+        "idTaken": "Ese identificador ya se usa en tu país.",
+        "color": "Usa un color #rrggbb",
+        "threshold": "Un número entre 0 y 100",
+        "polarity": "Elige qué marcan las capas de esta categoría.",
+        "invalid": "Revisa los campos marcados."
+      }
+    }
   },
   "form": {
     "createTitle": "Nueva capa",
@@ -68,9 +217,9 @@
     "preview": "Vista previa",
     "emptyPreview": "Sin consideraciones.",
     "example": {
-      "open": "Ver un ejemplo de cómo llenar los textos",
+      "open": "Ver un ejemplo de cómo completar los textos",
       "title": "Ejemplo: textos de una capa",
-      "intro": "Así se llenan los textos de la capa de deforestación del IDEAM de Colombia. Llena cada idioma en su pestaña: los textos se muestran en el idioma que elija quien usa Monbo.",
+      "intro": "Así se completan los textos de la capa de deforestación del IDEAM de Colombia. Completa cada idioma en su pestaña: cada persona ve los textos en el idioma que elige en Monbo.",
       "field": "Campo",
       "value": "Ejemplo",
       "hints": {
@@ -79,7 +228,7 @@
         "coverage": "Territorio que cubre el mapa.",
         "source": "Institución o proyecto que produce el mapa.",
         "resolution": "Tamaño del píxel en terreno.",
-        "contentDate": "Periodo que cubren los datos.",
+        "contentDate": "Período que cubren los datos.",
         "updateFrequency": "Cada cuánto se publica una versión nueva.",
         "publishDate": "Cuándo suele publicarse.",
         "considerations": "Definiciones y limitaciones, en Markdown: ### para títulos, - para listas, **texto** para negritas."
@@ -109,11 +258,24 @@
       "year": "Año entre 1900 y 2100",
       "baselineAfterComparison": "El año base no puede ser posterior al de comparación",
       "reference": "Debe empezar con http:// o https://",
-      "invalid": "Revisa los campos marcados."
+      "invalid": "Revisa los campos marcados.",
+      "category": "Elige una categoría",
+      "categoryInvalid": "Elige una categoría válida"
+    },
+    "category": "Categoría",
+    "categoryHelp": "Define qué cuenta como observación y cómo se leen los resultados de la capa.",
+    "categoryLocked": "Una capa publicada no cambia de categoría: ocúltala primero.",
+    "categoryDisabledOption": "{{name}} (deshabilitada)",
+    "noYears": "Esta categoría no compara años: la capa no lleva año base ni año de comparación.",
+    "categoriesLoadError": "No se pudieron cargar las categorías. Recarga la página para elegir la categoría de la capa.",
+    "categoriesUnreadable": "El archivo de categorías de tu país no se puede leer. No vas a poder guardar la capa hasta que el equipo de operaciones lo corrija.",
+    "visibility": {
+      "blocked": "La capa está publicada, pero no aparece en el análisis",
+      "hidden": "Antes de publicar esta capa"
     }
   },
   "raster": {
-    "intro": "GeoTIFF de una banda con valores 0 (sin pérdida) y 1 (pérdida). Validamos cada píxel y lo convertimos a GeoTIFF optimizado. La capa sigue usando su raster actual hasta que el nuevo termine de validarse.",
+    "intro": "GeoTIFF de una banda con valores 0 (fuera de la capa) y 1 (dentro de la capa). Validamos cada píxel y lo convertimos a GeoTIFF optimizado. La capa sigue usando su raster actual hasta que el nuevo termine de validarse.",
     "steps": {
       "label": "Paso {{number}}",
       "select": {
@@ -167,7 +329,7 @@
       "title": "Raster validado y activo",
       "text": "{{filename}} · todos los píxeles tienen valores 0 o 1."
     },
-    "publishNotice": "Falta publicar. Hasta entonces, la capa no aparece en el análisis de deforestación.",
+    "publishNotice": "Falta publicar. Hasta entonces, la capa no aparece en el análisis territorial.",
     "publish": "Publicar capa",
     "publishing": "Publicando…",
     "publishError": "No se pudo publicar la capa.",
@@ -179,27 +341,27 @@
     "replace": "Reemplazar raster",
     "uploadErrors": {
       "tooLarge": "El archivo supera el tamaño máximo que acepta el servidor.",
-      "busy": "Ya se está procesando otro raster. Intenta en unos minutos.",
+      "busy": "Ya se está procesando otro raster. Inténtalo de nuevo en unos minutos.",
       "generic": "No se pudo subir el raster.",
       "statusUnavailable": "El estado de esta subida ya no está disponible. Recarga la capa para ver si cambió su raster."
     },
     "issues": {
       "not_geotiff": "El archivo no es un GeoTIFF legible.",
       "band_count": "El raster debe tener exactamente una banda (tiene {{bands}}).",
-      "not_integer": "El raster debe tener valores enteros (tiene {{dtype}}). Usa 0 para sin pérdida y 1 para pérdida.",
+      "not_integer": "El raster debe tener valores enteros (tiene {{dtype}}). Usa 0 fuera de la capa y 1 dentro de ella.",
       "no_crs": "El raster debe tener un sistema de referencia de coordenadas.",
-      "nodata_is_loss": "Nodata no puede ser 1 porque 1 representa pérdida de bosque. Usa otro valor nodata.",
+      "nodata_is_positive": "Nodata no puede ser 1, porque 1 marca los píxeles dentro de la capa. Usa otro valor nodata.",
       "resolution_unavailable": "No se pudo determinar el tamaño de píxel del raster a partir de su sistema de referencia y su grilla.",
       "resolution_mismatch": "El tamaño de píxel de la capa ({{declared}} m) difiere del raster ({{measured}} m). Corrige el tamaño de píxel o elige otro raster.",
       "resolution_varies": "El tamaño de píxel del raster varía de {{min}} m a {{max}} m entre sus latitudes, demasiado para un único tamaño de píxel de la capa. Reproyéctalo a un sistema de referencia de áreas iguales o divídelo.",
-      "not_binary": "El raster debe ser binario (0 = sin pérdida, 1 = pérdida). Otros valores encontrados: {{values}}. Si alguno marca nodata, vuelve a subirlo indicando ese valor.",
-      "loss_years": "El raster tiene valores que parecen años de pérdida ({{values}}). Binarízalo contra su año base antes de subirlo.",
+      "not_binary": "El raster debe ser binario (0 = fuera de la capa, 1 = dentro de la capa). Otros valores encontrados: {{values}}. Si alguno marca nodata, vuelve a subirlo indicando ese valor.",
+      "loss_years": "El raster tiene valores que parecen años ({{values}}). Binarízalo contra su año base antes de subirlo.",
       "conversion_mismatch": "La conversión no conservó todos los píxeles, así que no se cambió nada.",
       "layer_not_found": "La capa ya no existe.",
       "interrupted": "El proceso se interrumpió porque el servidor se reinició. Vuelve a subir el archivo.",
-      "unexpected": "Ocurrió un error inesperado al procesar el raster.",
+      "unexpected": "No se pudo procesar el raster por un error inesperado.",
       "nodata_ignored": "El archivo ya declara nodata {{declared}}; se ignoró el valor {{requested}}.",
-      "no_loss_pixels": "El raster no tiene píxeles con pérdida (valor 1)."
+      "no_positive_pixels": "El raster no tiene píxeles dentro de la capa (valor 1)."
     }
   },
   "usage": {
@@ -223,18 +385,21 @@
       "sessions": "Sesiones",
       "sessionsDetail": "Pestañas del navegador que usaron Monbo",
       "uploads": "Cargas de fincas",
-      "avgFarms": "{{value}} fincas por carga en promedio",
-      "analyses": "Análisis de deforestación",
-      "analysisSessions": "{{value}} sesiones analizaron",
+      "avgFarms_one": "{{value}} finca por carga en promedio",
+      "avgFarms_other": "{{value}} fincas por carga en promedio",
+      "analyses": "Análisis territoriales",
+      "analysisSessions_one": "{{value}} sesión analizó",
+      "analysisSessions_other": "{{value}} sesiones analizaron",
       "reportsRequested": "Reportes pedidos",
-      "requestedSessions": "desde {{value}} sesiones",
+      "requestedSessions_one": "desde {{value}} sesión",
+      "requestedSessions_other": "desde {{value}} sesiones",
       "reportsDownloaded": "Reportes descargados",
       "downloadedFormats": "{{pdf}} en un PDF · {{zip}} en un ZIP",
       "trend": "{{label}}, semana a semana"
     },
     "funnel": {
       "title": "Embudo de uso",
-      "subtitle": "Sesiones que llegaron a cada paso del análisis de deforestación, y su porcentaje del total de sesiones.",
+      "subtitle": "Sesiones que llegaron a cada paso del análisis, y su porcentaje del total de sesiones.",
       "sessions": "Sesiones",
       "uploaded": "Subieron fincas",
       "analyzed": "Hicieron un análisis",
@@ -272,7 +437,8 @@
       "analyses": "Análisis",
       "reportsRequested": "Reportes pedidos",
       "reportsDownloaded": "Reportes descargados",
-      "okErrors": "{{ok}} ok · {{errors}} errores",
+      "okErrors_one": "{{ok}} ok · {{errors}} error",
+      "okErrors_other": "{{ok}} ok · {{errors}} errores",
       "unknown": "País desconocido",
       "empty": "No hay uso en este rango.",
       "sources": "Las cargas, validaciones y análisis los registra el servidor. Los reportes los reporta el navegador."
@@ -284,6 +450,7 @@
       "reportsDownloaded": "Reportes descargados"
     },
     "notConfigured": "Las métricas de uso no están configuradas en este servidor.",
-    "loadError": "No se pudieron cargar las cifras de uso."
+    "loadError": "No se pudieron cargar las cifras de uso.",
+    "chartNoData": "Sin datos en este rango."
   }
 }

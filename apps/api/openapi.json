@@ -1,6 +1,129 @@
 {
   "components": {
     "schemas": {
+      "AdminCategories": {
+        "description": "Body of `GET /admin/categories`.",
+        "properties": {
+          "categories": {
+            "description": "Every category of the session's country, enabled or not, in the order `GET /categories` uses. Rejected entries are not listed.",
+            "items": {
+              "$ref": "#/components/schemas/AdminCategory"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "errors": {
+            "description": "The problems of the country's categories file, one per entry",
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "readable": {
+            "description": "False when the country's categories file can't be read or parsed",
+            "title": "Readable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "categories",
+          "readable",
+          "errors"
+        ],
+        "title": "AdminCategories",
+        "type": "object"
+      },
+      "AdminCategory": {
+        "description": "A category as the admin sees it: like `LayerCategory`, with its own threshold\n(not resolved), its state and how many layers use it.",
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "layerCount": {
+            "description": "Layers of the country in this category",
+            "title": "Layercount",
+            "type": "integer"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "polarity": {
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "publishedLayerCount": {
+            "description": "Of those, the enabled ones",
+            "title": "Publishedlayercount",
+            "type": "integer"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/ResultLabels"
+          },
+          "temporal": {
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null when it uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "icon",
+          "color",
+          "polarity",
+          "thresholdPercentage",
+          "resultLabels",
+          "temporal",
+          "enabled",
+          "layerCount",
+          "publishedLayerCount"
+        ],
+        "title": "AdminCategory",
+        "type": "object"
+      },
       "AdminLayer": {
         "properties": {
           "attributes": {
@@ -27,6 +150,32 @@
               }
             ],
             "title": "Baseline"
+          },
+          "category_enabled": {
+            "description": "Whether the layer's category resolves and is enabled",
+            "title": "Category Enabled",
+            "type": "boolean"
+          },
+          "category_id": {
+            "title": "Category Id",
+            "type": "string"
+          },
+          "category_issue": {
+            "anyOf": [
+              {
+                "enum": [
+                  "unknown_category",
+                  "invalid_category",
+                  "unreadable_categories"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the layer's category doesn't resolve in its country (the layer is then hidden from the public app), or null when it does.",
+            "title": "Category Issue"
           },
           "compared_against": {
             "anyOf": [
@@ -65,6 +214,22 @@
             "title": "Id",
             "type": "integer"
           },
+          "layer_issue": {
+            "anyOf": [
+              {
+                "enum": [
+                  "years_mismatch",
+                  "missing_raster"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.",
+            "title": "Layer Issue"
+          },
           "pixel_size": {
             "title": "Pixel Size",
             "type": "number"
@@ -94,6 +259,10 @@
         },
         "required": [
           "id",
+          "category_id",
+          "category_issue",
+          "category_enabled",
+          "layer_issue",
           "pixel_size",
           "baseline",
           "compared_against",
@@ -108,7 +277,34 @@
         "title": "AdminLayer",
         "type": "object"
       },
-      "AnalizeBody": {
+      "AnalysisUsage": {
+        "properties": {
+          "errors": {
+            "$ref": "#/components/schemas/ErrorCounts"
+          },
+          "farms": {
+            "title": "Farms",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "sessions": {
+            "title": "Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "errors",
+          "sessions",
+          "farms"
+        ],
+        "title": "AnalysisUsage",
+        "type": "object"
+      },
+      "AnalyzeBody": {
         "properties": {
           "country": {
             "anyOf": [
@@ -141,34 +337,7 @@
           "maps",
           "farms"
         ],
-        "title": "AnalizeBody",
-        "type": "object"
-      },
-      "AnalysisUsage": {
-        "properties": {
-          "errors": {
-            "$ref": "#/components/schemas/ErrorCounts"
-          },
-          "farms": {
-            "title": "Farms",
-            "type": "integer"
-          },
-          "ok": {
-            "title": "Ok",
-            "type": "integer"
-          },
-          "sessions": {
-            "title": "Sessions",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "ok",
-          "errors",
-          "sessions",
-          "farms"
-        ],
-        "title": "AnalysisUsage",
+        "title": "AnalyzeBody",
         "type": "object"
       },
       "BaseMapData": {
@@ -201,6 +370,10 @@
               }
             ],
             "title": "Baseline"
+          },
+          "categoryId": {
+            "title": "Categoryid",
+            "type": "string"
           },
           "comparedAgainst": {
             "anyOf": [
@@ -348,6 +521,7 @@
           "considerations",
           "availableCountriesCodes",
           "country",
+          "categoryId",
           "version",
           "pixelSize"
         ],
@@ -441,6 +615,243 @@
           "farms"
         ],
         "title": "BrowserEventBody",
+        "type": "object"
+      },
+      "CategoryCreate": {
+        "additionalProperties": false,
+        "description": "Body of `POST /admin/categories`.",
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/CategoryDescriptionInput"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable slug, unique in the country and never reused",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CategoryNameInput"
+          },
+          "polarity": {
+            "description": "`avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/CategoryResultLabelsInput"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "name",
+          "icon",
+          "color",
+          "polarity",
+          "resultLabels",
+          "temporal",
+          "id"
+        ],
+        "title": "CategoryCreate",
+        "type": "object"
+      },
+      "CategoryDescriptionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "title": "CategoryDescriptionInput",
+        "type": "object"
+      },
+      "CategoryInput": {
+        "additionalProperties": false,
+        "description": "Body of `PUT /admin/categories/{id}`: every editable field of a category.\n`enabled` changes only through `PATCH`.",
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/CategoryDescriptionInput"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CategoryNameInput"
+          },
+          "polarity": {
+            "description": "`avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/CategoryResultLabelsInput"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The category's own threshold; null uses the global one",
+            "title": "Thresholdpercentage"
+          }
+        },
+        "required": [
+          "name",
+          "icon",
+          "color",
+          "polarity",
+          "resultLabels",
+          "temporal"
+        ],
+        "title": "CategoryInput",
+        "type": "object"
+      },
+      "CategoryLabelInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "CategoryLabelInput",
+        "type": "object"
+      },
+      "CategoryNameInput": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "CategoryNameInput",
+        "type": "object"
+      },
+      "CategoryResultLabelsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "flagged": {
+            "$ref": "#/components/schemas/CategoryLabelInput",
+            "description": "Result with findings"
+          },
+          "ok": {
+            "$ref": "#/components/schemas/CategoryLabelInput",
+            "description": "Result without findings"
+          }
+        },
+        "required": [
+          "ok",
+          "flagged"
+        ],
+        "title": "CategoryResultLabelsInput",
         "type": "object"
       },
       "ConfigData": {
@@ -658,6 +1069,16 @@
             "title": "Id",
             "type": "string"
           },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "polygon": {
             "discriminator": {
               "mapping": {
@@ -720,12 +1141,13 @@
           "region",
           "association",
           "documents",
-          "polygon"
+          "polygon",
+          "origin"
         ],
         "title": "FarmData",
         "type": "object"
       },
-      "FarmDeforestation": {
+      "FarmLayerResult": {
         "properties": {
           "farmId": {
             "title": "Farmid",
@@ -747,7 +1169,72 @@
           "farmId",
           "value"
         ],
-        "title": "FarmDeforestation",
+        "title": "FarmLayerResult",
+        "type": "object"
+      },
+      "FarmOrigin-Input": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "title": "FarmOrigin",
+        "type": "object"
+      },
+      "FarmOrigin-Output": {
+        "description": "How a farm reached the upload: the method and its file. The API only echoes it\nback in `FarmData`; it is never stored nor written to the usage events.",
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "method": {
+            "enum": [
+              "excel",
+              "geoFile",
+              "geoFileWithExcel",
+              "manual"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "fileName"
+        ],
+        "title": "FarmOrigin",
         "type": "object"
       },
       "FarmPolygonDetailData": {
@@ -1229,6 +1716,16 @@
             ],
             "title": "Id"
           },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FarmOrigin-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "producerName": {
             "title": "Producername",
             "type": "string"
@@ -1474,6 +1971,75 @@
         "title": "LayerAttributes",
         "type": "object"
       },
+      "LayerCategory": {
+        "properties": {
+          "color": {
+            "description": "Hex color, #rrggbb",
+            "title": "Color",
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "icon": {
+            "enum": [
+              "forest",
+              "shield",
+              "agriculture",
+              "water",
+              "mountain",
+              "wetland",
+              "fire",
+              "layers"
+            ],
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable slug, unique in its country, never reused",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "polarity": {
+            "description": "`avoid`: the finding is `value` (coinciding with the layer is a finding). `required`: the finding is `1 - value` (not coinciding is a finding).",
+            "enum": [
+              "avoid",
+              "required"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "resultLabels": {
+            "$ref": "#/components/schemas/ResultLabels"
+          },
+          "temporal": {
+            "description": "Whether its layers have a baseline and a comparison year",
+            "title": "Temporal",
+            "type": "boolean"
+          },
+          "thresholdPercentage": {
+            "description": "A farm has findings when 100 × finding > thresholdPercentage. Already resolved: the category's own threshold, or the global one.",
+            "title": "Thresholdpercentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "icon",
+          "color",
+          "polarity",
+          "thresholdPercentage",
+          "resultLabels",
+          "temporal"
+        ],
+        "title": "LayerCategory",
+        "type": "object"
+      },
       "LayerInput": {
         "additionalProperties": false,
         "description": "Body of `POST /admin/layers` and `PUT /admin/layers/{id}`.",
@@ -1482,16 +2048,36 @@
             "$ref": "#/components/schemas/LocalizedAttributes"
           },
           "baseline": {
-            "maximum": 2100.0,
-            "minimum": 1900.0,
-            "title": "Baseline",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1900.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "category_id": {
+            "description": "A category of the session's country. Its `temporal` decides the years: both required when it is temporal, both null when it isn't.",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Category Id",
+            "type": "string"
           },
           "compared_against": {
-            "maximum": 2100.0,
-            "minimum": 1900.0,
-            "title": "Compared Against",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1900.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compared Against"
           },
           "considerations": {
             "$ref": "#/components/schemas/LocalizedConsiderations"
@@ -1513,12 +2099,37 @@
           }
         },
         "required": [
+          "category_id",
           "pixel_size",
-          "baseline",
-          "compared_against",
           "attributes"
         ],
         "title": "LayerInput",
+        "type": "object"
+      },
+      "LayerResults": {
+        "properties": {
+          "farmResults": {
+            "items": {
+              "$ref": "#/components/schemas/FarmLayerResult"
+            },
+            "title": "Farmresults",
+            "type": "array"
+          },
+          "mapId": {
+            "title": "Mapid",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mapId",
+          "version",
+          "farmResults"
+        ],
+        "title": "LayerResults",
         "type": "object"
       },
       "LocalizedAttributes": {
@@ -1570,6 +2181,24 @@
         "title": "LocalizedConsiderations",
         "type": "object"
       },
+      "LocalizedText": {
+        "properties": {
+          "en": {
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "es",
+          "en"
+        ],
+        "title": "LocalizedText",
+        "type": "object"
+      },
       "LoginBody": {
         "properties": {
           "passkey": {
@@ -1583,32 +2212,6 @@
           "passkey"
         ],
         "title": "LoginBody",
-        "type": "object"
-      },
-      "MapData": {
-        "properties": {
-          "farmResults": {
-            "items": {
-              "$ref": "#/components/schemas/FarmDeforestation"
-            },
-            "title": "Farmresults",
-            "type": "array"
-          },
-          "mapId": {
-            "title": "Mapid",
-            "type": "integer"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "mapId",
-          "version",
-          "farmResults"
-        ],
-        "title": "MapData",
         "type": "object"
       },
       "NotConfiguredResponse": {
@@ -1956,6 +2559,24 @@
           "farmsDownloaded"
         ],
         "title": "ReportsUsage",
+        "type": "object"
+      },
+      "ResultLabels": {
+        "properties": {
+          "flagged": {
+            "$ref": "#/components/schemas/LocalizedText",
+            "description": "Result with findings"
+          },
+          "ok": {
+            "$ref": "#/components/schemas/LocalizedText",
+            "description": "Result without findings"
+          }
+        },
+        "required": [
+          "ok",
+          "flagged"
+        ],
+        "title": "ResultLabels",
         "type": "object"
       },
       "SessionData": {
@@ -2396,6 +3017,194 @@
         "summary": "Root"
       }
     },
+    "/admin/categories": {
+      "get": {
+        "description": "Every category of the session's country, enabled or not, with its own threshold\n(null: the global one) and how many layers use it. `readable` and `errors`\nreport the problems of the country's categories file: a rejected entry is not\nlisted, and its layers show `category_issue` in `GET /admin/layers`.",
+        "operationId": "list_categories_admin_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategories"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Categories",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "post": {
+        "description": "Create a category in the session's country, enabled and at the end of the\nlist. Its `id` is permanent: an id the country already uses (or used, in a\nrejected entry), and `deforestation`, answer 409. Layers that already point at\nthe id must be hidden and have years that fit `temporal` (400).",
+        "operationId": "create_category_admin_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Category",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
+    "/admin/categories/{category_id}": {
+      "patch": {
+        "description": "Enable or disable a category. A disabled category is left out of\n`GET /categories`, and its layers out of `GET /maps`. A category with published\nlayers can't be disabled or enabled (400): hide the layers first, and publish\nthem afterwards with `PATCH /admin/layers/{id}`.",
+        "operationId": "set_category_enabled_admin_categories__category_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{0,49}$",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Category Enabled",
+        "tags": [
+          "Admin Module"
+        ]
+      },
+      "put": {
+        "description": "Replace a category's editable fields. The id and `enabled` don't change here.\nThe polarity can't change while the category has published layers, and\n`temporal` can't change while it has any layer (400). Editing the built-in\n\"deforestation\" stores it, first in the list. Editing a rejected entry repairs\nit, once its layers are hidden.",
+        "operationId": "update_category_admin_categories__category_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{0,49}$",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Category",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
     "/admin/jobs/{job_id}": {
       "delete": {
         "description": "Cancel a queued or running job of the session's country. A 202 guarantees the\nlayer keeps its raster; the job reports `cancelled` once it stops (at the\nlatest when a running conversion returns). 409 when the job has ended or its\nactivation has begun.",
@@ -2568,7 +3377,7 @@
     },
     "/admin/layers/{layer_id}": {
       "patch": {
-        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster.",
+        "description": "Publish (enable) or hide (disable) a layer. A hidden layer disappears from the\npublic listing but still resolves by id for analyses and tiles. A layer can\nonly be enabled once it has a raster (409), and while its category resolves, is\nenabled and fits its years (400).",
         "operationId": "set_layer_enabled_admin_layers__layer_id__patch",
         "parameters": [
           {
@@ -2900,6 +3709,54 @@
         ]
       }
     },
+    "/categories": {
+      "get": {
+        "description": "A country's enabled layer categories: the built-in \"deforestation\" first (unless\nthe country stores its own), then the country's in the order it keeps them.\nTexts come in every language. `thresholdPercentage` is already resolved (the\ncategory's own, or the global threshold). An unknown or disabled country gets an\nempty list. Categories that fail validation are left out, and so are their\nlayers in `GET /maps`.",
+        "operationId": "get_categories_categories_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LayerCategory"
+                  },
+                  "title": "Response Get Categories Categories Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Categories",
+        "tags": [
+          "Maps Module"
+        ]
+      }
+    },
     "/config": {
       "get": {
         "description": "Product settings the frontend needs, owned by the API's environment so there is a\nsingle place to set them. The frontend loads them once at startup.",
@@ -2945,182 +3802,6 @@
         "summary": "Get Countries",
         "tags": [
           "Maps Module"
-        ]
-      }
-    },
-    "/deforestation_analysis/analize": {
-      "post": {
-        "operationId": "analize_deforestation_analysis_analize_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalizeBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MapData"
-                  },
-                  "title": "Response Analize Deforestation Analysis Analize Post",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Analize",
-        "tags": [
-          "Deforestation Analysis Module"
-        ]
-      }
-    },
-    "/deforestation_analysis/generate-image": {
-      "post": {
-        "operationId": "generate_image_deforestation_analysis_generate_image_post",
-        "parameters": [
-          {
-            "description": "Whether to include satellite imagery as background",
-            "in": "query",
-            "name": "include_satelital_background",
-            "required": false,
-            "schema": {
-              "default": true,
-              "description": "Whether to include satellite imagery as background",
-              "title": "Include Satelital Background",
-              "type": "boolean"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Generate Image",
-        "tags": [
-          "Deforestation Analysis Module"
-        ]
-      }
-    },
-    "/deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
-      "get": {
-        "description": "Serve a tile of a country's layer for the specified z/x/y.",
-        "operationId": "serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "country",
-            "required": true,
-            "schema": {
-              "pattern": "^[A-Z]{2}$",
-              "title": "Country",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "map_id",
-            "required": true,
-            "schema": {
-              "title": "Map Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "z",
-            "required": true,
-            "schema": {
-              "title": "Z",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "x",
-            "required": true,
-            "schema": {
-              "title": "X",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "path",
-            "name": "y",
-            "required": true,
-            "schema": {
-              "title": "Y",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Serve Tile",
-        "tags": [
-          "Deforestation Analysis Module"
         ]
       }
     },
@@ -3267,7 +3948,7 @@
     },
     "/farms/parse": {
       "post": {
-        "description": "Endpoint to parse farm data and generate polygon information.\n\nArgs:\n    body (list[InputFarmData]): List of unprocessed farm data\n    locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'\n\nReturns:\n    list[FarmData]: List of processed farm data with polygon information\n\nRaises:\n    HTTPException: If there is an error in:\n        - Parsing farm coordinates\n        - Generating polygons\n        - Invalid locale format\n        - Invalid number formats for the given locale\n        - Invalid country codes\n        - Invalid document URLs\n        - Duplicate farm IDs (if IDs are provided)\n\nThe endpoint performs the following steps:\n1. Validates the locale and farm data inputs\n2. Parses and validates all numeric values according to the locale\n3. Validates country codes, coordinates format, and document URLs\n4. Generates polygon information based on the parsed coordinates\n5. Auto-generates IDs if needed:\n   - If all farms are missing IDs, sequential numbers are assigned\n   - If some farms have IDs, IDs matching the existing pattern are generated for\n   those missing IDs\n   - If all farms have IDs, no changes are made\n\nEach farm data includes:\n- Basic information such as id, producer, crop type, production details, etc.\n- Polygon type (either \"polygon\" or \"point\")\n- Polygon details including coordinates, area and other geometric properties",
+        "description": "Endpoint to parse farm data and generate polygon information.\n\nArgs:\n    body (list[InputFarmData]): List of unprocessed farm data. Each farm may\n        carry its `origin` (the upload method and file name), echoed back as\n        is and never stored\n    locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'\n\nReturns:\n    list[FarmData]: List of processed farm data with polygon information\n\nRaises:\n    HTTPException: If there is an error in:\n        - Parsing farm coordinates\n        - Generating polygons\n        - Invalid locale format\n        - Invalid number formats for the given locale\n        - Invalid country codes\n        - Invalid document URLs\n        - Duplicate farm IDs (if IDs are provided)\n\nThe endpoint performs the following steps:\n1. Validates the locale and farm data inputs\n2. Parses and validates all numeric values according to the locale\n3. Validates country codes, coordinates format, and document URLs\n4. Generates polygon information based on the parsed coordinates\n5. Auto-generates IDs if needed:\n   - If all farms are missing IDs, sequential numbers are assigned\n   - If some farms have IDs, IDs matching the existing pattern are generated for\n   those missing IDs\n   - If all farms have IDs, no changes are made\n\nEach farm data includes:\n- Basic information such as id, producer, crop type, production details, etc.\n- Polygon type (either \"polygon\" or \"point\")\n- Polygon details including coordinates, area and other geometric properties",
         "operationId": "parse_farms_farms_parse_post",
         "parameters": [
           {
@@ -3361,9 +4042,185 @@
         "summary": "Liveness Check"
       }
     },
+    "/layer_analysis/analyze": {
+      "post": {
+        "operationId": "analyze_layer_analysis_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LayerResults"
+                  },
+                  "title": "Response Analyze Layer Analysis Analyze Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze",
+        "tags": [
+          "Layer Analysis Module"
+        ]
+      }
+    },
+    "/layer_analysis/generate-image": {
+      "post": {
+        "operationId": "generate_image_layer_analysis_generate_image_post",
+        "parameters": [
+          {
+            "description": "Whether to include satellite imagery as background",
+            "in": "query",
+            "name": "include_satelital_background",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Whether to include satellite imagery as background",
+              "title": "Include Satelital Background",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateImageBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Image",
+        "tags": [
+          "Layer Analysis Module"
+        ]
+      }
+    },
+    "/layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
+      "get": {
+        "description": "Serve a tile of a country's layer for the specified z/x/y.",
+        "operationId": "serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "map_id",
+            "required": true,
+            "schema": {
+              "title": "Map Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "z",
+            "required": true,
+            "schema": {
+              "title": "Z",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "title": "X",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "y",
+            "required": true,
+            "schema": {
+              "title": "Y",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Serve Tile",
+        "tags": [
+          "Layer Analysis Module"
+        ]
+      }
+    },
     "/maps": {
       "get": {
-        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers are left out here but remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison\n    - comparedAgainst: Final year for comparison\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
+        "description": "Retrieve the enabled maps with their metadata and attributes.\n\nThis endpoint reads the maps index file and their corresponding metadata\nfiles to return detailed information about each enabled map layer. Disabled\nlayers, layers whose category is disabled or doesn't resolve, layers whose\nyears don't fit their category, and layers without a raster are left out here\nbut remain usable by id for analysis and tiles.\n\nArgs:\n    language (str, optional): Language code for the metadata. Defaults to \"en\".\n    country (str, optional): ISO 3166-1 alpha-2 code: only that country's\n        layers (an empty list for a country that is unknown or disabled).\n        Without it, the layers of every enabled country.\n\nReturns:\n    list[BaseMapData]: A list of maps with the following attributes:\n    - id: The layer's id within its country (with the legacy flat layout,\n      unique on its own). Analysis, tiles and image generation take it with\n      the country\n    - name: Complete name of the layer (e.g., \"Global Forest Watch\")\n    - alias: Short name or reference (e.g., \"GFW 2020-2023\")\n    - baseline: Base year for comparison (None for layers without years, in\n      categories that are not temporal)\n    - comparedAgainst: Final year for comparison (None likewise)\n    - coverage: Geographic coverage of the layer\n    - source: Origin of the layer data\n    - resolution: Spatial resolution (e.g., \"30 x 30 meters\")\n    - contentDate: Period covered by the data\n    - updateFrequency: How often the data is updated\n    - publishDate: When the map data was published/released\n    - references: Reference URLs for the data source\n    - considerations: Special considerations and notes about the layer\n      (in Markdown format)\n    - country: The layer's country (None in the legacy flat layout). Ids are\n      numbered within each country, so country and id identify a layer.\n    - availableCountriesCodes: The layer's country, as a one-element list of\n      ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the\n      layer lists)\n    - categoryId: The id of the layer's category in its country (see\n      `GET /categories`)\n    - version: Raster version, incremented on every raster replacement (the\n      frontend appends it to tile URLs to bypass cached tiles)\n    - pixelSize: Nominal pixel size in meters, used by the analysis formula",
         "operationId": "get_maps_maps_get",
         "parameters": [
           {

@@ -13,6 +13,11 @@ export const GET_COUNTRIES_URL =
   process.env.NEXT_PUBLIC_GET_COUNTRIES_URL ||
   `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/countries`;
 
+// A country's layer categories: polarity, threshold and result labels of its layers.
+export const GET_CATEGORIES_URL =
+  process.env.NEXT_PUBLIC_GET_CATEGORIES_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/categories`;
+
 // The thresholds (overlap, deforestation) come from here, not from this file: the API
 // owns them (src/config/runtime.ts).
 export const GET_CONFIG_URL =
@@ -34,23 +39,23 @@ export const POLYGON_VALIDATION_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
   }/polygons_validation/validate`;
 
-export const DEFORESTATION_ANALYSIS_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL ||
+export const LAYER_ANALYSIS_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/analize`;
+  }/layer_analysis/analyze`;
 
-export const DEFORESTATION_ANALYSIS_TILES_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL ||
+export const LAYER_ANALYSIS_TILES_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_TILES_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/tiles`;
+  }/layer_analysis/tiles`;
 
-export const DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL =
-  process.env.NEXT_PUBLIC_DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL ||
+export const LAYER_ANALYSIS_IMAGE_GENERATION_URL =
+  process.env.NEXT_PUBLIC_LAYER_ANALYSIS_IMAGE_GENERATION_URL ||
   `${
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
-  }/deforestation_analysis/generate-image`;
+  }/layer_analysis/generate-image`;
 
 // Usage events reported by the browser (report requests and downloads)
 export const USAGE_EVENTS_URL =

@@ -24,6 +24,26 @@ export const parsePolygonArea = (
 };
 
 /**
+ * A farm's area when the API could compute it: a failed area comes as null or
+ * as the negative sentinel (-1), never to be shown or used as a value.
+ */
+export const knownArea = (area: number | null | undefined): number | null =>
+  area === null || area === undefined || area < 0 ? null : area;
+
+/**
+ * A farm's or an overlap's area for a table: in m² up to 5000 m² (a polygon of
+ * 36 m² reads "36 m²", not "0 ha"), in hectares above; "—" when it couldn't be
+ * computed.
+ */
+export const formatArea = (
+  area: number | null | undefined,
+  language: string = "es"
+): string => {
+  const known = knownArea(area);
+  return known === null ? "—" : parsePolygonArea(known, language);
+};
+
+/**
  * Parses an area in square meters and converts it to hectares with the specified number of decimal places.
  *
  * @param {number} area - The area in square meters to be converted.

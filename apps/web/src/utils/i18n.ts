@@ -6,34 +6,42 @@ import i18nConfig from "@/i18nConfig";
 import esCommon from "@/locales/es/common.json";
 import esHome from "@/locales/es/home.json";
 import esPolygonValidation from "@/locales/es/polygonValidation.json";
-import esDeforestationAnalysis from "@/locales/es/deforestationAnalysis.json";
+import esTerritorialAnalysis from "@/locales/es/territorialAnalysis.json";
 import esReportGeneration from "@/locales/es/reportGeneration.json";
 import esAdmin from "@/locales/es/admin.json";
 import esManualFarm from "@/locales/es/manualFarm.json";
+import esFlow from "@/locales/es/flow.json";
+import esMethodology from "@/locales/es/methodology.json";
 
 import enCommon from "@/locales/en/common.json";
 import enHome from "@/locales/en/home.json";
 import enPolygonValidation from "@/locales/en/polygonValidation.json";
-import enDeforestationAnalysis from "@/locales/en/deforestationAnalysis.json";
+import enTerritorialAnalysis from "@/locales/en/territorialAnalysis.json";
 import enReportGeneration from "@/locales/en/reportGeneration.json";
 import enAdmin from "@/locales/en/admin.json";
 import enManualFarm from "@/locales/en/manualFarm.json";
+import enFlow from "@/locales/en/flow.json";
+import enMethodology from "@/locales/en/methodology.json";
 
 const localeAssets: Record<string, unknown> = {
   "es-common": esCommon,
   "es-home": esHome,
   "es-polygonValidation": esPolygonValidation,
-  "es-deforestationAnalysis": esDeforestationAnalysis,
+  "es-territorialAnalysis": esTerritorialAnalysis,
   "es-reportGeneration": esReportGeneration,
   "es-admin": esAdmin,
   "es-manualFarm": esManualFarm,
+  "es-flow": esFlow,
+  "es-methodology": esMethodology,
   "en-common": enCommon,
   "en-home": enHome,
   "en-polygonValidation": enPolygonValidation,
-  "en-deforestationAnalysis": enDeforestationAnalysis,
+  "en-territorialAnalysis": enTerritorialAnalysis,
   "en-reportGeneration": enReportGeneration,
   "en-admin": enAdmin,
   "en-manualFarm": enManualFarm,
+  "en-flow": enFlow,
+  "en-methodology": enMethodology,
 };
 
 /**

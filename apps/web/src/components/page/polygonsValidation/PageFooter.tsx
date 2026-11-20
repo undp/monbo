@@ -1,47 +1,36 @@
 "use client";
 
-import { Footer } from "@/components/reusable/Footer";
-import { Button, Box } from "@mui/material";
-import { DeforestationModal } from "./DeforestationModal";
-import { useState } from "react";
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
+import { useRouter } from "next/navigation";
+import { DataContext } from "@/context/DataContext";
+import { getCountryName } from "@/utils/countries";
+import { localizedPath } from "@/utils/languageChange";
+import { NextStageCard } from "@/components/page/flow/NextStageCard";
 
+/**
+ * Closes stage 1: the card to the territorial analysis. Its page asks for the
+ * polygon subset and the layers, and starts nothing until "Analizar".
+ */
 export const PageFooter: React.FC = () => {
-  const [isDeforestationModalOpen, setIsDeforestationModalOpen] =
-    useState(false);
-  const { t } = useTranslation();
-
-  const handleOpenDeforestationModal = () => {
-    setIsDeforestationModalOpen(true);
-  };
-  const handleCloseDeforestationModal = () => {
-    setIsDeforestationModalOpen(false);
-  };
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const { selectedCountry } = useContext(DataContext);
+  const country = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
 
   return (
-    <>
-      <Footer>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button onClick={handleOpenDeforestationModal} variant="contained">
-              {t("polygonValidation:analize")}
-            </Button>
-          </Box>
-        </Box>
-      </Footer>
-      <DeforestationModal
-        isOpen={isDeforestationModalOpen}
-        handleClose={handleCloseDeforestationModal}
-      />
-    </>
+    <NextStageCard
+      stage={2}
+      title={t("flow:nextStage.analysis.title")}
+      description={t("flow:nextStage.analysis.description", { country })}
+      onContinue={() =>
+        router.push(
+          localizedPath("/territorial-analysis/layers", i18n.language)
+        )
+      }
+    />
   );
 };

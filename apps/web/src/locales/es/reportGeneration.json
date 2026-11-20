@@ -1,55 +1,74 @@
 {
-  "title": "Selecciona los polígonos que quieres incluir en el reporte",
+  "page": {
+    "title": "Reporte",
+    "subtitle": "Elige los polígonos y las capas que quieres incluir, y revisa la vista previa antes de descargar."
+  },
   "searchPlaceholder": "Buscar por polígono o productor",
-  "paramsSelectionModal": {
-    "title": "Generación del reporte",
-    "selectFarmsTitle": "Selecciona los polígonos a incluir",
-    "allFarms": "Todos ({{amount}})",
-    "selectFarms": "Seleccionar",
-    "selectMapsTitle": "Selecciona capas de mapas a considerar",
-    "button": "Continuar"
+  "sidebar": {
+    "title": "Opciones del reporte",
+    "farmsTitle": "Polígonos",
+    "farmsSubtitle": "{{selected}} de {{total}} seleccionados",
+    "selectAll": "Seleccionar todos ({{amount}})",
+    "noMatches": "Ningún polígono coincide con la búsqueda.",
+    "categoryResult": "{{category}}: {{result}}. {{findings}}",
+    "layersTitle": "Capas del reporte",
+    "layersSubtitle": "{{selected}} de {{total}} capas analizadas"
+  },
+  "actions": {
+    "generatePreview": "Generar vista previa",
+    "updatePreview": "Actualizar vista previa",
+    "noFarms": "Elige al menos un polígono.",
+    "noLayers": "Elige al menos una capa.",
+    "upToDate": "La vista previa está al día."
   },
   "words": {
     "association": "Asociación",
     "polygon": "Polígono",
-    "product": "Producto",
-    "deforestation": "Deforestación",
-    "map": "Mapa",
     "coordinates": "Coordenadas",
-    "documentation": "Documentación"
+    "documentation": "Documentación",
+    "category": "Categoría",
+    "layer": "Capa"
   },
   "phrases": {
-    "deforestationAnalysis": "Análisis de deforestación",
-    "deforestationFree": "Libre de deforestación",
     "downloadGeojson": "Descargar GeoJSON",
     "analysisPerformedBy": "Análisis realizado por",
     "originCountry": "País de origen",
-    "reportDate": "Fecha reporte",
+    "reportDate": "Fecha del reporte",
     "noDocumentation": "No disponible"
   },
   "buttons": {
-    "generateReport": "Generar reporte",
     "download": "Descargar",
     "downloadZip": "Descargar ZIP ({{count}} PDFs)"
   },
   "preview": {
     "title": "Vista previa del reporte",
-    "error": "Ocurrió un error al generar la vista previa del reporte",
+    "error": "No se pudo generar la vista previa del reporte",
     "retry": "Reintentar",
-    "largeReport": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca. La vista previa muestra la primera finca.",
-    "largeReportWithoutSatellite": "Este reporte tiene {{count}} fincas: se descarga como un ZIP con un PDF por finca y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra la primera finca.",
-    "withoutSatellite": "Este reporte tiene más de {{limit}} fincas: los mapas se generan sin la imagen satelital de fondo."
+    "largeReport": "Este reporte tiene {{count}} polígonos: se descarga como un ZIP con un PDF por polígono. La vista previa muestra el primer polígono.",
+    "largeReportWithoutSatellite": "Este reporte tiene {{count}} polígonos: se descarga como un ZIP con un PDF por polígono y los mapas se generan sin la imagen satelital de fondo. La vista previa muestra el primer polígono.",
+    "withoutSatellite": "Este reporte tiene más de {{limit}} polígonos: los mapas se generan sin la imagen satelital de fondo.",
+    "stale": "La vista previa no refleja los últimos cambios.",
+    "emptyTitle": "Aún no hay vista previa",
+    "emptyDescription": "Genera la vista previa para revisar el reporte antes de descargarlo.",
+    "loading": "Generando la vista previa…"
   },
-  "downloadTypeSelectionModal": {
-    "title": "¿Cómo quieres descargar el reporte?",
-    "combinedOptionText": "1 solo PDF con los {{amount}} polígonos seleccionados",
-    "separatedOptionText": "{{amount}} PDFs, un documento por polígono",
-    "button": "Descargar"
-  },
-  "emptyFarmsSelectionModal": {
-    "title": "Generación del reporte",
-    "description": "Por favor selecciona al menos un polígono para generar un reporte",
-    "button": "Aceptar"
+  "downloadFormatModal": {
+    "title": "Formato",
+    "combined": {
+      "title": "Un PDF con todo",
+      "description": "Un archivo con todos los polígonos."
+    },
+    "separated": {
+      "title": "Un PDF por polígono",
+      "description": "Se descargan en un .zip."
+    },
+    "single": {
+      "title": "Un PDF",
+      "description": "El reporte del polígono {{id}}."
+    },
+    "large": "Este reporte tiene {{amount}} polígonos: es demasiado grande para un solo PDF, así que se descarga como un .zip con un PDF por polígono.",
+    "downloadPdf": "Descargar PDF",
+    "downloadGeoJson": "Descargar GeoJSON"
   },
   "attributes": {
     "id": "ID",
@@ -63,28 +82,63 @@
     "totalArea": "Superficie total (ha)"
   },
   "coverPage": {
-    "titleFirstLine": "Reporte Análisis",
-    "titleSecondLine": "Deforestación"
-  },
-  "appendixPages": {
-    "deforestationExplanation": {
-      "title": "Cálculo de deforestación",
-      "formulaSubtitle": "Fórmula utilizada",
-      "formulaText": "La fórmula para calcular el porcentaje de deforestación considera la razón entre el área deforestada según el mapa de referencia y el área total del polígono.",
-      "deforestationStatesSubtitle": "Estados de deforestación",
-      "deforestationFreeText": "LIBRE DEFORESTACIÓN",
-      "deforestationFreeExplanation": "Indica que no ha habido intervención que haya provocado la reducción del bosque natural dentro del polígono evaluado, de acuerdo con los mapas oficiales o metodologías reconocidas.",
-      "withDeforestationText": "% DEFORESTACIÓN",
-      "withDeforestationExplanation": "Cuantifica el grado de deforestación o pérdida de cobertura boscosa del polígono evaluado, de acuerdo con el mapa de referencia utilizado"
-    },
-    "mapsExplanation": {
-      "title": "Mapas utilizados para el análisis de deforestación",
-      "mapsText": "Los mapas utilizados para el análisis de deforestación son:"
+    "titleFirstLine": "Reporte de análisis",
+    "titleSecondLine": "territorial",
+    "polygons": "Polígonos",
+    "includesTitle": "Este reporte incluye",
+    "layerCount_one": "{{count}} capa",
+    "layerCount_other": "{{count}} capas",
+    "indexTitle": "Contenido",
+    "index": {
+      "farmSheets": "Fichas y resultados por polígono",
+      "methodology": "Metodología",
+      "scope": "Alcances y límites de las capas"
     }
   },
   "zipProgress": {
     "title": "Generando el ZIP",
-    "count": "{{done}} de {{total}} fincas",
+    "count": "{{done}} de {{total}} polígonos",
     "hint": "Puedes seguir en esta página. Si sales de ella, la descarga se cancela."
+  },
+  "footer": {
+    "page": "Página {{pageNumber}} de {{totalPages}}"
+  },
+  "farmSheet": {
+    "eyebrow": "Ficha del polígono",
+    "resultsTitle": "Resultados por categoría",
+    "finding": "Hallazgo",
+    "categoriesWithoutFindings_one": "{{ok}} de {{count}} categoría sin observaciones",
+    "categoriesWithoutFindings_other": "{{ok}} de {{count}} categorías sin observaciones",
+    "document": "Documento {{number}}"
+  },
+  "mapPage": {
+    "eyebrow": "Mapa de la capa",
+    "legend": "Los píxeles de la capa se muestran en rojo y el polígono, en amarillo.",
+    "satelliteDisclaimer": "La imagen satelital de Google Maps es referencial y no muestra el resultado de la capa."
+  },
+  "methodology": {
+    "title": "Metodología",
+    "subtitle": "Cómo se calcula el resultado",
+    "formulaText": "Para cada capa, Monbo mide qué parte del área del polígono coincide con los píxeles de la capa.",
+    "formulaLabel": "% del polígono",
+    "formulaNumerator": "Área del polígono que coincide con la capa",
+    "formulaDenominator": "Área total del polígono",
+    "findingTitle": "Hallazgo y umbral",
+    "findingAvoid": "En una categoría que se debe evitar (por ejemplo, deforestación o áreas protegidas), el hallazgo es la parte del polígono que coincide con la capa.",
+    "findingRequired": "En una categoría que se debe cumplir (por ejemplo, frontera agrícola), el hallazgo es la parte del polígono que no coincide con la capa.",
+    "thresholdText": "Un polígono tiene observaciones en una capa cuando su hallazgo supera el umbral de la categoría. Si no lo supera, se muestra el resultado sin observaciones de la categoría.",
+    "noDataText": "«Sin dato» significa que el resultado no se pudo calcular, por ejemplo porque el polígono queda fuera de la cobertura de la capa. Un resultado sin dato nunca cuenta como sin observaciones.",
+    "categoriesTitle": "Cómo se lee cada categoría",
+    "findingColumn": "Qué es un hallazgo",
+    "thresholdColumn": "Umbral",
+    "resultsColumn": "Resultados",
+    "polarityAvoid": "Coincidir con la capa",
+    "polarityRequired": "No coincidir con la capa",
+    "noCategoryText": "La categoría de esta capa ya no está disponible: sus resultados se muestran como «Sin dato».",
+    "layersTitle": "Capas utilizadas",
+    "periodColumn": "Período"
+  },
+  "scope": {
+    "title": "Alcances y límites de las capas"
   }
 }

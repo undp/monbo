@@ -8,16 +8,8 @@ import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { getCountryName } from "@/utils/countries";
 import { localizedPath } from "@/utils/languageChange";
-
-const ADMIN_PATH = /^\/(?:[a-z]{2}\/)?admin(?:\/|$)/;
-
-const ADMIN_SECTIONS = [
-  { path: "/admin/layers", label: "common:header:admin:layers" },
-  { path: "/admin/usage", label: "common:header:admin:usage" },
-] as const;
-
-const isInSection = (pathname: string, path: string) =>
-  new RegExp(`^/(?:[a-z]{2}/)?${path.slice(1)}(?:/|$)`).test(pathname);
+import { isAdminPath } from "@/utils/paths";
+import { ADMIN_SECTIONS, isInAdminSection } from "./adminSections";
 
 /** The admin sections, once logged in, with the current one marked. */
 const AdminNavigation: React.FC = () => {
@@ -30,7 +22,7 @@ const AdminNavigation: React.FC = () => {
   return (
     <Box component="nav" aria-label={t("common:header:admin:navigation")} sx={{ display: "flex", gap: 1 }}>
       {ADMIN_SECTIONS.map(({ path, label }) => {
-        const current = isInSection(pathname, path);
+        const current = isInAdminSection(pathname, path);
         return (
           <Button
             key={path}
@@ -82,11 +74,12 @@ export const HeaderNavigation: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const pathname = usePathname();
-  return ADMIN_PATH.test(pathname) ? (
-    <>
+  return isAdminPath(pathname) ? (
+    // Below 900 px the sections and the country move into the header's menu.
+    <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2 }}>
       <AdminNavigation />
       <AdminCountry />
-    </>
+    </Box>
   ) : (
     <>{children}</>
   );

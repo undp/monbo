@@ -152,31 +152,32 @@ The application supports multiple languages using i18next. Currently supported l
 src/locales/
 ├── en/
 │   ├── common.json
-│   ├── deforestationAnalysis.json
 │   ├── home.json
-│   └── polygonValidation.json
+│   ├── polygonValidation.json
+│   └── territorialAnalysis.json
 └── es/
     ├── common.json
-    ├── deforestationAnalysis.json
     ├── home.json
-    └── polygonValidation.json
+    ├── polygonValidation.json
+    └── territorialAnalysis.json
 ```
 
 Each JSON file corresponds to a specific page or feature:
 
 - `common.json`: Shared translations used across the application
-- `deforestationAnalysis.json`: Translations for the deforestation analysis module
 - `home.json`: Home page translations
 - `polygonValidation.json`: Translations for polygon validation module
+- `territorialAnalysis.json`: Translations for the territorial analysis module (stage 2, `/territorial-analysis`)
 
 If you want to add a new language, please follow the instructions in the [New Language Documentation](docs/new_language.md) file.
 
 ### Documentation page
 
-`/documentation` (the book button in the header) explains to the app's users how farms are uploaded, how they are validated, how their area is measured and how deforestation is calculated. Its text is Markdown, one file per section and language, in `src/content/documentation/<locale>/` (`upload.md`, `validation.md`, `area.md`, `deforestation.md`, in the page's order: `DOCUMENTATION_SECTIONS` in `src/utils/documentation.ts`). The page reads them on the server and renders them with `react-markdown`. Each file is one section of the page, and its name is the section's anchor (`/documentation#area`).
+`/documentation` (the "Metodología" link in the header) is the methodology page. It explains to the app's users how a layer's percentage is calculated, how layer categories turn it into a result, which layers each country has and their limits, and how farms are uploaded, validated and measured. Its text is Markdown, one file per section and language, in `src/content/documentation/<locale>/` (`calculation.md`, `categories.md`, `layers.md`, `limits.md`, `upload.md`, `validation.md`, `area.md`, in the page's order: `DOCUMENTATION_SECTIONS` in `src/utils/documentation.ts`). The page reads them on the server and renders them with `react-markdown`. Each file is one section of the page, and its name is the section's anchor (`/documentation#area`); the former `#deforestation` anchor still opens the calculation section (`FORMER_SECTION_ANCHORS`).
 
-- **Summaries and details.** Each section starts, below its heading, with a `:::summary` block (the "In short" box) and keeps its worked computations and edge cases in collapsible `:::details[Label]` blocks, closed when the page opens. They are `remark-directive` container directives, which `src/utils/remarkDocumentationBlocks.ts` turns into elements that `MethodologyDocument` renders. No raw HTML is needed. A test fails on any other directive, on a section without its summary, and when the two languages don't have the same number of details blocks. Text that remark-directive would read as a directive, like `10:30`, is kept as written.
-- **Length.** With the details blocks closed, the Spanish text of the four sections is kept to at most 1,100 words.
+- **Layers by country.** Below the Markdown of `layers.md` and `limits.md`, the page shows one tab per country (`GET /countries`) with that country's categories (`GET /categories`) and layers (`GET /maps`), and each layer's considerations. It fetches each country once (`useCountryLayerCatalog`), whatever the session's country, and switching tabs never changes the session's country. Nothing about a layer is written in the Markdown: a layer an admin publishes appears on its own.
+- **Summaries and details.** Each section starts, below its heading, with a `:::summary` block (the "In short" box) and keeps its worked computations and edge cases in collapsible `:::details[Label]` blocks, closed when the page opens. They are `remark-directive` container directives, which `src/utils/remarkDocumentationBlocks.ts` turns into elements that `DocumentationMarkdown` renders. No raw HTML is needed. A test fails on any other directive, on a section without its summary, and when the two languages don't have the same number of details blocks. Text that remark-directive would read as a directive, like `10:30`, is kept as written.
+- **Length.** With the details blocks closed, the Spanish text of the Markdown is kept to at most 1,400 words (a test counts it). The content that comes from the API doesn't count.
 - **Thresholds.** The text never states the thresholds: it writes `{{overlapThreshold}}` and `{{deforestationThreshold}}`, which the page replaces with the values loaded from `GET /config` (`src/utils/documentation.ts`). A test checks that both languages have the same sections and use the same known placeholders.
 - **Keeping it in step.** The technical explanations are in `docs/` (`deforestation_calculation.md`, `polygon_area_calculation.md`) and in the API's README. When a calculation or a validation changes, update the page's Markdown in both languages along with them.
 - **A new language** needs its own folder under `src/content/documentation/`.
@@ -224,6 +225,9 @@ pnpm test:watch   # re-runs the affected tests on save
     injected `DataContext` with the real translations. Its `wrapper` option mounts a
     provider inside that context, as the `ReportProvider` tests do;
   - `renderWithDataProvider`, which mounts the real `DataProvider`;
+  - `renderLanding`, which renders a start page component with the app's theme and
+    translations, the countries CO, CR and EC, and a selected country held in real
+    state;
   - `deferred`, to settle a mocked response when the test chooses;
   - `FakeWorker` / `installFakeWorker` and `stubObjectUrls`, for the browser APIs
     jsdom lacks;
@@ -231,12 +235,15 @@ pnpm test:watch   # re-runs the affected tests on save
 - **What they cover:**
   - the formatting and domain helpers in `src/utils/`;
   - upload validation and the real upload templates in `public/files/`;
-  - en/es translation parity;
+  - en/es translation parity, and that every literal translation key in the code
+    (`"namespace:key"`) names a text of that namespace (`src/locales/usedKeys.test.ts`);
   - the hooks that read `DataContext`;
   - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
-  - the PDF worker client.
+  - the PDF worker client;
+  - the start page (`components/page/landing/`) and the header's navigation, brand
+    and country menu.
 
-  The PDF rendering itself (`reportPdf.worker.tsx`) and the components aren't
+  The PDF rendering itself (`reportPdf.worker.tsx`) and the other components aren't
   covered.
 - **What is replaced** (`src/test/setup.ts`): `next/navigation` (a shared router whose
   methods are spies; `setSearchParams` and `setParams` control what the hooks read),
@@ -333,12 +340,13 @@ pnpm generate:api-types  # Regenerate src/api/schema.d.ts from apps/api/openapi.
 ```sh
 NEXT_PUBLIC_GET_MAPS_URL=                       # URL to get available maps for deforestation analysis
 NEXT_PUBLIC_GET_CONFIG_URL=                     # URL of the API's product settings (GET /config); defaults to NEXT_PUBLIC_API_URL/config
+NEXT_PUBLIC_GET_CATEGORIES_URL=                 # URL of a country's layer categories (GET /categories); defaults to NEXT_PUBLIC_API_URL/categories
 
 NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL=      # URL to parse excel file data into valid Farm objects for polygon validation module
 NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons validation and find inconsistencies
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL=  # URL to parse excel file data into valid Farm objects for deforestation analysis
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation analysis
-NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
+NEXT_PUBLIC_LAYER_ANALYSIS_URL=                 # URL to run the layer analysis (POST /layer_analysis/analyze)
+NEXT_PUBLIC_LAYER_ANALYSIS_TILES_URL=           # URL to get map tiles with the layer's pixels drawn on them
+NEXT_PUBLIC_LAYER_ANALYSIS_IMAGE_GENERATION_URL= # URL to generate the report's map images (POST /layer_analysis/generate-image)
 NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION= # Most farms whose report images get a satellite background (one Google Static Maps call per farm); above it they get a solid one. Empty = no limit
 ```
@@ -349,10 +357,11 @@ The overlap and deforestation thresholds are not frontend variables: the API own
 
 The report is rendered in the browser with `@react-pdf/renderer`, off the main thread:
 
-- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /deforestation_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
+- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /layer_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
 - Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
+- **What it says** (`src/utils/report/sections.tsx`): a cover without results (the categories of the selected layers and a linked index), then for each farm a sheet with every selected layer's result grouped by category and a map page per layer with a result, then the methodology and each layer's scope and limits. Each result is read with its layer's category (`GET /categories`, in `DataContext` as `availableCategories`) through `src/utils/layerCategories.ts`, which the Excel and GeoJSON exports share; a `null` result, or a layer whose category is gone, is "Sin dato" / "No data". The satellite caption appears only when the maps have the satellite background.
 - Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
-- **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, selected (farm, layer) pairs with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:
+- **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, one sheet per selected farm plus one map page per selected (farm, layer) pair with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:
   - the preview shows only the first farm's PDF, with a notice;
   - there is no complete PDF and no pre-render;
   - "Download ZIP" builds a ZIP with one PDF per farm, farm by farm. Each farm's images are fetched a few farms ahead (with retries), its PDF is added in the worker, and its images are released, so memory doesn't grow with the farms. The footer shows the progress and can cancel the job, and leaving the page cancels it too. 1000 farms × 5 layers take about 3 minutes and give ~245 MB.

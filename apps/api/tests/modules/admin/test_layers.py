@@ -11,7 +11,13 @@ from app.main import create_app
 from app.modules.admin.auth import Session
 from app.modules.admin.layers import create_layer
 from app.modules.admin.models import LayerInput
-from tests.modules.admin.support import COUNTRY_PASSKEYS, bearer, login
+from tests.modules.admin.support import (
+    COUNTRY_PASSKEYS,
+    bearer,
+    login,
+    write_categories,
+)
+from tests.modules.layers.test_categories import category as stored_category
 
 GFW = {
     "id": 0,
@@ -67,6 +73,7 @@ def ecuador_headers(client):
 
 def layer_body(**overrides):
     body = {
+        "category_id": "deforestation",
         "pixel_size": 30,
         "baseline": 2020,
         "compared_against": 2024,
@@ -230,6 +237,10 @@ def test_ids_are_numbered_within_the_country(
             }
         },
         {"enabled": True},  # not settable here
+        {"category_id": None},
+        {"category_id": "Protected Areas"},
+        {"compared_against": None},  # years go together
+        {"baseline": None},
     ],
 )
 def test_invalid_layers_are_rejected_and_nothing_is_written(
@@ -434,8 +445,357 @@ def test_raster_less_layer_tiles_are_404_not_500(layers, client, admin_headers):
         "/admin/layers", json=layer_body(), headers=admin_headers
     ).json()["id"]
 
-    response = client.get(
-        f"/deforestation_analysis/tiles/CO/{layer_id}/dynamic/12/1/1.png"
-    )
+    response = client.get(f"/layer_analysis/tiles/CO/{layer_id}/dynamic/12/1/1.png")
 
     assert response.status_code == 404
+
+
+# --- Categories ------------------------------------------------------------------
+
+
+def admin_layer(client, headers, layer_id):
+    return next(
+        layer
+        for layer in client.get("/admin/layers", headers=headers).json()
+        if layer["id"] == layer_id
+    )
+
+
+def no_years(**overrides):
+    return layer_body(baseline=None, compared_against=None, **overrides)
+
+
+@pytest.fixture
+def categories(layers, country_root):
+    """CO's categories: `protected_areas` (not temporal) and `frontier` (disabled).
+    EC has `snap_ec`."""
+    write_categories(country_root.country("EC"), [stored_category("snap_ec")])
+    write_categories(
+        layers,
+        [
+            stored_category("protected_areas"),
+            stored_category("frontier", polarity="required", enabled=False),
+        ],
+    )
+    return layers
+
+
+def test_list_shows_each_layers_category(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [*index, {**GFW, "id": 7, "category_id": "rivers", "enabled": False}]
+    )
+
+    gfw = admin_layer(client, admin_headers, 0)
+    assert gfw["category_id"] == "deforestation"  # no category_id in the index
+    assert gfw["category_issue"] is None
+    assert gfw["category_enabled"] is True
+    rivers = admin_layer(client, admin_headers, 7)
+    assert rivers["category_id"] == "rivers"
+    assert rivers["category_issue"] == "unknown_category"
+    assert rivers["category_enabled"] is False
+
+
+def test_list_shows_a_published_layer_hidden_by_its_category(
+    categories, client, admin_headers
+):
+    # Only reachable by a hand edit: the admin refuses both steps.
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "category_id": "frontier"}])
+
+    frontier = admin_layer(client, admin_headers, 7)
+    assert frontier["enabled"] is True
+    assert frontier["category_issue"] is None
+    assert frontier["category_enabled"] is False
+
+
+def test_create_a_layer_without_years(categories, client, admin_headers):
+    response = client.post(
+        "/admin/layers",
+        json=no_years(category_id="protected_areas"),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201
+    created = response.json()
+    assert created["category_id"] == "protected_areas"
+    assert created["baseline"] is None and created["compared_against"] is None
+    entry = json.loads(categories.store.index_path.read_text())[-1]
+    assert entry["category_id"] == "protected_areas"
+    # Both keys written: releases before categories read them unconditionally.
+    assert entry["baseline"] is None and entry["compared_against"] is None
+
+
+def test_new_layers_store_their_category(layers, client, admin_headers):
+    client.post("/admin/layers", json=layer_body(), headers=admin_headers)
+
+    entry = json.loads(layers.store.index_path.read_text())[-1]
+    assert entry["category_id"] == "deforestation"
+    assert entry["baseline"] == "2020"
+
+
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        (layer_body(category_id="protected_areas"), "not temporal"),
+        (no_years(), "is temporal"),
+        (no_years(category_id="snap_ec"), "doesn't exist in CO"),
+        (no_years(category_id="rivers"), "doesn't exist in CO"),
+        (no_years(category_id="frontier"), "is disabled"),
+    ],
+)
+def test_layers_are_created_only_in_a_usable_category(
+    categories, client, admin_headers, body, message
+):
+    before = categories.store.index_path.read_bytes()
+
+    response = client.post("/admin/layers", json=body, headers=admin_headers)
+
+    assert response.status_code == 400
+    assert message in response.json()["detail"]
+    assert categories.store.index_path.read_bytes() == before
+    assert not list(categories.root.rglob("layer-*"))
+
+
+def test_a_layer_in_a_rejected_category_is_400(layers, client, admin_headers):
+    write_categories(layers, [stored_category("protected_areas", color="blue")])
+
+    response = client.post(
+        "/admin/layers",
+        json=no_years(category_id="protected_areas"),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "invalid" in response.json()["detail"]
+
+
+def test_missing_category_is_422(layers, client, admin_headers):
+    body = layer_body()
+    del body["category_id"]
+
+    response = client.post("/admin/layers", json=body, headers=admin_headers)
+
+    assert response.status_code == 422
+
+
+def test_a_hidden_layer_moves_to_another_category(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [*index, {**GFW, "id": 7, "category_id": "rivers", "enabled": False}]
+    )
+
+    response = client.put(
+        "/admin/layers/7",
+        json=no_years(category_id="protected_areas"),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    moved = response.json()
+    assert moved["category_id"] == "protected_areas"
+    assert moved["category_issue"] is None
+    assert moved["baseline"] is None
+
+
+def test_a_published_layer_cant_move(categories, client, admin_headers):
+    before = categories.store.index_path.read_bytes()
+
+    response = client.put(
+        "/admin/layers/0",
+        json=no_years(category_id="protected_areas"),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "hide it" in response.json()["detail"]
+    assert categories.store.index_path.read_bytes() == before
+
+
+def test_a_layer_keeps_its_disabled_category(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [
+            *index,
+            {
+                **GFW,
+                "id": 7,
+                "category_id": "frontier",
+                "enabled": False,
+                "baseline": None,
+                "compared_against": None,
+            },
+        ]
+    )
+
+    response = client.put(
+        "/admin/layers/7",
+        json=no_years(category_id="frontier", references=[]),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["references"] == []
+
+
+@pytest.mark.parametrize(
+    "category_id, message", [("frontier", "is disabled"), ("rivers", "doesn't exist")]
+)
+def test_a_layer_isnt_published_in_an_unusable_category(
+    categories, client, admin_headers, category_id, message
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [*index, {**GFW, "id": 7, "category_id": category_id, "enabled": False}]
+    )
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert message in response.json()["detail"]
+    assert admin_layer(client, admin_headers, 7)["enabled"] is False
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        # Years in a category that isn't temporal...
+        {**GFW, "id": 7, "category_id": "protected_areas", "enabled": False},
+        # ...and none in one that is (both only reachable by a hand edit or by
+        # repairing a rejected category).
+        {**GFW, "id": 7, "enabled": False, "baseline": None, "compared_against": ""},
+        # One year only, in either kind of category.
+        {**GFW, "id": 7, "enabled": False, "compared_against": None},
+        {
+            **GFW,
+            "id": 7,
+            "category_id": "protected_areas",
+            "enabled": False,
+            "baseline": None,
+        },
+    ],
+)
+def test_a_layer_isnt_published_when_its_years_dont_fit_its_category(
+    categories, client, admin_headers, entry
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, entry])
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert "years don't fit" in response.json()["detail"]
+    assert admin_layer(client, admin_headers, 7)["enabled"] is False
+
+
+def test_a_layer_without_years_is_published_in_a_category_without_them(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [
+            *index,
+            {
+                **GFW,
+                "id": 7,
+                "category_id": "protected_areas",
+                "enabled": False,
+                "baseline": None,
+                "compared_against": None,
+            },
+        ]
+    )
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+
+def test_list_shows_why_a_layer_cant_be_public(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [
+            *index,
+            {**GFW, "id": 7, "compared_against": None},
+            {**GFW, "id": 8, "raster_filename": "missing.tif"},
+        ]
+    )
+
+    assert admin_layer(client, admin_headers, 0)["layer_issue"] is None
+    assert admin_layer(client, admin_headers, 7)["layer_issue"] == "years_mismatch"
+    assert admin_layer(client, admin_headers, 8)["layer_issue"] == "missing_raster"
+    assert {m["id"] for m in client.get("/maps?country=CO").json()} == {0}
+
+
+def test_an_unreadable_year_doesnt_break_the_listing(categories, client, admin_headers):
+    # Re-review 3 of #138: `GET /admin/layers` answered 500 for the whole country.
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "baseline": "2020a"}])
+
+    response = client.get("/admin/layers", headers=admin_headers)
+
+    assert response.status_code == 200
+    layer = next(entry for entry in response.json() if entry["id"] == 7)
+    assert layer["baseline"] is None
+    assert layer["compared_against"] == 2023
+    assert layer["layer_issue"] == "years_mismatch"
+
+
+@pytest.mark.parametrize("stored, shown", [("false", False), ("true", False)])
+def test_only_a_boolean_true_is_published(
+    categories, client, admin_headers, stored, shown
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "enabled": stored}])
+
+    # The admin and the public listing read it the same way.
+    assert admin_layer(client, admin_headers, 7)["enabled"] is shown
+    assert 7 not in {m["id"] for m in client.get("/maps?country=CO").json()}
+
+
+def test_a_string_true_still_goes_through_the_publish_checks(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index(
+        [*index, {**GFW, "id": 7, "category_id": "frontier", "enabled": "true"}]
+    )
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert "is disabled" in response.json()["detail"]
+
+
+def test_hiding_rewrites_a_hand_edited_enabled_as_a_boolean(
+    categories, client, admin_headers
+):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "enabled": "false"}])
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": False}, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    stored = json.loads(categories.store.index_path.read_text())
+    assert next(e for e in stored if e["id"] == 7)["enabled"] is False
+
+
+def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
+    index = json.loads(categories.store.index_path.read_text())
+    categories.write_index([*index, {**GFW, "id": 7, "category_id": "frontier"}])
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": False}, headers=admin_headers
+    )
+
+    assert response.status_code == 200

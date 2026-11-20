@@ -34,10 +34,16 @@ interface SnackbarData {
 
 interface SnackbarProviderProps {
   children: React.ReactNode;
+  /**
+   * The translated name of each snackbar's close button. The provider sits in the
+   * root layout, above every page's translations, so the layout passes it in.
+   */
+  closeLabel: string;
 }
 
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
+  closeLabel,
 }) => {
   const [snackbarPool, setSnackbarPool] = useState<SnackbarData[]>([]);
 
@@ -103,6 +109,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
               key={id}
               open={open!}
               handleClose={() => handleCloseSnackbar(id)}
+              closeLabel={closeLabel}
               {...other}
             />
           ))}
@@ -117,12 +124,14 @@ interface CustomSnackbarProps {
   handleClose: () => void;
   message: React.ReactNode;
   type: SnackbarType;
+  closeLabel: string;
 }
 const CustomSnackbar: React.FC<CustomSnackbarProps> = ({
   open,
   handleClose,
   message,
   type,
+  closeLabel,
 }) => {
   useEffect(() => {
     if (!open) return;
@@ -133,7 +142,12 @@ const CustomSnackbar: React.FC<CustomSnackbarProps> = ({
 
   return (
     <Grow in={open} timeout={300} unmountOnExit>
-      <Alert onClose={handleClose} severity={type} variant="filled">
+      <Alert
+        onClose={handleClose}
+        closeText={closeLabel}
+        severity={type}
+        variant="filled"
+      >
         {message}
       </Alert>
     </Grow>

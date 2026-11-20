@@ -13,7 +13,7 @@ export const useModuleRouter = (path?: string) => {
 
   const goToPath = useCallback(() => {
     if (!path) return;
-    if (path === "/" || path === "/home") {
+    if (path === "/") {
       router.push(path);
       return;
     }

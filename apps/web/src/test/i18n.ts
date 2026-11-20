@@ -5,10 +5,12 @@ const NAMESPACES = [
   "common",
   "home",
   "polygonValidation",
-  "deforestationAnalysis",
+  "territorialAnalysis",
   "reportGeneration",
   "admin",
   "manualFarm",
+  "flow",
+  "methodology",
 ];
 
 export type TestLocale = "es" | "en";

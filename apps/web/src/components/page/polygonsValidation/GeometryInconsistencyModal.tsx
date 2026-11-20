@@ -11,6 +11,7 @@ import {
   getPolygonVertices,
   parseLatitude,
   parseLongitude,
+  knownArea,
   parseAreaToHectares,
 } from "@/utils/polygons";
 import { IconButton, SxProps, Box, Button } from "@mui/material";
@@ -126,6 +127,7 @@ const generateRows = (
   return data.farmIds.map((farmId, idx) => {
     const farm = farmsData.find((farm) => farm.id === farmId);
     if (!farm) return null;
+    const area = knownArea(farm.polygon.area);
 
     return {
       haveActions: true,
@@ -150,9 +152,11 @@ const generateRows = (
         },
         id: { value: farm.id },
         area: {
-          value: farm.polygon.area
-            ? parseAreaToHectares(farm.polygon.area, 2, false, language)
-            : t("common:na"),
+          // 0 is a computed area; only a failed one is unknown
+          value:
+            area !== null
+              ? parseAreaToHectares(area, 2, false, language)
+              : t("common:na"),
         },
       },
       data,

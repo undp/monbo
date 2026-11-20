@@ -1,17 +1,37 @@
 "use client";
 import { createTheme } from "@mui/material/styles";
 
-// The country selection landing page has its own green palette.
-interface LandingPalette {
-  primary: string;
-  primaryDark: string;
+interface CategoryColors {
+  main: string;
   tint: string;
-  tintHover: string;
-  shape: string;
-  shapeSelected: string;
-  ring: string;
-  text: string;
-  textSecondary: string;
+}
+
+// The start page's palette (mockup v2): navy and forest greens.
+interface LandingPalette {
+  navy: string;
+  navyForest: string;
+  forest: string;
+  leaf: string;
+  leafLight: string;
+  onLeafLight: string;
+  eyebrow: string;
+  mint: string;
+  mintStrong: string;
+  ink: string;
+  inkSecondary: string;
+  muted: string;
+  line: string;
+  blue: string;
+  blueDark: string;
+  blueTint: string;
+  background: string;
+  silhouette: string;
+  // The generic layer categories shown on the start page's step 2
+  categories: {
+    deforestation: CategoryColors;
+    protectedAreas: CategoryColors;
+    agriculturalFrontier: CategoryColors;
+  };
 }
 
 declare module "@mui/material/styles" {
@@ -36,16 +56,32 @@ const theme = createTheme({
       secondary: "#667085",
     },
     landing: {
-      primary: "#1f7a3a",
-      primaryDark: "#17602d",
-      // Country cards: background, background on hover, silhouette and radio ring
-      tint: "#e8f0e8",
-      tintHover: "#dde8dd",
-      shape: "#c6dcc6",
-      shapeSelected: "#2f8a4a",
-      ring: "#a9bfaa",
-      text: "#2f2c3d",
-      textSecondary: "#4a4759",
+      navy: "#0a2440",
+      // The hero gradient's middle stop, between navy and forest
+      navyForest: "#0c2f3b",
+      forest: "#0e3b30",
+      leaf: "#2f8f5e",
+      leafLight: "#5cc08a",
+      // Text on leafLight, and the hero's eyebrow over the dark gradient
+      onLeafLight: "#06301f",
+      eyebrow: "#9fd8b6",
+      mint: "#eef7f1",
+      mintStrong: "#d6ecdf",
+      ink: "#0b2545",
+      inkSecondary: "#3d5873",
+      muted: "#6b8299",
+      line: "#e2ecf5",
+      blue: "#0d64a0",
+      blueDark: "#0a4f7e",
+      blueTint: "#e8f1fa",
+      background: "#f6faf8",
+      // Country silhouettes in the start bar, before they are chosen
+      silhouette: "#8aa3bb",
+      categories: {
+        deforestation: { main: "#2f8f5e", tint: "#e5f3ea" },
+        protectedAreas: { main: "#0f7c86", tint: "#e0f2f3" },
+        agriculturalFrontier: { main: "#a8741a", tint: "#f8eedb" },
+      },
     },
   },
   typography: {

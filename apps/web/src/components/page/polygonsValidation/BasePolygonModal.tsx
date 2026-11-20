@@ -13,6 +13,7 @@ import { Map, CircleObject, PolygonObject } from "@/components/reusable/Map";
 import { Table, RowData, TableProps } from "@/components/reusable/Table";
 
 import CloseIcon from "@mui/icons-material/Close";
+import { useTranslation } from "react-i18next";
 import { Coordinates } from "@/interfaces/Map";
 
 interface BasePolygonModalProps<T> {
@@ -57,6 +58,7 @@ export function BasePolygonModal<T>({
   footer,
   hideCloseButton = false,
 }: BasePolygonModalProps<T>) {
+  const { t } = useTranslation();
   if (!row || !row.data) return null;
 
   const data = row.data;
@@ -68,7 +70,7 @@ export function BasePolygonModal<T>({
       <DialogTitle component="div">{title}</DialogTitle>
       {!hideCloseButton && (
         <IconButton
-          aria-label="close"
+          aria-label={t("common:close")}
           onClick={handleClose}
           sx={(theme) => ({
             position: "absolute",

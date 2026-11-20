@@ -1,233 +1,211 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Divider,
-  Link,
-  Typography,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkDirective from "remark-directive";
+import { Fragment, useContext, useEffect, useRef, useState } from "react";
+import { Box, Divider, Link, Typography, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { DataContext } from "@/context/DataContext";
+import { useAvailableCountries } from "@/hooks/useAvailableCountries";
+import { useCountryLayerCatalog } from "@/hooks/useCountryLayerCatalog";
 import {
   DOCUMENTATION_SECTIONS,
+  FORMER_SECTION_ANCHORS,
   fillDocumentationPlaceholders,
   sectionTitle,
   type DocumentationContent,
 } from "@/utils/documentation";
-import remarkDocumentationBlocks from "@/utils/remarkDocumentationBlocks";
+import { CountryLayersSection } from "./CountryLayersSection";
+import { DocumentationMarkdown } from "./DocumentationMarkdown";
+import { LayerLimitsSection } from "./LayerLimitsSection";
+import { HEADING_FONT, SCROLL_MARGIN_TOP } from "./methodologyStyles";
 
-// The fixed header's height plus some air, so an anchor doesn't leave its heading
-// under the header.
-const SCROLL_MARGIN_TOP = 80;
-
-const REMARK_PLUGINS = [remarkDirective, remarkDocumentationBlocks];
-
-/** A section's "In short" box (`:::summary`). */
-const SummaryBox: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { t } = useTranslation();
-  return (
-    <Box
-      component="aside"
-      sx={{
-        backgroundColor: "#F3FAFD",
-        border: "1px solid #CDE6F3",
-        borderRadius: 2,
-        px: 3,
-        pt: 2,
-        pb: 0.5,
-        mb: 3,
-        "& ul": { mb: 1.5 },
-      }}
-    >
-      <Typography variant="h4" component="p" sx={{ fontWeight: 500, mb: 1 }}>
-        {t("common:documentation:summary")}
-      </Typography>
-      {children}
-    </Box>
-  );
-};
-
-/** A collapsible "More detail" block (`:::details[label]`), closed at first. */
-const DetailsBlock: React.FC<{ label: string; children: ReactNode }> = ({
-  label,
-  children,
-}) => (
-  <Accordion
-    disableGutters
-    elevation={0}
-    sx={{
-      border: "1px solid #E0E0E0",
-      borderRadius: 2,
-      mb: 2,
-      "&::before": { display: "none" },
-    }}
-  >
-    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-      <Typography sx={{ fontWeight: 500 }}>{label}</Typography>
-    </AccordionSummary>
-    <AccordionDetails sx={{ pt: 0 }}>{children}</AccordionDetails>
-  </Accordion>
-);
-
-const markdownComponents: Components = {
-  // remarkDocumentationBlocks marks the summary and details blocks.
-  div: ({ node, children, ...props }) => {
-    const block = node?.properties?.dataBlock;
-    if (block === "summary") return <SummaryBox>{children}</SummaryBox>;
-    if (block === "details") {
-      return (
-        <DetailsBlock label={String(node?.properties?.dataLabel ?? "")}>
-          {children}
-        </DetailsBlock>
-      );
-    }
-    return <div {...props}>{children}</div>;
-  },
-  h2: ({ children }) => (
-    <Typography
-      variant="h2"
-      sx={{ fontSize: 28, fontWeight: 500, lineHeight: "38px", mb: 2 }}
-    >
-      {children}
-    </Typography>
-  ),
-  h3: ({ children }) => (
-    <Typography variant="h3" sx={{ fontWeight: 500, mt: 4, mb: 1.5 }}>
-      {children}
-    </Typography>
-  ),
-  p: ({ children }) => (
-    <Typography variant="body1" component="div" sx={{ mb: 2 }}>
-      {children}
-    </Typography>
-  ),
-  ul: ({ children }) => (
-    <Box component="ul" sx={{ pl: 3, mt: 0, mb: 2, typography: "body1" }}>
-      {children}
-    </Box>
-  ),
-  li: ({ children }) => (
-    <Box component="li" sx={{ mb: 1 }}>
-      {children}
-    </Box>
-  ),
-  // Fenced blocks hold the formulas: plain text, set apart.
-  pre: ({ children }) => (
-    <Box
-      component="pre"
-      sx={{
-        backgroundColor: "#F3FAFD",
-        borderLeft: "3px solid #03689E",
-        borderRadius: 1,
-        px: 2,
-        py: 1.5,
-        mt: 0,
-        mb: 2,
-        overflowX: "auto",
-        fontSize: 15,
-        whiteSpace: "pre-wrap",
-      }}
-    >
-      {children}
-    </Box>
-  ),
-  a: ({ href, children }) => {
-    const external = href?.startsWith("http");
-    return (
-      <Link
-        href={href}
-        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      >
-        {children}
-      </Link>
-    );
-  },
-  img: ({ src, alt }) => (
-    // A plain <img>: the Markdown gives no size for next/image.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={typeof src === "string" ? src : undefined}
-      alt={alt ?? ""}
-      style={{
-        display: "block",
-        width: "100%",
-        maxWidth: 480,
-        height: "auto",
-        borderRadius: 8,
-        border: "1px solid #E0E0E0",
-      }}
-    />
-  ),
-};
+const HERO_IMAGE = "/images/landing/aerial-forest-river-farm-plots.webp";
+// The fixed header (64 px) plus some air: where the side index sticks.
+const INDEX_TOP = 88;
 
 /**
- * The documentation page's body: an index and one section per Markdown file,
- * with the deployment's thresholds filled in.
+ * The methodology page's body: a hero, an index (beside the content from 900 px,
+ * above it on phones) and one section per Markdown file, with the deployment's
+ * thresholds filled in. The layers and limits sections add the layers of the
+ * country chosen in their tabs, a choice that stays on this page: the session's
+ * analysis country is read, never written.
  */
-export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = ({
-  content,
-}) => {
+export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = ({ content }) => {
   const { t, i18n } = useTranslation();
+  const colors = useTheme().palette.landing;
+  const { selectedCountry } = useContext(DataContext);
+  const { countries, loading, error } = useAvailableCountries();
+  const [chosenCountry, setChosenCountry] = useState<string | null>(null);
+
+  // The tab the user chose; until then the session's country, else the first one.
+  const isAvailable = (code: string | null) => countries.some((c) => c.code === code);
+  const country = isAvailable(chosenCountry)
+    ? chosenCountry
+    : isAvailable(selectedCountry)
+      ? selectedCountry
+      : (countries[0]?.code ?? null);
+  const countryName = countries.find((c) => c.code === country)?.name ?? null;
+  const catalog = useCountryLayerCatalog(country, i18n.language);
+
+  // The page renders once GET /config answers, after the browser looked for the
+  // URL's anchor: go to it now, so /documentation#layers opens at its section.
+  // The layers section grows when its country's catalog arrives, which moves every
+  // section below it (browsers without scroll anchoring don't compensate), so go
+  // to the anchor again then, unless the reader has scrolled meanwhile.
+  const pendingAnchor = useRef<{ id: string; scrollY: number } | null>(null);
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    const target = id ? document.getElementById(id) : null;
+    if (!target) return;
+    target.scrollIntoView();
+    pendingAnchor.current = { id, scrollY: window.scrollY };
+  }, []);
+  const catalogSettled = catalog.status === "ready" || catalog.status === "error";
+  useEffect(() => {
+    const anchor = pendingAnchor.current;
+    if (!catalogSettled || !anchor) return;
+    pendingAnchor.current = null;
+    if (Math.abs(window.scrollY - anchor.scrollY) <= 1) {
+      document.getElementById(anchor.id)?.scrollIntoView();
+    }
+  }, [catalogSettled]);
+
+  const index = (
+    <Box component="ol" sx={{ m: 0, p: 0, listStyle: "none" }}>
+      {DOCUMENTATION_SECTIONS.map((section) => (
+        <li key={section}>
+          <Link
+            href={`#${section}`}
+            underline="hover"
+            sx={{
+              display: "block",
+              py: 0.875,
+              px: 1.5,
+              fontSize: 14,
+              color: colors.inkSecondary,
+              borderLeft: `2px solid ${colors.line}`,
+              "&:hover": { color: colors.blue, borderColor: colors.blue },
+            }}
+          >
+            {sectionTitle(content[section])}
+          </Link>
+        </li>
+      ))}
+    </Box>
+  );
 
   return (
-    <Box sx={{ maxWidth: 880, mx: "auto", px: 3, pt: 5, pb: 10, color: "#3A3541" }}>
-      <Typography
-        variant="h1"
-        sx={{ fontSize: 34, fontWeight: 500, lineHeight: "47px", mb: 1 }}
-      >
-        {t("common:documentation:title")}
-      </Typography>
-      <Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>
-        {t("common:documentation:subtitle")}
-      </Typography>
-
+    <Box sx={{ backgroundColor: colors.background, color: "#3A3541" }}>
       <Box
-        component="nav"
-        aria-label={t("common:documentation:contents")}
         sx={{
-          border: "1px solid #E0E0E0",
-          borderRadius: 2,
-          backgroundColor: "white",
-          px: 3,
-          py: 2,
-          mb: 6,
+          color: "common.white",
+          py: { xs: 4, md: "46px" },
+          background: `linear-gradient(100deg, rgba(10, 36, 64, 0.95), rgba(14, 59, 48, 0.82)), url(${HERO_IMAGE}) 30% 50% / cover`,
         }}
       >
-        <Typography variant="h4" sx={{ fontWeight: 500, mb: 1 }}>
-          {t("common:documentation:contents")}
-        </Typography>
-        <Box component="ol" sx={{ m: 0, pl: 3 }}>
-          {DOCUMENTATION_SECTIONS.map((section) => (
-            <li key={section}>
-              <Link href={`#${section}`}>{sectionTitle(content[section])}</Link>
-            </li>
-          ))}
+        <Box sx={{ maxWidth: 1180, mx: "auto", px: { xs: 2, sm: 3 } }}>
+          <Typography
+            sx={{
+              font: "700 12px/1 var(--font-roboto), sans-serif",
+              letterSpacing: ".16em",
+              textTransform: "uppercase",
+              color: colors.leafLight,
+            }}
+          >
+            {t("methodology:eyebrow")}
+          </Typography>
+          <Typography
+            variant="h1"
+            sx={{
+              fontFamily: HEADING_FONT,
+              fontWeight: 800,
+              lineHeight: 1.15,
+              fontSize: { xs: 30, md: 38 },
+              letterSpacing: "-.015em",
+              mt: 1.25,
+            }}
+          >
+            {t("methodology:title")}
+          </Typography>
+          <Typography sx={{ opacity: 0.82, maxWidth: 640, mt: 1, fontSize: 16 }}>
+            {t("methodology:subtitle")}
+          </Typography>
         </Box>
       </Box>
 
-      {DOCUMENTATION_SECTIONS.map((section, index) => (
-        <Fragment key={section}>
-          {index > 0 && <Divider sx={{ my: 6 }} />}
-          <Box
-            component="section"
-            id={section}
-            sx={{ scrollMarginTop: SCROLL_MARGIN_TOP }}
+      <Box
+        sx={{
+          maxWidth: 1180,
+          mx: "auto",
+          px: { xs: 2, sm: 3 },
+          pt: 4,
+          pb: 10,
+          display: "grid",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "220px minmax(0, 1fr)" },
+          gap: { xs: 3, md: "34px" },
+        }}
+      >
+        <Box
+          component="nav"
+          aria-label={t("methodology:contents")}
+          sx={{
+            alignSelf: "start",
+            position: { md: "sticky" },
+            top: { md: INDEX_TOP },
+            border: { xs: `1px solid ${colors.line}`, md: 0 },
+            borderRadius: 2,
+            backgroundColor: { xs: "common.white", md: "transparent" },
+            p: { xs: 2, md: 0 },
+          }}
+        >
+          <Typography
+            sx={{
+              display: { xs: "block", md: "none" },
+              fontWeight: 600,
+              mb: 1,
+              color: colors.ink,
+            }}
           >
-            <ReactMarkdown
-              remarkPlugins={REMARK_PLUGINS}
-              components={markdownComponents}
-            >
-              {fillDocumentationPlaceholders(content[section], i18n.language)}
-            </ReactMarkdown>
-          </Box>
-        </Fragment>
-      ))}
+            {t("methodology:contents")}
+          </Typography>
+          {index}
+        </Box>
+
+        <Box sx={{ maxWidth: 880, minWidth: 0 }}>
+          {DOCUMENTATION_SECTIONS.map((section, position) => {
+            const formerAnchor = FORMER_SECTION_ANCHORS[section];
+            return (
+              <Fragment key={section}>
+                {position > 0 && <Divider sx={{ my: 6 }} />}
+                <Box component="section" id={section} sx={{ scrollMarginTop: SCROLL_MARGIN_TOP }}>
+                  {formerAnchor && (
+                    <Box
+                      component="span"
+                      id={formerAnchor}
+                      sx={{ display: "block", scrollMarginTop: SCROLL_MARGIN_TOP }}
+                    />
+                  )}
+                  <DocumentationMarkdown>
+                    {fillDocumentationPlaceholders(content[section], i18n.language)}
+                  </DocumentationMarkdown>
+                  {section === "layers" && (
+                    <CountryLayersSection
+                      countries={countries}
+                      countriesLoading={loading}
+                      countriesError={error}
+                      country={country}
+                      onSelectCountry={setChosenCountry}
+                      catalog={catalog}
+                    />
+                  )}
+                  {section === "limits" && (
+                    <LayerLimitsSection countryName={countryName} catalog={catalog} />
+                  )}
+                </Box>
+              </Fragment>
+            );
+          })}
+        </Box>
+      </Box>
     </Box>
   );
 };

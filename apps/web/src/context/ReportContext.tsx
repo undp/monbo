@@ -13,18 +13,18 @@ import {
 } from "react";
 import { useParams } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
-import { useVisibleDataForDeforestationPage } from "@/hooks/useVisibleDataForDeforestationPage";
-import { MapLayerChangedError } from "@/api/deforestationAnalysis";
+import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysisPage";
+import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { getRuntimeConfig } from "@/config/runtime";
 import { MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION } from "@/config/env";
 import pLimit from "p-limit";
 import {
-  DeforestationImageBlob,
-  fetchDeforestationImages,
+  LayerImageBlob,
+  fetchLayerImages,
   fetchFarmImages,
   includesSatelliteBackground,
   mapsWithResults,
-} from "@/utils/deforestationImages";
+} from "@/utils/layerImages";
 import { countFarmPages, isLargeReport } from "@/utils/reportSize";
 import {
   ReportPdfClient,
@@ -33,16 +33,20 @@ import {
 } from "@/workers/reportPdfClient";
 import type { ReportPdfRequest } from "@/workers/reportPdfProtocol";
 import type { FarmData } from "@/interfaces/Farm";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import type {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
 
 // The report page's images and renders, shared by the preview and the downloads:
 // - every PDF renders in a worker (src/workers/reportPdf.worker.tsx);
+// - the preview renders only when asked for (`requestPreview`), for the choice of
+//   that moment; a later change of choice leaves it stale, not rendered again;
 // - a report that isn't large fetches its images once per selection, and once its
 //   preview is shown, pre-renders the complete report (with links, which the
-//   preview hides), so "Download" doesn't wait for a render;
+//   preview hides), so "Download" doesn't wait for a render. The downloads always
+//   take the current choice, whatever the preview shows;
 // - a large report (more than LARGE_REPORT_FARM_PAGES farm pages) never renders a
 //   complete PDF, which would run the tab out of memory: its preview is the first
 //   farm's PDF, and its download is a ZIP built farm by farm (`buildLargeReportZip`).
@@ -53,25 +57,47 @@ interface Selection {
   country: string;
   farms: FarmData[];
   maps: MapData[];
-  results: DeforestationAnalysisMapResults[];
+  /** The country's categories: each layer's rule and texts in the report. */
+  categories: LayerCategory[];
+  results: LayerAnalysisMapResults[];
   locale: string;
-  /** Its (farm, layer) pairs with a result: one page each in a complete PDF. */
+  /** Its farm pages: a sheet per farm and a map per (farm, layer) with a result. */
   farmPages: number;
   isLarge: boolean;
 }
 
+/** What the requested preview's notices describe: the choice it was rendered for. */
+interface PreviewInfo {
+  isLarge: boolean;
+  farmCount: number;
+  satelliteLimit: number | null;
+}
+
+export type PreviewState = "idle" | "loading" | "ready" | "failed";
+
 interface ReportContextValue {
-  /** The rendered preview of the current selection, null while it renders. */
+  /**
+   * The last preview rendered, null before the first one. It stays shown when the
+   * choice changes (`isPreviewStale`) until another is requested.
+   */
   previewUrl: string | null;
-  isPreviewLoading: boolean;
-  /** The preview of the current selection failed; `retryPreview` tries again. */
-  previewFailed: boolean;
+  /** The requested preview: none yet, rendering, shown, or failed. */
+  previewState: PreviewState;
+  /** The choice it shows is no longer the current one. */
+  isPreviewStale: boolean;
+  /** A preview of the current choice is shown or rendering: no need to ask again. */
+  isPreviewCurrent: boolean;
+  /** The shown preview's choice, for its notices. */
+  previewInfo: PreviewInfo | null;
+  /** Renders the preview of the current choice. */
+  requestPreview: () => void;
+  /** Renders the failed preview's choice again. */
   retryPreview: () => void;
   /** The complete report, with links: pre-rendered, or rendered now. */
   getCompleteReport: () => Promise<Blob>;
   /** A ZIP with one report per farm. */
   getSeparatedReports: () => Promise<Blob>;
-  /** The selection is large: its preview is one farm, its download a ZIP only. */
+  /** The current choice is large: its preview is one farm, its download a ZIP only. */
   isLarge: boolean;
   /** The selected farms: the PDFs in the ZIP. */
   farmCount: number;
@@ -95,8 +121,11 @@ const noSelection = () =>
 
 export const ReportContext = createContext<ReportContextValue>({
   previewUrl: null,
-  isPreviewLoading: false,
-  previewFailed: false,
+  previewState: "idle",
+  isPreviewStale: false,
+  isPreviewCurrent: false,
+  previewInfo: null,
+  requestPreview: () => {},
   retryPreview: () => {},
   getCompleteReport: noSelection,
   getSeparatedReports: noSelection,
@@ -140,7 +169,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 /** Only `farm`'s results, per layer: all that its PDF needs. */
 const farmResults = (
   farm: FarmData,
-  results: DeforestationAnalysisMapResults[]
+  results: LayerAnalysisMapResults[]
 ) =>
   results.map((layer) => ({
     ...layer,
@@ -153,6 +182,12 @@ const satelliteFor = (s: Selection) =>
     s.farms.filter((farm) => mapsWithResults(farm, s.maps, s.results).length)
       .length
   );
+
+/** The farms limit of the satellite background when `s` is above it. */
+const satelliteLimitFor = (s: Selection | null) =>
+  s && !satelliteFor(s)
+    ? MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
+    : null;
 
 type Keyed<T> = { key: string; promise: Promise<T> } | null;
 
@@ -174,15 +209,16 @@ const keyed = <T,>(
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
   const params = useParams();
   const locale = params.locale as string;
-  const { deforestationAnalysisResults } = useVisibleDataForDeforestationPage();
+  const { territorialAnalysisResults } = useVisibleDataForAnalysisPage();
   const {
     reportGenerationParams: { selectedMaps, selectedFarms },
     selectedCountry,
+    availableCategories,
     invalidateAnalysis,
   } = useContext(DataContext);
 
   const selection = useMemo<Selection | null>(() => {
-    const results = deforestationAnalysisResults.filter((m) =>
+    const results = territorialAnalysisResults.filter((m) =>
       selectedMaps.some((map) => map.id === m.mapId)
     );
     if (
@@ -197,6 +233,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       locale,
       results.map((r) => `${r.mapId}@${r.version}`).sort(),
       selectedFarms.map((f) => f.id).sort(),
+      // A category edited by the admin changes the report's results and texts.
+      availableCategories,
     ]);
     const farmPages = countFarmPages(selectedFarms, results);
     return {
@@ -204,31 +242,27 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       country: selectedCountry,
       farms: selectedFarms,
       maps: selectedMaps,
+      categories: availableCategories,
       results,
       locale,
       farmPages,
       isLarge: isLargeReport(farmPages),
     };
   }, [
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     selectedMaps,
     selectedFarms,
     selectedCountry,
+    availableCategories,
     locale,
   ]);
 
   // Once per selection: it looks up every farm's results.
-  const satelliteLimit = useMemo(
-    () =>
-      selection && !satelliteFor(selection)
-        ? MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION
-        : null,
-    [selection]
-  );
+  const satelliteLimit = useMemo(() => satelliteLimitFor(selection), [selection]);
 
   const clientRef = useRef<ReportPdfClient | null>(null);
   const mountedRef = useRef(true);
-  const imagesRef = useRef<Keyed<DeforestationImageBlob[]>>(null);
+  const imagesRef = useRef<Keyed<LayerImageBlob[]>>(null);
   const previewRef = useRef<Keyed<Blob>>(null);
   const completeRef = useRef<Keyed<Blob>>(null);
 
@@ -248,7 +282,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       showLinks: boolean
     ): Promise<Blob> => {
       const images = await keyed(imagesRef, s.key, () =>
-        fetchDeforestationImages(s.country, s.maps, s.farms, s.results)
+        fetchLayerImages(s.country, s.maps, s.farms, s.results)
       );
       return workerClient().render({
         kind,
@@ -258,6 +292,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         farms: s.farms,
         results: s.results,
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: satelliteFor(s),
         images,
       });
     },
@@ -286,6 +322,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         farms: [farm],
         results: farmResults(farm, s.results),
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: satelliteFor(s),
         images,
       });
     },
@@ -326,15 +364,17 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       onProgress: (done: number, total: number) => void,
       signal: AbortSignal
     ): Promise<Blob> => {
+      const includeSatelliteBackground = satelliteFor(s);
       const job = await workerClient().startZip({
         locale: s.locale,
         config: getRuntimeConfig(),
         maps: s.maps,
+        categories: s.categories,
+        satelliteBackground: includeSatelliteBackground,
       });
-      const includeSatelliteBackground = satelliteFor(s);
       const limit = pLimit(20);
       const total = s.farms.length;
-      const images: (Promise<DeforestationImageBlob[]> | null | undefined)[] = [];
+      const images: (Promise<LayerImageBlob[]> | null | undefined)[] = [];
       const fetchAhead = (i: number) => {
         if (i >= total || images[i] !== undefined) return;
         const fetching = fetchFarmImages({
@@ -402,14 +442,30 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const [preview, setPreview] = useState<{ key: string; url: string } | null>(
-    null
-  );
-  // The selection whose preview failed, until the user retries or changes it.
+  const [preview, setPreview] = useState<
+    ({ key: string; url: string } & PreviewInfo) | null
+  >(null);
+  // The choice the user asked a preview of. It is kept as it was then: the
+  // current choice may change while it renders.
+  const [requested, setRequested] = useState<Selection | null>(null);
+  // The requested preview failed, until the user asks again.
   const [failedKey, setFailedKey] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Read when a render fails, not a reason to render again: the effect below
+  // runs only when a preview is asked for.
+  const invalidateAnalysisRef = useRef(invalidateAnalysis);
+  useEffect(() => {
+    invalidateAnalysisRef.current = invalidateAnalysis;
+  }, [invalidateAnalysis]);
+  // The current choice's key, read when a preview is ready: no other is downloaded.
+  const currentKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentKeyRef.current = selection?.key ?? null;
+  }, [selection]);
 
   useEffect(() => {
+    // Nothing renders until the user asks for it.
+    const selection = requested;
     if (!selection) return;
     let active = true;
     // Preview first, without links (they would navigate the previewer away);
@@ -425,9 +481,17 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         const url = URL.createObjectURL(blob);
         setPreview((previous) => {
           if (previous) URL.revokeObjectURL(previous.url);
-          return { key: selection.key, url };
+          return {
+            key: selection.key,
+            url,
+            isLarge: selection.isLarge,
+            farmCount: selection.farms.length,
+            satelliteLimit: satelliteLimitFor(selection),
+          };
         });
-        if (selection.isLarge) return;
+        // A large report has no complete PDF; a choice changed meanwhile won't be
+        // downloaded as it was, and its render would hold up the current one's.
+        if (selection.isLarge || selection.key !== currentKeyRef.current) return;
         // Its errors show up if the user downloads (it is rendered again then).
         keyed(completeRef, selection.key, () =>
           render(selection, "complete", true)
@@ -437,7 +501,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         if (!active || error instanceof ReportPdfWorkerTerminatedError) return;
         // A layer got a new raster after the analysis: re-run it instead of
         // previewing a report that mixes both rasters.
-        if (error instanceof MapLayerChangedError) return invalidateAnalysis();
+        if (error instanceof MapLayerChangedError)
+          return invalidateAnalysisRef.current();
         console.error("Error generating the report preview:", error);
         // The failed promise was forgotten (`keyed`), so a retry renders again.
         setFailedKey(selection.key);
@@ -445,13 +510,20 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       active = false;
     };
-  }, [selection, attempt, render, renderFirstFarm, invalidateAnalysis]);
+  }, [requested, attempt, render, renderFirstFarm]);
 
   // A ZIP job belongs to the selection it started with. By key, not identity:
   // the /maps poll replaces the selected map objects with equal ones, which gives
   // a new `selection` for the same report, and that must not stop a job.
   const selectionKey = selection?.key ?? null;
   useEffect(() => () => zipJobRef.current?.abort(), [selectionKey]);
+
+  const requestPreview = useCallback(() => {
+    if (!selection) return;
+    setFailedKey(null);
+    setRequested(selection);
+    setAttempt((n) => n + 1);
+  }, [selection]);
 
   const retryPreview = useCallback(() => {
     setFailedKey(null);
@@ -508,13 +580,26 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     [selection, runZipJob]
   );
 
-  const isCurrent = !!selection && preview?.key === selection.key;
-  const previewFailed = !!selection && failedKey === selection.key;
+  const previewState: PreviewState = !requested
+    ? "idle"
+    : failedKey === requested.key
+      ? "failed"
+      : preview?.key === requested.key
+        ? "ready"
+        : "loading";
+  const requestedIsCurrent = !!selection && requested?.key === selection.key;
   const value = useMemo(
     () => ({
-      previewUrl: isCurrent ? preview!.url : null,
-      isPreviewLoading: !!selection && !isCurrent && !previewFailed,
-      previewFailed,
+      previewUrl: preview?.url ?? null,
+      previewState,
+      isPreviewStale: previewState === "ready" && !requestedIsCurrent,
+      isPreviewCurrent: requestedIsCurrent && previewState !== "failed",
+      previewInfo: preview && {
+        isLarge: preview.isLarge,
+        farmCount: preview.farmCount,
+        satelliteLimit: preview.satelliteLimit,
+      },
+      requestPreview,
       retryPreview,
       getCompleteReport,
       getSeparatedReports,
@@ -524,9 +609,10 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       buildLargeReportZip,
     }),
     [
-      isCurrent,
       preview,
-      previewFailed,
+      previewState,
+      requestedIsCurrent,
+      requestPreview,
       retryPreview,
       selection,
       satelliteLimit,
