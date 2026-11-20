@@ -150,7 +150,8 @@ choice of the shown preview SHALL remove the notice.
 ### Requirement: The download asks for the format
 
 "Descargar" SHALL be on whenever at least one polygon and one layer are ticked, with or without a
-preview, and with a stale one. It SHALL always download the current choice. It SHALL open a modal
+preview, and with a stale one, except while a large report's ZIP is being built: it SHALL be off
+until that job ends or is cancelled. It SHALL always download the current choice. It SHALL open a modal
 titled "Formato", which depends on the report:
 - **several polygons, not large:** two radio cards, "Un PDF con todo" (one file with every
   polygon) and "Un PDF por polígono" (a `.zip`), with the first one chosen. "Descargar PDF"

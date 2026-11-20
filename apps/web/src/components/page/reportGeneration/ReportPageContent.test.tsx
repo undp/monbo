@@ -181,6 +181,13 @@ describe("ReportPageContent", () => {
       screen.getByRole("img", { name: /^Deforestación: Sin dato\. GFW Libre de deforestación, TMF Sin dato/ })
     ).toBeTruthy();
 
+    // The open tooltip describes the icon, and keeps its name
+    const icon = screen.getByRole("img", { name: /^Deforestación: Con deforestación/ });
+    fireEvent.mouseOver(icon);
+    expect((await screen.findByRole("tooltip")).textContent).toMatch(/GFW 5\s?% · TMF Libre/);
+    expect(icon.getAttribute("aria-labelledby")).toBeNull();
+    expect(icon.getAttribute("aria-describedby")).toBeTruthy();
+
     // Without GFW, F01 is ok
     fireEvent.click(layerBox(/Global Forest Watch/));
 
@@ -221,14 +228,20 @@ describe("ReportPageContent", () => {
 
     fireEvent.click(farmBox(/F01/));
 
-    expect(screen.getByText("La vista previa no refleja los últimos cambios.")).toBeTruthy();
+    expect(screen.getByTestId("stale-notice")).toBeTruthy();
+    // Announced through a status region that was already in the page
+    expect(
+      screen
+        .getAllByRole("status")
+        .some((s) => s.textContent === "La vista previa no refleja los últimos cambios.")
+    ).toBe(true);
     expect(screen.getByTitle("Vista previa del reporte")).toBeTruthy();
     expect(client.render).toHaveBeenCalledTimes(renders);
 
     // Back to the previewed choice: the notice goes, and nothing renders again
     fireEvent.click(farmBox(/F01/));
 
-    expect(screen.queryByText("La vista previa no refleja los últimos cambios.")).toBeNull();
+    expect(screen.queryByTestId("stale-notice")).toBeNull();
     expect(client.render).toHaveBeenCalledTimes(renders);
   });
 
@@ -243,8 +256,7 @@ describe("ReportPageContent", () => {
     fireEvent.click(selectAll());
 
     // The stale notice, and its button, as they are now
-    const notice = () =>
-      screen.getByText("La vista previa no refleja los últimos cambios.").parentElement!;
+    const notice = () => screen.getByTestId("stale-notice");
     const update = () =>
       within(notice()).getByRole("button", {
         name: "Actualizar vista previa",

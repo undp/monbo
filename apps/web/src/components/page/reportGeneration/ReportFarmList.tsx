@@ -49,7 +49,11 @@ const CategoryResultIcon: React.FC<{ result: FarmCategoryResult }> = ({ result }
     return `${layerLabel(layer, "short")} ${text}`;
   });
   return (
+    // The tooltip describes the icon and keeps its name (category and result).
+    // The icons take no focus, so a row stays one Tab stop: its findings are in
+    // the icon's name for screen readers.
     <Tooltip
+      describeChild
       title={
         <Box component="span" sx={{ display: "block" }}>
           <Box component="strong" sx={{ display: "block" }}>

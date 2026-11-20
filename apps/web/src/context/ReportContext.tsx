@@ -457,6 +457,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     invalidateAnalysisRef.current = invalidateAnalysis;
   }, [invalidateAnalysis]);
+  // The current choice's key, read when a preview is ready: no other is downloaded.
+  const currentKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentKeyRef.current = selection?.key ?? null;
+  }, [selection]);
 
   useEffect(() => {
     // Nothing renders until the user asks for it.
@@ -484,7 +489,9 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
             satelliteLimit: satelliteLimitFor(selection),
           };
         });
-        if (selection.isLarge) return;
+        // A large report has no complete PDF; a choice changed meanwhile won't be
+        // downloaded as it was, and its render would hold up the current one's.
+        if (selection.isLarge || selection.key !== currentKeyRef.current) return;
         // Its errors show up if the user downloads (it is rendered again then).
         keyed(completeRef, selection.key, () =>
           render(selection, "complete", true)

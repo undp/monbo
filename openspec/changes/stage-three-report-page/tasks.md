@@ -49,3 +49,12 @@
 - [x] 7.2 `openspec validate stage-three-report-page --strict`
 - [x] 3.11 The stale notice's "Actualizar vista previa" follows "Generar vista previa" (`useReportPreviewRequest`): off with no polygon or no layer, saying which, and it sends `report_requested`
 - [x] 7.3 Check by hand in `pnpm dev`: stage 2 "Continuar" and the stepper land on the report with everything ticked; search and select all; icons and tooltips; generate, change, stale band, update; the three modal variants; a large report's ZIP with progress; `/report-generation/preview` redirects
+
+## 8. Review of #149
+
+- [x] 8.1 The complete report is pre-rendered only when the previewed choice is still the current one
+- [x] 8.2 The category icons' tooltip describes them (`describeChild`) and keeps their name; the icons take no focus, recorded in the design
+- [x] 8.3 The stale notice is announced through a `role="status"` region that is always in the page, with the button outside it
+- [x] 8.4 Remove `MultiSelectionStep` and `useMapsForSelectedCountry` (and its test), left unused with `MapSelectionModal`
+- [x] 8.5 The report texts say "polígonos" / "polygons" everywhere, also in the preview notices and the ZIP progress
+- [x] 8.6 The spec says "Descargar" is off while a large report's ZIP is built

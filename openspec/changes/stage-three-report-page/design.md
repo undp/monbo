@@ -90,7 +90,7 @@ Alternative: derive "seed" from empty lists. Rejected, because a user who untick
   - `previewState`: `"idle" | "loading" | "ready" | "failed"`;
   - `isPreviewStale = preview !== null && preview.key !== selection?.key`;
   - `isPreviewCurrent = preview?.key === selection?.key`, or a render of the current key in flight, turns the button off ("al día").
-- The complete pre-render stays as it is (`keyed(completeRef, requested.key, …)` after the preview).
+- The complete pre-render stays as it is (`keyed(completeRef, requested.key, …)` after the preview), but only when the requested choice is still the current one. A choice changed while it rendered won't be downloaded as it was, and its render would hold up the current choice's download in the same worker.
 - `getCompleteReport` keeps using `selection` (the current choice). `keyed` returns the pre-rendered promise when the keys match, and starts a render otherwise. So a stale or missing preview downloads the current choice.
 - `isLarge`, `farmCount` and `satelliteLimit` stay derived from the current `selection`, because they describe what "Descargar" will produce. The large and satellite notices above the PDF use the previewed selection's values, which the provider exposes as `preview.isLarge` and `preview.farmCount`.
 - The ZIP-job cancel on a key change stays: a job belongs to the choice it started with.
@@ -106,7 +106,8 @@ Alternative: a `previewEnabled` flag that, once set, keeps the auto-render. Reje
 - **Selection state.** `Set<string>` of ids derived once from `selectedFarms`. A toggle writes through `setReportGenerationParams`, as `ReportResultsTable` does today.
 - **Category icons.** `farmCategoryResults(farms, results, maps, categories)` lives in `utils/` and is memoized per `(results, ticked maps, categories)` as a `Map<farmId, FarmCategoryResult[]>`. Each entry holds the category, its worst class and each layer's value and class. The worst order is flagged > unknown > ok (`classifyFarmInCategory`).
   - The row writes each layer's finding with `layerResult`, as the stage 2 pill does: the percentage when flagged, the label otherwise. Texts are built only for the rows in view.
-  - The icon is the category's icon in `FLOW_RESULT_PILL[class]` colours, inside a MUI `Tooltip`, with `aria-label` "{{category}}: {{result}}".
+  - The icon is the category's icon in `FLOW_RESULT_PILL[class]` colours, inside a MUI `Tooltip` with `describeChild`, so the open tooltip describes the icon and keeps its `aria-label` ("{{category}}: {{result}}. {{findings}}").
+  - The icons take no focus: a row stays one Tab stop. Screen reader users get every finding from the icon's name. Keyboard users without one don't see the tooltip, and read the result from the icon's colour. That is accepted, so that a page of rows doesn't add one Tab stop per category.
 - **A11y.** The list is a `role="group"` labelled "Polígonos", and each row is a checkbox named "{{id}} {{producer}}". The icons sit outside the checkbox's label, with their own name (category, result and findings). Native checkboxes keep Tab order. 1000 rows virtualized are about 15 in the DOM, so Tab stops stay few.
 
 ### 5. Layers section
@@ -122,7 +123,7 @@ Alternative: a `previewEnabled` flag that, once set, keeps the auto-render. Reje
   - It is off when no farm is ticked, when no layer is ticked, or when the preview is up to date. A caption under it says which applies: "Elige al menos un polígono", "Elige al menos una capa" or "La vista previa está al día".
   - Pressing it sends `report_requested` with the ticked farms, then calls `requestPreview()`.
 - **"Descargar"** (`outlined`). It is off for an empty choice, and while a ZIP job runs.
-- **Stale notice.** A blue `FLOW_COLORS` band over the PDF: "La vista previa no refleja los últimos cambios", followed by "Actualizar vista previa".
+- **Stale notice.** A blue `FLOW_COLORS` band over the PDF: "La vista previa no refleja los últimos cambios", followed by "Actualizar vista previa". A visually hidden `role="status"` region, always in the page, holds only the text (and the missing choice), so screen readers announce it when it appears. The button stays outside of it.
 - **Empty state.** A document icon, then "Genera la vista previa para revisar el reporte antes de descargarlo."
 
 ### 7. "Formato" modal

@@ -9,6 +9,16 @@ import { ReportContext } from "@/context/ReportContext";
 import { useReportPreviewRequest } from "@/hooks/useReportPreviewRequest";
 import { FLOW_COLORS, STAGE_CARD } from "@/components/page/flow/flowStyles";
 
+// Read by screen readers, not shown
+const VISUALLY_HIDDEN = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+} as const;
+
 /** The panel's height on a wide screen: the viewport under the app header. */
 export const PREVIEW_PANEL_HEIGHT = "calc(100vh - 96px)";
 
@@ -62,9 +72,19 @@ export const ReportPreviewPanel: React.FC = () => {
         top: { md: 80 },
       }}
     >
+      {/* Always in the page, so screen readers hear the notice when it appears */}
+      <Box role="status" sx={VISUALLY_HIDDEN}>
+        {isPreviewStale &&
+          [
+            t("reportGeneration:preview.stale"),
+            missing && t(`reportGeneration:actions.${missing}`),
+          ]
+            .filter(Boolean)
+            .join(" ")}
+      </Box>
       {isPreviewStale && (
         <Box
-          role="status"
+          data-testid="stale-notice"
           sx={{
             display: "flex",
             flexWrap: "wrap",
@@ -77,7 +97,8 @@ export const ReportPreviewPanel: React.FC = () => {
           }}
         >
           <InfoOutlinedIcon fontSize="small" sx={{ color: FLOW_COLORS.blue }} aria-hidden />
-          <Box component="span" sx={{ flex: 1, minWidth: 200 }}>
+          {/* Announced by the status above; the button is described by the reason */}
+          <Box component="span" aria-hidden sx={{ flex: 1, minWidth: 200 }}>
             {t("reportGeneration:preview.stale")}
             {missing && (
               <Box

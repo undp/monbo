@@ -300,6 +300,8 @@ describe("ReportProvider with a selection", () => {
       isPreviewStale: true,
     });
     expect(rendered.result.current.previewInfo?.farmCount).toBe(2);
+    // Nobody downloads the requested choice now: it isn't pre-rendered
+    expect(requests()).toHaveLength(1);
   });
 
   it("downloads the current choice, not the previewed one", async () => {

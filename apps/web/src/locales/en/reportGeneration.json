@@ -44,9 +44,9 @@
     "title": "Report preview",
     "error": "There was an error generating the report preview",
     "retry": "Retry",
-    "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm.",
-    "largeReportWithoutSatellite": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm, and the maps are generated without the satellite background image. The preview shows the first farm.",
-    "withoutSatellite": "This report has more than {{limit}} farms: the maps are generated without the satellite background image.",
+    "largeReport": "This report has {{count}} polygons: it is downloaded as a ZIP with one PDF per polygon. The preview shows the first polygon.",
+    "largeReportWithoutSatellite": "This report has {{count}} polygons: it is downloaded as a ZIP with one PDF per polygon, and the maps are generated without the satellite background image. The preview shows the first polygon.",
+    "withoutSatellite": "This report has more than {{limit}} polygons: the maps are generated without the satellite background image.",
     "stale": "The preview doesn't show the latest changes.",
     "emptyTitle": "No preview yet",
     "emptyDescription": "Generate the preview to check the report before downloading it.",
@@ -97,7 +97,7 @@
   },
   "zipProgress": {
     "title": "Generating the ZIP",
-    "count": "{{done}} of {{total}} farms",
+    "count": "{{done}} of {{total}} polygons",
     "hint": "You can stay on this page. Leaving it cancels the download."
   },
   "footer": {
