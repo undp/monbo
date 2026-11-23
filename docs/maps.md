@@ -247,11 +247,12 @@ as an error, and shown in the admin with `category_issue` or `layer_issue`
 for analyses already open.
 
 **The admin UI explains these rules before the admin hits them.** On the Categories
-page and in its panel, a control that a rule blocks (the enable switch, the
+page and in the category editor (`/admin/categories/new` and
+`/admin/categories/<id>`, a page of its own), a control that a rule blocks (the enable switch, the
 polarity, "layers compare two years", a published layer's category in the layer
 form) is locked and says why, naming the layers to hide first. The polarity has no
-default: a new category can't be saved until the admin chooses it, and the panel's
-preview classifies two example polygons with the app's own classifier, so it shows
+default: a new category can't be saved until the admin chooses it, and the editor's
+preview, beside the form, classifies two example polygons with the app's own classifier, so it shows
 which polygon gets the observation. The layer form shows the baseline and
 comparison years only for a temporal category and sends them as `null` otherwise.
 The layers list and the layer editor say why an enabled layer isn't public

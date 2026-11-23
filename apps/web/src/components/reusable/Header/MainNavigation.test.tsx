@@ -7,7 +7,7 @@ import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { DataContext, type DataContextValue } from "@/context/DataContext";
 import { makeMapResults, makeValidationResults } from "@/test/factories";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
-import { setPathname } from "@/test/navigation";
+import { router, setPathname } from "@/test/navigation";
 import { makeDataContext } from "@/test/renderWithData";
 import { MainNavigation } from "./MainNavigation";
 
@@ -122,9 +122,10 @@ describe("MainNavigation", () => {
     ]);
   });
 
-  it("holds the admin's country and sections in the narrow-screen menu", async () => {
+  it("holds the admin's country, sections and log out in the narrow-screen menu", async () => {
     setPathname("/es/admin/categories");
     const i18n = await createTestI18n("es");
+    const logout = vi.fn();
     render(
       <ThemeProvider theme={theme}>
         <I18nextProvider i18n={i18n}>
@@ -133,7 +134,7 @@ describe("MainNavigation", () => {
               session: { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "CO" },
               ready: true,
               login: vi.fn(),
-              logout: vi.fn(),
+              logout,
               withToken: vi.fn(),
             }}
           >
@@ -156,9 +157,14 @@ describe("MainNavigation", () => {
       "Categorías",
       "Uso",
       "Metodología",
+      "Cerrar sesión",
     ]);
     expect(
       menu.getByRole("menuitem", { name: "Categorías" }).getAttribute("aria-current")
     ).toBe("page");
+
+    fireEvent.click(menu.getByRole("menuitem", { name: "Cerrar sesión" }));
+    expect(logout).toHaveBeenCalledOnce();
+    expect(router.replace).toHaveBeenCalledWith("/admin");
   });
 });

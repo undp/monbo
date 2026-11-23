@@ -1,6 +1,6 @@
 {
-  "title": "Administración de capas",
-  "logout": "Cerrar sesión",
+  "eyebrow": "Administración · {{country}}",
+  "eyebrowAll": "Administración",
   "login": {
     "title": "Acceso de administración",
     "subtitle": "Ingresa la clave de administración para gestionar las capas y categorías de tu país.",
@@ -23,12 +23,16 @@
     "loadError": "No se pudieron cargar las capas.",
     "columns": {
       "id": "ID",
-      "name": "Nombre",
-      "alias": "Alias",
+      "layer": "Capa",
       "category": "Categoría",
+      "period": "Período",
       "raster": "Raster",
       "version": "Versión",
-      "published": "Publicada"
+      "published": "Publicada",
+      "actions": "Acciones"
+    },
+    "period": {
+      "current": "Vigente"
     },
     "noRaster": "Sin raster",
     "published": "Capa {{alias}} publicada.",
@@ -111,7 +115,6 @@
     "form": {
       "createTitle": "Nueva categoría",
       "editTitle": "Editar categoría",
-      "close": "Cerrar",
       "name": "Nombre",
       "description": "Descripción corta",
       "descriptionHelp": "Se muestra en el análisis, en el reporte y en la metodología.",
@@ -181,7 +184,15 @@
         "threshold": "Un número entre 0 y 100",
         "polarity": "Elige qué marcan las capas de esta categoría.",
         "invalid": "Revisa los campos marcados."
+      },
+      "sections": {
+        "identity": "Nombre y descripción",
+        "rule": "Qué marcan sus capas"
       }
+    },
+    "editor": {
+      "back": "Volver a categorías",
+      "notFound": "Esta categoría no existe en tu país."
     }
   },
   "form": {

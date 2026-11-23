@@ -118,11 +118,12 @@ beforeEach(() => {
 });
 
 describe("AdminUsagePageContent", () => {
-  it("titles the page without the overline or the session's country", async () => {
+  it("titles the page under the bare admin eyebrow, without the session's country", async () => {
     await renderPage();
     await screen.findByTestId("weekly-chart");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("App usage");
-    expect(screen.queryByText("Layers admin")).toBeNull();
+    expect(screen.getByText("Admin")).toBeTruthy();
+    expect(screen.queryByText(/Admin ·/)).toBeNull();
     expect(screen.queryByText(/Colombia/)).toBeNull();
   });
 

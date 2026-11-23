@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { Box, Button, Chip, FormControlLabel, FormHelperText, Paper, Switch } from "@mui/material";
+import { Box, Button, Chip, FormControlLabel, FormHelperText, Switch } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
-import EditIcon from "@mui/icons-material/Edit";
 import { useTranslation } from "react-i18next";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { ResultChip } from "@/components/reusable/ResultChip";
-import { Text } from "@/components/reusable/Text";
+import { FLOW_COLORS, HEADING_FONT, STAGE_CARD } from "@/components/page/flow/flowStyles";
 import { AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
 import { AS_TEXT } from "@/utils/asText";
 import { categoryTints } from "@/utils/categoryColors";
@@ -29,7 +28,10 @@ interface Props {
   onEdit: () => void;
 }
 
-/** One category of the country, as the mockup's admin cards show it. */
+/**
+ * One category of the country, as the mockup's admin cards show it: what it is on
+ * the left, its result texts on the right, and its layers, switch and "Edit" below.
+ */
 export const CategoryCard: React.FC<Props> = ({
   category,
   layers,
@@ -58,120 +60,142 @@ export const CategoryCard: React.FC<Props> = ({
         });
 
   return (
-    <Paper
+    <Box
       component="article"
       aria-label={name}
       sx={{
-        padding: 2.25,
+        ...STAGE_CARD,
+        padding: { xs: 2, md: "22px 24px" },
         display: "flex",
         flexDirection: "column",
-        gap: 1.25,
-        borderLeft: `4px solid ${tints.color}`,
-        ...(category.enabled ? {} : { backgroundColor: "#fafafa" }),
+        gap: 2,
+        ...(category.enabled ? {} : { backgroundColor: "#fafbfc" }),
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            flex: "none",
-            borderRadius: "10px",
-            display: "grid",
-            placeItems: "center",
-            color: tints.color,
-            backgroundColor: tints.background,
-            opacity: category.enabled ? 1 : 0.6,
-          }}
-        >
-          <LayerCategoryIcon icon={category.icon} aria-hidden />
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Text variant="h6" component="h2" bold sx={{ lineHeight: 1.2 }}>
-            {name}
-          </Text>
-          <Text variant="caption" color="secondary">
-            {otherLanguage.toUpperCase()} · {localizedText(category.name, otherLanguage)}
-          </Text>
-        </Box>
-        {!category.enabled && (
-          <Chip size="small" label={t("admin:categories:card:disabled")} />
-        )}
-      </Box>
-
-      {description && (
-        <Text variant="body2" color="secondary">
-          {description}
-        </Text>
-      )}
-      <Text variant="body2">{t(`admin:categories:polarity:${category.polarity}`)}</Text>
-
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-        <ResultChip kind="neutral">{threshold}</ResultChip>
-        {category.temporal && (
-          <ResultChip kind="neutral">{t("admin:categories:card:temporal")}</ResultChip>
-        )}
-      </Box>
-
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.75,
-          padding: 1.25,
-          borderRadius: 2,
-          backgroundColor: "#f7fafc",
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(280px, 400px)" },
+          gap: { xs: 2, md: 3 },
+          alignItems: "start",
         }}
       >
-        {(["ok", "flagged"] as const).map((kind) => (
-          <Box
-            key={kind}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Text variant="caption" color="secondary">
-              {t(`admin:categories:card:${kind}`)}
-            </Text>
-            <ResultChip kind={kind}>
-              {kind === "ok" && <CheckIcon aria-hidden sx={{ fontSize: 14 }} />}
-              {localizedText(category.resultLabels[kind], language)}
-            </ResultChip>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, minWidth: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                flex: "none",
+                borderRadius: "12px",
+                display: "grid",
+                placeItems: "center",
+                color: tints.color,
+                backgroundColor: tints.background,
+                opacity: category.enabled ? 1 : 0.6,
+              }}
+            >
+              <LayerCategoryIcon icon={category.icon} aria-hidden />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Box
+                component="h2"
+                sx={{
+                  margin: 0,
+                  fontFamily: HEADING_FONT,
+                  fontSize: 19,
+                  fontWeight: 700,
+                  lineHeight: 1.25,
+                  color: FLOW_COLORS.ink,
+                }}
+              >
+                {name}
+              </Box>
+              <Box component="span" sx={{ fontSize: 13, color: FLOW_COLORS.muted }}>
+                {otherLanguage.toUpperCase()} · {localizedText(category.name, otherLanguage)}
+              </Box>
+            </Box>
+            {!category.enabled && (
+              <Chip size="small" label={t("admin:categories:card:disabled")} />
+            )}
           </Box>
-        ))}
-      </Box>
 
-      <Text variant="body2" color="secondary">
-        {category.layerCount === 0
-          ? t("admin:categories:card:noLayers")
-          : `${t("admin:categories:card:layers", { count: category.layerCount })} · ${t(
-              "admin:categories:card:published",
-              { count: category.publishedLayerCount }
-            )}${
-              layers.length
-                ? `: ${layers.map((layer) => adminLayerText(layer, "alias", language)).join(", ")}`
-                : ""
-            }`}
-      </Text>
+          {description && (
+            <Box component="p" sx={{ margin: 0, fontSize: 15, color: FLOW_COLORS.ink }}>
+              {description}
+            </Box>
+          )}
+          <Box component="p" sx={{ margin: 0, fontSize: 14, color: FLOW_COLORS.ink2 }}>
+            {t(`admin:categories:polarity:${category.polarity}`)}
+          </Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            <ResultChip kind="neutral">{threshold}</ResultChip>
+            {category.temporal && (
+              <ResultChip kind="neutral">{t("admin:categories:card:temporal")}</ResultChip>
+            )}
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            padding: "12px 14px",
+            borderRadius: "10px",
+            backgroundColor: FLOW_COLORS.blue25,
+          }}
+        >
+          {(["ok", "flagged"] as const).map((kind) => (
+            <Box
+              key={kind}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              <Box component="span" sx={{ fontSize: 13, color: FLOW_COLORS.muted }}>
+                {t(`admin:categories:card:${kind}`)}
+              </Box>
+              <ResultChip kind={kind}>
+                {kind === "ok" && <CheckIcon aria-hidden sx={{ fontSize: 14 }} />}
+                {localizedText(category.resultLabels[kind], language)}
+              </ResultChip>
+            </Box>
+          ))}
+        </Box>
+      </Box>
 
       <Box
         sx={{
-          marginTop: "auto",
-          paddingTop: 1,
-          borderTop: 1,
-          borderColor: "divider",
+          paddingTop: 1.5,
+          borderTop: `1px solid ${FLOW_COLORS.line}`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 1,
+          gap: { xs: 1, md: 2 },
           flexWrap: "wrap",
         }}
       >
+        <Box
+          component="span"
+          sx={{ flex: "1 1 240px", fontSize: 14, color: FLOW_COLORS.ink2, minWidth: 0 }}
+        >
+          {category.layerCount === 0
+            ? t("admin:categories:card:noLayers")
+            : `${t("admin:categories:card:layers", { count: category.layerCount })} · ${t(
+                "admin:categories:card:published",
+                { count: category.publishedLayerCount }
+              )}${
+                layers.length
+                  ? `: ${layers.map((layer) => adminLayerText(layer, "alias", language)).join(", ")}`
+                  : ""
+              }`}
+        </Box>
         <FormControlLabel
+          sx={{ marginRight: 0 }}
           control={
             <Switch
               checked={category.enabled}
@@ -190,7 +214,7 @@ export const CategoryCard: React.FC<Props> = ({
               : t("admin:categories:card:disabled")
           }
         />
-        <Button size="small" startIcon={<EditIcon />} onClick={onEdit} disabled={!editable}>
+        <Button size="small" onClick={onEdit} disabled={!editable}>
           {t("admin:categories:edit")}
         </Button>
         {editable && locks.enabled && (
@@ -199,6 +223,6 @@ export const CategoryCard: React.FC<Props> = ({
           </FormHelperText>
         )}
       </Box>
-    </Paper>
+    </Box>
   );
 };

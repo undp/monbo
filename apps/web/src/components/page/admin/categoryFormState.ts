@@ -15,7 +15,7 @@ export const CATEGORY_NAME_MAX_LENGTH = 100;
 export const CATEGORY_DESCRIPTION_MAX_LENGTH = 1000;
 export const CATEGORY_LABEL_MAX_LENGTH = 60;
 export const CATEGORY_ID_MAX_LENGTH = 50;
-const CATEGORY_ID_PATTERN = /^[a-z][a-z0-9_]{0,49}$/;
+export const CATEGORY_ID_PATTERN = /^[a-z][a-z0-9_]{0,49}$/;
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 // The default "Deforestación" red (D15) and the mockup's palette.

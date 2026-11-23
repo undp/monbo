@@ -9,13 +9,14 @@ import {
   ListItemIcon,
   ListItemText,
   MenuItem,
-  Paper,
   TextField,
   TextFieldProps,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import TranslateOutlinedIcon from "@mui/icons-material/TranslateOutlined";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,6 +28,7 @@ import {
   useWatch,
   Validate,
 } from "react-hook-form";
+import { FlowSection } from "@/components/page/flow/FlowSection";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
 import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { Text } from "@/components/reusable/Text";
@@ -59,22 +61,20 @@ const TAB_LABELS: Record<AdminLanguage, typeof enAdmin.form> = {
 
 export const Section: React.FC<{
   title: string;
-  // Shown right after the title (e.g. a help button)
+  /** In the heading's tile, as the stage pages' cards. */
+  icon: React.ReactNode;
+  // At the heading's right (e.g. a help button)
   titleAction?: React.ReactNode;
   // An anchor to scroll to
   id?: string;
   children: React.ReactNode;
-}> = ({ title, titleAction, id, children }) => (
+}> = ({ title, icon, titleAction, id, children }) => (
   // The scroll margin keeps the title clear of the fixed header.
-  <Paper id={id} sx={{ padding: 3, marginBottom: 3, scrollMarginTop: 88 }}>
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, marginBottom: 2 }}>
-      <Text variant="h6" component="h2" bold>
-        {title}
-      </Text>
-      {titleAction}
-    </Box>
-    {children}
-  </Paper>
+  <Box id={id} sx={{ scrollMarginTop: 88 }}>
+    <FlowSection title={title} icon={icon} action={titleAction}>
+      {children}
+    </FlowSection>
+  </Box>
 );
 
 type FormTextFieldProps = Omit<TextFieldProps, "name"> & {
@@ -235,7 +235,10 @@ export const LayerForm: React.FC<LayerFormProps> = ({ categories, layer }) => {
 
   return (
     <>
-      <Section title={t("admin:form:sections:layer")}>
+      <Section
+        title={t("admin:form:sections:layer")}
+        icon={<LayersOutlinedIcon fontSize="small" />}
+      >
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 8 }}>
             <FormTextField
@@ -345,6 +348,7 @@ export const LayerForm: React.FC<LayerFormProps> = ({ categories, layer }) => {
 
       <Section
         title={t("admin:form:sections:texts")}
+        icon={<TranslateOutlinedIcon fontSize="small" />}
         titleAction={
           <IconButton
             aria-label={t("admin:form:example:open")}

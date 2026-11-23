@@ -6,6 +6,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import { useTranslation } from "react-i18next";
 import { CategoryChip } from "@/components/reusable/CategoryChip";
 import { ResultChip } from "@/components/reusable/ResultChip";
+import { PageEyebrow } from "@/components/page/flow/PageEyebrow";
+import { STAGE_CARD } from "@/components/page/flow/flowStyles";
 import { Text } from "@/components/reusable/Text";
 import { ADMIN_LANGUAGES, AdminLanguage } from "@/interfaces/AdminLayer";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
@@ -126,19 +128,14 @@ export const CategoryPreview: React.FC<Props> = ({ values, globalThreshold }) =>
       role="region"
       aria-label={t("admin:categories:form:preview:title")}
       sx={{
-        border: 1,
-        borderColor: "divider",
-        borderRadius: 2,
-        padding: 2,
-        backgroundColor: "#f7fafc",
+        ...STAGE_CARD,
+        padding: { xs: 2, md: "20px 22px" },
         display: "flex",
         flexDirection: "column",
         gap: 1.5,
       }}
     >
-      <Text variant="caption" color="secondary" bold sx={{ textTransform: "uppercase" }}>
-        {t("admin:categories:form:preview:title")}
-      </Text>
+      <PageEyebrow>{t("admin:categories:form:preview:title")}</PageEyebrow>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
         {ADMIN_LANGUAGES.map((language) => (
           <CategoryChip key={language} name={name(language)} icon={values.icon} color={color} />

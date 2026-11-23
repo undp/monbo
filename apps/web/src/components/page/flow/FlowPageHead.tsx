@@ -5,6 +5,8 @@ import { StageEyebrow } from "./StageEyebrow";
 import { FLOW_COLORS, HEADING_FONT } from "./flowStyles";
 
 interface Props {
+  /** Above the title; "Stage N of 3" by default. */
+  eyebrow?: React.ReactNode;
   title: string;
   subtitle?: string;
   /** Next to the title, at the right: a search bar or a download button. */
@@ -12,7 +14,12 @@ interface Props {
 }
 
 /** A stage page's head: "Stage N of 3", its title and what to do in it. */
-export const FlowPageHead: React.FC<Props> = ({ title, subtitle, actions }) => (
+export const FlowPageHead: React.FC<Props> = ({
+  eyebrow = <StageEyebrow />,
+  title,
+  subtitle,
+  actions,
+}) => (
   <Box
     sx={{
       display: "flex",
@@ -22,7 +29,7 @@ export const FlowPageHead: React.FC<Props> = ({ title, subtitle, actions }) => (
     }}
   >
     <Box sx={{ flex: "1 1 420px", minWidth: 0 }}>
-      <StageEyebrow />
+      {eyebrow}
       <Box
         component="h1"
         sx={{

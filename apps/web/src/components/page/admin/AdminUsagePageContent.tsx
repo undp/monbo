@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   CircularProgress,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -25,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { AdminApiError } from "@/api/adminLayers";
 import { getAdminUsage, UsageBlock, UsageReport } from "@/api/adminUsage";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
+import { FLOW_COLORS, HEADING_FONT, STAGE_CARD } from "@/components/page/flow/flowStyles";
 import { Text } from "@/components/reusable/Text";
 import { getCountryName } from "@/utils/countries";
 import { AdminPageContainer } from "./AdminPageContainer";
@@ -137,11 +137,12 @@ export const AdminUsagePageContent: React.FC = () => {
       subtitle={t("admin:usage:subtitle")}
       countryInTitle={false}
     >
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", marginBottom: 3 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
         <ToggleButtonGroup
           exclusive
           size="small"
           value={preset}
+          sx={RANGE_TOGGLE}
           aria-label={t("admin:usage:range:label")}
           onChange={(_, value: Preset | null) => {
             if (!value) return;
@@ -202,6 +203,25 @@ export const AdminUsagePageContent: React.FC = () => {
   );
 };
 
+/** The range presets as the stage pages' segmented control. */
+const RANGE_TOGGLE = {
+  backgroundColor: FLOW_COLORS.white,
+  borderRadius: "10px",
+  "& .MuiToggleButton-root": {
+    paddingX: 1.75,
+    textTransform: "none",
+    fontWeight: 600,
+    color: FLOW_COLORS.ink2,
+    borderColor: FLOW_COLORS.line,
+  },
+  "& .MuiToggleButton-root:first-of-type": { borderRadius: "10px 0 0 10px" },
+  "& .MuiToggleButton-root:last-of-type": { borderRadius: "0 10px 10px 0" },
+  "& .MuiToggleButton-root.Mui-selected, & .MuiToggleButton-root.Mui-selected:hover": {
+    color: FLOW_COLORS.blue,
+    backgroundColor: FLOW_COLORS.blue50,
+  },
+} as const;
+
 interface ViewProps {
   report: UsageReport;
   format: {
@@ -213,23 +233,34 @@ interface ViewProps {
   countryName: (code: string) => string;
 }
 
-/** A white card holding one chart or table, with its title. */
+/** A white card holding one chart or table, with its title (the stage pages' card). */
 const Card: React.FC<{
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => (
-  <Paper variant="outlined" sx={{ padding: 2.5, borderRadius: 2 }}>
-    <Text variant="h6" component="h2" bold>
+  <Box component="section" aria-label={title} sx={{ ...STAGE_CARD, padding: { xs: 2, md: "20px 24px" } }}>
+    <Box
+      component="h2"
+      sx={{
+        margin: 0,
+        fontFamily: HEADING_FONT,
+        fontSize: 18,
+        fontWeight: 700,
+        lineHeight: 1.25,
+        letterSpacing: "-0.015em",
+        color: FLOW_COLORS.ink,
+      }}
+    >
       {title}
-    </Text>
+    </Box>
     {subtitle && (
-      <Text color="secondary" variant="body2">
+      <Box component="p" sx={{ margin: 0, marginTop: 0.5, fontSize: 13.5, color: FLOW_COLORS.muted }}>
         {subtitle}
-      </Text>
+      </Box>
     )}
-    <Box sx={{ marginTop: 1.5 }}>{children}</Box>
-  </Paper>
+    <Box sx={{ marginTop: 2 }}>{children}</Box>
+  </Box>
 );
 
 const Tile: React.FC<{
@@ -241,11 +272,10 @@ const Tile: React.FC<{
   trend: number[];
   trendLabel: string;
 }> = ({ label, value, detail, source, icon, trend, trendLabel }) => (
-  <Paper
-    variant="outlined"
+  <Box
     role="group"
     aria-label={label}
-    sx={{ padding: 2, borderRadius: 2, display: "flex", flexDirection: "column" }}
+    sx={{ ...STAGE_CARD, padding: 2.25, display: "flex", flexDirection: "column" }}
   >
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
       <Box
@@ -254,8 +284,8 @@ const Tile: React.FC<{
           display: "flex",
           padding: 1,
           borderRadius: "50%",
-          color: "#1c5cab",
-          backgroundColor: "#e6f0fc",
+          color: FLOW_COLORS.blue,
+          backgroundColor: FLOW_COLORS.blue50,
         }}
       >
         {icon}
@@ -264,9 +294,18 @@ const Tile: React.FC<{
         {label}
       </Text>
     </Box>
-    <Text bold boldWeight={700} sx={{ fontSize: 40, lineHeight: 1.2, marginTop: 1.5 }}>
+    <Box
+      sx={{
+        fontFamily: HEADING_FONT,
+        fontSize: 38,
+        fontWeight: 800,
+        lineHeight: 1.2,
+        marginTop: 1.5,
+        color: FLOW_COLORS.ink,
+      }}
+    >
       {value}
-    </Text>
+    </Box>
     {detail && <Text variant="body2">{detail}</Text>}
     {/* At least two weeks, or there is no trend to draw */}
     {trend.length > 1 && (
@@ -279,7 +318,7 @@ const Tile: React.FC<{
         {source}
       </Text>
     )}
-  </Paper>
+  </Box>
 );
 
 const errorTotal = (block: { errors: UsageBlock["upload"]["errors"] }) =>

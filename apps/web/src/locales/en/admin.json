@@ -1,6 +1,6 @@
 {
-  "title": "Layers admin",
-  "logout": "Log out",
+  "eyebrow": "Admin · {{country}}",
+  "eyebrowAll": "Admin",
   "login": {
     "title": "Admin access",
     "subtitle": "Enter the admin passkey to manage your country's layers and categories.",
@@ -23,12 +23,16 @@
     "loadError": "The layers could not be loaded.",
     "columns": {
       "id": "ID",
-      "name": "Name",
-      "alias": "Alias",
+      "layer": "Layer",
       "category": "Category",
+      "period": "Period",
       "raster": "Raster",
       "version": "Version",
-      "published": "Published"
+      "published": "Published",
+      "actions": "Actions"
+    },
+    "period": {
+      "current": "Current"
     },
     "noRaster": "No raster",
     "published": "Layer {{alias}} published.",
@@ -111,7 +115,6 @@
     "form": {
       "createTitle": "New category",
       "editTitle": "Edit category",
-      "close": "Close",
       "name": "Name",
       "description": "Short description",
       "descriptionHelp": "Shown in the analysis, the report and the methodology.",
@@ -181,7 +184,15 @@
         "threshold": "A number from 0 to 100",
         "polarity": "Choose what this category's layers mark.",
         "invalid": "Check the marked fields."
+      },
+      "sections": {
+        "identity": "Name and description",
+        "rule": "What its layers mark"
       }
+    },
+    "editor": {
+      "back": "Back to categories",
+      "notFound": "This category doesn't exist in your country."
     }
   },
   "form": {

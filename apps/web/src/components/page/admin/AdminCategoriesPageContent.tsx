@@ -3,6 +3,7 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { listAdminCategories, setAdminCategoryEnabled } from "@/api/adminCategories";
 import { listAdminLayers } from "@/api/adminLayers";
@@ -11,28 +12,28 @@ import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { AdminCategories, AdminCategory, AdminLayer } from "@/interfaces/AdminLayer";
 import { AS_TEXT } from "@/utils/asText";
+import { localizedPath } from "@/utils/languageChange";
 import { localizedText } from "@/utils/localizedText";
 import { apiRefusalReason } from "./adminErrors";
 import { adminLanguage } from "./adminLayerText";
 import { AdminPageContainer } from "./AdminPageContainer";
 import { CategoryCard } from "./CategoryCard";
-import { CategoryPanel } from "./CategoryPanel";
 import { categoryLocks } from "./categoryRules";
 
-// What the panel edits: a category, or a new one (null)
-type Editing = { category: AdminCategory | null } | null;
-
-/** The session's country's layer categories: cards, enable switches and the panel. */
+/**
+ * The session's country's layer categories: one card each, one under the other,
+ * with its enable switch. Creating and editing open the editor's page.
+ */
 export const AdminCategoriesPageContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const language = adminLanguage(i18n.language);
+  const router = useRouter();
   const { session, withToken } = useContext(AdminSessionContext);
   const { openSnackbar } = useContext(SnackbarContext);
   const [data, setData] = useState<AdminCategories | null>(null);
   // Only names the layers in the cards and locks: the page works without them.
   const [layers, setLayers] = useState<AdminLayer[]>([]);
   const [loadError, setLoadError] = useState(false);
-  const [editing, setEditing] = useState<Editing>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   // The fallback of a category without its own threshold (D3), from GET /config.
   const globalThreshold = getDeforestationThreshold();
@@ -99,7 +100,9 @@ export const AdminCategoriesPageContent: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           disabled={!data || !readable}
-          onClick={() => setEditing({ category: null })}
+          onClick={() =>
+            router.push(localizedPath("/admin/categories/new", i18n.language))
+          }
         >
           {t("admin:categories:new")}
         </Button>
@@ -112,7 +115,7 @@ export const AdminCategoriesPageContent: React.FC = () => {
         </Box>
       )}
       {data && (!readable || data.errors.length > 0) && (
-        <Alert severity={readable ? "warning" : "error"} sx={{ marginBottom: 3 }}>
+        <Alert severity={readable ? "warning" : "error"}>
           {t(readable ? "admin:categories:rejected" : "admin:categories:unreadable")}
           <Box component="ul" sx={{ margin: 0, paddingLeft: 2.5 }}>
             {data.errors.map((error) => (
@@ -122,13 +125,7 @@ export const AdminCategoriesPageContent: React.FC = () => {
         </Alert>
       )}
       {data && (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" },
-            gap: 2,
-          }}
-        >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {data.categories.map((category) => (
             <CategoryCard
               key={category.id}
@@ -139,23 +136,15 @@ export const AdminCategoriesPageContent: React.FC = () => {
               editable={readable}
               updating={updating === category.id}
               onToggle={(enabled) => toggle(category, enabled)}
-              onEdit={() => setEditing({ category })}
+              onEdit={() =>
+                router.push(
+                  localizedPath(`/admin/categories/${category.id}`, i18n.language)
+                )
+              }
             />
           ))}
         </Box>
       )}
-      <CategoryPanel
-        open={editing !== null}
-        category={editing?.category ?? null}
-        categories={data?.categories ?? []}
-        locks={categoryLocks(editing?.category ?? null, layers, readable, language)}
-        globalThreshold={globalThreshold}
-        onClose={() => setEditing(null)}
-        onSaved={(category) => {
-          replace(category);
-          setEditing(null);
-        }}
-      />
     </AdminPageContainer>
   );
 };

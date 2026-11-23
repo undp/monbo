@@ -2,7 +2,7 @@
 
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -181,18 +181,11 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
     ? t("admin:form:createTitle")
     : t("admin:form:editTitle", { id: layerId });
 
-  const back = (
-    <Button
-      startIcon={<ArrowBackIcon />}
-      onClick={() => router.push(localizedPath("/admin/layers", i18n.language))}
-    >
-      {t("admin:form:back")}
-    </Button>
-  );
+  const back = { label: t("admin:form:back"), path: "/admin/layers" };
 
   if (notFound) {
     return (
-      <AdminPageContainer title={title} actions={back}>
+      <AdminPageContainer title={title} back={back}>
         <Alert severity="warning">{t("admin:form:notFound")}</Alert>
       </AdminPageContainer>
     );
@@ -201,7 +194,7 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   const categoriesReady = categories !== null || categoriesError;
   if ((!isNew && !layer) || !categoriesReady) {
     return (
-      <AdminPageContainer title={title} actions={back}>
+      <AdminPageContainer title={title} back={back}>
         <Box sx={{ display: "flex", justifyContent: "center", padding: 6 }}>
           <CircularProgress />
         </Box>
@@ -210,14 +203,14 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
   }
 
   return (
-    <AdminPageContainer title={title} actions={back}>
+    <AdminPageContainer title={title} back={back}>
       {categoriesError && (
-        <Alert severity="error" sx={{ marginBottom: 3 }}>
+        <Alert severity="error">
           {t("admin:form:categoriesLoadError")}
         </Alert>
       )}
       {categories && !categories.readable && (
-        <Alert severity="error" sx={{ marginBottom: 3 }}>
+        <Alert severity="error">
           {t("admin:form:categoriesUnreadable")}
         </Alert>
       )}
@@ -228,9 +221,14 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
         />
       )}
       <FormProvider {...form}>
-        <form onSubmit={save} noValidate>
+        <Box
+          component="form"
+          onSubmit={save}
+          noValidate
+          sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
+        >
           <LayerForm categories={categories?.categories ?? []} layer={layer} />
-          <Box sx={{ display: "flex", justifyContent: "flex-end", marginBottom: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
               type="submit"
               variant="contained"
@@ -240,10 +238,14 @@ export const AdminLayerEditorPageContent: React.FC<Props> = ({ layerId }) => {
               {formState.isSubmitting ? t("admin:form:saving") : t("admin:form:save")}
             </Button>
           </Box>
-        </form>
+        </Box>
       </FormProvider>
       {layer && (
-        <Section id={RASTER_SECTION_ID} title={t("admin:form:sections:raster")}>
+        <Section
+          id={RASTER_SECTION_ID}
+          title={t("admin:form:sections:raster")}
+          icon={<CloudUploadOutlinedIcon fontSize="small" />}
+        >
           <RasterUploadSection
             layer={layer}
             categoryName={categoryName(categories, layer.category_id, i18n.language)}

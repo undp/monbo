@@ -11,6 +11,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import type { AdminCategories } from "@/interfaces/AdminLayer";
 import { makeAdminCategory, makeAdminLayer } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
+import { router } from "@/test/navigation";
 import { AdminCategoriesPageContent } from "./AdminCategoriesPageContent";
 
 vi.mock("@/api/adminCategories", () => ({
@@ -83,6 +84,38 @@ describe("AdminCategoriesPageContent", () => {
       )
     ).toBeTruthy();
     expect(card("Agricultural frontier").getByText("No layers yet.")).toBeTruthy();
+  });
+
+  it("lists the cards one under the other, under the country's eyebrow, without a layers table", async () => {
+    await renderPage({
+      categories: [makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 }), frontier],
+      readable: true,
+      errors: [],
+    });
+    await screen.findByRole("article", { name: "Deforestation" });
+
+    expect(screen.getByText("Admin · Colombia")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Categories" })).toBeTruthy();
+    expect(screen.getAllByRole("article").map((article) => article.getAttribute("aria-label"))).toEqual([
+      "Deforestation",
+      "Agricultural frontier",
+    ]);
+    expect(screen.queryByRole("table")).toBeNull();
+    // Each card shows its result texts and its layers
+    expect(card("Deforestation").getByText("No findings")).toBeTruthy();
+    expect(card("Deforestation").getByText("With findings")).toBeTruthy();
+    expect(card("Deforestation").getByText("1 layer · 1 published: IDEAM 2020-2023")).toBeTruthy();
+  });
+
+  it("opens the editor's page to create or edit a category", async () => {
+    await renderPage({ categories: [makeAdminCategory(), frontier], readable: true, errors: [] });
+    await screen.findByRole("article", { name: "Agricultural frontier" });
+
+    fireEvent.click(screen.getByRole("button", { name: "New category" }));
+    expect(router.push).toHaveBeenCalledWith("/en/admin/categories/new");
+
+    fireEvent.click(card("Agricultural frontier").getByRole("button", { name: "Edit" }));
+    expect(router.push).toHaveBeenCalledWith("/en/admin/categories/frontier");
   });
 
   it("locks the switch of a category with published layers, naming them", async () => {

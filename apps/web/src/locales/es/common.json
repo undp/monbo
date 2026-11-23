@@ -8,7 +8,9 @@
       "layers": "Capas",
       "categories": "Categorías",
       "usage": "Uso",
-      "navigation": "Administración"
+      "navigation": "Administración",
+      "session": "Sesión de administración",
+      "logout": "Cerrar sesión"
     },
     "navigation": "Navegación principal",
     "menu": "Abrir el menú de navegación",
