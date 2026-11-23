@@ -51,10 +51,10 @@ Any refusal the UI didn't prevent SHALL be shown with a translated message and t
 - **WHEN** an admin chooses `avoid` and then `required` in the editor
 - **THEN** the preview's polygon with findings changes from one that overlaps the layer to one that falls outside it, and the "with findings" chip keeps showing the finding and the "with findings" text
 
-#### Scenario: Taken id
+#### Scenario: The API makes the id
 
-- **WHEN** CO has a category `protected_areas` and an admin types the id `protected_areas` for a new category
-- **THEN** the id field says it is already used and the editor doesn't save
+- **WHEN** CO has a category `areas_protegidas` and an admin creates a category named "Áreas protegidas"
+- **THEN** the editor asks for no id and says the API makes it from the Spanish name, the `POST` carries no `id`, and the category is created as `areas_protegidas_2`
 
 #### Scenario: Category with published layers
 
