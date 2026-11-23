@@ -619,7 +619,7 @@
       },
       "CategoryCreate": {
         "additionalProperties": false,
-        "description": "Body of `POST /admin/categories`.",
+        "description": "Body of `POST /admin/categories`: no `id`. The API makes it from the Spanish\nname, unique in the country and never reused, and returns it.",
         "properties": {
           "color": {
             "description": "Hex color, #rrggbb",
@@ -642,12 +642,6 @@
               "layers"
             ],
             "title": "Icon",
-            "type": "string"
-          },
-          "id": {
-            "description": "Stable slug, unique in the country and never reused",
-            "pattern": "^[a-z][a-z0-9_]{0,49}$",
-            "title": "Id",
             "type": "string"
           },
           "name": {
@@ -691,8 +685,7 @@
           "color",
           "polarity",
           "resultLabels",
-          "temporal",
-          "id"
+          "temporal"
         ],
         "title": "CategoryCreate",
         "type": "object"
@@ -3044,7 +3037,7 @@
         ]
       },
       "post": {
-        "description": "Create a category in the session's country, enabled and at the end of the\nlist. Its `id` is permanent: an id the country already uses (or used, in a\nrejected entry), and `deforestation`, answer 409. Layers that already point at\nthe id must be hidden and have years that fit `temporal` (400).",
+        "description": "Create a category in the session's country, enabled and at the end of the\nlist. The API makes its permanent `id` from the Spanish name (\"Frontera\nagrícola\" → `frontera_agricola`), with `_2`, `_3`... when the country already\nuses (or used, in a rejected entry) that id; `deforestation` and `new` are never\ngiven. Layers that already point at the id must be hidden and have years that\nfit `temporal` (400).",
         "operationId": "create_category_admin_categories_post",
         "requestBody": {
           "content": {

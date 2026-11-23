@@ -80,7 +80,11 @@ beforeEach(() => {
 describe("AdminCategoryEditorPageContent", () => {
   it("creates a category on its own page and goes back to the list", async () => {
     vi.mocked(createAdminCategory).mockImplementation(async (_token, input) =>
-      makeAdminCategory({ ...input, thresholdPercentage: input.thresholdPercentage ?? null })
+      makeAdminCategory({
+        ...input,
+        id: "frontera_agricola",
+        thresholdPercentage: input.thresholdPercentage ?? null,
+      })
     );
     await renderEditor(undefined);
 
@@ -103,10 +107,8 @@ describe("AdminCategoryEditorPageContent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create category" }));
 
     await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
-    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
-      id: "frontera_agricola",
-      polarity: "required",
-    });
+    // The API makes the id from the Spanish name
+    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).not.toHaveProperty("id");
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/admin/categories"));
   });
 

@@ -4,7 +4,7 @@
 
 The admin SHALL provide a categories page at `/[locale]/admin/categories` that lists every category of the session's country (from `GET /admin/categories`), enabled or not, in the order the API returns, one under the other. Each category SHALL show its icon on its color, its name in Spanish and English, its description, what its layers mark (its polarity in words), its threshold (its own, or the global one from `GET /config` when `thresholdPercentage` is `null`), its "no findings" and "with findings" result texts as chips, its layers with how many are published, whether it is enabled, a control to enable or disable it and a way to edit it. On a wide screen the result texts SHALL sit beside the category's description, not under it. The page SHALL NOT list the country's layers. When the country's categories file can't be read (`readable: false`), the page SHALL show the file's errors and SHALL NOT offer to create, edit, enable or disable categories; when it is readable but has rejected entries, the page SHALL show those errors and keep working.
 
-Creating and editing SHALL happen on a page of their own: `/[locale]/admin/categories/new` to create, and `/[locale]/admin/categories/{id}` to edit, with a way back to the categories page. An `{id}` that doesn't match `^[a-z][a-z0-9_]{0,49}$` SHALL get the not-found page; an `{id}` that is not a category of the country SHALL say so, with the way back. The editor SHALL have the name and description in Spanish and English, the icon (from the catalogue of `GET /categories`), the color, whether its layers compare two years (`temporal`), the threshold (the global one or its own, 0 to 100), the "no findings" and "with findings" texts in Spanish and English, and the polarity. The polarity SHALL be chosen explicitly: a new category SHALL start with no polarity, each option SHALL explain what counts as a finding (`avoid`: a polygon that overlaps the layer; `required`: a polygon that falls outside it), and the editor SHALL NOT save without one. When creating, the editor SHALL suggest the category id from the Spanish name, let the admin edit it, say that it is permanent, and refuse an id that doesn't match `^[a-z][a-z0-9_]{0,49}$` or is already used in the country; when editing, the id SHALL NOT be editable. Once saved, the editor SHALL go back to the categories page, which shows the saved category.
+Creating and editing SHALL happen on a page of their own: `/[locale]/admin/categories/new` to create, and `/[locale]/admin/categories/{id}` to edit, with a way back to the categories page. An `{id}` that doesn't match `^[a-z][a-z0-9_]{0,49}$` SHALL get the not-found page; an `{id}` that is not a category of the country SHALL say so, with the way back. The editor SHALL have the name and description in Spanish and English, the icon (from the catalogue of `GET /categories`), the color, whether its layers compare two years (`temporal`), the threshold (the global one or its own, 0 to 100), the "no findings" and "with findings" texts in Spanish and English, and the polarity. The polarity SHALL be chosen explicitly: a new category SHALL start with no polarity, each option SHALL explain what counts as a finding (`avoid`: a polygon that overlaps the layer; `required`: a polygon that falls outside it), and the editor SHALL NOT save without one. When creating, the editor SHALL NOT ask for the id: it SHALL say that the API makes it from the Spanish name and that it is permanent. When editing, the editor SHALL show the id, not editable. Once saved, the editor SHALL go back to the categories page, which shows the saved category.
 
 The editor SHALL show a preview of the category chip and of a "no findings" and a "with findings" result chip, each with its example polygon. On a wide screen the preview SHALL sit beside the form and stay in view while the form scrolls. The examples SHALL be classified with the same classification the analysis uses, so the preview SHALL change with the polarity and the threshold: with `avoid` the polygon with findings is one that overlaps the layer, with `required` one that falls outside it. "No findings" chips SHALL use the theme's success color and "with findings" chips red, whatever the category color.
 
@@ -19,7 +19,7 @@ Any refusal the UI didn't prevent SHALL be shown with a translated message and t
 #### Scenario: Create the agricultural frontier
 
 - **WHEN** a CO admin opens the categories page, chooses "New category", types "Frontera agrícola" / "Agricultural frontier" on the page that opens, chooses the polarity `required`, fills the result texts and saves
-- **THEN** the API receives `POST /admin/categories` with `id: "frontera_agricola"`, `polarity: "required"` and `thresholdPercentage: null`, and the categories page shows the new category, enabled and without layers
+- **THEN** the API receives `POST /admin/categories` without an `id`, with `polarity: "required"` and `thresholdPercentage: null`, and the categories page shows the new category `frontera_agricola`, enabled and without layers
 
 #### Scenario: Edit on its own page
 
@@ -30,6 +30,11 @@ Any refusal the UI didn't prevent SHALL be shown with a translated message and t
 
 - **WHEN** a CO admin opens `/admin/categories/wetlands` and CO has no category `wetlands`
 - **THEN** the page says the category doesn't exist and offers the way back to the categories page
+
+#### Scenario: Malformed id
+
+- **WHEN** an admin opens `/admin/categories/Protected-Areas`
+- **THEN** the not-found page opens
 
 #### Scenario: Cards in a list, without layers
 
@@ -174,3 +179,47 @@ Every signed-in admin page SHALL show a sidebar at its left with the name of the
 
 - **WHEN** a visitor opens the admin login page
 - **THEN** the page has no sidebar, and the header shows no "Layers", "Categories", "Usage" or "Log out" items
+
+### Requirement: Create a category
+
+`POST /admin/categories` SHALL create a category in the country of the admin's session from the fields `name`, `description`, `icon`, `color`, `polarity`, `thresholdPercentage` (optional, `null` for the global threshold), `resultLabels` and `temporal`, validated with the rules of the per-country category file. The request SHALL NOT accept an `id`: the API SHALL make it from the Spanish name, in lowercase ASCII letters, digits and underscores, starting with a letter and at most 50 characters ("Frontera agrícola" → `frontera_agricola`), and SHALL use `category` when the name has no letter to start one with. When that id is already used in the country, by a valid or a rejected entry, or is `deforestation` or `new` (the path of the admin's create page), the API SHALL add `_2`, `_3` and so on, so category ids are never reused. The response SHALL return the id. The new category SHALL start enabled and SHALL be added at the end of the country's `categories.json`. Invalid fields SHALL be rejected with 422. When layers of the country already point at the id (for example after a hand edit), the request SHALL be rejected with 400, naming those layers, while any of them is published or has years that don't fit the new `temporal` (a temporal category needs both years, any other none); those layers SHALL become public only by being enabled afterwards. When the country's `categories.json` can't be read, the request SHALL be rejected with 409 and the file SHALL NOT be changed. The request SHALL NOT accept a country.
+
+#### Scenario: Create protected areas
+
+- **WHEN** a CO admin posts the Spanish name "Protected areas", `polarity: "avoid"`, `temporal: false`, `thresholdPercentage: 0` and valid texts
+- **THEN** the response is 201 with `id: "protected_areas"`, `GET /admin/categories` lists it enabled with no layers, and `GET /categories?country=CO` lists it with `thresholdPercentage: 0`
+
+#### Scenario: Used id
+
+- **WHEN** CO already has a disabled category `frontier` and a CO admin posts the Spanish name "Frontier"
+- **THEN** the response is 201 with `id: "frontier_2"`, and `frontier` is unchanged
+
+#### Scenario: Reserved id
+
+- **WHEN** a CO admin posts the Spanish name "New"
+- **THEN** the category is created with `id: "new_2"`, so its edit page isn't hidden by the create page
+
+#### Scenario: An id sent by the client
+
+- **WHEN** an admin posts `id: "frontier"`
+- **THEN** the response is 422 and nothing is written
+
+#### Scenario: Invalid polarity
+
+- **WHEN** an admin posts `polarity: "inside"`
+- **THEN** the response is 422 and nothing is written
+
+#### Scenario: Create a category that published layers already point at
+
+- **WHEN** CO's layer 8 is enabled with `category_id: "wetlands"`, CO has no `wetlands` category, and a CO admin posts the Spanish name "Wetlands"
+- **THEN** the response is 400 naming layer 8, nothing is written, and `GET /maps?country=CO` still doesn't list layer 8
+
+#### Scenario: Create a category over hidden layers
+
+- **WHEN** CO's hidden layer 8 has `category_id: "wetlands"` and both years, and a CO admin posts the Spanish name "Wetlands" with `temporal: true`
+- **THEN** the category `wetlands` is created, layer 8 stays hidden, and enabling it publishes it
+
+#### Scenario: Same id in another country
+
+- **WHEN** EC has `protected_areas` and a CO admin posts the Spanish name "Protected areas"
+- **THEN** the category `protected_areas` is created in CO and EC's is unchanged

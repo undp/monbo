@@ -23,7 +23,7 @@ The admin has no CI on `feat/layer-manager` (D20): the checks run locally and go
 - The admin looks like the v2 mockup: the sidebar, the stage pages' heads, cards and tables.
 - The session check and the navigation live in one place for every signed-in page.
 - Creating and editing a category is a page, with its preview beside the form.
-- No behavior changes beyond what the specs say: same API calls, same rules, same locks, same form.
+- No behavior changes beyond what the specs say: the same rules and locks, and the same API calls except a new category's id (D11).
 
 **Non-Goals:**
 - The wording of the results ("observaciones"). The product owner keeps it for now.
@@ -31,7 +31,7 @@ The admin has no CI on `feat/layer-manager` (D20): the checks run locally and go
 - The layers table on the categories page, which the mockup shows and the product owner doesn't want.
 - A warning about unsaved changes when leaving an editor. The panel had none either.
 - The login page's look, beyond the new background.
-- Any API, contract or data change.
+- Any data change, and any API or contract change beyond D11.
 
 ## Decisions
 
@@ -158,13 +158,28 @@ The blocked layer's notice stays as the row under it, as an amber band (`warnBac
 
 - **`admin.json`:**
   - `eyebrow` ("Administración · {{country}}" / "Admin · {{country}}") and `eyebrowAll` ("Administración" / "Admin");
-  - `sidebar.session` ("Sesión de administración" / "Admin session");
-  - `layers.columns.layer` ("Capa" / "Layer") and `layers.columns.period` ("Período" / "Period");
+  - `layers.columns.layer` ("Capa" / "Layer"), `layers.columns.period` ("Período" / "Period") and `layers.columns.actions` (the "Editar" column's header, read only by screen readers);
   - `layers.period.current` ("Vigente" / "Current");
-  - `categories.editor.*`: the titles, back, not found and unreadable texts.
-- **Removed:** `title` ("Administración de capas") and the panel-only texts.
-- **Kept in `common.json`:** the sections' labels, which the menu reads too.
+  - `categories.form.sections.identity` and `categories.form.sections.rule`, the editor's new card headings;
+  - `categories.form.idGenerated`, which says the API makes the id (D11);
+  - `categories.editor.back` and `categories.editor.notFound`. The titles and the unreadable text reuse the existing `categories.form.*` and `categories.unreadable`.
+- **Removed:** `title` ("Administración de capas"), `logout`, `layers.columns.name` and `layers.columns.alias`, `categories.form.close`, and the id field's `categories.form.id`, `idHelp`, `errors.id` and `errors.idTaken`.
+- **`common.json`:** `header.admin.session` ("Sesión de administración" / "Admin session") and `header.admin.logout` ("Cerrar sesión" / "Log out"), beside the sections' labels, because the header's menu reads them too.
 - **Interpolated names and ids** use `AS_TEXT`, as elsewhere.
+
+### D11. The API makes a new category's id
+
+The review found that a category with the id `new`, which the old pattern allowed, could never be edited: Next serves the static `/admin/categories/new` before `[id]`. Moving the create page to a path no id can take would hide the problem in the URL. Instead, as the API numbers layers, it now makes the id:
+- `CategoryCreate` has no `id`, and an `id` in the body is a 422 (`extra="forbid"`);
+- the id is the slug of the Spanish name, the rule the editor used to suggest: accents dropped, lowercase, runs of other characters as `_`, starting with a letter, at most 50 characters; `category` when nothing is left;
+- an id the country uses or used (a rejected entry), `deforestation` or `new` gets `_2`, `_3`..., the base cut so the whole stays within 50;
+- a layer that already points at the generated id is adopted with the same 400 checks as before.
+
+The slug keeps ids readable in `categories.json` and in results, unlike a number. A hand-edited `categories.json` could still hold `new`; the admin can't edit that category, and the file is the place to fix it.
+
+Alternatives considered:
+- **A create path no id can match (`new-category`).** It works, but leaves an admin-typed id that is easy to get wrong and that the UI has to check against the list.
+- **Reserving `new` in the id's pattern.** It would reject a stored `new` in the public app too, hiding its layers.
 
 ## Risks / Trade-offs
 
@@ -177,11 +192,11 @@ The blocked layer's notice stays as the row under it, as an amber band (`warnBac
 
 ## Migration Plan
 
-This is web only, with no data. It ships in one PR into `feat/layer-manager`.
+No stored data changes: existing ids stay as they are, and only new categories get an id made by the API. It ships in one PR into `feat/layer-manager`.
 
 - **Old URLs:** the routes keep theirs, and the panel had no URL, so no redirect is needed.
 - **Rollback:** revert the PR.
-- **Archive:** after `admin-categories-ui`, whose versions of "Admin UI" and "Category administration UI" this change modifies.
+- **Archive:** after `admin-layer-categories` and `admin-categories-ui`, whose versions of "Create a category", "Admin UI" and "Category administration UI" this change modifies.
 
 ## Open Questions
 

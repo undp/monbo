@@ -67,7 +67,7 @@ export const CategoryPreview: React.FC<Props> = ({ values, globalThreshold }) =>
   const flaggedFinding = exampleFinding(threshold);
 
   const category: LayerCategory | null = polarity && {
-    id: values.id || "preview",
+    id: "preview",
     name: { es: name("es"), en: name("en") },
     description: values.description,
     icon: values.icon,

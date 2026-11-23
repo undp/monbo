@@ -1,11 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createAdminCategory,
-  listAdminCategories,
-  updateAdminCategory,
-} from "@/api/adminCategories";
+import { createAdminCategory, updateAdminCategory } from "@/api/adminCategories";
 import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
@@ -19,7 +15,6 @@ import { toCategoryFormValues } from "./categoryFormState";
 
 vi.mock("@/api/adminCategories", () => ({
   createAdminCategory: vi.fn(),
-  listAdminCategories: vi.fn(),
   updateAdminCategory: vi.fn(),
 }));
 
@@ -29,7 +24,7 @@ const openSnackbar = vi.fn();
 
 const renderForm = async (
   category: AdminCategory | null,
-  { layers = [makeAdminLayer()], categories = [makeAdminCategory()] } = {}
+  { layers = [makeAdminLayer()] } = {}
 ) => {
   const i18n = await createTestI18n("en");
   render(
@@ -46,7 +41,6 @@ const renderForm = async (
         <SnackbarContext.Provider value={{ openSnackbar }}>
           <CategoryForm
             category={category}
-            categories={categories}
             locks={categoryLocks(category, layers, true, "en")}
             globalThreshold={0}
             onCancel={vi.fn()}
@@ -90,46 +84,27 @@ describe("CategoryForm", () => {
     expect(createAdminCategory).not.toHaveBeenCalled();
   });
 
-  it("creates a category with the suggested id and the global threshold", async () => {
+  it("creates a category with the global threshold, leaving its id to the API", async () => {
     await renderForm(null);
+    expect(
+      screen.getByText(
+        "The identifier is made from the Spanish name and can't be changed."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(/^Identifier/)).toBeNull();
     fillFrontier();
-    expect((screen.getByLabelText(/^Identifier/) as HTMLInputElement).value).toBe(
-      "frontera_agricola"
-    );
     fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
     save();
     await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
-    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
-      id: "frontera_agricola",
+    const input = vi.mocked(createAdminCategory).mock.calls[0][1];
+    expect(input).toMatchObject({
       polarity: "required",
       temporal: false,
       thresholdPercentage: null,
       name: { es: "Frontera agrícola", en: "Agricultural frontier" },
     });
+    expect(input).not.toHaveProperty("id");
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-  });
-
-  it("keeps the id the admin typed", async () => {
-    await renderForm(null);
-    type(/^Identifier/, "frontier");
-    fillFrontier();
-    expect((screen.getByLabelText(/^Identifier/) as HTMLInputElement).value).toBe(
-      "frontier"
-    );
-  });
-
-  it("refuses an id already used in the country", async () => {
-    await renderForm(null, {
-      categories: [makeAdminCategory(), makeAdminCategory({ id: "protected_areas" })],
-    });
-    fillFrontier();
-    type(/^Identifier/, "protected_areas");
-    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
-    save();
-    expect(
-      await screen.findByText("That identifier is already used in your country.")
-    ).toBeTruthy();
-    expect(createAdminCategory).not.toHaveBeenCalled();
   });
 
   it("locks the polarity and temporal of a category with published layers, naming them", async () => {
@@ -161,31 +136,10 @@ describe("CategoryForm texts with ' and &", () => {
     save();
   };
 
-  it("shows a 409's reason as text and marks the id when the file is readable", async () => {
-    vi.mocked(createAdminCategory).mockRejectedValue(
-      new AdminApiError(409, "The category id 'frontera_agricola' is already used in CO: ids are never reused")
-    );
-    vi.mocked(listAdminCategories).mockResolvedValue({ categories: [], readable: true, errors: [] });
-    await renderForm(null);
-    createFrontier();
-    expect(
-      await screen.findByText(
-        "The category couldn't be saved. The server refused the change: The category id 'frontera_agricola' is already used in CO: ids are never reused"
-      )
-    ).toBeTruthy();
-    expect(screen.getByText("That identifier is already used in your country.")).toBeTruthy();
-    expect(document.body.innerHTML).not.toContain("&amp;#39;");
-  });
-
-  it("doesn't blame the id for a 409 caused by an unreadable categories file", async () => {
+  it("shows a 409's reason as text (an unreadable categories file)", async () => {
     vi.mocked(createAdminCategory).mockRejectedValue(
       new AdminApiError(409, "The country's categories file can't be read (not valid JSON) & must be fixed")
     );
-    vi.mocked(listAdminCategories).mockResolvedValue({
-      categories: [],
-      readable: false,
-      errors: ["not valid JSON"],
-    });
     await renderForm(null);
     createFrontier();
     expect(
@@ -193,7 +147,7 @@ describe("CategoryForm texts with ' and &", () => {
         "The category couldn't be saved. The server refused the change: The country's categories file can't be read (not valid JSON) & must be fixed"
       )
     ).toBeTruthy();
-    expect(screen.queryByText("That identifier is already used in your country.")).toBeNull();
+    expect(document.body.innerHTML).not.toContain("&amp;amp;");
   });
 
   it("shows a 400's reason as text (layers that already use the id)", async () => {

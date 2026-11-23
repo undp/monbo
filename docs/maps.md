@@ -213,9 +213,10 @@ the admin's **Categories** page (`/[locale]/admin/categories`) uses it:
   the global one) and how many layers, and published layers, each has. It also says
   whether `categories.json` can be read (`readable`) and lists the problems of its
   entries (`errors`). A rejected entry is not listed.
-- `POST /admin/categories` creates one, enabled, with an `id` the admin chooses. An id
-  already used in the country, even by a rejected entry, and `deforestation` answer
-  409.
+- `POST /admin/categories` creates one, enabled. The API makes its permanent `id` from
+  the Spanish name ("Frontera agrícola" → `frontera_agricola`). An id already used in
+  the country, even by a rejected entry, and the reserved `deforestation` and `new` (the
+  admin's create page) get `_2`, `_3`... The response returns it.
 - `PUT /admin/categories/{id}` replaces its fields. Editing the built-in
   `deforestation` stores it, first in the file. Editing a rejected entry repairs it.
 - `PATCH /admin/categories/{id}` enables or disables it.

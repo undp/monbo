@@ -122,8 +122,7 @@
         "es": "ES",
         "en": "EN"
       },
-      "id": "Identifier",
-      "idHelp": "Permanent: it identifies the category in the layers and can't be changed or reused.",
+      "idGenerated": "The identifier is made from the Spanish name and can't be changed.",
       "idReadOnly": "Identifier: {{id}}",
       "iconAndColor": "Icon and color",
       "icons": {
@@ -178,8 +177,6 @@
       "saveError": "The category couldn't be saved.",
       "errors": {
         "required": "Required",
-        "id": "Use lowercase letters without accents, digits and _, starting with a letter (50 at most).",
-        "idTaken": "That identifier is already used in your country.",
         "color": "Use a #rrggbb color",
         "threshold": "A number from 0 to 100",
         "polarity": "Choose what this category's layers mark.",

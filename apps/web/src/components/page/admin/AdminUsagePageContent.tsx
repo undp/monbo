@@ -11,7 +11,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  SxProps,
   TextField,
+  Theme,
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
@@ -204,15 +206,14 @@ export const AdminUsagePageContent: React.FC = () => {
 };
 
 /** The range presets as the stage pages' segmented control. */
-const RANGE_TOGGLE = {
-  backgroundColor: FLOW_COLORS.white,
-  borderRadius: "10px",
+const RANGE_TOGGLE: SxProps<Theme> = (theme) => ({
   "& .MuiToggleButton-root": {
     paddingX: 1.75,
     textTransform: "none",
     fontWeight: 600,
     color: FLOW_COLORS.ink2,
     borderColor: FLOW_COLORS.line,
+    backgroundColor: FLOW_COLORS.white,
   },
   "& .MuiToggleButton-root:first-of-type": { borderRadius: "10px 0 0 10px" },
   "& .MuiToggleButton-root:last-of-type": { borderRadius: "0 10px 10px 0" },
@@ -220,7 +221,18 @@ const RANGE_TOGGLE = {
     color: FLOW_COLORS.blue,
     backgroundColor: FLOW_COLORS.blue50,
   },
-} as const;
+  // Joined, the four options are wider than a phone: below 600 px they wrap as
+  // separate pills.
+  [theme.breakpoints.down("sm")]: {
+    flexWrap: "wrap",
+    gap: 0.75,
+    "& .MuiToggleButtonGroup-grouped.MuiToggleButtonGroup-grouped": {
+      borderRadius: "10px",
+      marginLeft: 0,
+      borderLeft: `1px solid ${FLOW_COLORS.line}`,
+    },
+  },
+});
 
 interface ViewProps {
   report: UsageReport;

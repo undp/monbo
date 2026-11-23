@@ -24,14 +24,14 @@
 - [x] 4.1 Routes `(signed-in)/categories/new/page.tsx` and `(signed-in)/categories/[id]/page.tsx` (`notFound()` when the id fails `^[a-z][a-z0-9_]{0,49}$`)
 - [x] 4.2 Move `CategoryForm` out of `CategoryPanel.tsx`, delete the `Drawer` wrapper; `AdminCategoryEditorPageContent` loads the categories, the layers and the global threshold, computes the locks, and shows the not-found alert or the unreadable file's errors instead of the form
 - [x] 4.3 Layout: the form's groups as `FlowSection`-style cards on the left, `CategoryPreview` in a sticky aside on the right from `md`, under the form below; footer with "Cancelar" and "Guardar"; once saved, the snackbar and back to `/admin/categories`
-- [x] 4.4 Move `CategoryPanel.test.tsx` to the editor page: create (suggested id, `POST`, back to the list), edit (id not editable, `PATCH`), no polarity, taken id, preview follows the polarity, published-layer and temporal locks, unknown id, unreadable file
+- [x] 4.4 Move `CategoryPanel.test.tsx` to the editor page: create (`POST`, back to the list), edit (id not editable, `PATCH`), no polarity, preview follows the polarity, published-layer and temporal locks, unknown id, unreadable file
 
 ## 5. Layers
 
 - [x] 5.1 `layerPeriod(layer, categories)` in `components/page/admin/`: both years → "{baseline} → {compared_against}", no years in a non-temporal resolved category → "Vigente", "—" otherwise; unit tests for each case
 - [x] 5.2 `AdminLayersPageContent`: `FLOW_TABLE_FRAME` + `FLOW_TABLE_SX`, columns ID, Capa (name bold, alias under it), Categoría, Período, Raster (filename or amber "Sin raster" pill), Versión, Publicada (switch), "Editar"; the blocked notice as an amber band row; long texts wrap
 - [x] 5.3 Layer editor: `Section` in `LayerForm` takes an `icon` and the `FlowSection` look, keeping `id` and `scrollMarginTop`; the head's back link replaces the "Volver" button; `RasterUploadSection`'s steps unchanged
-- [x] 5.4 Tests: the period column; name and alias in one cell; the blocked notice; the editor's sections and back link (the 390 px check is by hand, in 8.3)
+- [x] 5.4 Tests: the period column; name and alias in one cell; the blocked notice; the editor's sections and back link (the 390 px check is by hand, in 9.3)
 
 ## 6. Usage page
 
@@ -40,11 +40,19 @@
 
 ## 7. Texts and docs
 
-- [x] 7.1 `admin.json` (es, en): `eyebrow`, `eyebrowAll`, `sidebar.session`, `layers.columns.layer`, `layers.columns.period`, `layers.period.current`, `categories.editor.*`; remove `title` and the panel-only keys; `AS_TEXT` for interpolated names and ids
-- [x] 7.2 `docs/maps.md` (the category editor is a page), `docs/onboarding.md` (the sidebar holds the usage page), `docs/architecture.md` (the sidebar shows the country, the header doesn't)
+- [x] 7.1 Texts as D10 lists them: in `admin.json` (es, en) `eyebrow`, `eyebrowAll`, `layers.columns.layer`, `.period` and `.actions`, `layers.period.current`, `categories.form.sections.identity` and `.rule`, `categories.form.idGenerated`, `categories.editor.back` and `.notFound`; in `common.json` `header.admin.session` and `header.admin.logout`; remove `title`, `logout`, `layers.columns.name` and `.alias`, `categories.form.close` and the id field's keys; `AS_TEXT` for interpolated names and ids
+- [x] 7.2 `docs/maps.md` (the category editor is a page, and the API makes the id), `docs/onboarding.md` (the sidebar holds the usage page), `docs/architecture.md` (the sidebar shows the country, the header doesn't)
 
-## 8. Verification
+## 8. The API makes a new category's id (D11, from the PR's review)
 
-- [x] 8.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`
-- [x] 8.2 `openspec validate admin-v2-redesign --strict`
-- [ ] 8.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup
+- [x] 8.1 `CategoryCreate` without `id`; `create_category` makes it from the Spanish name (`new_category_id`), with `_2`, `_3`... for a used, rejected, `deforestation` or `new` id; regenerate `openapi.json` and `schema.d.ts`
+- [x] 8.2 API tests: the slug (accents, symbols, a leading digit, no letter, 50 characters), used and reserved ids, an `id` in the body is 422, and the existing create tests by name
+- [x] 8.3 Editor: no id field, the note that the API makes it, no `id` in the `POST`; drop the suggestion, the taken-id check and its texts
+- [x] 8.4 Tests of the `[id]` route: a malformed id gives the not-found page, a well-formed one opens the editor
+- [x] 8.5 Review's nits: the usage range selector wraps below 600 px; `AdminShell` doesn't redirect while the session is being read (`ready: false`)
+
+## 9. Verification
+
+- [x] 9.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`; `uv run pytest`, `ruff`, `black --check`, `mypy app` and `python -m app.openapi --check` in `apps/api`
+- [x] 9.2 `openspec validate admin-v2-redesign --strict`
+- [ ] 9.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup

@@ -217,12 +217,8 @@ class CategoryInput(_Strict):
 
 
 class CategoryCreate(CategoryInput):
-    """Body of `POST /admin/categories`."""
-
-    id: str = Field(
-        pattern=CATEGORY_ID_PATTERN,
-        description="Stable slug, unique in the country and never reused",
-    )
+    """Body of `POST /admin/categories`: no `id`. The API makes it from the Spanish
+    name, unique in the country and never reused, and returns it."""
 
 
 class AdminCategory(BaseModel):

@@ -8,14 +8,14 @@ import { AdminShell } from "./AdminShell";
 
 const session = { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "EC" };
 
-const renderShell = async (signedIn = true, logout = vi.fn()) => {
+const renderShell = async (signedIn = true, logout = vi.fn(), ready = true) => {
   const i18n = await createTestI18n("en");
   render(
     <I18nextProvider i18n={i18n}>
       <AdminSessionContext.Provider
         value={{
           session: signedIn ? session : null,
-          ready: true,
+          ready,
           login: vi.fn(),
           logout,
           withToken: vi.fn(),
@@ -75,5 +75,14 @@ describe("AdminShell", () => {
     expect(router.replace).toHaveBeenCalledWith("/en/admin");
     expect(screen.queryByText("page content")).toBeNull();
     expect(screen.queryByText("Admin session")).toBeNull();
+  });
+
+  it("waits for the stored session before sending anyone to the login", async () => {
+    setPathname("/en/admin/layers");
+    await renderShell(false, vi.fn(), false);
+
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(screen.getByRole("progressbar")).toBeTruthy();
+    expect(screen.queryByText("page content")).toBeNull();
   });
 });

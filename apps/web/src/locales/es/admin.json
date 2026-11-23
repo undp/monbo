@@ -122,8 +122,7 @@
         "es": "ES",
         "en": "EN"
       },
-      "id": "Identificador",
-      "idHelp": "Es permanente: identifica la categoría en las capas y no se puede cambiar ni reutilizar.",
+      "idGenerated": "El identificador se crea a partir del nombre en español y no se puede cambiar.",
       "idReadOnly": "Identificador: {{id}}",
       "iconAndColor": "Ícono y color",
       "icons": {
@@ -178,8 +177,6 @@
       "saveError": "No se pudo guardar la categoría.",
       "errors": {
         "required": "Obligatorio",
-        "id": "Usa minúsculas sin tildes, números y _, empezando con una letra (máximo 50).",
-        "idTaken": "Ese identificador ya se usa en tu país.",
         "color": "Usa un color #rrggbb",
         "threshold": "Un número entre 0 y 100",
         "polarity": "Elige qué marcan las capas de esta categoría.",

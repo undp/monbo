@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   Alert,
   Box,
@@ -35,10 +35,8 @@ import {
 } from "react-hook-form";
 import {
   createAdminCategory,
-  listAdminCategories,
   updateAdminCategory,
 } from "@/api/adminCategories";
-import { AdminApiError } from "@/api/adminLayers";
 import {
   CATEGORY_ICON_NAMES,
   LayerCategoryIcon,
@@ -58,14 +56,10 @@ import { CategoryPreview } from "./CategoryPreview";
 import {
   CATEGORY_COLOR_SWATCHES,
   CATEGORY_DESCRIPTION_MAX_LENGTH,
-  CATEGORY_ID_MAX_LENGTH,
   CATEGORY_LABEL_MAX_LENGTH,
   CATEGORY_NAME_MAX_LENGTH,
   CategoryFormValues,
   categoryValidators,
-  suggestCategoryId,
-  takenCategoryIds,
-  toCategoryCreate,
   toCategoryFormValues,
   toCategoryInput,
 } from "./categoryFormState";
@@ -216,7 +210,6 @@ const LivePreview: React.FC<{ globalThreshold: number }> = ({ globalThreshold })
 
 export interface CategoryFormProps {
   category: AdminCategory | null;
-  categories: AdminCategory[];
   locks: CategoryLocks;
   globalThreshold: number;
   onCancel: () => void;
@@ -229,7 +222,6 @@ export interface CategoryFormProps {
  */
 export const CategoryForm: React.FC<CategoryFormProps> = ({
   category,
-  categories,
   locks,
   globalThreshold,
   onCancel,
@@ -244,22 +236,9 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { control, handleSubmit, getValues, setValue, setError, formState } = form;
+  const { control, handleSubmit, formState } = form;
   const [refusal, setRefusal] = useState<string | null>(null);
 
-  // While creating, the id follows the Spanish name until the admin edits it.
-  const [idEdited, setIdEdited] = useState(false);
-  const nameEs = useWatch({ control, name: "name.es" });
-  useEffect(() => {
-    if (!isNew || idEdited) return;
-    const suggested = suggestCategoryId(nameEs);
-    // Only when the suggestion changes: re-validating an unchanged id would clear
-    // an error the API gave it (a taken id).
-    if (getValues("id") === suggested) return;
-    setValue("id", suggested, { shouldValidate: formState.isSubmitted });
-  }, [isNew, idEdited, nameEs, getValues, setValue, formState.isSubmitted]);
-
-  const taken = takenCategoryIds(categories);
   const thresholdText = formatThreshold(globalThreshold, i18n.language);
 
   const save = handleSubmit(
@@ -267,7 +246,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       setRefusal(null);
       try {
         const saved = isNew
-          ? await withToken((token) => createAdminCategory(token, toCategoryCreate(submitted)))
+          ? await withToken((token) => createAdminCategory(token, toCategoryInput(submitted)))
           : await withToken((token) =>
               updateAdminCategory(token, category.id, toCategoryInput(submitted))
             );
@@ -283,15 +262,6 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         onSaved(saved, isNew);
       } catch (e) {
         const reason = apiRefusalReason(e);
-        // A 409 on create is an id held by an entry the list doesn't show (a rejected
-        // one), or a categories file that stopped being readable. Ask the API which,
-        // rather than reading its message: only the first is the id's fault.
-        if (isNew && e instanceof AdminApiError && e.status === 409) {
-          const fresh = await withToken(listAdminCategories).catch(() => null);
-          if (fresh?.readable) {
-            setError("id", { message: "admin:categories:form:errors:idTaken" });
-          }
-        }
         setRefusal(
           reason
             ? `${t("admin:categories:form:saveError")} ${t("admin:layers:refused", { detail: reason, ...AS_TEXT })}`
@@ -341,21 +311,11 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                 </Pair>
               </Field>
 
-              {isNew ? (
-                <PanelTextField
-                  name="id"
-                  label={t("admin:categories:form:id")}
-                  required
-                  maxLength={CATEGORY_ID_MAX_LENGTH}
-                  validate={categoryValidators.id(taken)}
-                  helperText={t("admin:categories:form:idHelp")}
-                  onChange={() => setIdEdited(true)}
-                />
-              ) : (
-                <Text variant="body2" color="secondary">
-                  {t("admin:categories:form:idReadOnly", { id: category.id, ...AS_TEXT })}
-                </Text>
-              )}
+              <Text variant="body2" color="secondary">
+                {isNew
+                  ? t("admin:categories:form:idGenerated")
+                  : t("admin:categories:form:idReadOnly", { id: category.id, ...AS_TEXT })}
+              </Text>
 
               <Field
                 label={t("admin:categories:form:description")}

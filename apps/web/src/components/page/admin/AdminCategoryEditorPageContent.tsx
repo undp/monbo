@@ -82,7 +82,6 @@ export const AdminCategoryEditorPageContent: React.FC<Props> = ({ categoryId }) 
     return (
       <CategoryForm
         category={category}
-        categories={data.categories}
         locks={categoryLocks(category, layers, true, language)}
         globalThreshold={globalThreshold}
         onCancel={backToList}
