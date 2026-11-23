@@ -12,4 +12,4 @@ overlap_threshold_percentage          = 1
 deforestation_threshold_percentage    = 2
 show_testing_environment_warning      = false
 max_requests_for_satellite_background = 90
-contact_url                           = "mailto:contact@monbo.org"
+contact_url                           = "mailto:contact@monbo.org" # dev's for now; prod will get its own

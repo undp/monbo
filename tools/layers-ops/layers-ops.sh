@@ -65,7 +65,7 @@ seed_share() {
   key="$(storage_key)"
   if ! share_is_empty "$key"; then
     log "The '$MAPS_SHARE_NAME' share already has files"
-    echo "  All of them will be deleted: every layer, raster version and admin change on it."
+    echo "  All of them will be deleted: every layer, raster version, admin change and usage event on it."
     echo "  (Share snapshots and backups are kept: docs/suggested_deployment.md.)"
     read -r -p "Type the share name to confirm: " answer
     [ "$answer" = "$MAPS_SHARE_NAME" ] || die "Aborted; the share is unchanged"

@@ -6,7 +6,7 @@
 # Usage:
 #   ARM_SUBSCRIPTION_ID=<id> ./infra/bootstrap.sh [state-account-name] [location]
 #   ARM_SUBSCRIPTION_ID=<dev id>  ./infra/bootstrap.sh                    # dev: monbotfstate
-#   ARM_SUBSCRIPTION_ID=<prod id> ./infra/bootstrap.sh monboprodtfstate   # prod
+#   ARM_SUBSCRIPTION_ID=<prod id> ./infra/bootstrap.sh monboprodtfstate eastus   # prod
 #
 # The subscription comes from ARM_SUBSCRIPTION_ID, like everywhere else (it is kept out
 # of the repository). The account name defaults to monbotfstate (dev's); each

@@ -105,13 +105,13 @@ No required reviewers by default: merging the release pull request is the approv
 
 `apps/envs/prod.tfvars` starts with:
 
-- the same sizes, thresholds and contact URL as `dev`;
+- the same sizes, thresholds and contact URL as `dev` (the contact URL will become prod's own);
 - `show_testing_environment_warning = false`.
 
 `platform/envs/prod.tfvars` sets:
 
 - `env = "prod"`;
-- the region (`eastus2` until UNDP confirms the allowed regions);
+- the region: `eastus` (East US), agreed with UNDP;
 - the state account.
 
 The names come out as `monbo-prod-data`, `monbo-prod-platform`, `monbo-prod-apps`, `monboproddata` and `monboprodacr`. If a global name is taken, `unique_suffix` handles it.

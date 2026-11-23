@@ -132,7 +132,7 @@ state account, `monboprodtfstate`.
 
 ```
 Once:    ARM_SUBSCRIPTION_ID=… infra/bootstrap.sh                → creates monbotfstate
-                                                                   (prod: … bootstrap.sh monboprodtfstate)
+                                                                   (prod: … bootstrap.sh monboprodtfstate eastus)
 Once:    terraform apply in platform (with envs/dev.tfvars)       → empty share, registry, logs
 Once:    tools/layers-ops/layers-ops.sh dev seed                  → uploads the Git layers to the share
                                                                    (prints 3 passkeys)

@@ -242,7 +242,7 @@ Ask for these before the first apply; each one, if missing, stops the procedure 
   - storage accounts without shared-key access (the Container Apps environment mounts
     the share with the account key, and the scripts call `listKeys`);
   - denying public network access on storage, the registry or Container Apps;
-  - allowed regions (`location` in `platform/envs/prod.tfvars`, `eastus2` by default);
+  - allowed regions (`location` in `platform/envs/prod.tfvars`, `eastus`, East US, for `prod`);
   - required tags;
   - blocking federated credentials on managed identities (CI logs in with
     `repo:undp/monbo:environment:prod`).
@@ -254,7 +254,8 @@ a new admin secret; never `dev`'s) and `az login` into prod's tenant:
 
 1. **GitHub Environment `prod`**, deployment branches limited to `main`, no secrets yet.
    It must exist with that policy before step 3 creates the credential that trusts it.
-2. **State account:** `ARM_SUBSCRIPTION_ID=<prod> ./infra/bootstrap.sh monboprodtfstate`.
+2. **State account:** `ARM_SUBSCRIPTION_ID=<prod> ./infra/bootstrap.sh monboprodtfstate eastus`,
+   in East US like the rest of `prod`.
 3. **Platform:**
 
    ```sh
@@ -330,7 +331,8 @@ shows up in the next plan and is reverted by the next deploy.
 `tools/layers-ops/layers-ops.sh <env> seed` also works on a share that already has
 layers. After you type the share's name to confirm, it prepares the new layers,
 **deletes every file on the share** (layers, raster versions, admin edits, ingestion
-jobs), and uploads the Git-tracked layers again. Every country gets a new passkey.
+jobs, and the usage events and rollups under `usage/`, so the admin's Usage page
+starts empty), and uploads the Git-tracked layers again. Every country gets a new passkey.
 
 Before emptying the share, `seed` takes a snapshot of it and prints its timestamp:
 that is the one to restore (see [Rollback](#rollback)), since the daily backup may be

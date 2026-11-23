@@ -61,6 +61,9 @@ usage/rollups/<YYYY-MM>.json            # a closed month, summarized: a cache
   default).
 - **Deleting old months:** delete their `usage/<YYYY-MM>/` folders and their
   `usage/rollups/<YYYY-MM>.json`. Their figures disappear from the Usage page.
+- **`layers-ops.sh <env> seed` deletes them** along with the layers: restore them
+  from the snapshot it takes first if they are needed
+  ([suggested_deployment.md](suggested_deployment.md#starting-an-environments-layers-over)).
 - **The rollups** are rebuilt from the events whenever they are missing or out of
   date, so `usage/rollups/` can always be deleted.
 

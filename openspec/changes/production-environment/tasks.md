@@ -6,7 +6,7 @@
 
 ## 2. Terraform: the prod environment (D6)
 
-- [x] 2.1 `infra/terraform/platform/envs/prod.tfvars`: `env = "prod"`, `location = "eastus2"` (comment: confirm against the subscription's allowed regions), `state_storage_account_name = "monboprodtfstate"`, commented `unique_suffix`
+- [x] 2.1 `infra/terraform/platform/envs/prod.tfvars`: `env = "prod"`, `location = "eastus"` (East US, agreed with UNDP), `state_storage_account_name = "monboprodtfstate"`, commented `unique_suffix`
 - [x] 2.2 `infra/terraform/platform/envs/prod.backend.hcl` and `infra/terraform/apps/envs/prod.backend.hcl`: `monbo-tfstate` / `monboprodtfstate` / `tfstate`, keys `prod/platform.tfstate` and `prod/apps.tfstate`
 - [x] 2.3 `infra/terraform/apps/envs/prod.tfvars`: `env = "prod"`, `state_storage_account_name = "monboprodtfstate"`, the same sizes, thresholds and contact URL as `dev`, `show_testing_environment_warning = false`
 - [x] 2.4 `infra/envs/prod.secrets.env.example`, copied from `dev.secrets.env.example` with `prod` in the comments. Check that `.gitignore` covers `infra/envs/prod.secrets.env`
