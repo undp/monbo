@@ -15,6 +15,10 @@ interface Props {
   subtitle?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  // The layer pages administer the session's country, so their title names it
+  // under the "Layers admin" overline. A page about every country (usage) turns
+  // both off; the header still shows the session's country.
+  countryInTitle?: boolean;
 }
 
 /** Layout for signed-in admin pages; sends visitors without a session to login.
@@ -24,6 +28,7 @@ export const AdminPageContainer: React.FC<Props> = ({
   subtitle,
   actions,
   children,
+  countryInTitle = true,
 }) => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -53,13 +58,18 @@ export const AdminPageContainer: React.FC<Props> = ({
         }}
       >
         <Box>
-          <Text color="secondary" variant="body2">
-            {t("admin:title")}
-          </Text>
+          {countryInTitle && (
+            <Text color="secondary" variant="body2">
+              {t("admin:title")}
+            </Text>
+          )}
           <Text variant="h3" component="h1" bold>
-            {title} ·{" "}
-            {getCountryName(session.country, i18n.language as "en" | "es") ??
-              session.country}
+            {title}
+            {countryInTitle &&
+              ` · ${
+                getCountryName(session.country, i18n.language as "en" | "es") ??
+                session.country
+              }`}
           </Text>
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>

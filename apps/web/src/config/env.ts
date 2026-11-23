@@ -52,6 +52,11 @@ export const DEFORESTATION_ANALYSIS_IMAGE_GENERATION_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"
   }/deforestation_analysis/generate-image`;
 
+// Usage events reported by the browser (report requests and downloads)
+export const USAGE_EVENTS_URL =
+  process.env.NEXT_PUBLIC_USAGE_EVENTS_URL ||
+  `${process.env.NEXT_PUBLIC_API_URL ?? "__NEXT_PUBLIC_API_URL__"}/events`;
+
 // Layers admin (only answers when the API has the admin configured)
 export const ADMIN_API_URL =
   process.env.NEXT_PUBLIC_ADMIN_API_URL ||

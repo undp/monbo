@@ -34,7 +34,8 @@ const toError = async (response: Response) => {
   );
 };
 
-const request = async <T>(
+// Shared by every admin API client (adminUsage.ts too).
+export const request = async <T>(
   path: string,
   { token, method = "GET", body }: { token?: string; method?: string; body?: unknown }
 ): Promise<T> => {

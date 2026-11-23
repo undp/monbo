@@ -112,3 +112,6 @@ venv.bak/
 fly.toml
 # Local copy of the layers for trying the layers admin (MAPS_ROOT=.local-maps)
 .local-maps/
+
+# Local usage events (USAGE_DIR=.usage)
+.usage/

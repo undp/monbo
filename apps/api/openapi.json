@@ -144,6 +144,33 @@
         "title": "AnalizeBody",
         "type": "object"
       },
+      "AnalysisUsage": {
+        "properties": {
+          "errors": {
+            "$ref": "#/components/schemas/ErrorCounts"
+          },
+          "farms": {
+            "title": "Farms",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "sessions": {
+            "title": "Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "errors",
+          "sessions",
+          "farms"
+        ],
+        "title": "AnalysisUsage",
+        "type": "object"
+      },
       "BaseMapData": {
         "properties": {
           "alias": {
@@ -341,6 +368,81 @@
         "title": "Body_import_farms_farms_import_post",
         "type": "object"
       },
+      "BrowserEventBody": {
+        "additionalProperties": false,
+        "description": "Body of `POST /events`: one event reported by the browser.",
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "farms": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Farms",
+            "type": "integer"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pdf",
+                  "zip"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`pdf` (one PDF) or `zip` (one PDF per farm). Required for `report_downloaded`, absent otherwise.",
+            "title": "Format"
+          },
+          "outcome": {
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session"
+          },
+          "type": {
+            "enum": [
+              "report_requested",
+              "report_downloaded"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "outcome",
+          "farms"
+        ],
+        "title": "BrowserEventBody",
+        "type": "object"
+      },
       "ConfigData": {
         "properties": {
           "deforestationThresholdPercentage": {
@@ -390,6 +492,42 @@
         "title": "CountryData",
         "type": "object"
       },
+      "CountryUsage": {
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisUsage"
+          },
+          "country": {
+            "description": "A country code, or \"unknown\"",
+            "title": "Country",
+            "type": "string"
+          },
+          "reports": {
+            "$ref": "#/components/schemas/ReportsUsage"
+          },
+          "sessions": {
+            "description": "Distinct sessions with any event",
+            "title": "Sessions",
+            "type": "integer"
+          },
+          "upload": {
+            "$ref": "#/components/schemas/UploadUsage"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationUsage"
+          }
+        },
+        "required": [
+          "sessions",
+          "upload",
+          "validation",
+          "analysis",
+          "reports",
+          "country"
+        ],
+        "title": "CountryUsage",
+        "type": "object"
+      },
       "Document": {
         "properties": {
           "name": {
@@ -406,6 +544,26 @@
           "url"
         ],
         "title": "Document",
+        "type": "object"
+      },
+      "DownloadedReports": {
+        "properties": {
+          "pdf": {
+            "description": "Downloaded as one PDF",
+            "title": "Pdf",
+            "type": "integer"
+          },
+          "zip": {
+            "description": "Downloaded as a ZIP of one PDF per farm",
+            "title": "Zip",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pdf",
+          "zip"
+        ],
+        "title": "DownloadedReports",
         "type": "object"
       },
       "EmptyPolygonInconsistency": {
@@ -448,6 +606,24 @@
           "enabled"
         ],
         "title": "EnabledInput",
+        "type": "object"
+      },
+      "ErrorCounts": {
+        "properties": {
+          "invalid_input": {
+            "title": "Invalid Input",
+            "type": "integer"
+          },
+          "server_error": {
+            "title": "Server Error",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "invalid_input",
+          "server_error"
+        ],
+        "title": "ErrorCounts",
         "type": "object"
       },
       "FarmData": {
@@ -1435,6 +1611,19 @@
         "title": "MapData",
         "type": "object"
       },
+      "NotConfiguredResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "NotConfiguredResponse",
+        "type": "object"
+      },
       "OverlapData": {
         "properties": {
           "area": {
@@ -1737,6 +1926,38 @@
         "title": "RasterReport",
         "type": "object"
       },
+      "ReportsUsage": {
+        "properties": {
+          "downloadErrors": {
+            "title": "Downloaderrors",
+            "type": "integer"
+          },
+          "downloaded": {
+            "$ref": "#/components/schemas/DownloadedReports"
+          },
+          "farmsDownloaded": {
+            "title": "Farmsdownloaded",
+            "type": "integer"
+          },
+          "requested": {
+            "title": "Requested",
+            "type": "integer"
+          },
+          "requestedSessions": {
+            "title": "Requestedsessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requested",
+          "requestedSessions",
+          "downloaded",
+          "downloadErrors",
+          "farmsDownloaded"
+        ],
+        "title": "ReportsUsage",
+        "type": "object"
+      },
       "SessionData": {
         "properties": {
           "country": {
@@ -1883,6 +2104,157 @@
         "title": "StoredAttributes",
         "type": "object"
       },
+      "UploadUsage": {
+        "properties": {
+          "avgFarmsPerUpload": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "farms ÷ ok, or null without an ok upload",
+            "title": "Avgfarmsperupload"
+          },
+          "errors": {
+            "$ref": "#/components/schemas/ErrorCounts"
+          },
+          "farms": {
+            "title": "Farms",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "points": {
+            "title": "Points",
+            "type": "integer"
+          },
+          "polygons": {
+            "title": "Polygons",
+            "type": "integer"
+          },
+          "sessions": {
+            "description": "Distinct sessions with at least one ok upload",
+            "title": "Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "errors",
+          "sessions",
+          "farms",
+          "polygons",
+          "points",
+          "avgFarmsPerUpload"
+        ],
+        "title": "UploadUsage",
+        "type": "object"
+      },
+      "UsageBlock": {
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisUsage"
+          },
+          "reports": {
+            "$ref": "#/components/schemas/ReportsUsage"
+          },
+          "sessions": {
+            "description": "Distinct sessions with any event",
+            "title": "Sessions",
+            "type": "integer"
+          },
+          "upload": {
+            "$ref": "#/components/schemas/UploadUsage"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationUsage"
+          }
+        },
+        "required": [
+          "sessions",
+          "upload",
+          "validation",
+          "analysis",
+          "reports"
+        ],
+        "title": "UsageBlock",
+        "type": "object"
+      },
+      "UsageReport": {
+        "properties": {
+          "byCountry": {
+            "items": {
+              "$ref": "#/components/schemas/CountryUsage"
+            },
+            "title": "Bycountry",
+            "type": "array"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/UsageSources"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/UsageBlock"
+          },
+          "weekly": {
+            "items": {
+              "$ref": "#/components/schemas/WeekUsage"
+            },
+            "title": "Weekly",
+            "type": "array"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "totals",
+          "byCountry",
+          "weekly",
+          "sources"
+        ],
+        "title": "UsageReport",
+        "type": "object"
+      },
+      "UsageSources": {
+        "properties": {
+          "browser": {
+            "description": "Figures reported by the browser",
+            "items": {
+              "type": "string"
+            },
+            "title": "Browser",
+            "type": "array"
+          },
+          "server": {
+            "description": "Figures recorded by the server",
+            "items": {
+              "type": "string"
+            },
+            "title": "Server",
+            "type": "array"
+          }
+        },
+        "required": [
+          "server",
+          "browser"
+        ],
+        "title": "UsageSources",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1921,6 +2293,75 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValidationUsage": {
+        "properties": {
+          "errors": {
+            "$ref": "#/components/schemas/ErrorCounts"
+          },
+          "farms": {
+            "title": "Farms",
+            "type": "integer"
+          },
+          "invalidFarms": {
+            "title": "Invalidfarms",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "sessions": {
+            "title": "Sessions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "errors",
+          "sessions",
+          "farms",
+          "invalidFarms"
+        ],
+        "title": "ValidationUsage",
+        "type": "object"
+      },
+      "WeekUsage": {
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisUsage"
+          },
+          "reports": {
+            "$ref": "#/components/schemas/ReportsUsage"
+          },
+          "sessions": {
+            "description": "Distinct sessions with any event",
+            "title": "Sessions",
+            "type": "integer"
+          },
+          "upload": {
+            "$ref": "#/components/schemas/UploadUsage"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationUsage"
+          },
+          "weekStart": {
+            "description": "The ISO week's Monday (UTC)",
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessions",
+          "upload",
+          "validation",
+          "analysis",
+          "reports",
+          "weekStart"
+        ],
+        "title": "WeekUsage",
         "type": "object"
       }
     },
@@ -2372,6 +2813,93 @@
         ]
       }
     },
+    "/admin/usage": {
+      "get": {
+        "description": "Usage of the whole app, for any admin: every country's figures, whatever the\nsession's country. The only admin route not limited to the session's country.\n\n`from` and `to` are UTC days, both included; without them, the 30 days ending\ntoday. A range over 366 days, or with `from` after `to`, gets 422. The `reports`\nfigures are reported by the browser; the others are recorded by the server.\nAnswers 503 when the server has no `USAGE_DIR`.",
+        "operationId": "get_usage_admin_usage_get",
+        "parameters": [
+          {
+            "description": "First UTC day, included",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First UTC day, included",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Last UTC day, included",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last UTC day, included",
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotConfiguredResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Usage",
+        "tags": [
+          "Admin Module"
+        ]
+      }
+    },
     "/config": {
       "get": {
         "description": "Product settings the frontend needs, owned by the API's environment so there is a\nsingle place to set them. The frontend loads them once at startup.",
@@ -2638,6 +3166,41 @@
           }
         },
         "summary": "Download Geojson"
+      }
+    },
+    "/events": {
+      "post": {
+        "description": "Records a usage event reported by the browser: a click on \"Generate report\"\n(`report_requested`) or a finished report download (`report_downloaded`, as one\nPDF or as a ZIP of one PDF per farm).\n\nPublic, with no rate limit, so these figures are labelled \"reported by the\nbrowser\" in the admin. The server stamps the time. Bodies over 2048 bytes\nget 413, unknown types and extra fields 422.",
+        "operationId": "report_event_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserEventBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Event",
+        "tags": [
+          "Usage Module"
+        ]
       }
     },
     "/farms/import": {

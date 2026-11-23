@@ -27,6 +27,7 @@
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
     "@mui/material-nextjs": "^7.3.10",
+    "@mui/x-charts": "^9.17.0",
     "@react-pdf/renderer": "^4.9.0",
     "@vis.gl/react-google-maps": "^1.10.2",
     "date-fns": "^4.4.0",

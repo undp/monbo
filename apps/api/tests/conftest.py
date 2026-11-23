@@ -12,6 +12,7 @@ for _name in (
     "ADMIN_PASSKEY_HASH",
     "ADMIN_SESSION_SECRET",
     "ADMIN_ALLOWED_ORIGIN",
+    "USAGE_DIR",
 ):
     os.environ[_name] = ""
 

@@ -35,11 +35,34 @@ CO/metadata/attributes/<en|es>/<name>.json       # name, alias, source... per la
 CO/metadata/considerations/<en|es>/<name>.md     # Markdown notes per language (optional)
 EC/...  CR/...                                   # the same for every other country
 .jobs/                                           # admin ingestion jobs (share only)
+usage/                                           # usage events, not layers (see below)
 ```
 
 `countries.json` lists each country's ISO 3166-1 alpha-2 `code`, the SHA-256 of its
 admin passkey (`passkey_hash`, never the passkey) and whether it is `enabled`. It is
 managed with the countries command (see [Countries](#countries)), never by hand.
+
+#### Usage events
+
+In Azure, `usage/` (the API's `USAGE_DIR`) holds the usage figures the admin's Usage
+page shows. Countries come from `countries.json`, so the folder is never read as one.
+
+```
+usage/<YYYY-MM>/<replica>-<pid>.jsonl   # one JSON line per event, one file per API process
+usage/rollups/<YYYY-MM>.json            # a closed month, summarized: a cache
+```
+
+- **What an event holds:** the time, the step (upload, validation, analysis, report
+  requested or downloaded), its outcome, an anonymous browser-tab session ID, the
+  country and counts. Never farm data: no IDs, producers, coordinates, file names or
+  IP addresses.
+- **Backup:** it is on the share, so it is in the daily snapshot. The API also writes
+  every event to stdout, so Log Analytics keeps a copy for its retention (30 days by
+  default).
+- **Deleting old months:** delete their `usage/<YYYY-MM>/` folders and their
+  `usage/rollups/<YYYY-MM>.json`. Their figures disappear from the Usage page.
+- **The rollups** are rebuilt from the events whenever they are missing or out of
+  date, so `usage/rollups/` can always be deleted.
 
 ### Flat layout (legacy)
 

@@ -10,6 +10,7 @@ import {
 import { FarmData } from "@/interfaces/Farm";
 import { map } from "lodash";
 import { GeoJsonFeature } from "@/hooks/useGeoJsonDownload";
+import { usageHeaders } from "@/utils/usageSession";
 import type { components } from "./schema";
 
 /** The layer got a new raster after the analysis: its images would not match. */
@@ -63,6 +64,7 @@ export const analizeDeforestation = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...usageHeaders(country),
     },
     body: JSON.stringify(body),
   });

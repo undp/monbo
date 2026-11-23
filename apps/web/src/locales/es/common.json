@@ -5,7 +5,12 @@
     "validation": "Validación polígonos",
     "deforestation": "Análisis deforestación",
     "report": "Generación reporte",
-    "documentation": "Documentación"
+    "documentation": "Documentación",
+    "admin": {
+      "layers": "Capas",
+      "usage": "Uso",
+      "navigation": "Administración"
+    }
   },
   "language": {
     "select": "Idioma",

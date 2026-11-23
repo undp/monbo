@@ -9,12 +9,14 @@ import { useCallback, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NoFarmsSelectedModal } from "./NoFarmsSelectedModal";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
+import { sendUsageEvent } from "@/api/usageEvents";
 
 export function PageFooter() {
   const { t } = useTranslation();
   const router = useRouter();
   const {
     reportGenerationParams: { selectedFarms: selectedFarmsForReport },
+    selectedCountry,
   } = useContext(DataContext);
 
   const [isEmptyFarmsSelectionModalOpen, setIsEmptyFarmsSelectionModalOpen] =
@@ -32,9 +34,17 @@ export function PageFooter() {
       return;
     }
 
+    sendUsageEvent(
+      {
+        type: "report_requested",
+        outcome: "ok",
+        farms: selectedFarmsForReport.length,
+      },
+      selectedCountry
+    );
     // If there are farms selected, navigate to the preview page
     router.push("/report-generation/preview");
-  }, [router, selectedFarmsForReport]);
+  }, [router, selectedFarmsForReport, selectedCountry]);
 
   return (
     <>

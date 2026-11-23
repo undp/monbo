@@ -19,10 +19,12 @@ from app.modules import (
     farms_router,
     maps_router,
     polygons_validation_router,
+    usage_router,
 )
 from app.modules.admin.auth import admin_enabled
 from app.modules.admin.ingestion import recover_interrupted_jobs
 from app.modules.layers.store import get_layers_root
+from app.modules.usage.tracking import UsageMiddleware
 from app.utils.image_generation.GoogleMapsAPIHelper import (
     close_http_client,
     open_http_client,
@@ -175,6 +177,9 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     # The API is not installed as a package (`tool.uv.package = false`), so
     # importlib.metadata.version("monbo-api") is unavailable in production.
     app = FastAPI(title="Monbo API", version="1.5.1", lifespan=lifespan)
+    # Records the usage events of uploads, validations and analyses, and caps
+    # POST /events bodies. Added before CORS, so CORS wraps its responses too.
+    app.add_middleware(UsageMiddleware)
     # Admin calls authenticate with a Bearer header, never cookies, so credentials
     # stay off; the admin routes check the Origin header themselves.
     app.add_middleware(
@@ -190,6 +195,7 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     app.include_router(maps_router)
     app.include_router(config_router)
     app.include_router(farms_router)
+    app.include_router(usage_router)
     # Without the session secret and a per-country root the admin routes don't
     # exist at all (404, and they are left out of the OpenAPI docs).
     if include_admin or (include_admin is None and admin_enabled()):

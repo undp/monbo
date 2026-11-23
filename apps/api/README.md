@@ -262,6 +262,10 @@ Layers admin (optional). The `/admin` routes only exist when `ADMIN_SESSION_SECR
 
 To try the admin locally without modifying Git-tracked files, migrate `app/maps` into `.local-maps` (ignored by Git) with `uv run python -m app.modules.layers.migrate_countries --source app/maps --target .local-maps` and set `MAPS_ROOT=.local-maps`. `ADMIN_PASSKEY_HASH` from earlier releases is ignored.
 
+Usage metrics (optional):
+
+- `USAGE_DIR`: Folder where usage events are appended (`<USAGE_DIR>/<YYYY-MM>/<replica>-<pid>.jsonl`) and where the admin usage page keeps its monthly rollups (`<USAGE_DIR>/rollups/`). Unset: events only go to stdout, and the usage page says metrics aren't configured. In Azure: `/mnt/maps/usage`, on the layers share. Locally, use `.usage` (ignored by Git), never a folder under the Git-tracked `app/maps`.
+
 For local development, you can set the environment variables in a `.env` file. The `.env.template` file is provided as a reference.
 
 ## Development Guidelines

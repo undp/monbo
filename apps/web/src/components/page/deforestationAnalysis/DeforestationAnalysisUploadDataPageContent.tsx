@@ -117,7 +117,8 @@ export function DeforestationAnalysisUploadDataPageContent() {
         // The upload has no country column: every farm is in the analysis country.
         const results = await generateFarmsData(
           data.map((row) => ({ ...row, country: selectedCountry })),
-          i18n.language
+          i18n.language,
+          { country: selectedCountry, module: "deforestation-analysis" }
         );
         // Started over or left meanwhile: don't bring the farms back.
         if (!mountedRef.current || readFlowGeneration() !== generation) return;

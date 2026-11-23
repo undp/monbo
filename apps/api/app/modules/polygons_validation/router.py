@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.models.farms import (
     FarmPolygonDetailData,
     FarmPolygonDetailDataWithPolygon,
 )
+from app.modules.usage.tracking import note_usage
 from app.utils.farms import FarmDetailsMismatchError, build_farm_geometry
 
 from .helpers import (
@@ -21,6 +22,7 @@ router = APIRouter()
     name="Validate Polygons",
 )
 def get_polygon_inconsistencies(
+    request: Request,
     body: list[FarmPolygonDetailData],
 ) -> PolygonInconsistenciesResponse:
     """
@@ -97,6 +99,11 @@ def get_polygon_inconsistencies(
     for farm_id in invalid_farm_ids:
         results_lookup[farm_id]["status"] = "NOT_VALID"
 
+    note_usage(
+        request,
+        farms=len(results),
+        invalidFarms=sum(1 for result in results if result["status"] == "NOT_VALID"),
+    )
     return PolygonInconsistenciesResponse.model_validate(
         {
             "farmResults": results,

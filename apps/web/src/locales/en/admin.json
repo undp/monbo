@@ -201,5 +201,89 @@
       "nodata_ignored": "The file already declares nodata {{declared}}; the value {{requested}} was ignored.",
       "no_loss_pixels": "The raster has no loss pixels (value 1)."
     }
+  },
+  "usage": {
+    "title": "App usage",
+    "subtitle": "How Monbo is used in every country. Figures count browser sessions, not people: without a login, the same person in two tabs counts twice.",
+    "range": {
+      "label": "Range",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days",
+      "thisYear": "This year",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To",
+      "invalid": "Choose a start date on or before the end date, at most 366 days apart."
+    },
+    "sources": {
+      "server": "Recorded by the server",
+      "browser": "Reported by the browser"
+    },
+    "tiles": {
+      "sessions": "Sessions",
+      "sessionsDetail": "Browser tabs that used Monbo",
+      "uploads": "Farm uploads",
+      "avgFarms": "{{value}} farms per upload on average",
+      "analyses": "Deforestation analyses",
+      "analysisSessions": "{{value}} sessions analyzed",
+      "reportsRequested": "Reports requested",
+      "requestedSessions": "from {{value}} sessions",
+      "reportsDownloaded": "Reports downloaded",
+      "downloadedFormats": "{{pdf}} as one PDF · {{zip}} as a ZIP",
+      "trend": "{{label}}, week by week"
+    },
+    "funnel": {
+      "title": "Usage funnel",
+      "subtitle": "Sessions that reached each step of the deforestation analysis, and their share of all sessions.",
+      "sessions": "Sessions",
+      "uploaded": "Uploaded farms",
+      "analyzed": "Ran an analysis",
+      "requestedReport": "Requested a report"
+    },
+    "outcomes": {
+      "title": "Successes and errors by step",
+      "subtitle": "Upload, validation and analysis are recorded by the server; downloads are reported by the browser.",
+      "ok": "Successful",
+      "invalidInput": "Invalid input",
+      "failed": "Failed"
+    },
+    "shares": {
+      "title": "Share by country",
+      "subtitle": "Each country's percentage of the sum of all countries. A session that used several countries counts in each.",
+      "sessions": "Sessions",
+      "uploads": "Uploads",
+      "analyses": "Analyses",
+      "reportsDownloaded": "Reports downloaded",
+      "other": "Other",
+      "none": "No data in this range."
+    },
+    "steps": {
+      "upload": "Upload",
+      "validation": "Validation",
+      "analysis": "Analysis",
+      "download": "Report download"
+    },
+    "countries": {
+      "title": "Detail by country",
+      "country": "Country",
+      "uploads": "Uploads",
+      "avgFarms": "Farms per upload",
+      "validations": "Validations",
+      "analyses": "Analyses",
+      "reportsRequested": "Reports requested",
+      "reportsDownloaded": "Reports downloaded",
+      "okErrors": "{{ok}} ok · {{errors}} errors",
+      "unknown": "Unknown country",
+      "empty": "There is no usage in this range.",
+      "sources": "Uploads, validations and analyses are recorded by the server. Reports are reported by the browser."
+    },
+    "weekly": {
+      "title": "Weekly trend",
+      "sessions": "Sessions",
+      "analyses": "Analyses",
+      "reportsDownloaded": "Reports downloaded"
+    },
+    "notConfigured": "Usage metrics aren't configured on this server.",
+    "loadError": "The usage figures could not be loaded."
   }
 }
