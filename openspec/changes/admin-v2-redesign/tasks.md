@@ -55,4 +55,4 @@
 
 - [x] 9.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`; `uv run pytest`, `ruff`, `black --check`, `mypy app` and `python -m app.openapi --check` in `apps/api`
 - [x] 9.2 `openspec validate admin-v2-redesign --strict`
-- [ ] 9.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup
+- [x] 9.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup
