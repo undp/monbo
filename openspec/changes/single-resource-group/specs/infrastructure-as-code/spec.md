@@ -65,7 +65,7 @@ Both SHALL run in `eastus`. Each MAY live in its own subscription and Entra tena
 #### Scenario: Dev mirrors prod
 
 - **WHEN** the `platform/envs/dev.tfvars` and `platform/envs/prod.tfvars` files are compared
-- **THEN** they differ only in `env`
+- **THEN** they differ only in `env`, and in `registry_admin_enabled` while only one environment's pull identity holds AcrPull
 
 #### Scenario: Group missing from the environment
 

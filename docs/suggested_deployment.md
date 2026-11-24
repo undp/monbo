@@ -145,9 +145,11 @@ changes those two names.
 
 ### The administrator's grants
 
-Terraform assigns no roles, so someone allowed to assign them (in UNDP's subscription,
-a UNDP administrator; in Inventures', an Owner without an ABAC condition) makes two
-grants once, after step 5 has created both identities:
+Terraform assigns no roles, so someone allowed to assign them makes two grants once,
+after step 5 has created both identities. In UNDP's subscription, a UNDP
+administrator. In Inventures', the operators' Owner role carries an ABAC condition that
+allows AcrPull but not Contributor, so an Owner without that condition grants
+Contributor:
 
 | Role | Scope | For | What it enables |
 |---|---|---|---|
@@ -490,17 +492,33 @@ to step 4.
      --container-name "StorageContainer;Storage;monbo-dev-data;monbodevdata" --item-name "$item" \
      --backup-management-type AzureStorage --workload-type AzureFileShare \
      --delete-backup-data true --yes
-   # The storage account, then the vault (its deleted backups stay in soft delete: --force).
+   # Azure Backup's own lock on the account doesn't go away by itself: remove it.
+   az lock delete -g monbo-dev-data -n AzureBackupProtectionLock \
+     --resource monbodevdata --resource-type Microsoft.Storage/storageAccounts
+   # The storage account: this frees the global name monbodevdata.
    az storage account delete -g monbo-dev-data -n monbodevdata --yes
-   az backup vault delete -g monbo-dev-data -n monbo-dev-backup --yes --force
    # The deploy identity's Reader on the subscription: the only role outside the groups.
    PRINCIPAL=$(az identity show -g monbo-dev-platform -n monbo-dev-deploy --query principalId -o tsv)
-   az role assignment delete --assignee "$PRINCIPAL" --role Reader --scope "/subscriptions/$ARM_SUBSCRIPTION_ID"
-   # The groups (the Container Apps environment takes a while), and the old state.
+   az role assignment delete --assignee-object-id "$PRINCIPAL" --role Reader --scope "/subscriptions/$ARM_SUBSCRIPTION_ID"
+   # The groups (the Container Apps environment takes a while), and the old state. This
+   # frees monbodevacr.
    az group delete -n monbo-dev-apps --yes
    az group delete -n monbo-dev-platform --yes
-   az group delete -n monbo-dev-data --yes
    az group delete -n monbo-tfstate --yes
+   ```
+
+   The vault `monbo-dev-backup`, and with it the group `monbo-dev-data`, can't be
+   deleted yet. The stopped backup item stays in soft delete for 14 days, and until it
+   is purged the vault refuses deletion ("existing resources within the vault") and
+   unregistering the account fails with a generic internal error. It holds no data and
+   blocks nothing. After the item is purged (for the 2026-11-24 removal, from
+   2026-12-08):
+
+   ```sh
+   az backup container unregister -g monbo-dev-data -v monbo-dev-backup --backup-management-type AzureStorage \
+     --container-name "StorageContainer;Storage;monbo-dev-data;monbodevdata" --yes
+   az backup vault delete -g monbo-dev-data -n monbo-dev-backup --yes --force
+   az group delete -n monbo-dev-data --yes
    ```
 
 3. **Create the new `dev`** from this branch: [Creating an environment from

@@ -82,10 +82,12 @@
 - [x] 6.2 With a fresh `az login` into UNDP's tenant: a read-only `platform` plan for `prod` with a local backend. It should only create resources in UNDP's group (no group, lock or role), and confirm that the provider's registration check passes with Contributor on the group only
   - 2026-11-24: `Plan: 6 to add, 0 to change, 0 to destroy`. It creates `monboprodacr` (admin on), `monbo-prod-logs`, `monboproddata` and its `maps` share, `monbo-prod-deploy` and its federated credential, all in UNDP's group, `eastus`. Reading the group and the provider check pass with Contributor only.
 - [ ] 6.3 Rebuild `dev` ("Moving dev to one resource group" in `docs/suggested_deployment.md`), from the branch:
-  - remove the old `dev`;
-  - create the new one up to the manual deploy;
-  - an unconditional Owner grants the two roles;
-  - `registry_admin_enabled = false`;
-  - the new `AZURE_CLIENT_ID`
+  - [x] remove the old `dev` (2026-11-24; `monbo-dev-data` with the empty vault waits for 6.4b);
+  - [x] create the new one up to the manual deploy (`monbo-dev`, eastus; passkeys rotated after the seed);
+  - [x] AcrPull to `monbo-dev-pull` (the operators' ABAC condition allows it), `registry_admin_enabled = false`, verified;
+  - [x] the new `AZURE_CLIENT_ID` and `TF_VAR_RESOURCE_GROUP_NAME` in the `dev` GitHub Environment;
+  - [ ] Contributor on `monbo-dev` to `monbo-dev-deploy`, by an Owner without an ABAC condition (the operators' condition refuses it)
+  - Found on the way: new Container Apps environments come with the Consumption workload profile (now declared, so plans show no changes), and one transient 403 reading the state after the 10-minute apply (`deploy.sh` now retries reading its outputs).
 - [ ] 6.4 Merge, re-enable the Deploy workflow, and confirm the merge deploys `dev` from CI
+- [ ] 6.4b After the soft-deleted backup item is purged (from 2026-12-08): unregister the old account, delete `monbo-dev-backup` and the group `monbo-dev-data` (docs, "Moving dev to one resource group")
 - [ ] 6.5 `prod` (Production in `docs/suggested_deployment.md`): the manual deploy, then the UNDP administrator's grants, `registry_admin_enabled = false`, the `prod` secrets and `DEPLOY_PROD`

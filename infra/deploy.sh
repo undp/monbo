@@ -254,8 +254,18 @@ if ! apply_images "$API_IMAGE" "$WEB_IMAGE" 2>&1 | tee "$apply_log"; then
   fi
 fi
 
-API_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw api_url)"
-WEB_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw web_url)"
+# Reading the state right after a long apply has failed once with a transient 403 from
+# the state account; retry, so that never skips the verification below.
+apps_output() {
+  local attempt
+  for attempt in 1 2 3; do
+    "$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw "$1" 2>/dev/null && return 0
+    sleep 10
+  done
+  "$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw "$1"
+}
+API_URL="$(apps_output api_url)"
+WEB_URL="$(apps_output web_url)"
 
 log "Verifying the deployment"
 verify_deployment "$API_IMAGE" "$WEB_IMAGE" || rollback "The new revisions did not become healthy"

@@ -270,7 +270,10 @@ run "everything_in_the_platforms_group" {
       azurerm_container_app.api.resource_group_name == "monbo-dev" &&
       azurerm_container_app.web.resource_group_name == "monbo-dev" &&
       output.resource_group_name == "monbo-dev" &&
-      output.pull_identity_principal_id == "11111111-1111-1111-1111-111111111111"
+      output.pull_identity_principal_id == "11111111-1111-1111-1111-111111111111" &&
+      contains([for p in azurerm_container_app_environment.main.workload_profile : p.name], "Consumption") &&
+      azurerm_container_app.api.workload_profile_name == "Consumption" &&
+      azurerm_container_app.web.workload_profile_name == "Consumption"
     )
     error_message = "The apps must go in the platform's group and location, and output the pull identity for the AcrPull grant."
   }

@@ -28,6 +28,13 @@ resource "azurerm_container_app_environment" "main" {
   logs_destination           = "log-analytics"
   log_analytics_workspace_id = local.platform.log_analytics_workspace_id
   tags                       = local.tags
+
+  # Azure creates new environments with workload profiles and this Consumption profile
+  # (the serverless plan the apps run on). Declared so plans don't try to remove it.
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+  }
 }
 
 # The share, registered on the environment as "maps": what the API's volume refers to.
