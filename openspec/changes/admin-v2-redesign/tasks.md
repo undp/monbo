@@ -58,7 +58,7 @@
 - [x] 9.3 Editor: under "Ícono", the icons as a grid of 44 px tiles with their name as a tooltip; under "Color", 12 swatches with at least 4.5:1 on their tint, and below them "Otro color" with a sample of the typed color inside the field
 - [x] 9.4 Tests: the API accepts and serves a new icon, and the catalogue has 26 names once each; the editor offers 26 named icons and 12 colors and saves the chosen ones
 - [x] 9.5 `docs/maps.md` lists the new icons
-- [ ] 9.6 Check the icon grid and the swatches by hand at 1440 px and 390 px, in `es` and `en`
+- [x] 9.6 Check the icon grid and the swatches by hand at 1440 px and 390 px, in `es` and `en`
 
 ## 10. Verification
 
