@@ -92,7 +92,8 @@ else
   ok "Pushed $API_IMAGE and $WEB_IMAGE"
 fi
 
-APPS_RG="monbo-$ENV_NAME-apps"
+# Everything is in the environment's one group (platform's output).
+APPS_RG="$RESOURCE_GROUP"
 
 # In GitHub Actions, the outcome goes to the run's summary page.
 summary() {
@@ -227,7 +228,9 @@ rollback() {
     echo "  The rollback did not verify either; check the apps in the portal" >&2
   fi
   local logs=""
-  [ -z "$failed" ] || logs="az containerapp logs show -g $APPS_RG -n ${failed%%/*} --revision ${failed#*/} --tail 100"
+  # The group comes from the environment (prod's isn't public): the command names it
+  # by its variable, so neither the console nor the run's summary prints it.
+  [ -z "$failed" ] || logs="az containerapp logs show -g \"\$TF_VAR_resource_group_name\" -n ${failed%%/*} --revision ${failed#*/} --tail 100"
   [ -z "$logs" ] || echo "  Logs of the failed revision: $logs" >&2
   summary "❌ rolled back to the previous images" "$reason. Previous: \`$PREVIOUS_API_IMAGE\`, \`$PREVIOUS_WEB_IMAGE\`.${logs:+ Logs: \`$logs\`}"
   die "$reason (rolled back)"

@@ -24,22 +24,15 @@ Files share; locally it is a folder.
 flowchart LR
   browser([Browser])
 
-  subgraph apps["monbo-dev-apps (Terraform apps stack)"]
-    subgraph env["Container Apps environment monbo-dev-env"]
+  subgraph group["Resource group monbo-dev (prod: the group UNDP granted)"]
+    subgraph env["Container Apps environment monbo-dev-env · apps stack"]
       front["monbo-front<br/>Next.js · port 3000"]
       api["monbo-api<br/>FastAPI · port 8000 · 1 replica"]
     end
-    pull[Pull identity<br/>AcrPull]
-  end
-
-  subgraph platform["monbo-dev-platform (platform stack)"]
-    acr[(Container Registry<br/>no admin user)]
-    logs[Log Analytics]
-  end
-
-  subgraph data["monbo-dev-data (platform stack · delete lock)"]
-    share[("Azure Files share 'maps'<br/>mounted at /mnt/maps")]
-    vault[Backup vault<br/>daily snapshots, 30 days]
+    pull[Pull identity<br/>AcrPull, granted by an administrator]
+    acr[(Container Registry<br/>platform stack)]
+    logs[Log Analytics<br/>platform stack]
+    share[("Azure Files share 'maps'<br/>mounted at /mnt/maps · platform stack")]
   end
 
   gmaps[Google Maps Platform]
@@ -52,7 +45,6 @@ flowchart LR
   acr -.->|images, via pull identity| front
   acr -.->|images, via pull identity| api
   env -.->|logs| logs
-  vault -.->|protects| share
 ```
 
 The browser calls the API directly: the frontend container only serves pages and
@@ -73,32 +65,44 @@ environment ([infra/README.md](../infra/README.md) explains the code,
 [suggested_deployment.md](suggested_deployment.md) the procedures): `platform` (the
 layers, the registry and the logs; applied by hand) and `apps` (the Container Apps;
 applied by `infra/deploy.sh` on every deploy). Each environment is a pair of
-`envs/<env>.tfvars` and `envs/<env>.backend.hcl` files per stack; the names below are
-those of `dev` (deployed from the `dev` branch). The storage account and the
-registry can't have hyphens: Azure only allows lowercase letters and digits in those
-globally unique names. The Terraform state lives in a separate storage account per
-environment (`monbotfstate` for `dev`, `monboprodtfstate` for `prod`, in resource group
-`monbo-tfstate`; Entra ID access only, created by `infra/bootstrap.sh`).
+`envs/<env>.tfvars` and `envs/<env>.backend.hcl` files per stack.
 
-### Apps: resource group `monbo-dev-apps` (apps stack)
+**One resource group per environment.** Production runs in the one existing group UNDP
+granted, where the operators only hold Contributor: they
+can't create groups, assign roles or create locks. `dev` is prod's test environment, so
+it has the same layout in its own group, `monbo-dev`: what `dev` deploys is what `prod`
+runs. In both, Terraform creates no group, lock or role assignment; an administrator
+grants the identities their roles once
+([suggested_deployment.md](suggested_deployment.md#the-administrators-grants)).
 
-| Resource | What it does |
-|---|---|
-| Container Apps environment `monbo-dev-env` | Shared network for both apps; sends their logs to the platform's Log Analytics workspace. It also registers the share as environment storage `maps`, which the API's volume refers to. |
-| Managed identity `monbo-dev-pull` | Holds `AcrPull` on the registry. Both apps pull their images with it: the registry has no admin user, so no registry password exists. |
-| Container App `monbo-api` | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup and readiness probes on `/health`, liveness on `/health/live`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
-| Container App `monbo-front` | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, startup probe on `/api/health`. |
+The names below are `dev`'s (`prod` replaces `dev` with `prod`). The storage account
+and the registry can't have hyphens: Azure only allows lowercase letters and digits in
+those globally unique names. Both environments run in East US (`eastus`).
+
+| Resource | Stack | What it does |
+|---|---|---|
+| Storage account `monbodevtfstate` | `infra/bootstrap.sh` | The Terraform state of both stacks. Read with its account key (operators may not get a data role on it); versioning and 30-day soft delete. |
+| Storage account `monbodevdata` and share `maps` | platform | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days, `prevent_destroy`. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
+| Container Registry `monbodevacr` (Basic) | platform | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. Its admin user is on only until the pull identity holds AcrPull. |
+| Log Analytics workspace `monbo-dev-logs` | platform | The apps' logs, kept 30 days. |
+| Managed identity `monbo-dev-deploy` | platform | What GitHub Actions deploys as (OIDC, no secret). Contributor on the group, granted by an administrator. |
+| Container Apps environment `monbo-dev-env` | apps | Shared network for both apps; sends their logs to Log Analytics. It also registers the share as environment storage `maps`, which the API's volume refers to. |
+| Managed identity `monbo-dev-pull` | apps | Both apps pull their images with it, once an administrator grants it AcrPull. |
+| Container App `monbo-api` | apps | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup and readiness probes on `/health`, liveness on `/health/live`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
+| Container App `monbo-front` | apps | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, startup probe on `/api/health`. |
 
 Both apps are defined in `infra/terraform/apps/api.tf` and `web.tf`. Terraform owns
 them entirely: a setting changed in the portal shows up in the next plan and is
 reverted by the next deploy.
 
-### Platform: resource group `monbo-dev-platform` (platform stack)
-
-| Resource | What it does |
-|---|---|
-| Container Registry (`monbodevacr`, Basic, admin user off) | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. |
-| Log Analytics workspace `monbo-dev-logs` | The apps' logs, kept 30 days. |
+**What protects the layers.** There is no delete lock and no Azure Backup, because both
+need more than Contributor. The storage account and the share carry Terraform's
+`prevent_destroy`, deleted shares can be undeleted for 14 days, and `seed` takes a
+snapshot before it empties the share. The layers in Git can always be seeded again; the
+admin's edits and the usage events since the last snapshot can't. A UNDP administrator
+can add a lock on the storage account and the role that allows the daily backup
+(`share_backup_enabled`); see
+[suggested_deployment.md](suggested_deployment.md#the-administrators-grants).
 
 **Configuration and secrets.**
 
@@ -112,18 +116,6 @@ reverted by the next deploy.
   - At start, `apps/web/entrypoint.sh` replaces them with the container's
     environment variables, so the same image runs in any environment.
   - Its Google Maps key is exposed to the browser by design.
-
-### Layers: resource group `monbo-dev-data` (platform stack)
-
-Kept apart from the apps so that destroying the apps stack can't touch the layers.
-The storage account, the share and the backups also carry Terraform's
-`prevent_destroy`.
-
-| Resource | What it does |
-|---|---|
-| Delete lock `monbo-dev-data-no-delete` | Nothing in the group can be deleted by mistake. |
-| Storage account (`monbodevdata`) and share `maps` | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
-| Backup vault `monbo-dev-backup`, policy `maps-daily-30d` | A snapshot of the share every day at 06:00 UTC, kept 30 days. |
 
 The share is mounted with `uid=10001,gid=10001`: the API image runs as that user,
 and `chmod` isn't possible on Azure Files. Details, first-time setup and rollback are
@@ -146,8 +138,8 @@ ingestions at once. Don't scale the API out while the admin is enabled.
 | Event | Effect |
 |---|---|
 | New revision or restart of the API | Layers, admin edits and ingestion job history are on the share and stay. An ingestion that was running is marked failed ("interrupted by restart") and its staging file is deleted. |
-| `terraform destroy` of the apps stack | Deletes the apps. The share, its backups and the registry stay. |
-| Someone deletes a file on the share | Restore it from a snapshot (vault "Restore"). |
+| `terraform destroy` of the apps stack | Deletes the apps. The share and the registry stay. |
+| Someone deletes a file on the share | Restore it from a share snapshot (`seed`'s, or one taken by hand), or seed the Git layers again. With `share_backup_enabled`, from the vault's daily snapshot. |
 | Someone deletes the share | Undelete it within 14 days (soft delete). |
 
 ## How farms come in

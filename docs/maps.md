@@ -14,7 +14,7 @@ The API reads layers from `MAPS_ROOT`:
 
 | Environment | `MAPS_ROOT` | What it is |
 |---|---|---|
-| Azure | `/mnt/maps` | The per-country layout on the `maps` Azure Files share, with backups ([suggested_deployment.md](suggested_deployment.md)) |
+| Azure | `/mnt/maps` | The per-country layout on the `maps` Azure Files share, with soft delete and snapshots ([suggested_deployment.md](suggested_deployment.md#layer-storage)) |
 | Local, default | `app/maps` | The layers tracked in Git (Git LFS), in the flat layout |
 | Local, trying the admin | `.local-maps` | `app/maps` migrated to the per-country layout, ignored by Git ([onboarding.md](onboarding.md#48-trying-the-layers-admin-locally)) |
 
@@ -56,9 +56,9 @@ usage/rollups/<YYYY-MM>.json            # a closed month, summarized: a cache
   requested or downloaded), its outcome, an anonymous browser-tab session ID, the
   country and counts. Never farm data: no IDs, producers, coordinates, file names or
   IP addresses.
-- **Backup:** it is on the share, so it is in the daily snapshot. The API also writes
-  every event to stdout, so Log Analytics keeps a copy for its retention (30 days by
-  default).
+- **Backup:** it is on the share, so it is in the share's snapshots (and in the daily
+  backup, where `share_backup_enabled` is on). The API also writes every event to
+  stdout, so Log Analytics keeps a copy for its retention (30 days by default).
 - **Deleting old months:** delete their `usage/<YYYY-MM>/` folders and their
   `usage/rollups/<YYYY-MM>.json`. Their figures disappear from the Usage page.
 - **`layers-ops.sh <env> seed` deletes them** along with the layers: restore them
@@ -210,7 +210,7 @@ records a warning).
 
 Rasters are never overwritten: previous versions stay on the share. The admin has no
 rollback button; to go back, point the layer's `raster_filename` in `index.json` at
-the older file, or restore it from a backup.
+the older file, or restore it from a share snapshot.
 
 Only one upload is processed at a time. A large raster takes about a minute
 (57601×69601 pixels: 51 s on the Azure API).

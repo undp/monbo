@@ -2,7 +2,9 @@
 # come from infra/envs/dev.secrets.env or the GitHub Environment, never from this file.
 env = "dev"
 
-state_storage_account_name = "monbotfstate"
+# Where platform's state is (as in envs/dev.backend.hcl; the group comes from
+# TF_VAR_resource_group_name).
+state_storage_account_name = "monbodevtfstate"
 
 api_size = { cpu = 1, memory = "2Gi" }
 web_size = { cpu = 0.5, memory = "1Gi" }

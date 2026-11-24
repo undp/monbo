@@ -3,6 +3,8 @@
 # from this file.
 env = "prod"
 
+# Where platform's state is (as in envs/prod.backend.hcl; the group comes from
+# TF_VAR_resource_group_name).
 state_storage_account_name = "monboprodtfstate"
 
 api_size = { cpu = 1, memory = "2Gi" }

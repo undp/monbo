@@ -1,6 +1,7 @@
 # The destroyable part of an environment: the Container Apps environment and the two
-# apps. Applied by infra/deploy.sh on every deploy, with the new image references.
-# `terraform destroy` here leaves the layers (platform stack) intact.
+# apps, in the environment's one group (platform's output). Applied by infra/deploy.sh
+# on every deploy, with the new image references. `terraform destroy` here leaves the
+# layers (platform stack) intact.
 
 locals {
   prefix = "monbo-${var.env}"
@@ -20,16 +21,10 @@ locals {
   admin_enabled = nonsensitive(var.admin_session_secret != null)
 }
 
-resource "azurerm_resource_group" "apps" {
-  name     = "${local.prefix}-apps"
-  location = local.platform.location
-  tags     = local.tags
-}
-
 resource "azurerm_container_app_environment" "main" {
   name                       = "${local.prefix}-env"
-  resource_group_name        = azurerm_resource_group.apps.name
-  location                   = azurerm_resource_group.apps.location
+  resource_group_name        = local.group
+  location                   = local.platform.location
   logs_destination           = "log-analytics"
   log_analytics_workspace_id = local.platform.log_analytics_workspace_id
   tags                       = local.tags
@@ -45,17 +40,12 @@ resource "azurerm_container_app_environment_storage" "maps" {
   access_mode                  = "ReadWrite"
 }
 
-# Both apps pull their images with this identity: the registry has no admin user.
+# Both apps pull their images with this identity. Terraform assigns it no role: an
+# administrator grants it AcrPull on the registry, and the apps pull with the registry's
+# admin user until then (registry_admin_enabled, platform stack).
 resource "azurerm_user_assigned_identity" "pull" {
   name                = "${local.prefix}-pull"
-  resource_group_name = azurerm_resource_group.apps.name
-  location            = azurerm_resource_group.apps.location
+  resource_group_name = local.group
+  location            = local.platform.location
   tags                = local.tags
-}
-
-resource "azurerm_role_assignment" "acr_pull" {
-  scope                = local.platform.registry_id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_user_assigned_identity.pull.principal_id
-  principal_type       = "ServicePrincipal"
 }

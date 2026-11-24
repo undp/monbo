@@ -83,7 +83,7 @@ seed_share() {
   echo "  Old id -> new id per country, for tests.regression.parity --mapping: $SEED_MAPPING_OUT"
 
   # Only now, with the new layers ready, empty the share: after a snapshot of what it
-  # holds, so this exact content can be restored (the daily backup may be hours old).
+  # holds, so this exact content can be restored (there may be no other recent one).
   if ! share_is_empty "$key"; then
     local snapshot
     snapshot="$(AZURE_STORAGE_KEY="$key" az storage share snapshot --name "$MAPS_SHARE_NAME" \

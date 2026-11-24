@@ -1,70 +1,85 @@
 # Applies the platform stack against a mocked provider (nothing is created) and checks
-# the protection the layers need. Run: terraform init -backend=false && terraform test
+# the layout every environment shares (one existing group, nothing that needs more than
+# Contributor) and the protection the layers keep.
+# Run: terraform init -backend=false && terraform test
 
 mock_provider "azurerm" {
   # Realistic ids: the provider parses them when other resources reference them.
-  mock_resource "azurerm_resource_group" {
+  mock_data "azurerm_resource_group" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-data"
+      id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev"
+      location = "westeurope"
     }
   }
 
   mock_resource "azurerm_storage_account" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-data/providers/Microsoft.Storage/storageAccounts/monbodevdata"
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.Storage/storageAccounts/monbodevdata"
     }
   }
 
   mock_resource "azurerm_container_registry" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-platform/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
     }
   }
 
   mock_resource "azurerm_user_assigned_identity" {
     defaults = {
-      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-platform/providers/Microsoft.ManagedIdentity/userAssignedIdentities/monbo-dev-deploy"
+      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/monbo-dev-deploy"
       principal_id = "22222222-2222-2222-2222-222222222222"
       client_id    = "33333333-3333-3333-3333-333333333333"
     }
   }
 
-  mock_data "azurerm_subscription" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000"
-    }
-  }
-
-  mock_data "azurerm_storage_account" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-tfstate/providers/Microsoft.Storage/storageAccounts/monbotfstate"
-    }
-  }
-
   mock_resource "azurerm_backup_policy_file_share" {
     defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-data/providers/Microsoft.RecoveryServices/vaults/monbo-dev-backup/backupPolicies/maps-daily-30d"
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.RecoveryServices/vaults/monbo-dev-backup/backupPolicies/maps-daily-30d"
     }
   }
 }
 
+# dev's settings (envs/dev.tfvars).
 variables {
-  env                        = "dev"
-  state_storage_account_name = "monbotfstate"
+  env                    = "dev"
+  location               = "eastus"
+  resource_group_name    = "monbo-dev"
+  registry_admin_enabled = true
 }
 
-run "names_follow_the_environment" {
+run "everything_in_the_one_group" {
   command = plan
 
   assert {
     condition = (
-      azurerm_resource_group.data.name == "monbo-dev-data" &&
-      azurerm_resource_group.platform.name == "monbo-dev-platform" &&
-      azurerm_recovery_services_vault.backup.name == "monbo-dev-backup" &&
       azurerm_storage_account.data.name == "monbodevdata" &&
-      azurerm_container_registry.main.name == "monbodevacr"
+      azurerm_container_registry.main.name == "monbodevacr" &&
+      azurerm_log_analytics_workspace.main.name == "monbo-dev-logs" &&
+      azurerm_user_assigned_identity.deploy.name == "monbo-dev-deploy"
     )
     error_message = "Names must derive from env; the global ones have no hyphens and no suffix by default."
+  }
+
+  assert {
+    condition = alltrue([
+      for group in [
+        azurerm_storage_account.data.resource_group_name,
+        azurerm_container_registry.main.resource_group_name,
+        azurerm_log_analytics_workspace.main.resource_group_name,
+        azurerm_user_assigned_identity.deploy.resource_group_name,
+        output.resource_group_name,
+      ] : group == "monbo-dev"
+    ])
+    error_message = "Every resource must go in the environment's one group, and the output must name it."
+  }
+
+  assert {
+    condition = (
+      azurerm_storage_account.data.location == "eastus" &&
+      azurerm_container_registry.main.location == "eastus" &&
+      azurerm_user_assigned_identity.deploy.location == "eastus"
+    )
+    error_message = "Resources must take the environment's location, not the group's (westeurope here)."
   }
 }
 
@@ -77,7 +92,7 @@ run "suffix_only_changes_the_global_names" {
 
   assert {
     condition = (
-      azurerm_resource_group.data.name == "monbo-dev-data" &&
+      azurerm_log_analytics_workspace.main.name == "monbo-dev-logs" &&
       azurerm_storage_account.data.name == "monbodevab1data" &&
       azurerm_container_registry.main.name == "monbodevab1acr"
     )
@@ -104,21 +119,50 @@ run "layers_are_protected" {
 
   assert {
     condition = (
-      azurerm_backup_policy_file_share.maps_daily.backup[0].frequency == "Daily" &&
-      azurerm_backup_policy_file_share.maps_daily.backup[0].time == "06:00" &&
-      azurerm_backup_policy_file_share.maps_daily.retention_daily[0].count == 30
+      length(azurerm_recovery_services_vault.backup) == 0 &&
+      length(azurerm_backup_protected_file_share.maps) == 0 &&
+      output.backup_vault_name == ""
     )
-    error_message = "The share must be backed up daily at 06:00 and kept 30 days."
+    error_message = "Without share_backup_enabled, there must be no vault and no protected share."
   }
 
   assert {
-    condition     = azurerm_management_lock.data.lock_level == "CanNotDelete"
-    error_message = "The data resource group must carry a CanNotDelete lock."
+    condition     = azurerm_container_registry.main.admin_enabled && output.registry_admin_enabled
+    error_message = "registry_admin_enabled must turn the registry's admin user on, and the output must say so."
+  }
+}
+
+run "backup_when_enabled" {
+  command = apply
+  # Its own state: the runs after it would otherwise plan to destroy its protected vault.
+  state_key = "backup"
+
+  variables {
+    share_backup_enabled = true
   }
 
   assert {
-    condition     = !azurerm_container_registry.main.admin_enabled
-    error_message = "The registry admin user must be off."
+    condition = (
+      azurerm_recovery_services_vault.backup[0].name == "monbo-dev-backup" &&
+      azurerm_backup_policy_file_share.maps_daily[0].backup[0].frequency == "Daily" &&
+      azurerm_backup_policy_file_share.maps_daily[0].backup[0].time == "06:00" &&
+      azurerm_backup_policy_file_share.maps_daily[0].retention_daily[0].count == 30 &&
+      length(azurerm_backup_protected_file_share.maps) == 1
+    )
+    error_message = "With share_backup_enabled, the share must be backed up daily at 06:00 and kept 30 days."
+  }
+}
+
+run "registry_admin_off_once_acrpull_is_granted" {
+  command = plan
+
+  variables {
+    registry_admin_enabled = false
+  }
+
+  assert {
+    condition     = !azurerm_container_registry.main.admin_enabled && !output.registry_admin_enabled
+    error_message = "With registry_admin_enabled false, the registry's admin user must be off."
   }
 }
 
@@ -132,13 +176,8 @@ run "invalid_suffix_is_rejected" {
   expect_failures = [var.unique_suffix]
 }
 
-run "deploy_identity_trusts_only_the_dev_environment" {
+run "deploy_identity_trusts_only_its_environment" {
   command = apply
-
-  assert {
-    condition     = azurerm_user_assigned_identity.deploy.name == "monbo-dev-deploy"
-    error_message = "The deploy identity must be monbo-<env>-deploy."
-  }
 
   assert {
     condition = (
@@ -151,57 +190,45 @@ run "deploy_identity_trusts_only_the_dev_environment" {
 
   assert {
     condition = (
-      azurerm_role_assignment.deploy_reader.role_definition_name == "Reader" &&
-      azurerm_role_assignment.deploy_reader.scope == "/subscriptions/00000000-0000-0000-0000-000000000000" &&
-      azurerm_role_assignment.deploy_acr_push.role_definition_name == "AcrPush" &&
-      endswith(azurerm_role_assignment.deploy_acr_push.scope, "/registries/monbodevacr") &&
-      azurerm_role_assignment.deploy_state.role_definition_name == "Storage Blob Data Contributor" &&
-      endswith(azurerm_role_assignment.deploy_state.scope, "/storageAccounts/monbotfstate")
+      output.deploy_identity_client_id == "33333333-3333-3333-3333-333333333333" &&
+      output.deploy_identity_principal_id == "22222222-2222-2222-2222-222222222222"
     )
-    error_message = "The deploy identity must get Reader (subscription), AcrPush (registry) and Storage Blob Data Contributor (state) only."
-  }
-
-  assert {
-    condition     = output.deploy_identity_client_id == "33333333-3333-3333-3333-333333333333"
-    error_message = "The client id must be an output, for the GitHub Environment."
+    error_message = "The client id (GitHub secret) and principal id (administrator's grant) must be outputs."
   }
 }
 
-# prod is the same code with its own tfvars: its own names, GitHub Environment and state
-# account (envs/prod.tfvars).
+# prod is the same code with its own tfvars, in a group someone else granted (its name
+# comes from the environment, not from the repository).
 run "prod_is_its_own_environment" {
   command = apply
+  # Its own state, so it doesn't plan over dev's resources from the runs above.
+  state_key = "prod"
 
   variables {
-    env                        = "prod"
-    state_storage_account_name = "monboprodtfstate"
+    env                 = "prod"
+    resource_group_name = "shared-granted-group"
   }
 
   override_data {
-    target = data.azurerm_storage_account.state
+    target = data.azurerm_resource_group.main
     values = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-tfstate/providers/Microsoft.Storage/storageAccounts/monboprodtfstate"
+      id       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/shared-granted-group"
+      location = "westeurope"
     }
   }
 
   assert {
     condition = (
-      azurerm_resource_group.data.name == "monbo-prod-data" &&
-      azurerm_resource_group.platform.name == "monbo-prod-platform" &&
       azurerm_storage_account.data.name == "monboproddata" &&
+      azurerm_storage_account.data.resource_group_name == "shared-granted-group" &&
       azurerm_container_registry.main.name == "monboprodacr" &&
       azurerm_user_assigned_identity.deploy.name == "monbo-prod-deploy"
     )
-    error_message = "prod's resources must be named monbo-prod-*, monboproddata and monboprodacr."
+    error_message = "prod's resources must be named monboproddata, monboprodacr and monbo-prod-*, in its group."
   }
 
   assert {
     condition     = azurerm_federated_identity_credential.github.subject == "repo:undp/monbo:environment:prod"
     error_message = "prod's deploy identity must trust only the prod GitHub Environment."
-  }
-
-  assert {
-    condition     = endswith(azurerm_role_assignment.deploy_state.scope, "/storageAccounts/monboprodtfstate")
-    error_message = "prod's deploy identity must reach only prod's state account."
   }
 }
