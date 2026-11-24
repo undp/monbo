@@ -31,7 +31,7 @@
 - [x] 5.1 `layerPeriod(layer, categories)` in `components/page/admin/`: both years → "{baseline} → {compared_against}", no years in a non-temporal resolved category → "Vigente", "—" otherwise; unit tests for each case
 - [x] 5.2 `AdminLayersPageContent`: `FLOW_TABLE_FRAME` + `FLOW_TABLE_SX`, columns ID, Capa (name bold, alias under it), Categoría, Período, Raster (filename or amber "Sin raster" pill), Versión, Publicada (switch), "Editar"; the blocked notice as an amber band row; long texts wrap
 - [x] 5.3 Layer editor: `Section` in `LayerForm` takes an `icon` and the `FlowSection` look, keeping `id` and `scrollMarginTop`; the head's back link replaces the "Volver" button; `RasterUploadSection`'s steps unchanged
-- [x] 5.4 Tests: the period column; name and alias in one cell; the blocked notice; the editor's sections and back link (the 390 px check is by hand, in 9.3)
+- [x] 5.4 Tests: the period column; name and alias in one cell; the blocked notice; the editor's sections and back link (the 390 px check is by hand, in 10.3)
 
 ## 6. Usage page
 
@@ -51,8 +51,17 @@
 - [x] 8.4 Tests of the `[id]` route: a malformed id gives the not-found page, a well-formed one opens the editor
 - [x] 8.5 Review's nits: the usage range selector wraps below 600 px; `AdminShell` doesn't redirect while the session is being read (`ready: false`)
 
-## 9. Verification
+## 9. More icons and colors (D12)
 
-- [x] 9.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`; `uv run pytest`, `ruff`, `black --check`, `mypy app` and `python -m app.openapi --check` in `apps/api`
-- [x] 9.2 `openspec validate admin-v2-redesign --strict`
-- [x] 9.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup
+- [x] 9.1 `CategoryIcon` with 26 names in the picker's order; regenerate `openapi.json` and `schema.d.ts`
+- [x] 9.2 `LayerCategoryIcon` maps the 18 new names; their es/en names in `admin.json`
+- [x] 9.3 Editor: under "Ícono", the icons as a grid of 44 px tiles with their name as a tooltip; under "Color", 12 swatches with at least 4.5:1 on their tint, and below them "Otro color" with a sample of the typed color inside the field
+- [x] 9.4 Tests: the API accepts and serves a new icon, and the catalogue has 26 names once each; the editor offers 26 named icons and 12 colors and saves the chosen ones
+- [x] 9.5 `docs/maps.md` lists the new icons
+- [ ] 9.6 Check the icon grid and the swatches by hand at 1440 px and 390 px, in `es` and `en`
+
+## 10. Verification
+
+- [x] 10.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`; `uv run pytest`, `ruff`, `black --check`, `mypy app` and `python -m app.openapi --check` in `apps/api`
+- [x] 10.2 `openspec validate admin-v2-redesign --strict`
+- [x] 10.3 Run the admin locally (login, layers, layer editor with raster steps, categories, new and edit category, usage) at 1440 px, 900 px and 390 px, in `es` and `en`, and compare with the mockup

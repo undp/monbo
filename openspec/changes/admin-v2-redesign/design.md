@@ -181,6 +181,19 @@ Alternatives considered:
 - **A create path no id can match (`new-category`).** It works, but leaves an admin-typed id that is easy to get wrong and that the UI has to check against the list.
 - **Reserving `new` in the id's pattern.** It would reject a stored `new` in the public app too, hiding its layers.
 
+### D12. More icons and colors for a category
+
+Eight icons and six colors fell short once countries added their own categories. Following the picker of another product the team built (a tile grid of icons, a row of swatches), with the layout Monbo already has:
+- the catalogue grows from 8 to 26 icons: `park`, `leaf`, `wildlife`, `legal`, `community`, `map`, `global`, `coast`, `flood`, `crop`, `coffee`, `pasture`, `volcano`, `landslide`, `mining`, `infrastructure`, `settlement` and `industry` join the existing ones. Each maps to a Material outlined icon in `LayerCategoryIcon`, and its name is in `admin.json` (es, en). The `CategoryIcon` literal lists them in the picker's order;
+- the editor shows them under "Ícono" as a grid of separate 44 px tiles, not grouped by theme, each with its name as a tooltip;
+- the swatches go from 6 to 12. The chips and the icon tiles draw the color as text on its 12% tint (`categoryTints`), so each swatch has at least 4.5:1 on its tint. Two of the old ones, `#2f8f5e` (3.5:1) and `#a8741a` (3.5:1), fell short and are replaced by darker ones. Under the swatches, "Otro color" still takes any hex, with a sample of the color inside the field.
+
+Adding a value to the literal is backward compatible: a stored category keeps its icon and color, and an older web falls back to the layers icon for a name it doesn't know.
+
+Alternatives considered:
+- **Icons grouped by theme (Nature, Water, Land use...).** It reads better with many icons, but the product owner chose the plain grid.
+- **A popover from the icon tile, as in the other product.** It hides the choices behind a click, where the editor already has the room to show them.
+
 ## Risks / Trade-offs
 
 - **[Moving the routes into a group breaks imports or tests that name the page files]** → The pages are 5-line wrappers and the tests import the `*PageContent` components. A build catches any leftover path.
@@ -192,11 +205,11 @@ Alternatives considered:
 
 ## Migration Plan
 
-No stored data changes: existing ids stay as they are, and only new categories get an id made by the API. It ships in one PR into `feat/layer-manager`.
+No stored data changes: existing ids, icons and colors stay as they are, and only new categories get an id made by the API. It ships in one PR into `feat/layer-manager`.
 
 - **Old URLs:** the routes keep theirs, and the panel had no URL, so no redirect is needed.
 - **Rollback:** revert the PR.
-- **Archive:** after `admin-layer-categories` and `admin-categories-ui`, whose versions of "Create a category", "Admin UI" and "Category administration UI" this change modifies.
+- **Archive:** after `add-layer-categories`, `admin-layer-categories` and `admin-categories-ui`, whose versions of "Per-country category file", "Create a category", "Admin UI" and "Category administration UI" this change modifies.
 
 ## Open Questions
 

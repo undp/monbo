@@ -169,9 +169,11 @@ A country's categories live in `<CC>/categories.json`, a list like this one:
 ```
 
 - **id**: lowercase letters, digits and `_`, starting with a letter. Never reused.
-- **name** / **description**: both languages. **icon**: one of `forest`, `shield`,
-  `agriculture`, `water`, `mountain`, `wetland`, `fire`, `layers`. **color**:
-  `#rrggbb`.
+- **name** / **description**: both languages. **icon**: one of `forest`, `park`, `wetland`,
+  `leaf`, `wildlife`, `shield`, `legal`, `community`, `map`, `global`, `water`, `coast`,
+  `flood`, `agriculture`, `crop`, `coffee`, `pasture`, `mountain`, `volcano`, `landslide`,
+  `fire`, `mining`, `infrastructure`, `settlement`, `industry`, `layers` (`CategoryIcon` in
+  `apps/api/app/models/categories.py`). **color**: `#rrggbb`.
 - **threshold_percentage**: 0 to 100, or `null` for the global threshold.
 - **temporal**: whether the category's layers have `baseline` and
   `compared_against`.

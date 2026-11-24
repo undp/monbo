@@ -33,6 +33,7 @@ This change is part of the layer-manager project (undp/monbo#116, GC-10).
 
   The side panel is removed. The form's rules and its preview don't change.
 - **The API makes a new category's id.** The editor no longer asks for it: `POST /admin/categories` takes no `id` and makes it from the Spanish name, as the API already numbers layers. A used id gets `_2`, `_3`..., and `new` is never given, because `/admin/categories/new` would hide that category's edit page (found in the PR's review).
+- **More icons and colors for a category.** The icon catalogue grows from 8 to 26, shown as a grid of tiles in the editor, and the swatches from 6 to 12, each readable as text on its tint.
 - **Layers table in the mockup's style.**
   - Its columns: ID, the name with the alias under it, Categoría, **Período** (new), Raster, Versión, Publicada (the switch) and "Editar".
   - The period is "2020 → 2023" for a layer with both years, "Vigente" for a layer without years in a category that is not temporal, and "—" otherwise.
@@ -53,11 +54,12 @@ None.
   - "Create a category": the API makes the id from the Spanish name; a used or reserved id gets a number instead of a 409.
   - "Admin UI": the sidebar holds the country, the sections and "Log out"; the header only "Methodology" and the language; the layers list shows the period; the eyebrow names the country.
   - "Category administration UI": the cards go in a list; creating and editing happen on a full page, not in a panel.
+- `layer-categories`: "Per-country category file": the icon catalogue grows from 8 to 26 names.
 - `usage-dashboard`: "Admin usage page" has the "Admin" eyebrow, without the country.
 
 ## Impact
 
-- **API and contract:** `CategoryCreate` loses `id`; `create_category` makes it (`app/modules/admin/categories.py`), with `openapi.json` and `schema.d.ts` regenerated. No stored data changes.
+- **API and contract:** `CategoryCreate` loses `id`; `create_category` makes it (`app/modules/admin/categories.py`); `CategoryIcon` gains 18 names (`app/models/categories.py`). `openapi.json` and `schema.d.ts` are regenerated. No stored data changes.
 - **Web** (`apps/web/src`):
   - `app/[locale]/admin/`: a `(signed-in)` route group with the sidebar's layout; the new `categories/new` and `categories/[id]` routes. The URLs don't change.
   - `components/page/admin/`: `AdminPageContainer` (the new head; the session check moves to the layout), a new sidebar, `AdminCategoriesPageContent`, `CategoryCard`, `CategoryPanel` (becomes a page, without the id field), `AdminLayersPageContent`, `AdminLayerEditorPageContent`, `LayerForm`, `AdminUsagePageContent` and `UsageCharts`.
@@ -65,4 +67,4 @@ None.
   - `components/page/flow/`: the head, card and table styles are reused, not changed for the flow.
 - **i18n:** `admin.json` and `common.json` in `es` and `en`: the sidebar, the eyebrow, the period and the category page's texts.
 - **Docs:** `docs/maps.md` (the category panel), `docs/onboarding.md` and `docs/architecture.md` (where they say the admin header holds the sections and the country).
-- **Archive order:** after `admin-layer-categories`, which adds "Create a category", and `admin-categories-ui`, which adds "Category administration UI" and the latest "Admin UI".
+- **Archive order:** after `add-layer-categories`, which adds "Per-country category file", `admin-layer-categories`, which adds "Create a category", and `admin-categories-ui`, which adds "Category administration UI" and the latest "Admin UI".

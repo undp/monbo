@@ -684,7 +684,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             /** Id */
             id: string;
             /**
@@ -864,7 +864,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             name: components["schemas"]["CategoryNameInput"];
             /**
              * Polarity
@@ -913,7 +913,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             name: components["schemas"]["CategoryNameInput"];
             /**
              * Polarity
@@ -1355,7 +1355,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             /**
              * Id
              * @description Stable slug, unique in its country, never reused

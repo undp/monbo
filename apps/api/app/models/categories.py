@@ -11,8 +11,34 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Semantic names, not tied to an icon library: the web maps each one to an icon.
 # Adding a value is backward compatible; removing one is not.
+# The admin's picker shows them in this order.
 CategoryIcon = Literal[
-    "forest", "shield", "agriculture", "water", "mountain", "wetland", "fire", "layers"
+    "forest",
+    "park",
+    "wetland",
+    "leaf",
+    "wildlife",
+    "shield",
+    "legal",
+    "community",
+    "map",
+    "global",
+    "water",
+    "coast",
+    "flood",
+    "agriculture",
+    "crop",
+    "coffee",
+    "pasture",
+    "mountain",
+    "volcano",
+    "landslide",
+    "fire",
+    "mining",
+    "infrastructure",
+    "settlement",
+    "industry",
+    "layers",
 ]
 CategoryPolarity = Literal["avoid", "required"]
 

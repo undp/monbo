@@ -8,6 +8,7 @@ import {
   Checkbox,
   FormControlLabel,
   FormHelperText,
+  FormLabel,
   IconButton,
   Radio,
   Switch,
@@ -74,6 +75,8 @@ type PanelTextFieldProps = Omit<TextFieldProps, "name" | "slotProps"> & {
   maxLength?: number;
   // Extra attributes of the <input> (e.g. min and max)
   htmlInput?: Record<string, unknown>;
+  // Shown inside the field, before the value
+  startAdornment?: React.ReactNode;
 };
 
 /** An MUI TextField bound to the category form; errors are translation keys. */
@@ -82,6 +85,7 @@ const PanelTextField: React.FC<PanelTextFieldProps> = ({
   validate,
   maxLength,
   htmlInput,
+  startAdornment,
   ...props
 }) => {
   const { t } = useTranslation();
@@ -105,7 +109,7 @@ const PanelTextField: React.FC<PanelTextFieldProps> = ({
       inputRef={field.ref}
       error={!!error}
       helperText={error?.message ? t(error.message) : props.helperText}
-      slotProps={{ htmlInput: { ...htmlInput, maxLength } }}
+      slotProps={{ htmlInput: { ...htmlInput, maxLength }, input: { startAdornment } }}
     />
   );
 };
@@ -143,6 +147,47 @@ const Pair: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 /** The color swatches: re-rendered when the color changes, not on every keystroke. */
+// The icons as a grid of separate tiles, not a joined button bar.
+const ICON_GRID = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, 44px)",
+  gap: 0.75,
+  "& .MuiToggleButtonGroup-grouped.MuiToggleButtonGroup-grouped": {
+    width: 44,
+    height: 44,
+    margin: 0,
+    borderRadius: "10px",
+    border: `1px solid ${FLOW_COLORS.line}`,
+    color: FLOW_COLORS.ink2,
+    "&.Mui-selected": {
+      borderColor: FLOW_COLORS.blue,
+      backgroundColor: FLOW_COLORS.blue50,
+      color: FLOW_COLORS.blue,
+    },
+  },
+} as const;
+
+/** A small square of the typed color, empty while it isn't a valid hex. */
+const ColorSample: React.FC = () => {
+  const { control } = useFormContext<CategoryFormValues>();
+  const color = useWatch({ control, name: "color" }).trim();
+  const valid = categoryValidators.color(color) === true;
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        width: 16,
+        height: 16,
+        flexShrink: 0,
+        marginRight: 1,
+        borderRadius: "4px",
+        backgroundColor: valid ? color : "transparent",
+        border: valid ? "none" : `1px dashed ${FLOW_COLORS.muted}`,
+      }}
+    />
+  );
+};
+
 const ColorSwatches: React.FC = () => {
   const { t } = useTranslation();
   const { control, setValue, formState } = useFormContext<CategoryFormValues>();
@@ -341,43 +386,53 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
             title={t("admin:categories:form:iconAndColor")}
             icon={<PaletteOutlinedIcon fontSize="small" />}
           >
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Controller
-                control={control}
-                name="icon"
-                render={({ field }) => (
-                  <ToggleButtonGroup
-                    exclusive
-                    size="small"
-                    aria-label={t("admin:categories:form:icon")}
-                    value={field.value}
-                    onChange={(_, icon) => icon && field.onChange(icon)}
-                    sx={{ flexWrap: "wrap" }}
-                  >
-                    {CATEGORY_ICON_NAMES.map((icon) => (
-                      <ToggleButton
-                        key={icon}
-                        value={icon}
-                        aria-label={t(`admin:categories:form:icons:${icon}`)}
-                      >
-                        <LayerCategoryIcon icon={icon} />
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
-                )}
-              />
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <ColorSwatches />
-                <PanelTextField
-                  name="color"
-                  label={t("admin:categories:form:customColor")}
-                  placeholder="#rrggbb"
-                  maxLength={7}
-                  validate={categoryValidators.color}
-                  sx={{ width: 140 }}
-                  fullWidth={false}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+              <Field label={t("admin:categories:form:icon")}>
+                <Controller
+                  control={control}
+                  name="icon"
+                  render={({ field }) => (
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      value={field.value}
+                      onChange={(_, icon) => icon && field.onChange(icon)}
+                      sx={ICON_GRID}
+                    >
+                      {CATEGORY_ICON_NAMES.map((icon) => (
+                        <ToggleButton
+                          key={icon}
+                          value={icon}
+                          aria-label={t(`admin:categories:form:icons:${icon}`)}
+                          title={t(`admin:categories:form:icons:${icon}`)}
+                        >
+                          <LayerCategoryIcon icon={icon} />
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  )}
                 />
-              </Box>
+              </Field>
+              <Field label={t("admin:categories:form:color")}>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <ColorSwatches />
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, marginTop: 1.5 }}>
+                  <FormLabel htmlFor="category-color" sx={{ fontSize: 14, flexShrink: 0 }}>
+                    {t("admin:categories:form:customColor")}
+                  </FormLabel>
+                  <PanelTextField
+                    id="category-color"
+                    name="color"
+                    placeholder="#rrggbb"
+                    maxLength={7}
+                    validate={categoryValidators.color}
+                    startAdornment={<ColorSample />}
+                    sx={{ width: 150 }}
+                    fullWidth={false}
+                  />
+                </Box>
+              </Field>
             </Box>
           </FlowSection>
 

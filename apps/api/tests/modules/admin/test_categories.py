@@ -2,9 +2,11 @@
 and the rules that keep a published layer's meaning stable."""
 
 import json
+from typing import get_args
 
 import pytest
 
+from app.models.categories import CategoryIcon
 from tests.modules.admin.support import (
     COUNTRY_PASSKEYS,
     bearer,
@@ -209,6 +211,25 @@ def test_create_without_threshold_uses_the_global_one(
     assert response.status_code == 201
     assert response.json()["thresholdPercentage"] is None
     assert stored(colombia_layers)[0]["threshold_percentage"] is None
+
+
+@pytest.mark.parametrize("icon", ["park", "volcano", "industry"])
+def test_create_with_a_new_icon(colombia_layers, client, admin_headers, icon):
+    response = client.post(
+        "/admin/categories",
+        json=category_body("Protected areas", icon=icon),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201
+    assert stored(colombia_layers)[0]["icon"] == icon
+    assert client.get("/categories?country=CO").json()[1]["icon"] == icon
+
+
+def test_the_icon_catalogue_has_26_names_once_each():
+    icons = get_args(CategoryIcon)
+    assert len(icons) == len(set(icons)) == 26
+    assert icons[0] == "forest" and icons[-1] == "layers"
 
 
 @pytest.mark.parametrize(

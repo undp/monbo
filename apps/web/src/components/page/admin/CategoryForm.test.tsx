@@ -8,6 +8,7 @@ import { SnackbarContext } from "@/context/SnackbarContext";
 import type { AdminCategory } from "@/interfaces/AdminLayer";
 import { makeAdminCategory, makeAdminLayer } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
+import { CATEGORY_ICON_NAMES } from "@/components/reusable/LayerCategoryIcon";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryPreview } from "./CategoryPreview";
 import { categoryLocks } from "./categoryRules";
@@ -105,6 +106,29 @@ describe("CategoryForm", () => {
     });
     expect(input).not.toHaveProperty("id");
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  });
+
+  it("offers every icon by name and the twelve colors, and saves the ones chosen", async () => {
+    await renderForm(null);
+    const icons = within(screen.getByRole("group", { name: "Icon" })).getAllByRole("button");
+    expect(icons).toHaveLength(26);
+    expect(icons.map((icon) => icon.getAttribute("aria-label"))).not.toContain(
+      expect.stringContaining("admin:")
+    );
+    expect(icons.map((icon) => icon.getAttribute("value"))).toEqual(CATEGORY_ICON_NAMES);
+    expect(screen.getAllByRole("button", { name: /^Color #/ })).toHaveLength(12);
+
+    fireEvent.click(screen.getByRole("button", { name: "Volcano" }));
+    fireEvent.click(screen.getByRole("button", { name: "Color #3949ab" }));
+    expect((screen.getByLabelText("Other color") as HTMLInputElement).value).toBe("#3949ab");
+    fillFrontier();
+    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
+    save();
+    await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
+    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
+      icon: "volcano",
+      color: "#3949ab",
+    });
   });
 
   it("locks the polarity and temporal of a category with published layers, naming them", async () => {
