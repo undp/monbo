@@ -1,14 +1,12 @@
 "use client";
 
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { Footer } from "@/components/reusable/Footer";
 import { DataContext } from "@/context/DataContext";
-import { Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useCallback, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NoFarmsSelectedModal } from "./NoFarmsSelectedModal";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { sendUsageEvent } from "@/api/usageEvents";
 
 export function PageFooter() {
@@ -49,20 +47,9 @@ export function PageFooter() {
   return (
     <>
       <Footer>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="contained" onClick={onGenerateReportClick}>
-              {t("reportGeneration:buttons:generateReport")}
-            </Button>
-          </Box>
-        </Box>
+        <Button variant="contained" onClick={onGenerateReportClick}>
+          {t("reportGeneration:buttons:generateReport")}
+        </Button>
       </Footer>
       <NoFarmsSelectedModal
         isOpen={isEmptyFarmsSelectionModalOpen}
