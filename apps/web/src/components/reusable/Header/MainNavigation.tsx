@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { DataContext } from "@/context/DataContext";
+import { useAdminLogout } from "@/hooks/useAdminLogout";
 import { useIsStartPage } from "@/hooks/useIsStartPage";
 import { localizedPath } from "@/utils/languageChange";
 import { getCountryName } from "@/utils/countries";
@@ -46,8 +47,9 @@ const useAnalysisPath = () => {
 
 /**
  * The header's main links: Home, Analysis and Methodology. The admin pages show
- * their own sections instead of the first two. Below 900 px the links move into a
- * menu, which on the admin pages also holds the admin's sections and country.
+ * only Methodology: their sidebar holds the sections. Below 900 px the links move
+ * into a menu, which on the admin pages also holds the admin's country, sections
+ * and "Log out", since the sidebar is hidden there.
  */
 export const MainNavigation: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -58,8 +60,9 @@ export const MainNavigation: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const locale = i18n.language;
   const { session } = useContext(AdminSessionContext);
-  // Logged in to the admin: its sections, in the menu only (the header shows them
-  // as buttons from 900 px, HeaderNavigation).
+  const logout = useAdminLogout();
+  // Logged in to the admin: its sections, in the menu only (the sidebar shows them
+  // from 900 px, AdminSidebar).
   const adminLinks: NavLink[] =
     isAdminPath(pathname) && session
       ? ADMIN_SECTIONS.map(({ path, label }) => ({
@@ -163,6 +166,16 @@ export const MainNavigation: React.FC = () => {
               {label}
             </MenuItem>
           ))}
+          {session && adminLinks.length > 0 && (
+            <MenuItem
+              onClick={() => {
+                setAnchorEl(null);
+                logout();
+              }}
+            >
+              {t("common:header:admin:logout")}
+            </MenuItem>
+          )}
         </Menu>
       </Box>
     </>

@@ -1,25 +1,21 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createAdminCategory,
-  listAdminCategories,
-  updateAdminCategory,
-} from "@/api/adminCategories";
+import { createAdminCategory, updateAdminCategory } from "@/api/adminCategories";
 import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import type { AdminCategory } from "@/interfaces/AdminLayer";
 import { makeAdminCategory, makeAdminLayer } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
-import { CategoryPanel } from "./CategoryPanel";
+import { CATEGORY_ICON_NAMES } from "@/components/reusable/LayerCategoryIcon";
+import { CategoryForm } from "./CategoryForm";
 import { CategoryPreview } from "./CategoryPreview";
 import { categoryLocks } from "./categoryRules";
 import { toCategoryFormValues } from "./categoryFormState";
 
 vi.mock("@/api/adminCategories", () => ({
   createAdminCategory: vi.fn(),
-  listAdminCategories: vi.fn(),
   updateAdminCategory: vi.fn(),
 }));
 
@@ -27,9 +23,9 @@ const session = { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "CO" }
 const onSaved = vi.fn();
 const openSnackbar = vi.fn();
 
-const renderPanel = async (
+const renderForm = async (
   category: AdminCategory | null,
-  { layers = [makeAdminLayer()], categories = [makeAdminCategory()] } = {}
+  { layers = [makeAdminLayer()] } = {}
 ) => {
   const i18n = await createTestI18n("en");
   render(
@@ -44,13 +40,11 @@ const renderPanel = async (
         }}
       >
         <SnackbarContext.Provider value={{ openSnackbar }}>
-          <CategoryPanel
-            open
+          <CategoryForm
             category={category}
-            categories={categories}
             locks={categoryLocks(category, layers, true, "en")}
             globalThreshold={0}
-            onClose={vi.fn()}
+            onCancel={vi.fn()}
             onSaved={onSaved}
           />
         </SnackbarContext.Provider>
@@ -80,9 +74,9 @@ beforeEach(() => {
   );
 });
 
-describe("CategoryPanel", () => {
+describe("CategoryForm", () => {
   it("doesn't save a new category without a polarity", async () => {
-    await renderPanel(null);
+    await renderForm(null);
     fillFrontier();
     save();
     expect(
@@ -91,52 +85,56 @@ describe("CategoryPanel", () => {
     expect(createAdminCategory).not.toHaveBeenCalled();
   });
 
-  it("creates a category with the suggested id and the global threshold", async () => {
-    await renderPanel(null);
+  it("creates a category with the global threshold, leaving its id to the API", async () => {
+    await renderForm(null);
+    expect(
+      screen.getByText(
+        "The identifier is made from the Spanish name and can't be changed."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(/^Identifier/)).toBeNull();
     fillFrontier();
-    expect((screen.getByLabelText(/^Identifier/) as HTMLInputElement).value).toBe(
-      "frontera_agricola"
-    );
     fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
     save();
     await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
-    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
-      id: "frontera_agricola",
+    const input = vi.mocked(createAdminCategory).mock.calls[0][1];
+    expect(input).toMatchObject({
       polarity: "required",
       temporal: false,
       thresholdPercentage: null,
       name: { es: "Frontera agrícola", en: "Agricultural frontier" },
     });
+    expect(input).not.toHaveProperty("id");
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
-  it("keeps the id the admin typed", async () => {
-    await renderPanel(null);
-    type(/^Identifier/, "frontier");
-    fillFrontier();
-    expect((screen.getByLabelText(/^Identifier/) as HTMLInputElement).value).toBe(
-      "frontier"
+  it("offers every icon by name and the twelve colors, and saves the ones chosen", async () => {
+    await renderForm(null);
+    const icons = within(screen.getByRole("group", { name: "Icon" })).getAllByRole("button");
+    expect(icons).toHaveLength(26);
+    expect(icons.map((icon) => icon.getAttribute("aria-label"))).not.toContain(
+      expect.stringContaining("admin:")
     );
-  });
+    expect(icons.map((icon) => icon.getAttribute("value"))).toEqual(CATEGORY_ICON_NAMES);
+    expect(screen.getAllByRole("button", { name: /^Color #/ })).toHaveLength(12);
 
-  it("refuses an id already used in the country", async () => {
-    await renderPanel(null, {
-      categories: [makeAdminCategory(), makeAdminCategory({ id: "protected_areas" })],
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Volcano" }));
+    fireEvent.click(screen.getByRole("button", { name: "Color #3949ab" }));
+    expect((screen.getByLabelText("Other color") as HTMLInputElement).value).toBe("#3949ab");
     fillFrontier();
-    type(/^Identifier/, "protected_areas");
     fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
     save();
-    expect(
-      await screen.findByText("That identifier is already used in your country.")
-    ).toBeTruthy();
-    expect(createAdminCategory).not.toHaveBeenCalled();
+    await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
+    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
+      icon: "volcano",
+      color: "#3949ab",
+    });
   });
 
   it("locks the polarity and temporal of a category with published layers, naming them", async () => {
     const category = makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 });
     vi.mocked(updateAdminCategory).mockResolvedValue(category);
-    await renderPanel(category);
+    await renderForm(category);
     for (const radio of screen.getAllByRole("radio")) {
       expect((radio as HTMLInputElement).disabled).toBe(true);
     }
@@ -155,53 +153,32 @@ describe("CategoryPanel", () => {
 
 // i18next escapes interpolated values as HTML by default: the API's reasons and the
 // admin's names must reach the screen as typed, with their ' and &.
-describe("CategoryPanel texts with ' and &", () => {
+describe("CategoryForm texts with ' and &", () => {
   const createFrontier = () => {
     fillFrontier();
     fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
     save();
   };
 
-  it("shows a 409's reason as text and marks the id when the file is readable", async () => {
-    vi.mocked(createAdminCategory).mockRejectedValue(
-      new AdminApiError(409, "The category id 'frontera_agricola' is already used in CO: ids are never reused")
-    );
-    vi.mocked(listAdminCategories).mockResolvedValue({ categories: [], readable: true, errors: [] });
-    await renderPanel(null);
-    createFrontier();
-    expect(
-      await screen.findByText(
-        "The category couldn't be saved. The server refused the change: The category id 'frontera_agricola' is already used in CO: ids are never reused"
-      )
-    ).toBeTruthy();
-    expect(screen.getByText("That identifier is already used in your country.")).toBeTruthy();
-    expect(document.body.innerHTML).not.toContain("&amp;#39;");
-  });
-
-  it("doesn't blame the id for a 409 caused by an unreadable categories file", async () => {
+  it("shows a 409's reason as text (an unreadable categories file)", async () => {
     vi.mocked(createAdminCategory).mockRejectedValue(
       new AdminApiError(409, "The country's categories file can't be read (not valid JSON) & must be fixed")
     );
-    vi.mocked(listAdminCategories).mockResolvedValue({
-      categories: [],
-      readable: false,
-      errors: ["not valid JSON"],
-    });
-    await renderPanel(null);
+    await renderForm(null);
     createFrontier();
     expect(
       await screen.findByText(
         "The category couldn't be saved. The server refused the change: The country's categories file can't be read (not valid JSON) & must be fixed"
       )
     ).toBeTruthy();
-    expect(screen.queryByText("That identifier is already used in your country.")).toBeNull();
+    expect(document.body.innerHTML).not.toContain("&amp;amp;");
   });
 
   it("shows a 400's reason as text (layers that already use the id)", async () => {
     vi.mocked(createAdminCategory).mockRejectedValue(
       new AdminApiError(400, "Category 'frontera_agricola' has published layers (8 & 9): hide them before creating it")
     );
-    await renderPanel(null);
+    await renderForm(null);
     createFrontier();
     expect(
       await screen.findByText(
@@ -216,7 +193,7 @@ describe("CategoryPanel texts with ' and &", () => {
         { loc: ["body", "name", "es"], msg: "Value error, can't contain '<' & '>'" },
       ])
     );
-    await renderPanel(null);
+    await renderForm(null);
     createFrontier();
     expect(
       await screen.findByText(/name\.es: Value error, can't contain '<' & '>'/)
@@ -224,7 +201,7 @@ describe("CategoryPanel texts with ' and &", () => {
   });
 
   it("names a new category as typed", async () => {
-    await renderPanel(null);
+    await renderForm(null);
     type(/^ES/, "Bosques & ríos d'Ana", 0);
     type(/^EN/, "Forests & Ana's rivers", 0);
     type("No findings · ES *", "Sin observaciones");
@@ -245,7 +222,7 @@ describe("CategoryPanel texts with ' and &", () => {
     const category = makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 });
     const layer = makeAdminLayer();
     layer.attributes.en = { ...layer.attributes.en!, alias: "R&D's layer" };
-    await renderPanel(category, { layers: [layer] });
+    await renderForm(category, { layers: [layer] });
     expect(screen.getByText(/while layers are published \(R&D's layer\)/)).toBeTruthy();
   });
 });

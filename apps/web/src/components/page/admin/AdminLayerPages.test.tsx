@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listAdminCategories } from "@/api/adminCategories";
@@ -85,6 +85,48 @@ describe("layers list", () => {
     expect(await screen.findByText("Deforestation")).toBeTruthy();
   });
 
+  it("shows each layer's name with its alias under it, and its period, under the country's eyebrow", async () => {
+    mockApi(
+      [
+        makeAdminLayer({ id: 1 }),
+        makeAdminLayer({
+          id: 4,
+          category_id: "protected_areas",
+          baseline: null,
+          compared_against: null,
+        }),
+        makeAdminLayer({ id: 5, baseline: null, compared_against: null }),
+      ],
+      [makeAdminCategory(), protectedAreas]
+    );
+    await withProviders(<AdminLayersPageContent />);
+    await screen.findByText("Admin · Colombia");
+    expect(screen.getByRole("heading", { level: 1, name: "Layers" })).toBeTruthy();
+
+    const headers = screen.getAllByRole("columnheader").map((header) => header.textContent);
+    expect(headers).toEqual([
+      "ID",
+      "Layer",
+      "Category",
+      "Period",
+      "Raster",
+      "Version",
+      "Published",
+      "Actions",
+    ]);
+    const rows = screen.getAllByRole("row").slice(1);
+    const cells = (row: HTMLElement) =>
+      within(row).getAllByRole("cell").map((cell) => cell.textContent);
+    // The name and the alias share a cell
+    expect(cells(rows[0])[1]).toBe(
+      "IDEAM deforestationIDEAM 2020-2023"
+    );
+    expect(cells(rows[0])[3]).toBe("2020 → 2023");
+    expect(cells(rows[1])[3]).toBe("Current");
+    // A temporal layer without its years
+    expect(cells(rows[2])[3]).toBe("—");
+  });
+
   it("says why an enabled layer in a disabled category isn't public", async () => {
     mockApi(
       [makeAdminLayer({ id: 4, category_id: "frontier", category_enabled: false, baseline: null, compared_against: null })],
@@ -148,6 +190,22 @@ describe("layer form", () => {
       baseline: null,
       compared_against: null,
     });
+  });
+
+  it("shows the editor's sections as cards under the head, with the way back", async () => {
+    mockApi([makeAdminLayer({ id: 6 })], [makeAdminCategory()]);
+    await withProviders(<AdminLayerEditorPageContent layerId={6} />);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Edit layer 6" })).toBeTruthy();
+    expect(screen.getByText("Admin · Colombia")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to layers" }).getAttribute("href")).toBe(
+      "/en/admin/layers"
+    );
+    expect(
+      screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)
+    ).toEqual(["Layer data", "Texts per language", "Raster"]);
+    // The raster section keeps its anchor
+    expect(document.getElementById("raster")).toBeTruthy();
   });
 
   it("doesn't save a new layer without a category", async () => {

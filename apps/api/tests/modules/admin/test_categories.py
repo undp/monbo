@@ -2,9 +2,11 @@
 and the rules that keep a published layer's meaning stable."""
 
 import json
+from typing import get_args
 
 import pytest
 
+from app.models.categories import CategoryIcon
 from tests.modules.admin.support import (
     COUNTRY_PASSKEYS,
     bearer,
@@ -19,7 +21,9 @@ def stored(country):
     return json.loads((country.root / "categories.json").read_text())
 
 
-def category_body(category_id=None, **overrides):
+def category_body(name_es=None, **overrides):
+    """A category's fields. `name_es` is the Spanish name, which a new category's id
+    comes from: "Protected areas" → `protected_areas`."""
     body = {
         "name": {"es": "Áreas protegidas", "en": "Protected areas"},
         "description": {"es": "Áreas del registro nacional", "en": "National registry"},
@@ -33,8 +37,8 @@ def category_body(category_id=None, **overrides):
         },
         "temporal": False,
     }
-    if category_id is not None:
-        body["id"] = category_id
+    if name_es is not None:
+        body["name"] = {"es": name_es, "en": "Protected areas"}
     body.update(overrides)
     return body
 
@@ -102,7 +106,7 @@ def protected_areas(colombia_layers):
     "method, path, body",
     [
         ("get", "/admin/categories", None),
-        ("post", "/admin/categories", category_body("frontier")),
+        ("post", "/admin/categories", category_body("Frontier")),
         ("put", "/admin/categories/deforestation", category_body()),
         ("patch", "/admin/categories/deforestation", {"enabled": False}),
     ],
@@ -178,12 +182,13 @@ def test_an_unreadable_file_is_reported(colombia_layers, client, admin_headers):
 def test_create_a_category(colombia_layers, client, admin_headers):
     response = client.post(
         "/admin/categories",
-        json=category_body("protected_areas"),
+        json=category_body("Protected areas"),
         headers=admin_headers,
     )
 
     assert response.status_code == 201
     created = response.json()
+    assert created["id"] == "protected_areas"
     assert created["enabled"] is True
     assert created["thresholdPercentage"] == 0
     assert created["layerCount"] == 0
@@ -198,7 +203,7 @@ def test_create_a_category(colombia_layers, client, admin_headers):
 def test_create_without_threshold_uses_the_global_one(
     colombia_layers, client, admin_headers
 ):
-    body = category_body("frontier", polarity="required")
+    body = category_body("Frontier", polarity="required")
     del body["thresholdPercentage"]
 
     response = client.post("/admin/categories", json=body, headers=admin_headers)
@@ -208,27 +213,73 @@ def test_create_without_threshold_uses_the_global_one(
     assert stored(colombia_layers)[0]["threshold_percentage"] is None
 
 
-@pytest.mark.parametrize(
-    "existing",
-    [
-        [category("frontier")],
-        [category("frontier", enabled=False)],
-        [category("frontier", polarity="inside")],  # rejected: still taken
-        [],  # `deforestation` is always taken, even built in
-    ],
-)
-def test_a_taken_id_is_409(colombia_layers, client, admin_headers, existing):
-    write_categories(colombia_layers, existing)
-    before = (colombia_layers.root / "categories.json").read_text()
-    category_id = "frontier" if existing else "deforestation"
-
+@pytest.mark.parametrize("icon", ["park", "volcano", "industry"])
+def test_create_with_a_new_icon(colombia_layers, client, admin_headers, icon):
     response = client.post(
-        "/admin/categories", json=category_body(category_id), headers=admin_headers
+        "/admin/categories",
+        json=category_body("Protected areas", icon=icon),
+        headers=admin_headers,
     )
 
-    assert response.status_code == 409
-    assert "never reused" in response.json()["detail"]
-    assert (colombia_layers.root / "categories.json").read_text() == before
+    assert response.status_code == 201
+    assert stored(colombia_layers)[0]["icon"] == icon
+    assert client.get("/categories?country=CO").json()[1]["icon"] == icon
+
+
+def test_the_icon_catalogue_has_26_names_once_each():
+    icons = get_args(CategoryIcon)
+    assert len(icons) == len(set(icons)) == 26
+    assert icons[0] == "forest" and icons[-1] == "layers"
+
+
+@pytest.mark.parametrize(
+    "name_es, expected",
+    [
+        ("Frontera agrícola", "frontera_agricola"),
+        ("  Áreas  protegidas (RUNAP) ", "areas_protegidas_runap"),
+        ("1ª zona de reserva", "zona_de_reserva"),
+        ("¡¡!!", "category"),
+        ("a" * 60, "a" * 50),
+    ],
+)
+def test_the_id_comes_from_the_spanish_name(
+    colombia_layers, client, admin_headers, name_es, expected
+):
+    response = client.post(
+        "/admin/categories", json=category_body(name_es), headers=admin_headers
+    )
+
+    assert response.status_code == 201
+    assert response.json()["id"] == expected
+    assert [c["id"] for c in stored(colombia_layers)] == [expected]
+
+
+@pytest.mark.parametrize(
+    "existing, name_es, expected",
+    [
+        ([category("frontier")], "Frontier", "frontier_2"),
+        ([category("frontier", enabled=False)], "Frontier", "frontier_2"),
+        ([category("frontier", polarity="inside")], "Frontier", "frontier_2"),
+        ([category("frontier"), category("frontier_2")], "Frontier", "frontier_3"),
+        ([category("a" * 50)], "a" * 60, "a" * 48 + "_2"),
+        # `deforestation` is always taken, even built in, and `new` is the path of
+        # the admin's create page, which would hide its edit page.
+        ([], "Deforestation", "deforestation_2"),
+        ([], "New", "new_2"),
+    ],
+)
+def test_a_used_or_reserved_id_gets_a_number(
+    colombia_layers, client, admin_headers, existing, name_es, expected
+):
+    write_categories(colombia_layers, existing)
+
+    response = client.post(
+        "/admin/categories", json=category_body(name_es), headers=admin_headers
+    )
+
+    assert response.status_code == 201
+    assert response.json()["id"] == expected
+    assert stored(colombia_layers)[-1]["id"] == expected
 
 
 @pytest.mark.parametrize(
@@ -239,8 +290,7 @@ def test_a_taken_id_is_409(colombia_layers, client, admin_headers, existing):
         {"icon": "unicorn"},
         {"thresholdPercentage": 120},
         {"thresholdPercentage": -1},
-        {"id": "Protected Areas"},
-        {"id": "1st"},
+        {"id": "frontier"},  # the API makes it
         {"enabled": False},  # only through PATCH
         {"name": {"es": "Solo español"}},
         {"name": {"es": "", "en": "Empty"}},
@@ -252,7 +302,7 @@ def test_invalid_categories_are_422_and_nothing_is_written(
 ):
     response = client.post(
         "/admin/categories",
-        json=category_body("frontier", **overrides),
+        json=category_body("Frontier", **overrides),
         headers=admin_headers,
     )
 
@@ -265,7 +315,7 @@ def test_the_same_id_in_another_country(protected_areas, country_root, client):
 
     response = client.post(
         "/admin/categories",
-        json=category_body("protected_areas", color="#2e7d32"),
+        json=category_body("Protected areas", color="#2e7d32"),
         headers=ecuador_headers(client),
     )
 
@@ -289,7 +339,7 @@ def test_creating_a_category_doesnt_publish_its_orphan_layers(
 
     response = client.post(
         "/admin/categories",
-        json=category_body("wetlands", temporal=False, polarity="required"),
+        json=category_body("Wetlands", temporal=False, polarity="required"),
         headers=admin_headers,
     )
 
@@ -306,7 +356,7 @@ def test_creating_a_category_over_hidden_layers_needs_their_years_to_fit(
 
     response = client.post(
         "/admin/categories",
-        json=category_body("wetlands", temporal=False),
+        json=category_body("Wetlands", temporal=False),
         headers=admin_headers,
     )
 
@@ -322,7 +372,7 @@ def test_a_category_created_over_hidden_layers_publishes_them_through_patch(
 
     created = client.post(
         "/admin/categories",
-        json=category_body("wetlands", temporal=True),
+        json=category_body("Wetlands", temporal=True),
         headers=admin_headers,
     )
 
@@ -725,7 +775,7 @@ def test_another_countrys_category_cant_be_disabled(
 @pytest.mark.parametrize(
     "method, path, body",
     [
-        ("post", "/admin/categories", category_body("frontier")),
+        ("post", "/admin/categories", category_body("Frontier")),
         ("put", "/admin/categories/deforestation", category_body()),
         ("patch", "/admin/categories/deforestation", {"enabled": False}),
     ],
@@ -749,9 +799,8 @@ def test_colombia_creates_protected_areas_and_agricultural_frontier(
     colombia_layers, client, admin_headers
 ):
     for body in (
-        category_body("protected_areas"),
+        category_body("Protected areas"),
         category_body(
-            "agricultural_frontier",
             name={"es": "Frontera agrícola", "en": "Agricultural frontier"},
             icon="agriculture",
             polarity="required",
@@ -763,7 +812,7 @@ def test_colombia_creates_protected_areas_and_agricultural_frontier(
 
     for category_id, raster in (
         ("protected_areas", "runap"),
-        ("agricultural_frontier", "upra"),
+        ("frontera_agricola", "upra"),
     ):
         created = client.post(
             "/admin/layers",
@@ -792,13 +841,13 @@ def test_colombia_creates_protected_areas_and_agricultural_frontier(
 
     public = {c["id"]: c for c in client.get("/categories?country=CO").json()}
     assert public["protected_areas"]["polarity"] == "avoid"
-    assert public["agricultural_frontier"]["polarity"] == "required"
-    assert public["agricultural_frontier"]["thresholdPercentage"] == 0
+    assert public["frontera_agricola"]["polarity"] == "required"
+    assert public["frontera_agricola"]["thresholdPercentage"] == 0
     maps = client.get("/maps?country=CO").json()
     assert {m["categoryId"] for m in maps} == {
         "deforestation",
         "protected_areas",
-        "agricultural_frontier",
+        "frontera_agricola",
     }
 
     assert set(by_id(client, ecuador_headers(client))) == {"deforestation", "snap_ec"}

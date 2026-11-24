@@ -35,7 +35,7 @@ export const LayerVisibilityAlert: React.FC<Props> = ({ layer, categoryName }) =
   if (visibility.status === "hidden" && visibility.reason === "missing_raster") return null;
   const blocked = visibility.status === "blocked";
   return (
-    <Alert severity={blocked ? "warning" : "info"} sx={{ marginBottom: 3 }}>
+    <Alert severity={blocked ? "warning" : "info"}>
       <AlertTitle>
         {t(blocked ? "admin:form:visibility:blocked" : "admin:form:visibility:hidden")}
       </AlertTitle>

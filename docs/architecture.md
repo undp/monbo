@@ -431,7 +431,9 @@ In the frontend:
 - the token lives in `sessionStorage` (closing the tab signs out), and it is checked
   again with `GET /admin/session` when the page loads;
 - any 401 goes back to the login;
-- the header shows the administered country.
+- a sidebar on every signed-in page shows the administered country, the sections
+  (Layers, Categories, Usage) and "Log out"; below 900 px they move into the
+  header's menu. The header itself shows only "Methodology" and the language.
 
 ### What an admin can touch
 

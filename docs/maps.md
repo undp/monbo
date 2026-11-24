@@ -169,9 +169,11 @@ A country's categories live in `<CC>/categories.json`, a list like this one:
 ```
 
 - **id**: lowercase letters, digits and `_`, starting with a letter. Never reused.
-- **name** / **description**: both languages. **icon**: one of `forest`, `shield`,
-  `agriculture`, `water`, `mountain`, `wetland`, `fire`, `layers`. **color**:
-  `#rrggbb`.
+- **name** / **description**: both languages. **icon**: one of `forest`, `park`, `wetland`,
+  `leaf`, `wildlife`, `shield`, `legal`, `community`, `map`, `global`, `water`, `coast`,
+  `flood`, `agriculture`, `crop`, `coffee`, `pasture`, `mountain`, `volcano`, `landslide`,
+  `fire`, `mining`, `infrastructure`, `settlement`, `industry`, `layers` (`CategoryIcon` in
+  `apps/api/app/models/categories.py`). **color**: `#rrggbb`.
 - **threshold_percentage**: 0 to 100, or `null` for the global threshold.
 - **temporal**: whether the category's layers have `baseline` and
   `compared_against`.
@@ -213,9 +215,10 @@ the admin's **Categories** page (`/[locale]/admin/categories`) uses it:
   the global one) and how many layers, and published layers, each has. It also says
   whether `categories.json` can be read (`readable`) and lists the problems of its
   entries (`errors`). A rejected entry is not listed.
-- `POST /admin/categories` creates one, enabled, with an `id` the admin chooses. An id
-  already used in the country, even by a rejected entry, and `deforestation` answer
-  409.
+- `POST /admin/categories` creates one, enabled. The API makes its permanent `id` from
+  the Spanish name ("Frontera agrícola" → `frontera_agricola`). An id already used in
+  the country, even by a rejected entry, and the reserved `deforestation` and `new` (the
+  admin's create page) get `_2`, `_3`... The response returns it.
 - `PUT /admin/categories/{id}` replaces its fields. Editing the built-in
   `deforestation` stores it, first in the file. Editing a rejected entry repairs it.
 - `PATCH /admin/categories/{id}` enables or disables it.
@@ -247,11 +250,12 @@ as an error, and shown in the admin with `category_issue` or `layer_issue`
 for analyses already open.
 
 **The admin UI explains these rules before the admin hits them.** On the Categories
-page and in its panel, a control that a rule blocks (the enable switch, the
+page and in the category editor (`/admin/categories/new` and
+`/admin/categories/<id>`, a page of its own), a control that a rule blocks (the enable switch, the
 polarity, "layers compare two years", a published layer's category in the layer
 form) is locked and says why, naming the layers to hide first. The polarity has no
-default: a new category can't be saved until the admin chooses it, and the panel's
-preview classifies two example polygons with the app's own classifier, so it shows
+default: a new category can't be saved until the admin chooses it, and the editor's
+preview, beside the form, classifies two example polygons with the app's own classifier, so it shows
 which polygon gets the observation. The layer form shows the baseline and
 comparison years only for a temporal category and sends them as `null` otherwise.
 The layers list and the layer editor say why an enabled layer isn't public

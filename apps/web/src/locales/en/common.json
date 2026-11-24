@@ -8,7 +8,9 @@
       "layers": "Layers",
       "categories": "Categories",
       "usage": "Usage",
-      "navigation": "Admin"
+      "navigation": "Admin",
+      "session": "Admin session",
+      "logout": "Log out"
     },
     "navigation": "Main navigation",
     "menu": "Open the navigation menu",

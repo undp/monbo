@@ -5,19 +5,16 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
-  Paper,
   Switch,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { listAdminCategories } from "@/api/adminCategories";
@@ -26,6 +23,8 @@ import {
   listAdminLayers,
   setAdminLayerEnabled,
 } from "@/api/adminLayers";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { FLOW_TABLE_FRAME, FLOW_TABLE_ID, FLOW_TABLE_SX } from "@/components/page/flow/flowTable";
 import { CategoryChip } from "@/components/reusable/CategoryChip";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { SnackbarContext } from "@/context/SnackbarContext";
@@ -36,10 +35,45 @@ import { localizedText } from "@/utils/localizedText";
 import { apiRefusalReason } from "./adminErrors";
 import { adminLanguage, adminLayerText as layerText, categoryName } from "./adminLayerText";
 import { AdminPageContainer } from "./AdminPageContainer";
+import { layerPeriod } from "./layerPeriod";
 import { layerBlocker, layerVisibility } from "./layerVisibility";
 import { blockerFix, blockerReason } from "./LayerVisibilityNotice";
 
 const COLUMNS = 8;
+
+// Read by screen readers, not shown
+const VISUALLY_HIDDEN = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+} as const;
+
+/** An amber pill, as the mockup's states: a layer without its raster. */
+const PILL = {
+  display: "inline-block",
+  padding: "3px 10px",
+  borderRadius: "999px",
+  fontSize: 12.5,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  color: FLOW_COLORS.warn,
+  backgroundColor: FLOW_COLORS.warnBackground,
+} as const;
+
+/** A layer's period: "2020 → 2023", "Current", or "—" when it can't be told. */
+const PeriodText: React.FC<{ layer: AdminLayer; categories: AdminCategories | null }> = ({
+  layer,
+  categories,
+}) => {
+  const { t } = useTranslation();
+  const period = layerPeriod(layer, categories);
+  if (period.kind === "years") return <>{`${period.baseline} → ${period.comparedAgainst}`}</>;
+  if (period.kind === "current") return <>{t("admin:layers:period:current")}</>;
+  return <>—</>;
+};
 
 /** A layer's category: its chip, or its raw id in grey when it doesn't resolve. */
 const LayerCategoryCell: React.FC<{
@@ -170,22 +204,22 @@ export const AdminLayersPageContent: React.FC = () => {
         </Box>
       )}
       {layers && (
-        <TableContainer component={Paper}>
-          <Table size="small">
+        <Box sx={FLOW_TABLE_FRAME}>
+          <Table sx={FLOW_TABLE_SX}>
             <TableHead>
               <TableRow>
                 <TableCell>{t("admin:layers:columns:id")}</TableCell>
-                <TableCell>{t("admin:layers:columns:name")}</TableCell>
-                <TableCell>{t("admin:layers:columns:alias")}</TableCell>
+                <TableCell>{t("admin:layers:columns:layer")}</TableCell>
                 <TableCell>{t("admin:layers:columns:category")}</TableCell>
+                <TableCell>{t("admin:layers:columns:period")}</TableCell>
                 <TableCell>{t("admin:layers:columns:raster")}</TableCell>
-                <TableCell align="right">
-                  {t("admin:layers:columns:version")}
+                <TableCell align="right">{t("admin:layers:columns:version")}</TableCell>
+                <TableCell align="center">{t("admin:layers:columns:published")}</TableCell>
+                <TableCell>
+                  <Box component="span" sx={VISUALLY_HIDDEN}>
+                    {t("admin:layers:columns:actions")}
+                  </Box>
                 </TableCell>
-                <TableCell align="center">
-                  {t("admin:layers:columns:published")}
-                </TableCell>
-                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -199,25 +233,32 @@ export const AdminLayersPageContent: React.FC = () => {
                 const blocked = visibility.status === "blocked";
                 return (
                   <Fragment key={layer.id}>
-                    <TableRow
-                      hover
-                      sx={blocked ? { "& > td": { borderBottom: 0 } } : undefined}
-                    >
-                      <TableCell>{layer.id}</TableCell>
-                      <TableCell>{layerText(layer, "name", language)}</TableCell>
-                      <TableCell>{layerText(layer, "alias", language)}</TableCell>
+                    <TableRow sx={blocked ? { "& > td": { borderBottom: 0 } } : undefined}>
+                      <TableCell sx={FLOW_TABLE_ID}>{layer.id}</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>
+                        <Box component="span" sx={{ display: "block", fontWeight: 700 }}>
+                          {layerText(layer, "name", language)}
+                        </Box>
+                        <Box
+                          component="span"
+                          sx={{ display: "block", fontSize: 13, color: FLOW_COLORS.muted }}
+                        >
+                          {layerText(layer, "alias", language)}
+                        </Box>
+                      </TableCell>
                       <TableCell>
                         <LayerCategoryCell layer={layer} categories={categories} />
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <PeriodText layer={layer} categories={categories} />
                       </TableCell>
                       <TableCell>
                         {layer.has_raster ? (
                           layer.raster_filename
                         ) : (
-                          <Chip
-                            size="small"
-                            color="warning"
-                            label={t("admin:layers:noRaster")}
-                          />
+                          <Box component="span" sx={PILL}>
+                            {t("admin:layers:noRaster")}
+                          </Box>
                         )}
                       </TableCell>
                       <TableCell align="right">{layer.version}</TableCell>
@@ -236,7 +277,6 @@ export const AdminLayersPageContent: React.FC = () => {
                       <TableCell align="right">
                         <Button
                           size="small"
-                          startIcon={<EditIcon />}
                           onClick={() =>
                             router.push(
                               localizedPath(`/admin/layers/${layer.id}`, i18n.language)
@@ -251,18 +291,33 @@ export const AdminLayersPageContent: React.FC = () => {
                       // An enabled layer the public app hides: say why, and how to fix it.
                       <TableRow>
                         <TableCell colSpan={COLUMNS} sx={{ paddingTop: 0 }}>
-                          <Alert severity="warning" sx={{ paddingY: 0 }}>
-                            {t("admin:layers:status:blocked", {
-                              alias: layerText(layer, "alias", language),
-                              reason: blockerReason(
-                                visibility.reason,
-                                categoryName(categories, layer.category_id, language),
-                                t
-                              ),
-                              ...AS_TEXT,
-                            })}{" "}
-                            {blockerFix(visibility.reason, true, t)}
-                          </Alert>
+                          <Box
+                            role="note"
+                            sx={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 1,
+                              padding: "8px 12px",
+                              borderRadius: "8px",
+                              fontSize: 13.5,
+                              color: FLOW_COLORS.warn,
+                              backgroundColor: FLOW_COLORS.warnBackground,
+                            }}
+                          >
+                            <WarningAmberRoundedIcon sx={{ fontSize: 18 }} aria-hidden />
+                            <span>
+                              {t("admin:layers:status:blocked", {
+                                alias: layerText(layer, "alias", language),
+                                reason: blockerReason(
+                                  visibility.reason,
+                                  categoryName(categories, layer.category_id, language),
+                                  t
+                                ),
+                                ...AS_TEXT,
+                              })}{" "}
+                              {blockerFix(visibility.reason, true, t)}
+                            </span>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     )}
@@ -271,7 +326,7 @@ export const AdminLayersPageContent: React.FC = () => {
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </Box>
       )}
     </AdminPageContainer>
   );

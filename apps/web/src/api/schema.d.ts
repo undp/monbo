@@ -48,9 +48,11 @@ export interface paths {
         /**
          * Create Category
          * @description Create a category in the session's country, enabled and at the end of the
-         *     list. Its `id` is permanent: an id the country already uses (or used, in a
-         *     rejected entry), and `deforestation`, answer 409. Layers that already point at
-         *     the id must be hidden and have years that fit `temporal` (400).
+         *     list. The API makes its permanent `id` from the Spanish name ("Frontera
+         *     agrícola" → `frontera_agricola`), with `_2`, `_3`... when the country already
+         *     uses (or used, in a rejected entry) that id; `deforestation` and `new` are never
+         *     given. Layers that already point at the id must be hidden and have years that
+         *     fit `temporal` (400).
          */
         post: operations["create_category_admin_categories_post"];
         delete?: never;
@@ -682,7 +684,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             /** Id */
             id: string;
             /**
@@ -848,7 +850,8 @@ export interface components {
         };
         /**
          * CategoryCreate
-         * @description Body of `POST /admin/categories`.
+         * @description Body of `POST /admin/categories`: no `id`. The API makes it from the Spanish
+         *     name, unique in the country and never reused, and returns it.
          */
         CategoryCreate: {
             /**
@@ -861,12 +864,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
-            /**
-             * Id
-             * @description Stable slug, unique in the country and never reused
-             */
-            id: string;
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             name: components["schemas"]["CategoryNameInput"];
             /**
              * Polarity
@@ -915,7 +913,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             name: components["schemas"]["CategoryNameInput"];
             /**
              * Polarity
@@ -1357,7 +1355,7 @@ export interface components {
              * Icon
              * @enum {string}
              */
-            icon: "forest" | "shield" | "agriculture" | "water" | "mountain" | "wetland" | "fire" | "layers";
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
             /**
              * Id
              * @description Stable slug, unique in its country, never reused

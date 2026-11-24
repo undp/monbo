@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
 import { createTestI18n } from "@/test/i18n";
-import { router, setPathname } from "@/test/navigation";
+import { setPathname } from "@/test/navigation";
 import { HeaderNavigation } from "./HeaderNavigation";
 
 const session = { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "EC" };
@@ -22,68 +22,30 @@ const renderNavigation = async (signedIn: boolean) => {
         }}
       >
         <HeaderNavigation>
-          <span>public navigation</span>
+          <span>country selector</span>
         </HeaderNavigation>
       </AdminSessionContext.Provider>
     </I18nextProvider>
   );
 };
 
-describe("admin header navigation", () => {
-  it("marks the current section", async () => {
-    setPathname("/en/admin/usage");
-    await renderNavigation(true);
-    expect(screen.getByRole("button", { name: "Usage" }).getAttribute("aria-current")).toBe(
-      "page"
-    );
-    expect(screen.getByRole("button", { name: "Layers" }).getAttribute("aria-current")).toBeNull();
-    expect(screen.getByText("Ecuador")).toBeTruthy();
-    expect(screen.queryByText("public navigation")).toBeNull();
-  });
+describe("header navigation", () => {
+  it.each(["/en/admin/layers", "/admin/categories", "/en/admin"])(
+    "shows no sections, country or country selector on %s",
+    async (path) => {
+      setPathname(path);
+      await renderNavigation(true);
 
-  it("marks layers on a layer's page", async () => {
-    setPathname("/admin/layers/3");
-    await renderNavigation(true);
-    expect(
-      screen.getByRole("button", { name: "Layers" }).getAttribute("aria-current")
-    ).toBe("page");
-  });
+      expect(screen.queryByText("country selector")).toBeNull();
+      expect(screen.queryByText("Ecuador")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "Layers" })).toBeNull();
+    }
+  );
 
-  it("goes to the usage page", async () => {
-    setPathname("/en/admin/layers");
+  it("keeps the country selector outside the admin", async () => {
+    setPathname("/en/polygons-validation");
     await renderNavigation(true);
-    fireEvent.click(screen.getByRole("button", { name: "Usage" }));
-    expect(router.push).toHaveBeenCalledWith("/en/admin/usage");
-  });
-
-  it("goes to the categories page", async () => {
-    setPathname("/en/admin/layers");
-    await renderNavigation(true);
-    fireEvent.click(screen.getByRole("button", { name: "Categories" }));
-    expect(router.push).toHaveBeenCalledWith("/en/admin/categories");
-  });
-
-  it("marks categories on the categories page", async () => {
-    setPathname("/en/admin/categories");
-    await renderNavigation(true);
-    expect(
-      screen.getByRole("button", { name: "Categories" }).getAttribute("aria-current")
-    ).toBe("page");
-    expect(screen.getByRole("button", { name: "Layers" }).getAttribute("aria-current")).toBeNull();
-  });
-
-  it("shows no sections before login", async () => {
-    setPathname("/en/admin");
-    await renderNavigation(false);
-    expect(screen.queryByRole("button", { name: "Usage" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Categories" })).toBeNull();
-  });
-
-  it("keeps the public navigation outside the admin", async () => {
-    setPathname("/en/home");
-    await renderNavigation(true);
-    expect(screen.getByText("public navigation")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Usage" })).toBeNull();
+    expect(screen.getByText("country selector")).toBeTruthy();
   });
 });

@@ -351,4 +351,4 @@ Then open **`http://localhost:3000/admin`** and log in with one country's passke
 
 To test raster uploads, use a binary GeoTIFF (see the requirements in `docs/maps.md`). To start over, delete `.local-maps` and migrate again.
 
-The **Usage** page (`/admin/usage`, in the admin header) shows every country's figures, whatever the country you logged in with. It needs `USAGE_DIR=.usage` (ignored by Git) in `apps/api/.env`; without it the page says metrics aren't configured. Uploading farms or running an analysis in the public app records events there (see `docs/maps.md` for the folder's layout).
+The **Usage** page (`/admin/usage`, in the admin sidebar) shows every country's figures, whatever the country you logged in with. It needs `USAGE_DIR=.usage` (ignored by Git) in `apps/api/.env`; without it the page says metrics aren't configured. Uploading farms or running an analysis in the public app records events there (see `docs/maps.md` for the folder's layout).

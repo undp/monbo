@@ -1,6 +1,6 @@
 {
-  "title": "Layers admin",
-  "logout": "Log out",
+  "eyebrow": "Admin · {{country}}",
+  "eyebrowAll": "Admin",
   "login": {
     "title": "Admin access",
     "subtitle": "Enter the admin passkey to manage your country's layers and categories.",
@@ -23,12 +23,16 @@
     "loadError": "The layers could not be loaded.",
     "columns": {
       "id": "ID",
-      "name": "Name",
-      "alias": "Alias",
+      "layer": "Layer",
       "category": "Category",
+      "period": "Period",
       "raster": "Raster",
       "version": "Version",
-      "published": "Published"
+      "published": "Published",
+      "actions": "Actions"
+    },
+    "period": {
+      "current": "Current"
     },
     "noRaster": "No raster",
     "published": "Layer {{alias}} published.",
@@ -111,7 +115,6 @@
     "form": {
       "createTitle": "New category",
       "editTitle": "Edit category",
-      "close": "Close",
       "name": "Name",
       "description": "Short description",
       "descriptionHelp": "Shown in the analysis, the report and the methodology.",
@@ -119,18 +122,35 @@
         "es": "ES",
         "en": "EN"
       },
-      "id": "Identifier",
-      "idHelp": "Permanent: it identifies the category in the layers and can't be changed or reused.",
+      "idGenerated": "The identifier is made from the Spanish name and can't be changed.",
       "idReadOnly": "Identifier: {{id}}",
       "iconAndColor": "Icon and color",
       "icons": {
         "forest": "Forest",
-        "shield": "Shield",
-        "agriculture": "Agriculture",
-        "water": "Water",
-        "mountain": "Mountain",
+        "park": "Park",
         "wetland": "Wetland",
+        "leaf": "Leaf",
+        "wildlife": "Wildlife",
+        "shield": "Shield",
+        "legal": "Legal restriction",
+        "community": "Community",
+        "map": "Map",
+        "global": "Global",
+        "water": "Water",
+        "coast": "Coast",
+        "flood": "Flood",
+        "agriculture": "Agriculture",
+        "crop": "Crop",
+        "coffee": "Coffee",
+        "pasture": "Pasture",
+        "mountain": "Mountain",
+        "volcano": "Volcano",
+        "landslide": "Landslide",
         "fire": "Fire",
+        "mining": "Mining",
+        "infrastructure": "Roads",
+        "settlement": "Settlement",
+        "industry": "Industry",
         "layers": "Layers"
       },
       "icon": "Icon",
@@ -175,13 +195,19 @@
       "saveError": "The category couldn't be saved.",
       "errors": {
         "required": "Required",
-        "id": "Use lowercase letters without accents, digits and _, starting with a letter (50 at most).",
-        "idTaken": "That identifier is already used in your country.",
         "color": "Use a #rrggbb color",
         "threshold": "A number from 0 to 100",
         "polarity": "Choose what this category's layers mark.",
         "invalid": "Check the marked fields."
+      },
+      "sections": {
+        "identity": "Name and description",
+        "rule": "What its layers mark"
       }
+    },
+    "editor": {
+      "back": "Back to categories",
+      "notFound": "This category doesn't exist in your country."
     }
   },
   "form": {

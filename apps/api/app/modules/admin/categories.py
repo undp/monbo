@@ -13,6 +13,8 @@ entry of the file as stored, so a rejected entry can be repaired with `PUT` and 
 never silently dropped.
 """
 
+import re
+import unicodedata
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path
@@ -43,6 +45,41 @@ from .models import (
 router = APIRouter()
 
 CategoryId = Annotated[str, Path(pattern=CATEGORY_ID_PATTERN)]
+
+CATEGORY_ID_MAX_LENGTH = 50
+# Never given to a new category: the built-in one, and `new`, the path of the
+# admin's create page (`/admin/categories/new`), which would hide that category's
+# edit page (`/admin/categories/{id}`).
+RESERVED_CATEGORY_IDS = frozenset({DEFAULT_CATEGORY_ID, "new"})
+# The id of a category whose Spanish name has no letter to start one with.
+FALLBACK_CATEGORY_ID = "category"
+
+
+def _slug(name: str) -> str:
+    """ "Frontera agrícola" → "frontera_agricola": lowercase ASCII letters, digits and
+    underscores, starting with a letter. Empty when the name has no such letter."""
+    ascii_name = "".join(
+        char
+        for char in unicodedata.normalize("NFD", name)
+        if not unicodedata.combining(char)
+    ).lower()
+    slug = re.sub(r"[^a-z0-9]+", "_", ascii_name)
+    slug = re.sub(r"^[^a-z]+", "", slug)
+    return slug[:CATEGORY_ID_MAX_LENGTH].rstrip("_")
+
+
+def new_category_id(name_es: str, taken: set[str]) -> str:
+    """The id of a new category: the slug of its Spanish name, with `_2`, `_3`...
+    when the country already uses (or used) it or it's reserved. It always matches
+    `CATEGORY_ID_PATTERN`."""
+    base = _slug(name_es) or FALLBACK_CATEGORY_ID
+    unavailable = taken | RESERVED_CATEGORY_IDS
+    candidate, number = base, 1
+    while candidate in unavailable:
+        number += 1
+        suffix = f"_{number}"
+        candidate = base[: CATEGORY_ID_MAX_LENGTH - len(suffix)].rstrip("_") + suffix
+    return candidate
 
 
 def _to_admin_category(category: dict, index: list[dict]) -> AdminCategory:
@@ -165,32 +202,27 @@ def list_categories(session: Session = Depends(require_admin)):
 def create_category(body: CategoryCreate, session: Session = Depends(require_admin)):
     """
     Create a category in the session's country, enabled and at the end of the
-    list. Its `id` is permanent: an id the country already uses (or used, in a
-    rejected entry), and `deforestation`, answer 409. Layers that already point at
-    the id must be hidden and have years that fit `temporal` (400).
+    list. The API makes its permanent `id` from the Spanish name ("Frontera
+    agrícola" → `frontera_agricola`), with `_2`, `_3`... when the country already
+    uses (or used, in a rejected entry) that id; `deforestation` and `new` are never
+    given. Layers that already point at the id must be hidden and have years that
+    fit `temporal` (400).
     """
     store = country_store(session)
     with store.locked():
         index = index_or_500(store)
         categories = _readable_categories(store)
-        taken = (
-            {category["id"] for category in categories.file.categories}
-            | categories.file.invalid_ids
-            | {DEFAULT_CATEGORY_ID}
-        )
-        if body.id in taken:
-            raise HTTPException(
-                status_code=409,
-                detail=f"The category id '{body.id}' is already used in "
-                f"{session.country}: ids are never reused",
-            )
+        taken = {
+            category["id"] for category in categories.file.categories
+        } | categories.file.invalid_ids
+        category_id = new_category_id(body.name.es, taken)
         # Layers may already point at this id (`unknown_category`, by a hand edit).
         _check_adopted_layers(
-            body.id, layers_in(index, body.id), body.temporal, "creating"
+            category_id, layers_in(index, category_id), body.temporal, "creating"
         )
-        category = _to_stored(body.id, body, enabled=True)
+        category = _to_stored(category_id, body, enabled=True)
         _put(store, category, first=False)
-    logger.info("Admin created category %s in %s", body.id, session.country)
+    logger.info("Admin created category %s in %s", category_id, session.country)
     return _to_admin_category(category, index)
 
 

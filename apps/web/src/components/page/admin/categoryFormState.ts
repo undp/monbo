@@ -1,10 +1,4 @@
-import {
-  AdminCategory,
-  AdminLanguage,
-  CategoryCreate,
-  CategoryInput,
-  DEFAULT_CATEGORY_ID,
-} from "@/interfaces/AdminLayer";
+import { AdminCategory, AdminLanguage, CategoryInput } from "@/interfaces/AdminLayer";
 import type { LayerCategoryIcon } from "@/interfaces/LayerCategory";
 import type { Polarity } from "@/utils/layerResults";
 
@@ -14,25 +8,30 @@ import type { Polarity } from "@/utils/layerResults";
 export const CATEGORY_NAME_MAX_LENGTH = 100;
 export const CATEGORY_DESCRIPTION_MAX_LENGTH = 1000;
 export const CATEGORY_LABEL_MAX_LENGTH = 60;
-export const CATEGORY_ID_MAX_LENGTH = 50;
-const CATEGORY_ID_PATTERN = /^[a-z][a-z0-9_]{0,49}$/;
+// A category's id, as the API makes it from the Spanish name (`new_category_id`).
+export const CATEGORY_ID_PATTERN = /^[a-z][a-z0-9_]{0,49}$/;
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
-// The default "Deforestación" red (D15) and the mockup's palette.
+// The default "Deforestación" red (D15) first. Each one has at least 4.5:1 contrast
+// on its own tint (`categoryTints`), where the chips and icon tiles draw it as text.
 export const CATEGORY_COLOR_SWATCHES = [
   "#c62828",
-  "#2f8f5e",
-  "#0f7c86",
-  "#a8741a",
+  "#b34a14",
+  "#8d6212",
+  "#5f6e14",
+  "#26784d",
+  "#0b6e78",
   "#0d64a0",
+  "#3949ab",
   "#7a4fb3",
+  "#ad1457",
+  "#6d4c41",
+  "#546e7a",
 ];
 
 type Localized = Record<AdminLanguage, string>;
 
 export interface CategoryFormValues {
-  // Only typed when creating: the id is permanent
-  id: string;
   name: Localized;
   description: Localized;
   icon: LayerCategoryIcon;
@@ -52,7 +51,6 @@ const localized = (text?: Localized): Localized => ({
 });
 
 export const toCategoryFormValues = (category?: AdminCategory): CategoryFormValues => ({
-  id: category?.id ?? "",
   name: localized(category?.name),
   description: localized(category?.description),
   icon: category?.icon ?? "layers",
@@ -91,40 +89,11 @@ export const toCategoryInput = (values: CategoryFormValues): CategoryInput => {
   };
 };
 
-export const toCategoryCreate = (values: CategoryFormValues): CategoryCreate => ({
-  ...toCategoryInput(values),
-  id: values.id.trim(),
-});
-
-/**
- * An id for a new category from its name: "Frontera agrícola" → "frontera_agricola".
- * Lowercase ASCII letters, digits and underscores, starting with a letter, as the API
- * requires. Empty when the name has no letter to start with.
- */
-export const suggestCategoryId = (name: string): string =>
-  name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^[^a-z]+/, "")
-    .slice(0, CATEGORY_ID_MAX_LENGTH)
-    .replace(/_+$/, "");
-
-/** The ids a new category can't take: the country's, and the built-in one. */
-export const takenCategoryIds = (categories: Pick<AdminCategory, "id">[]) =>
-  new Set([DEFAULT_CATEGORY_ID, ...categories.map(({ id }) => id)]);
-
 // Validation rules for react-hook-form, mirroring the API's. Each returns true or
 // the translation key of the problem.
 export const categoryValidators = {
   required: (value: string) =>
     value.trim() !== "" || "admin:categories:form:errors:required",
-  id: (taken: Set<string>) => (value: string) => {
-    if (!CATEGORY_ID_PATTERN.test(value.trim())) return "admin:categories:form:errors:id";
-    if (taken.has(value.trim())) return "admin:categories:form:errors:idTaken";
-    return true;
-  },
   color: (value: string) =>
     COLOR_PATTERN.test(value.trim()) || "admin:categories:form:errors:color",
   threshold: (value: string, values: CategoryFormValues) => {

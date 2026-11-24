@@ -1,6 +1,6 @@
 {
-  "title": "Administración de capas",
-  "logout": "Cerrar sesión",
+  "eyebrow": "Administración · {{country}}",
+  "eyebrowAll": "Administración",
   "login": {
     "title": "Acceso de administración",
     "subtitle": "Ingresa la clave de administración para gestionar las capas y categorías de tu país.",
@@ -23,12 +23,16 @@
     "loadError": "No se pudieron cargar las capas.",
     "columns": {
       "id": "ID",
-      "name": "Nombre",
-      "alias": "Alias",
+      "layer": "Capa",
       "category": "Categoría",
+      "period": "Período",
       "raster": "Raster",
       "version": "Versión",
-      "published": "Publicada"
+      "published": "Publicada",
+      "actions": "Acciones"
+    },
+    "period": {
+      "current": "Vigente"
     },
     "noRaster": "Sin raster",
     "published": "Capa {{alias}} publicada.",
@@ -111,7 +115,6 @@
     "form": {
       "createTitle": "Nueva categoría",
       "editTitle": "Editar categoría",
-      "close": "Cerrar",
       "name": "Nombre",
       "description": "Descripción corta",
       "descriptionHelp": "Se muestra en el análisis, en el reporte y en la metodología.",
@@ -119,18 +122,35 @@
         "es": "ES",
         "en": "EN"
       },
-      "id": "Identificador",
-      "idHelp": "Es permanente: identifica la categoría en las capas y no se puede cambiar ni reutilizar.",
+      "idGenerated": "El identificador se crea a partir del nombre en español y no se puede cambiar.",
       "idReadOnly": "Identificador: {{id}}",
       "iconAndColor": "Ícono y color",
       "icons": {
         "forest": "Bosque",
-        "shield": "Escudo",
-        "agriculture": "Agricultura",
-        "water": "Agua",
-        "mountain": "Montaña",
+        "park": "Parque",
         "wetland": "Humedal",
+        "leaf": "Hoja",
+        "wildlife": "Fauna",
+        "shield": "Escudo",
+        "legal": "Restricción legal",
+        "community": "Comunidad",
+        "map": "Mapa",
+        "global": "Global",
+        "water": "Agua",
+        "coast": "Costa",
+        "flood": "Inundación",
+        "agriculture": "Agricultura",
+        "crop": "Cultivo",
+        "coffee": "Café",
+        "pasture": "Pradera",
+        "mountain": "Montaña",
+        "volcano": "Volcán",
+        "landslide": "Deslizamiento",
         "fire": "Fuego",
+        "mining": "Minería",
+        "infrastructure": "Vías",
+        "settlement": "Asentamiento",
+        "industry": "Industria",
         "layers": "Capas"
       },
       "icon": "Ícono",
@@ -175,13 +195,19 @@
       "saveError": "No se pudo guardar la categoría.",
       "errors": {
         "required": "Obligatorio",
-        "id": "Usa minúsculas sin tildes, números y _, empezando con una letra (máximo 50).",
-        "idTaken": "Ese identificador ya se usa en tu país.",
         "color": "Usa un color #rrggbb",
         "threshold": "Un número entre 0 y 100",
         "polarity": "Elige qué marcan las capas de esta categoría.",
         "invalid": "Revisa los campos marcados."
+      },
+      "sections": {
+        "identity": "Nombre y descripción",
+        "rule": "Qué marcan sus capas"
       }
+    },
+    "editor": {
+      "back": "Volver a categorías",
+      "notFound": "Esta categoría no existe en tu país."
     }
   },
   "form": {
