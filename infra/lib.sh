@@ -28,7 +28,7 @@ require_cmd() {
 # The environment's files must exist in both stacks before anything runs.
 require_env() {
   local env="$1" stack
-  [ -n "$env" ] || die "Missing the environment name (e.g. test)"
+  [ -n "$env" ] || die "Missing the environment name (dev or prod)"
   for stack in platform apps; do
     [ -f "$TF_ROOT/$stack/envs/$env.tfvars" ] || die "No $stack/envs/$env.tfvars: unknown environment '$env'"
     [ -f "$TF_ROOT/$stack/envs/$env.backend.hcl" ] || die "No $stack/envs/$env.backend.hcl"
@@ -51,14 +51,38 @@ load_env_secrets() {
   fi
   [ -n "${ARM_SUBSCRIPTION_ID:-}" ] \
     || die "ARM_SUBSCRIPTION_ID is not set (see infra/envs/$1.secrets.env.example)"
-  export ARM_SUBSCRIPTION_ID
+  # The environment's one resource group: like the subscription, it is configuration
+  # of the environment, kept out of the repository (prod's belongs to UNDP).
+  [ -n "${TF_VAR_resource_group_name:-}" ] \
+    || die "TF_VAR_resource_group_name is not set (see infra/envs/$1.secrets.env.example)"
+  export ARM_SUBSCRIPTION_ID TF_VAR_resource_group_name
   AZURE_SUBSCRIPTION_ID="$ARM_SUBSCRIPTION_ID"
+}
+
+# A value of a backend file (envs/<env>.backend.hcl), e.g. storage_account_name.
+backend_value() {
+  sed -nE "s/^[[:space:]]*$2[[:space:]]*=[[:space:]]*\"?([^\"[:space:]]*)\"?.*/\1/p" "$1" | head -n 1
+}
+
+# The backends read the state with the state account's key (the operators may not be
+# granted a data role on it): fetch it with the current Azure login and export it for
+# the backend and the apps stack's remote state. Through the environment only, never a
+# file or argv.
+export_state_key() {
+  local account
+  account="$(backend_value "$TF_ROOT/$1/envs/$2.backend.hcl" storage_account_name)"
+  ARM_ACCESS_KEY="$(az storage account keys list --subscription "$ARM_SUBSCRIPTION_ID" \
+    -g "$TF_VAR_resource_group_name" -n "$account" --query '[0].value' -o tsv --only-show-errors)" \
+    || die "Could not read the key of state account $account. Logged in with 'az login'?"
+  export ARM_ACCESS_KEY
 }
 
 tf_init() {
   local stack="$1" env="$2"
+  export_state_key "$stack" "$env"
   "$TERRAFORM" -chdir="$TF_ROOT/$stack" init -input=false -reconfigure \
-    -backend-config="envs/$env.backend.hcl" >/dev/null \
+    -backend-config="envs/$env.backend.hcl" \
+    -backend-config="resource_group_name=$TF_VAR_resource_group_name" >/dev/null \
     || die "terraform init failed for $stack ($env). Logged in with 'az login'? Access to the state account?"
 }
 
@@ -73,7 +97,7 @@ load_platform_outputs() {
     || die "The platform stack of '$env' has not been applied yet (docs/suggested_deployment.md)"
   STORAGE_ACCOUNT_NAME="$(platform_output storage_account_name)"
   MAPS_SHARE_NAME="$(platform_output maps_share_name)"
-  DATA_RESOURCE_GROUP="$(platform_output data_resource_group_name)"
+  RESOURCE_GROUP="$(platform_output resource_group_name)"
 }
 
 platform_output() {
@@ -96,7 +120,7 @@ select_subscription() {
 }
 
 storage_key() {
-  az storage account keys list -g "$DATA_RESOURCE_GROUP" -n "$STORAGE_ACCOUNT_NAME" \
+  az storage account keys list -g "$RESOURCE_GROUP" -n "$STORAGE_ACCOUNT_NAME" \
     --query '[0].value' -o tsv
 }
 

@@ -92,7 +92,8 @@ else
   ok "Pushed $API_IMAGE and $WEB_IMAGE"
 fi
 
-APPS_RG="monbo-$ENV_NAME-apps"
+# Everything is in the environment's one group (platform's output).
+APPS_RG="$RESOURCE_GROUP"
 
 # In GitHub Actions, the outcome goes to the run's summary page.
 summary() {
@@ -227,7 +228,9 @@ rollback() {
     echo "  The rollback did not verify either; check the apps in the portal" >&2
   fi
   local logs=""
-  [ -z "$failed" ] || logs="az containerapp logs show -g $APPS_RG -n ${failed%%/*} --revision ${failed#*/} --tail 100"
+  # The group comes from the environment (prod's isn't public): the command names it
+  # by its variable, so neither the console nor the run's summary prints it.
+  [ -z "$failed" ] || logs="az containerapp logs show -g \"\$TF_VAR_resource_group_name\" -n ${failed%%/*} --revision ${failed#*/} --tail 100"
   [ -z "$logs" ] || echo "  Logs of the failed revision: $logs" >&2
   summary "❌ rolled back to the previous images" "$reason. Previous: \`$PREVIOUS_API_IMAGE\`, \`$PREVIOUS_WEB_IMAGE\`.${logs:+ Logs: \`$logs\`}"
   die "$reason (rolled back)"
@@ -251,8 +254,18 @@ if ! apply_images "$API_IMAGE" "$WEB_IMAGE" 2>&1 | tee "$apply_log"; then
   fi
 fi
 
-API_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw api_url)"
-WEB_URL="$("$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw web_url)"
+# Reading the state right after a long apply has failed once with a transient 403 from
+# the state account; retry, so that never skips the verification below.
+apps_output() {
+  local attempt
+  for attempt in 1 2 3; do
+    "$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw "$1" 2>/dev/null && return 0
+    sleep 10
+  done
+  "$TERRAFORM" -chdir="$TF_ROOT/apps" output -raw "$1"
+}
+API_URL="$(apps_output api_url)"
+WEB_URL="$(apps_output web_url)"
 
 log "Verifying the deployment"
 verify_deployment "$API_IMAGE" "$WEB_IMAGE" || rollback "The new revisions did not become healthy"

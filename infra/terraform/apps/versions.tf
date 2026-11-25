@@ -8,12 +8,10 @@ terraform {
     }
   }
 
-  # Filled per environment: terraform init -backend-config=envs/<env>.backend.hcl
-  # The state account has shared keys disabled, so the backend authenticates with
-  # Entra ID (infra/bootstrap.sh creates it and grants the operator access).
-  backend "azurerm" {
-    use_azuread_auth = true
-  }
+  # Filled per environment: terraform init -backend-config=envs/<env>.backend.hcl.
+  # The state is read with the state account's key, which infra/lib.sh exports as
+  # ARM_ACCESS_KEY (the operators may not be granted a data role on the account).
+  backend "azurerm" {}
 }
 
 # The subscription comes from ARM_SUBSCRIPTION_ID (infra/envs/<env>.secrets.env, or the
