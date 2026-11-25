@@ -3,6 +3,7 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import React, { useCallback, useId } from "react";
 import { useTranslation } from "react-i18next";
+import { PAGE_ACTION_HEIGHT } from "@/components/page/flow/flowStyles";
 
 interface DownloadButtonProps {
   options?: {
@@ -61,7 +62,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ options }) => {
           isLoading ? <CircularProgress size={18} color="inherit" /> : <DownloadRoundedIcon />
         }
         endIcon={<KeyboardArrowDownRoundedIcon />}
-        sx={{ height: 40, whiteSpace: "nowrap", flexShrink: 0 }}
+        sx={{ height: PAGE_ACTION_HEIGHT, whiteSpace: "nowrap", flexShrink: 0 }}
       >
         {t("common:download")}
       </Button>

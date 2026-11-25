@@ -5,6 +5,7 @@ import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import { useContext } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { PAGE_ACTION_HEIGHT } from "@/components/page/flow/flowStyles";
 import { DataContext } from "@/context/DataContext";
 import { localizedPath } from "@/utils/languageChange";
 
@@ -28,7 +29,7 @@ export const ChangeLayersButton: React.FC = () => {
           localizedPath("/territorial-analysis/layers", i18n.language)
         );
       }}
-      sx={{ whiteSpace: "nowrap" }}
+      sx={{ height: PAGE_ACTION_HEIGHT, whiteSpace: "nowrap" }}
     >
       {t("territorialAnalysis:results.changeLayers")}
     </Button>

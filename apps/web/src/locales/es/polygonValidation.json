@@ -42,7 +42,8 @@
     "title": "Inconsistencia de geometría",
     "tableTitle": "Información del polígono",
     "contentTitle": "Información de la inconsistencia",
-    "systemFeedback": "Mensaje del sistema"
+    "systemFeedback": "Mensaje del sistema",
+    "farmDetails": "Detalles de la finca {{id}}"
   },
   "subtitle": "Revisamos tus polígonos y puntos. Corrige los que tienen observaciones o continúa con los que están listos.",
   "kpis": {

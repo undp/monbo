@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
+import { ADMIN_HEADER_HEIGHT } from "@/components/page/admin/AdminSidebar";
 import { PageEyebrow } from "@/components/page/flow/PageEyebrow";
 import {
   FLOW_COLORS,
@@ -64,7 +65,8 @@ export const AdminLoginPageContent: React.FC = () => {
     // The stage pages' background and card, as the signed-in admin pages
     <Box
       sx={{
-        minHeight: "calc(100vh - 64px)",
+        // The screen under the header, whose toolbar is 56 px on a phone
+        minHeight: { xs: "calc(100vh - 56px)", sm: `calc(100vh - ${ADMIN_HEADER_HEIGHT}px)` },
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",

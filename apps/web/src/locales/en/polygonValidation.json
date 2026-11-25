@@ -42,7 +42,8 @@
     "title": "Geometry Inconsistency",
     "tableTitle": "Polygon Information",
     "contentTitle": "Inconsistency Information",
-    "systemFeedback": "System feedback"
+    "systemFeedback": "System feedback",
+    "farmDetails": "Details of farm {{id}}"
   },
   "subtitle": "We checked your polygons and points. Fix the ones with issues or continue with the ones that are ready.",
   "kpis": {

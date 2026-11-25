@@ -16,7 +16,11 @@ A filled alert in the type's color is the loudest element on a stage page. A whi
 
 ### D2: The loading card fits under the flow header
 
-The old screen was `100vh - 64px` tall, which under the flow header (about 236 px) overflowed the window. The card now takes a stage page's body width and at least 360 px, centered; `RuntimeConfigGate` (before any page) shows the same card.
+The old screen was `100vh - 64px` tall, which under the flow header overflowed the window. The card now takes a stage page's body width and at least 360 px, centered; `RuntimeConfigGate` (before any page) shows the same card. In a 1366×768 viewport the flow header ends about 236 px from the top (the app header included), so the card ends at about 236 + 32 + 360 + 32 = 660 px. A 768 px screen with the browser's bars leaves less than 768 px of viewport, which is why the requirement speaks of the viewport.
+
+### D6: One height for the stage pages' heading actions
+
+"Cambiar capas" and "Descargar" sit side by side on stage 2. `PAGE_ACTION_HEIGHT` (40 px, the small search field's height) gives both the same height.
 
 ### D3: A labeled download button
 
