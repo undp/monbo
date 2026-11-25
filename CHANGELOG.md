@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-25
+
 ### Added
 
 - Add a layers admin at `/admin` to create and edit deforestation layers, upload their rasters and publish or hide them, protected by a long passkey per country. The `/admin` API routes only exist when `ADMIN_SESSION_SECRET` is set and `MAPS_ROOT` has the per-country layout (see below)
