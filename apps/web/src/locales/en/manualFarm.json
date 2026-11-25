@@ -1,6 +1,8 @@
 {
   "addTitle": "Add a farm manually",
   "editTitle": "Edit farm",
+  "addSubtitle": "Draw the farm on the satellite map and fill in its production data.",
+  "editSubtitle": "Adjust the farm's drawing or its production data.",
   "close": "Close",
   "geometry": {
     "label": "Draw",
@@ -48,6 +50,7 @@
     }
   },
   "goTo": {
+    "title": "Go to coordinates",
     "latitude": "Latitude",
     "longitude": "Longitude",
     "invalid": "Use a latitude between -90 and 90 and a longitude between -180 and 180."
@@ -76,9 +79,12 @@
     "invalid": "This farm's geometry couldn't be read: draw it again."
   },
   "missingGeometry": "Draw the polygon or place the point to add the farm.",
-  "openRing": {"part": "Close or discard the part to add the farm.", "hole": "Close or discard the hole to add the farm."},
+  "openRing": {
+    "part": "Close or discard the part to add the farm.",
+    "hole": "Close or discard the hole to add the farm."
+  },
   "fields": {
-    "mandatoryTitle": "Farm data",
+    "mandatoryTitle": "Production data",
     "optionalTitle": "Optional",
     "id": "ID",
     "producerName": "Producer name",

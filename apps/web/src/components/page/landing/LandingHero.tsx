@@ -11,6 +11,9 @@ import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { localizedPath } from "@/utils/languageChange";
 
+// A screen wide and tall enough for a larger title, where the hero has height to spare.
+const ROOMY_SCREEN = "@media (min-width: 1440px) and (min-height: 860px)";
+
 // AI-generated aerial view: forest, a river and farm plots. Decorative.
 const HERO_IMAGE = "/images/landing/aerial-forest-river-farm-plots.webp";
 
@@ -33,6 +36,11 @@ export const LandingHero: React.FC = memo(function LandingHero() {
         position: "relative",
         overflow: "hidden",
         color: "common.white",
+        // Grows into the screen's spare height, its content centered in it.
+        flex: "1 0 auto",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
         // The header (64 px) is drawn over the hero.
         padding: { xs: "88px 0 40px", md: "84px 0 112px" },
         background: `linear-gradient(105deg, ${colors.navy} 0%, ${colors.navyForest} 45%, ${colors.forest} 100%)`,
@@ -75,12 +83,13 @@ export const LandingHero: React.FC = memo(function LandingHero() {
         sx={{
           position: "relative",
           zIndex: 1,
+          width: "100%",
           maxWidth: 1280,
           margin: "0 auto",
           padding: { xs: "0 16px", md: "0 28px" },
         }}
       >
-        <Box sx={{ maxWidth: 700 }}>
+        <Box sx={{ maxWidth: 700, [ROOMY_SCREEN]: { maxWidth: 940 } }}>
           <Box
             component="ul"
             sx={{
@@ -145,7 +154,8 @@ export const LandingHero: React.FC = memo(function LandingHero() {
               lineHeight: 1.15,
               letterSpacing: "-.015em",
               margin: "8px 0",
-              "& em": { fontStyle: "normal", color: colors.leafLight },
+              "& em": { fontStyle: "normal", color: colors.leafLight, whiteSpace: "nowrap" },
+              [ROOMY_SCREEN]: { fontSize: 56, margin: "12px 0" },
             }}
           >
             <Trans
@@ -161,6 +171,7 @@ export const LandingHero: React.FC = memo(function LandingHero() {
               lineHeight: 1.5,
               color: "rgba(255,255,255,.82)",
               maxWidth: 540,
+              [ROOMY_SCREEN]: { fontSize: 20, maxWidth: 600 },
             }}
           >
             {t("home:landing:lead")}{" "}
