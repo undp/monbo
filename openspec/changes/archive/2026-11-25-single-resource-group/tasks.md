@@ -81,13 +81,15 @@
 - [x] 6.1 `openspec validate single-resource-group --strict`
 - [x] 6.2 With a fresh `az login` into UNDP's tenant: a read-only `platform` plan for `prod` with a local backend. It should only create resources in UNDP's group (no group, lock or role), and confirm that the provider's registration check passes with Contributor on the group only
   - 2026-11-24: `Plan: 6 to add, 0 to change, 0 to destroy`. It creates `monboprodacr` (admin on), `monbo-prod-logs`, `monboproddata` and its `maps` share, `monbo-prod-deploy` and its federated credential, all in UNDP's group, `eastus`. Reading the group and the provider check pass with Contributor only.
-- [ ] 6.3 Rebuild `dev` ("Moving dev to one resource group" in `docs/suggested_deployment.md`), from the branch:
+- [x] 6.3 Rebuild `dev` ("Moving dev to one resource group" in `docs/suggested_deployment.md`), from the branch:
   - [x] remove the old `dev` (2026-11-24; `monbo-dev-data` with the empty vault waits for 6.4b);
   - [x] create the new one up to the manual deploy (`monbo-dev`, eastus; passkeys rotated after the seed);
   - [x] AcrPull to `monbo-dev-pull` (the operators' ABAC condition allows it), `registry_admin_enabled = false`, verified;
   - [x] the new `AZURE_CLIENT_ID` and `TF_VAR_RESOURCE_GROUP_NAME` in the `dev` GitHub Environment;
-  - [ ] Contributor on `monbo-dev` to `monbo-dev-deploy`, by an Owner without an ABAC condition (the operators' condition refuses it)
+  - [x] Contributor on `monbo-dev` to `monbo-dev-deploy`, by an Owner without an ABAC condition (the operators' condition refuses it; granted 2026-11-25)
   - Found on the way: new Container Apps environments come with the Consumption workload profile (now declared, so plans show no changes), and one transient 403 reading the state after the 10-minute apply (`deploy.sh` now retries reading its outputs).
-- [ ] 6.4 Merge, re-enable the Deploy workflow, and confirm the merge deploys `dev` from CI
+- [x] 6.4 Merge, re-enable the Deploy workflow, and confirm the merge deploys `dev` from CI
+  - 2026-11-25: the workflow was re-enabled right before #104 merged; its push deployed `dev` from CI (OIDC as `monbo-dev-deploy`), and `monbo-api` pulls `16c86c7` with `monbo-dev-pull`, with no registry password secret.
 - [ ] 6.4b After the soft-deleted backup item is purged (from 2026-12-08): unregister the old account, delete `monbo-dev-backup` and the group `monbo-dev-data` (docs, "Moving dev to one resource group")
 - [ ] 6.5 `prod` (Production in `docs/suggested_deployment.md`): the manual deploy, then the UNDP administrator's grants, `registry_admin_enabled = false`, the `prod` secrets and `DEPLOY_PROD`
+  - 2026-11-25: the manual deploy and the `prod` secrets are done; the grants were requested from UNDP. Archived with 6.4b and the rest of 6.5 open: both are operations, followed from `docs/suggested_deployment.md`.

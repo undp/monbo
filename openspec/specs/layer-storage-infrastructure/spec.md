@@ -9,17 +9,24 @@ The resources themselves are declared in Terraform (see `infrastructure-as-code`
 ## Requirements
 ### Requirement: Persistent layer storage outside the app lifecycle
 
-Layer data in Azure SHALL live on an Azure Files share in a Storage Account inside a dedicated resource group, separate from the resource group that holds the Container Apps, and declared in the Terraform `platform` stack. That resource group SHALL carry a `CanNotDelete` lock. Share soft delete SHALL be enabled with a retention of at least 14 days, and the share SHALL have daily snapshots kept for at least 30 days. The Storage Account SHALL require TLS 1.2 or later and SHALL disable public blob access.
+Layer data in Azure SHALL live on an Azure Files share in a Storage Account declared in the Terraform `platform` stack, in the environment's resource group, separate from the `apps` stack that holds the Container Apps. Share soft delete SHALL be enabled with a retention of at least 14 days. The Storage Account SHALL require TLS 1.2 or later and SHALL disable public blob access. The storage account and the share SHALL carry `prevent_destroy`.
+
+Because the stacks need no more than Contributor on the group, they SHALL NOT create a delete lock. The daily backup (snapshots kept at least 30 days) SHALL exist only with `share_backup_enabled`, off in both environments until the role to configure it is granted. `docs/suggested_deployment.md` SHALL state what the layers lack without the lock and the backup, how to take a snapshot by hand, and which grants restore both.
 
 #### Scenario: Destroying the app environment keeps layers
 
 - **WHEN** an operator runs `terraform destroy` on the `apps` stack
-- **THEN** the storage resource group, the share, and all layers remain intact
+- **THEN** the storage account, the share, and all layers remain intact
 
-#### Scenario: Accidental deletion is recoverable
+#### Scenario: Restoring from a snapshot
 
 - **WHEN** a layer file is deleted or corrupted on the share
-- **THEN** it can be restored from a share snapshot taken within the retention period
+- **THEN** it can be restored from a share snapshot (the one `seed` took, or one taken by hand), or from the daily backup where `share_backup_enabled` is on
+
+#### Scenario: Backup when the role is granted
+
+- **WHEN** `share_backup_enabled` is set to `true` and `platform` is applied by an operator holding the backup role
+- **THEN** the share gets daily snapshots at 06:00 UTC kept 30 days, in the vault `monbo-<env>-backup`
 
 ### Requirement: Share mounted into the API container
 
@@ -154,4 +161,3 @@ The deployment SHALL NOT deploy the API without layer storage. The Terraform `ap
 
 - **WHEN** the share's `countries.json` changes between the command's download and its upload
 - **THEN** the command aborts without uploading and asks the operator to retry
-
