@@ -1,6 +1,6 @@
 {
   "name": "monbo-front",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "private": true,
   "packageManager": "pnpm@10.26.1",
   "engines": {

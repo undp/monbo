@@ -176,7 +176,7 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     get_layers_root().is_per_country()
     # The API is not installed as a package (`tool.uv.package = false`), so
     # importlib.metadata.version("monbo-api") is unavailable in production.
-    app = FastAPI(title="Monbo API", version="1.5.1", lifespan=lifespan)
+    app = FastAPI(title="Monbo API", version="2.0.0", lifespan=lifespan)
     # Records the usage events of uploads, validations and analyses, and caps
     # POST /events bodies. Added before CORS, so CORS wraps its responses too.
     app.add_middleware(UsageMiddleware)

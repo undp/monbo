@@ -1,6 +1,6 @@
 {
   "name": "monbo",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "private": true,
   "description": "Root orchestrator for the Monbo monorepo (option A: delegates to each package; no pnpm workspace). A minimal root lockfile pins the concurrently devDependency.",
   "packageManager": "pnpm@10.26.1",
