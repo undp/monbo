@@ -23,4 +23,4 @@
 - [x] 5.1 `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm test` and `pnpm run build` in `apps/web`
 - [x] 5.2 `openspec validate v2-feedback-and-login --strict`
 - [x] 5.3 Screenshots at 1440×900: the admin login (with an error), the loading screen, a snackbar, the download menu, the farm detail's map controls and stage 2's header
-- [ ] 5.4 By hand in the browser: the same screens, and the ZIP progress with a large report
+- [x] 5.4 By hand in the browser: the same screens, and the ZIP progress with a large report
