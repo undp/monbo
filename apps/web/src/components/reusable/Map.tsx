@@ -18,7 +18,9 @@ import {
 import { GCP_MAPS_PLATFORM_API_KEY } from "@/config/env";
 import { Coordinates, PolygonPart } from "@/interfaces/Map";
 import { isEqual } from "lodash";
-import { Box, Button, ButtonGroup } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
+import { useTranslation } from "react-i18next";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -130,10 +132,26 @@ const centerMap = (
   map.fitBounds(bounds);
 };
 
+// The map's own controls: white cards with an ink icon, as Google Maps draws its own
+const CONTROL_CARD = {
+  backgroundColor: FLOW_COLORS.white,
+  border: `1px solid ${FLOW_COLORS.line}`,
+  borderRadius: "8px",
+  boxShadow: "0 1px 4px rgba(11, 37, 69, 0.18)",
+} as const;
+const CONTROL_ICON = {
+  width: 36,
+  height: 36,
+  color: FLOW_COLORS.ink2,
+  "&:hover": { backgroundColor: FLOW_COLORS.blue25, color: FLOW_COLORS.blue },
+} as const;
+const CONTROL = { ...CONTROL_CARD, ...CONTROL_ICON } as const;
+
 interface CustomMapControlsProps {
   objects: (PolygonObject | CircleObject)[];
 }
 const CustomMapControls: React.FC<CustomMapControlsProps> = ({ objects }) => {
+  const { t } = useTranslation();
   const map = useMap();
 
   const onZoomIn = useCallback(() => {
@@ -157,22 +175,28 @@ const CustomMapControls: React.FC<CustomMapControlsProps> = ({ objects }) => {
   }, [map, objects]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, padding: 1 }}>
-      <Button
-        sx={{ padding: 1, minWidth: 0 }}
-        variant="contained"
-        onClick={onCenter}
-      >
-        <CropFreeIcon />
-      </Button>
-      <ButtonGroup variant="contained" orientation="vertical">
-        <Button sx={{ padding: 1, minWidth: 0 }} onClick={onZoomIn}>
-          <AddIcon />
-        </Button>
-        <Button sx={{ padding: 1, minWidth: 0 }} onClick={onZoomOut}>
-          <RemoveIcon />
-        </Button>
-      </ButtonGroup>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, padding: 1.25 }}>
+      <IconButton aria-label={t("common:mapControls:center")} onClick={onCenter} sx={CONTROL}>
+        <CropFreeIcon fontSize="small" />
+      </IconButton>
+      {/* Zoom in and out, as one white card */}
+      <Box sx={{ ...CONTROL_CARD, display: "flex", flexDirection: "column" }}>
+        <IconButton
+          aria-label={t("common:mapControls:zoomIn")}
+          onClick={onZoomIn}
+          sx={{ ...CONTROL_ICON, borderRadius: "8px 8px 0 0" }}
+        >
+          <AddIcon fontSize="small" />
+        </IconButton>
+        <Box sx={{ height: "1px", backgroundColor: FLOW_COLORS.line }} />
+        <IconButton
+          aria-label={t("common:mapControls:zoomOut")}
+          onClick={onZoomOut}
+          sx={{ ...CONTROL_ICON, borderRadius: "0 0 8px 8px" }}
+        >
+          <RemoveIcon fontSize="small" />
+        </IconButton>
+      </Box>
     </Box>
   );
 };

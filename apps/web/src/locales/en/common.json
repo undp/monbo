@@ -25,6 +25,13 @@
   },
   "cancel": "Cancel",
   "close": "Close",
+  "download": "Download",
+  "clearSearch": "Clear the search",
+  "mapControls": {
+    "center": "Center the map",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
   "contentTabs": "Content tabs",
   "all": "All",
   "surface": "Area",

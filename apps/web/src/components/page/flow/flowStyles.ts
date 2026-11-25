@@ -45,6 +45,12 @@ export const FLOW_COLORS = {
   badBackground: "#fdeceb",
 } as const;
 
+/**
+ * The height of a stage page's heading actions ("Cambiar capas", "Descargar"):
+ * the same as the small search field beside them.
+ */
+export const PAGE_ACTION_HEIGHT = 40;
+
 /** Width of the flow header's content (the stepper) and of a stage page's body. */
 export const FLOW_CONTENT_MAX_WIDTH = 1180;
 

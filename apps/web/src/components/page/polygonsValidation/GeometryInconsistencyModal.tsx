@@ -257,6 +257,12 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
         headers,
         actions: (item, idx) => (
           <IconButton
+            // Icon only: named by its farm, and saying whether its row is open
+            aria-label={t("polygonValidation:geometryInconsistencyModal.farmDetails", {
+              id: item.data?.farmIds[idx],
+              interpolation: { escapeValue: false },
+            })}
+            aria-expanded={openedRows.includes(item.data!.farmIds[idx])}
             onClick={() =>
               setOpenedRows((prev) => {
                 if (!item.data) return prev;
