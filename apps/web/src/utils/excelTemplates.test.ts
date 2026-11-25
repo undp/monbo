@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { readPublicFile, toFile } from "@/test/files";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
+import { inTimeZone, TIME_ZONES } from "@/test/timeZone";
+import { shortFormatDateByLanguage } from "./dates";
 import { getUploadFileTemplatePath, loadExcelFileFarmsData } from "./excel";
 
 // The upload templates users download (public/files/), read the way the upload page
@@ -102,5 +104,32 @@ describe.each(LOCALES)("the %s upload template", (locale) => {
 
     expect(data[0]).not.toHaveProperty("producerName");
     expect(errorMessages).toHaveLength(1);
+  });
+});
+
+describe.each(TIME_ZONES)("an uploaded production date in %s", (zone) => {
+  inTimeZone(zone);
+
+  const shownDate = async (edit: (sheet: XLSX.WorkSheet) => void) => {
+    const { data } = await load(filledTemplate("es", edit), "es");
+    return shortFormatDateByLanguage(data[0].productionDate as string, "es");
+  };
+
+  it("is the day of a date cell", async () => {
+    const shown = await shownDate((sheet) => {
+      // Built here, after the zone is set: a date cell holds a local day.
+      XLSX.utils.sheet_add_aoa(sheet, [[new Date(2025, 0, 15)]], {
+        origin: "C4",
+        cellDates: true,
+      });
+    });
+    expect(shown).toBe("15-01-2025");
+  });
+
+  it("is the day of a text cell, as in regression_farms.xlsx", async () => {
+    const shown = await shownDate((sheet) => {
+      sheet["C4"] = { t: "s", v: "2025-01-15" };
+    });
+    expect(shown).toBe("15-01-2025");
   });
 });

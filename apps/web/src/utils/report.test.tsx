@@ -17,6 +17,7 @@ import {
   textOf,
   type PdfNode,
 } from "@/test/pdfTree";
+import { inTimeZone } from "@/test/timeZone";
 import type { LayerAnalysisMapResults } from "@/interfaces/LayerAnalysis";
 import type { FarmData } from "@/interfaces/Farm";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
@@ -197,6 +198,32 @@ describe("a farm's sheet", () => {
     expect(sheet).toContain("Results by category");
     expect(sheet).toContain("OUTSIDE THE AGRICULTURAL FRONTIER");
     expect(sheet).toContain("NO DATA");
+  });
+});
+
+describe("a farm's production date", () => {
+  // West of UTC, where a date read as UTC midnight is still the day before.
+  inTimeZone("America/Bogota");
+
+  const sheetWith = async (productionDate: string, locale: TestLocale = "es") => {
+    const farms = [makeFarm({ id: "F01", productionDate })];
+    const pages = pagesText(await renderReport({ locale, farms }));
+    return pages.find((page) => page.includes("n°F01"))!;
+  };
+
+  it("is the day uploaded as text, as F01 of regression_farms.xlsx", async () => {
+    expect(await sheetWith("2025-01-15")).toContain(
+      "Fecha de producción 15-01-2025"
+    );
+    expect(await sheetWith("2025-01-15", "en")).toContain(
+      "Production Date 2025-01-15"
+    );
+  });
+
+  it("is shown as written when it can't be read, and the report is built", async () => {
+    expect(await sheetWith("15/01/2025")).toContain(
+      "Fecha de producción 15/01/2025"
+    );
   });
 });
 
