@@ -38,24 +38,42 @@ export const MethodButton: React.FC<MethodButtonProps> = ({
         padding: "14px",
         textAlign: "left",
         borderRadius: "12px",
-        border: `1.5px solid ${selected ? FLOW_COLORS.blue : FLOW_COLORS.line}`,
-        backgroundColor: selected ? FLOW_COLORS.blue25 : FLOW_COLORS.white,
+        // A method not picked looks muted, like a disabled control, but stays
+        // clickable: hovering it brings its colors back
+        border: `1.5px solid ${selected ? FLOW_COLORS.blue : FLOW_COLORS.idleLine}`,
+        backgroundColor: selected ? FLOW_COLORS.blue25 : FLOW_COLORS.idleBackground,
         boxShadow: selected ? "0 0 0 3px rgba(13, 100, 160, 0.08)" : "none",
         transition: "border-color .15s, background-color .15s",
-        "&:hover": { borderColor: selected ? FLOW_COLORS.blue : "#b9d3e8" },
+        "& .method-icon": {
+          backgroundColor: selected ? FLOW_COLORS.blue50 : FLOW_COLORS.idleIconBackground,
+          color: selected ? FLOW_COLORS.blue : FLOW_COLORS.idleIcon,
+          transition: "background-color .15s, color .15s",
+        },
+        "& .method-title": { color: selected ? FLOW_COLORS.ink : FLOW_COLORS.idleTitle },
+        "& .method-description": {
+          color: selected ? FLOW_COLORS.muted : FLOW_COLORS.idleText,
+        },
+        "&:hover": selected
+          ? { borderColor: FLOW_COLORS.blue }
+          : {
+              borderColor: FLOW_COLORS.blueLine,
+              backgroundColor: FLOW_COLORS.white,
+              "& .method-icon": { backgroundColor: FLOW_COLORS.blue50, color: FLOW_COLORS.blue },
+              "& .method-title": { color: FLOW_COLORS.ink },
+              "& .method-description": { color: FLOW_COLORS.muted },
+            },
         "&.Mui-focusVisible": { outline: `2px solid ${FLOW_COLORS.blue}`, outlineOffset: 2 },
       }}
     >
       <Box
         aria-hidden
+        className="method-icon"
         sx={{
           width: 34,
           height: 34,
           borderRadius: "9px",
           display: "grid",
           placeItems: "center",
-          backgroundColor: FLOW_COLORS.blue50,
-          color: FLOW_COLORS.blue,
         }}
       >
         {icon}
@@ -67,14 +85,15 @@ export const MethodButton: React.FC<MethodButtonProps> = ({
           fontSize: 15,
           fontWeight: 700,
           lineHeight: 1.2,
-          color: FLOW_COLORS.ink,
         }}
+        className="method-title"
       >
         {title}
       </Box>
       <Box
         component="span"
-        sx={{ fontSize: 12.5, lineHeight: 1.35, color: FLOW_COLORS.muted }}
+        className="method-description"
+        sx={{ fontSize: 12.5, lineHeight: 1.35 }}
       >
         {description}
       </Box>

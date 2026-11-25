@@ -8,8 +8,6 @@ import { useTranslation } from "react-i18next";
 import { ReportContext } from "@/context/ReportContext";
 import { useReportDownload } from "@/hooks/useReportDownload";
 import { useReportPreviewRequest } from "@/hooks/useReportPreviewRequest";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { ZipProgress } from "./ZipProgress";
 import { DownloadFormatModal } from "./DownloadFormatModal";
@@ -85,7 +83,6 @@ export const ReportActions: React.FC = () => {
       >
         {t("reportGeneration:buttons:download")}
       </Button>
-      {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
       {progress && (
         <ZipProgress
           done={progress.done}

@@ -57,7 +57,7 @@ FlowPage
 
 - On `md` and up, the two columns sit side by side, and the preview panel is as tall as the viewport under the header.
 - Below `md`, they stack, with the sidebar first.
-- The old fixed `Footer` goes away. `DevEnvWarning` moves to the sidebar's foot.
+- The old fixed `Footer` goes away. `DevEnvWarning` stays only in the flow header, as on the other stages: a second copy at the sidebar's foot overflowed the narrow column.
 - The page keeps `AnalysisOutdatedGuard` and `NavigateHomepageWhenEmptyData`.
 
 Alternative: keep `/preview` as a second page with the preview. Rejected, because the mockup is one screen and the stale-preview rule needs the choices next to the PDF.

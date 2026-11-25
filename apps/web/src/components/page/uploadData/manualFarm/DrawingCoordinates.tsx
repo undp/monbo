@@ -10,14 +10,44 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
 } from "@mui/material";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { FLOW_TABLE_FRAME, FLOW_TABLE_SX } from "@/components/page/flow/flowTable";
 import { Coordinates } from "@/interfaces/Map";
 import { Drawing, PolygonDrawing, RingRef, sameRing } from "@/utils/drawing";
 import { VertexRef } from "./DrawingMap";
+import { EYEBROW } from "./manualFarmStyles";
 
 // Decimal places shown for a vertex (about 10 cm)
 const SHOWN_COORDINATE_DECIMALS = 6;
+
+// The stage pages' table, with compact rows: it lists many vertices in little room
+const TABLE_SX = {
+  ...FLOW_TABLE_SX,
+  "& th": { ...FLOW_TABLE_SX["& th"], padding: "8px 14px" },
+  "& td": {
+    ...FLOW_TABLE_SX["& td"],
+    padding: "7px 14px",
+    fontSize: 13.5,
+    fontVariantNumeric: "tabular-nums",
+  },
+  "& th[scope=rowgroup]": {
+    padding: "6px 14px",
+    fontSize: 12.5,
+    letterSpacing: 0,
+    textTransform: "none",
+    color: FLOW_COLORS.ink2,
+    backgroundColor: FLOW_COLORS.pageBackground,
+  },
+  "& tbody tr.Mui-selected, & tbody tr.Mui-selected:hover": {
+    backgroundColor: FLOW_COLORS.blue50,
+  },
+  "& tbody tr.MuiTableRow-hover:hover": { backgroundColor: FLOW_COLORS.blue25 },
+  // Only the table's last row goes without a line: a ring's last one keeps it
+  "& tbody:not(:last-of-type) tr:last-of-type td": {
+    borderBottom: `1px solid ${FLOW_COLORS.line}`,
+  },
+} as const;
 
 interface CoordinateGroup {
   title: string;
@@ -89,22 +119,18 @@ export const DrawingCoordinates: React.FC<{
 
   return (
     <Box component="section" aria-label={title}>
-      <Typography variant="subtitle2">{title}</Typography>
-      {selectable && (
-        <Typography variant="caption" color="text.secondary">
-          {t("manualFarm:coordinates:selectHint")}
-        </Typography>
-      )}
-      <TableContainer
-        sx={{
-          maxHeight: 200,
-          marginTop: 0.5,
-          border: 1,
-          borderColor: "divider",
-          borderRadius: 1,
-        }}
-      >
-        <Table size="small" stickyHeader>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", columnGap: 1.5 }}>
+        <Box component="h3" sx={EYEBROW}>
+          {title}
+        </Box>
+        {selectable && (
+          <Box component="span" sx={{ fontSize: 12.5, color: FLOW_COLORS.muted }}>
+            {t("manualFarm:coordinates:selectHint")}
+          </Box>
+        )}
+      </Box>
+      <TableContainer sx={{ ...FLOW_TABLE_FRAME, maxHeight: 220, marginTop: 1 }}>
+        <Table size="small" stickyHeader sx={TABLE_SX}>
           <TableHead>
             <TableRow>
               {drawing.type === "polygon" && (
@@ -124,7 +150,6 @@ export const DrawingCoordinates: React.FC<{
                     component="th"
                     scope="rowgroup"
                     colSpan={3}
-                    sx={{ fontWeight: 600, backgroundColor: "grey.50" }}
                   >
                     {groupTitle}
                   </TableCell>
@@ -143,12 +168,8 @@ export const DrawingCoordinates: React.FC<{
                   {drawing.type === "polygon" && (
                     <TableCell>{index + 1}</TableCell>
                   )}
-                  <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                    {vertex.lat.toFixed(SHOWN_COORDINATE_DECIMALS)}
-                  </TableCell>
-                  <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                    {vertex.lng.toFixed(SHOWN_COORDINATE_DECIMALS)}
-                  </TableCell>
+                  <TableCell>{vertex.lat.toFixed(SHOWN_COORDINATE_DECIMALS)}</TableCell>
+                  <TableCell>{vertex.lng.toFixed(SHOWN_COORDINATE_DECIMALS)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

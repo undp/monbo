@@ -82,7 +82,9 @@ const record = async (browser, language, framesDir) => {
   const page = await context.newPage();
   const prefix = language === "es" ? "" : `/${language}`;
   await page.goto(`${BASE_URL}${prefix}/polygons-validation/upload-data`);
-  await page.getByRole("button", { name: farmsUpload.addManually }).first().click();
+  // The "Draw on the map" method, then its area, opens the modal
+  await page.getByRole("button", { name: farmsUpload.cards.manual.title }).first().click();
+  await page.getByRole("button", { name: farmsUpload.drawTitle }).first().click();
   const dialog = page.getByRole("dialog");
   const map = dialog.locator(".gm-style").first();
   await map.waitFor({ timeout: 30000 });

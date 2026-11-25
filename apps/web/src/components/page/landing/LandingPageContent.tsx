@@ -32,13 +32,24 @@ export const LandingPageContent: React.FC = () => {
   const start = useCallback(() => enterStage.current[1](), []);
 
   return (
-    <Box sx={{ minHeight: "100svh", backgroundColor: colors.background, color: colors.ink }}>
+    // A column as tall as the screen: the hero takes the height left over, so on a
+    // tall screen the steps and the start bar sit at the bottom, with no blank band.
+    <Box
+      sx={{
+        minHeight: "100svh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: colors.background,
+        color: colors.ink,
+      }}
+    >
       <LandingHero />
       <Box
         sx={{
           position: "relative",
           zIndex: 2,
           maxWidth: 1280,
+          width: "100%",
           margin: { xs: "0 auto", md: "-92px auto 0" },
           padding: { xs: "20px 16px 24px", md: "0 28px" },
         }}

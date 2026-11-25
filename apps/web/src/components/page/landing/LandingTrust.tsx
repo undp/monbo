@@ -20,7 +20,7 @@ export const LandingTrust: React.FC = () => {
         gap: 3.5,
         listStyle: "none",
         margin: 0,
-        padding: "16px 0",
+        padding: "16px 0 24px",
         fontSize: 13,
         color: colors.muted,
       }}
