@@ -171,7 +171,7 @@ export interface paths {
          * @description Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
          *     public listing but still resolves by id for analyses and tiles. A layer can
          *     only be enabled once it has a raster (409), and while its category resolves, is
-         *     enabled and fits its years (400).
+         *     enabled and fits its years, and its index fields have valid types (400).
          */
         patch: operations["set_layer_enabled_admin_layers__layer_id__patch"];
         trace?: never;

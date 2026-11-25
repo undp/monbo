@@ -767,13 +767,15 @@ class LayersRoot:
         return True
 
     def _log_hidden(self, layer: dict, reason: str) -> None:
-        key = (layer["country"], layer["id"], str(layer["category_id"]), reason)
+        # The id may be the hand edit being reported: missing, or a list.
+        layer_id = repr(layer.get("id"))
+        key = (layer["country"], layer_id, str(layer["category_id"]), reason)
         if key in self._logged_issues:
             return
         self._logged_issues.add(key)
         logger.error(
             "Layer %s of %s is hidden: %s",
-            layer["id"],
+            layer_id,
             layer["country"] or "the flat root",
             reason,
         )

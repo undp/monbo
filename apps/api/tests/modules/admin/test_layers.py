@@ -804,6 +804,8 @@ def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
 
 # --- Index fields of the wrong type ---------------------------------------------------
 
+# A field the hand edit removed from the entry.
+MISSING = object()
 BAD_FIELDS = [
     ("version", "abc"),
     ("pixel_size", "abc"),
@@ -813,6 +815,8 @@ BAD_FIELDS = [
     ("attributes_filename", 5),
     ("considerations_filename", 5),
     ("id", "abc"),
+    ("id", [7]),
+    ("id", MISSING),
 ]
 STRICT_FIELDS = [
     ("version", "3"),
@@ -824,7 +828,10 @@ STRICT_FIELDS = [
 
 def with_bad_layer(country, field, value, **extra):
     index = json.loads(country.store.index_path.read_text())
-    country.write_index([*index, {**GFW, "id": 7, field: value, **extra}])
+    entry = {**GFW, "id": 7, field: value, **extra}
+    if value is MISSING:
+        del entry[field]
+    country.write_index([*index, entry])
 
 
 def ids(response):
@@ -904,10 +911,11 @@ def test_the_admin_lists_a_layer_with_an_invalid_field(
         assert by_id[7][key] == expected
 
 
+@pytest.mark.parametrize("value", ["abc", [7], MISSING])
 def test_the_admin_leaves_out_a_layer_whose_id_is_not_an_integer(
-    layers, client, admin_headers
+    layers, client, admin_headers, value
 ):
-    with_bad_layer(layers, "id", "abc")
+    with_bad_layer(layers, "id", value)
 
     response = client.get("/admin/layers", headers=admin_headers)
 
