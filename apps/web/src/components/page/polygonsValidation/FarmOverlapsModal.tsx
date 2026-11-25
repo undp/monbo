@@ -180,6 +180,11 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
         </Text>
       }
       tableProps={{ headers }}
+      footer={
+        <Button variant="contained" onClick={onClose}>
+          {t("common:close")}
+        </Button>
+      }
     >
       <Box
         sx={{
@@ -203,11 +208,6 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
         <Text variant="body2" color="secondary">
           {t("polygonValidation:farmOverlapsModal:validateHint")}
         </Text>
-      </Box>
-      <Box sx={{ marginTop: 2, display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="contained" onClick={onClose}>
-          {t("common:close")}
-        </Button>
       </Box>
     </BasePolygonModal>
   );

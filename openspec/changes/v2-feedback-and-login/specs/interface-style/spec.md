@@ -2,7 +2,7 @@
 
 ### Requirement: Feedback and waits share the v2 look
 
-The web's notices (snackbars), its loading screen and its progress dialogs SHALL use the stage pages' look: white cards with the stage pages' hairline and shadow, ink texts, and the flow's colors for their accents. A notice SHALL show its type (success, information, warning, error) through its icon and edge color, not through a filled background. The loading screen SHALL fit under the flow header without making the page scroll on a 1366×768 screen.
+The web's notices (snackbars), its loading screen and its progress dialogs SHALL use the stage pages' look: white cards with the stage pages' hairline and shadow, ink texts, and the flow's colors for their accents. A notice SHALL show its type (success, information, warning, error) through its icon and edge color, not through a filled background. The loading screen SHALL fit under the flow header without making the page scroll in a viewport of 1366×768.
 
 #### Scenario: A notice after the validation
 

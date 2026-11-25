@@ -9,10 +9,14 @@
 - [x] 2.1 `DownloadButton`: "Descargar" with icon and arrow, ids from `useId`; `common:download`
 - [x] 2.2 `Map.tsx`: named controls on white cards; `common:mapControls`
 
+- [x] 2.3 `SearchBar`'s clear button and the geometry error modal's row toggle get a name; `common:clearSearch`, `farmDetails`
+- [x] 2.4 `PAGE_ACTION_HEIGHT` for "Cambiar capas" and "Descargar"
+
 ## 3. Admin login
 
 - [x] 3.1 `AdminLoginPageContent`: stage background and card, lock tile, eyebrow, heading font, v2 field
 - [x] 3.2 `FIELD` to `components/reusable/inputs/fieldStyles.ts`
+- [x] 3.3 The login's height from `ADMIN_HEADER_HEIGHT` (56 px header on a phone)
 
 ## 4. Cleanup
 

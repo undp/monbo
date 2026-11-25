@@ -4,11 +4,11 @@ A review of the web after the v2 redesign found that every button not styled by 
 
 ## What Changes
 
-- **Buttons in the theme:** `config/theme.ts` gives every MUI button the v2 look: sentence case, 10 px corners, no shadow, weight 600; a contained primary in the flow's blue (`#0d64a0`, darker on hover); an outlined primary blue on white with a 1.74:1 border; a text primary in blue. Buttons styled with `sx` keep their own look.
+- **Buttons in the theme:** `config/theme.ts` gives every MUI button the v2 look: sentence case, 10 px corners, no shadow, weight 600; a contained primary in the flow's blue (`#0d64a0`, darker on hover); an outlined primary blue on white with a 1.74:1 border (`palette.landing.fieldLine`); a text primary in blue. Buttons styled with `sx` keep their own look.
 - **One modal heading:** `ModalHeader` moves from the drawing modal to `components/reusable/Modals/` with an optional icon, a tone for the icon tile (blue, amber for a warning, red for an error), an optional subtitle and an optional close button. Only the title names the dialog. `modalStyles.ts` holds the paper (16 px corners), the padding and a footer of actions over a hairline.
-- **`BaseModal`** uses them, with `subtitle`, `icon`, `tone` and an `actions` footer. Its modals follow: "Formato" (the report's download, its buttons in the footer), the answer modals (`ActionModal`: the restart warning when changing country, with an amber tile, and the start page's "same data or new data"), and the admin's example of a layer's texts.
-- **`BasePolygonModal`** uses the heading and the stage pages' compact table in a framed panel; the farm detail gets the polygon or point icon, the overlaps modal an amber tile and the geometry error modal a red one.
-- **"Detalles de las capas"** (stage 2) and **"Nombres de atributos aceptados"** (the geographic file's help) get the heading; the layers are pills (the chosen one blue) and the attribute table the compact stage table.
+- **`BaseModal`** uses them, with `subtitle`, `icon`, `tone` and an `actions` footer. Its modals follow: "Formato" (the report's download, its buttons in the footer), the answer modals (`ActionModal`: the restart warning when changing country, with an amber tile, and the start page's "same data or new data"; their question describes the dialog through `describedById`), and the admin's example of a layer's texts.
+- **`BasePolygonModal`** uses the heading and the stage pages' compact table in a framed panel, and draws its `footer` in the same footer as `BaseModal`; the farm detail gets the polygon or point icon, the overlaps modal an amber tile and the geometry error modal a red one, each closing from its footer's "Cerrar".
+- **"Detalles de las capas"** (stage 2) and **"Nombres de atributos aceptados"** (the geographic file's help) get the heading; the layers are a radio group of pills (the chosen one blue, arrows to move, a blue outline on focus) and the attribute table the compact stage table, closed from the heading's X only.
 - `flowTable.ts` adds `FLOW_TABLE_COMPACT_SX`, now also used by the drawing modal's vertex list.
 
 ## Capabilities

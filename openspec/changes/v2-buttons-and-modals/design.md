@@ -12,7 +12,7 @@ The v2 screens style their MUI controls with `sx` (`FLOW_COLORS`, `HEADING_FONT`
 
 ### D1: Buttons in the theme
 
-`MuiButton.styleOverrides.root` sets sentence case, the corners, the weight and no shadow, and uses `variants` for the primary colors: contained `landing.blue` (`#0d64a0`, hover `landing.blueDark`), outlined `landing.blue` on white with a `#b6c6d6` border (1.74:1, as MUI's default; `FLOW_COLORS.fieldLine`), text `landing.blue`. The values come from `palette.landing`, so `config/` doesn't import from `components/`. MUI's `.Mui-disabled` rules are more specific and still apply.
+`MuiButton.styleOverrides.root` sets sentence case, the corners, the weight and no shadow, and uses `variants` for the primary colors: contained `landing.blue` (`#0d64a0`, hover `landing.blueDark`), outlined `landing.blue` on white with a `#b6c6d6` border (1.74:1, as MUI's default; `FLOW_COLORS.fieldLine`), text `landing.blue`. The values come from `palette.landing` (which gets `fieldLine`), so `config/` doesn't import from `components/`. MUI's `.Mui-disabled` rules are more specific and still apply.
 
 *Alternative:* change `palette.primary.main` to `#0d64a0`. Rejected here: it reaches every primary control, a wider review than this change.
 
@@ -22,7 +22,7 @@ The v2 screens style their MUI controls with `sx` (`FLOW_COLORS`, `HEADING_FONT`
 
 ### D3: `BaseModal` owns the footer
 
-`BaseModal` gets `actions`, rendered in `MODAL_FOOTER` (right-aligned, over a hairline), and `subtitle` for `aria-describedby`. `ActionModal` puts its answers there; "Formato" moves its two downloads there.
+`BaseModal` gets `actions`, rendered in `MODAL_FOOTER` (right-aligned, over a hairline), `subtitle` for `aria-describedby`, and `describedById` for content that describes the dialog instead. `ActionModal` puts its answers there and its question in `describedById`; "Formato" moves its two downloads there. `BasePolygonModal` draws its `footer` in the same `MODAL_FOOTER`. A modal has one close control: the heading's X, or its own "Cerrar" with `hideCloseButton` (overlaps, geometry error), never both.
 
 ### D4: A compact stage table
 
@@ -31,6 +31,7 @@ The v2 screens style their MUI controls with `sx` (`FLOW_COLORS`, `HEADING_FONT`
 ## Risks / Trade-offs
 
 - [A button somewhere relied on uppercase or the shadow] → Only the text's case changes in the DOM's rendering; the tests query by text and pass. Screens checked: upload, validation, layers, results, report, and every modal in this change.
+- [MUI's focus on a Chip] → A default `Chip` turns gray on keyboard focus, which hid the chosen layer's white text; the layer pills set their own `Mui-focusVisible` (blue, with an outline), as the method cards do.
 - [Two looks for outlined hover] → The theme's outlined hover is `blue50`; the drawing modal's hand-styled one is `blue25`. Left as is; it goes when those `sx` are removed.
 
 ## Migration Plan

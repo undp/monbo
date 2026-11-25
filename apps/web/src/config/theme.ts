@@ -21,6 +21,8 @@ interface LandingPalette {
   inkSecondary: string;
   muted: string;
   line: string;
+  /** A field's or a framed button's border: 1.74:1 on white, as MUI's default. */
+  fieldLine: string;
   blue: string;
   blueDark: string;
   blueTint: string;
@@ -71,6 +73,7 @@ const theme = createTheme({
       inkSecondary: "#3d5873",
       muted: "#6b8299",
       line: "#e2ecf5",
+      fieldLine: "#b6c6d6",
       blue: "#0d64a0",
       blueDark: "#0a4f7e",
       blueTint: "#e8f1fa",
@@ -108,8 +111,7 @@ const theme = createTheme({
               props: { variant: "outlined", color: "primary" },
               style: {
                 color: theme.palette.landing.blue,
-                // 1.74:1 on white, as MUI's default border (FLOW_COLORS.fieldLine)
-                borderColor: "#b6c6d6",
+                borderColor: theme.palette.landing.fieldLine,
                 backgroundColor: theme.palette.common.white,
                 "&:hover": {
                   borderColor: theme.palette.landing.blue,

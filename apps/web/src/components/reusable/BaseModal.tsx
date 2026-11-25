@@ -9,6 +9,8 @@ export interface BaseModalProps {
   title: string;
   /** Under the title; it also describes the dialog. */
   subtitle?: string;
+  /** The id of the content that describes the dialog, when it isn't the subtitle. */
+  describedById?: string;
   icon?: React.ReactNode;
   tone?: ModalHeaderProps["tone"];
   children: React.ReactNode;
@@ -24,6 +26,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   handleClose,
   title,
   subtitle,
+  describedById,
   icon,
   tone,
   maxWidth = "lg",
@@ -39,7 +42,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
       fullWidth
       maxWidth={maxWidth}
       onTransitionExited={onAfterClose}
-      aria-describedby={subtitle ? subtitleId : undefined}
+      aria-describedby={describedById ?? (subtitle ? subtitleId : undefined)}
       slotProps={{ paper: { sx: MODAL_PAPER } }}
     >
       <ModalHeader

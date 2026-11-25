@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { debounce } from "lodash";
 import { Theme } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SearchBarProps {
   placeholder: string;
@@ -19,6 +20,7 @@ interface SearchBarProps {
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({ placeholder, style }) => {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -82,7 +84,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ placeholder, style }) => {
       endAdornment={
         searchTerm ? (
           <InputAdornment position="end">
-            <IconButton onClick={handleClear} edge="end">
+            <IconButton onClick={handleClear} edge="end" aria-label={t("common:clearSearch")}>
               <ClearIcon />
             </IconButton>
           </InputAdornment>

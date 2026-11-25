@@ -65,6 +65,23 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
       />
       <DialogContent sx={{ padding: MODAL_PADDING }}>
         <Box
+          role="radiogroup"
+          aria-label={t("territorialAnalysis:mapsInfoModal.title")}
+          // A radio group: the arrows move the choice, Tab leaves the group
+          onKeyDown={(event) => {
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[
+              event.key as "ArrowRight"
+            ];
+            if (!step || !selectedMaps.length) return;
+            event.preventDefault();
+            const current = selectedMaps.findIndex((map) => map.id === selectedMap.id);
+            const next =
+              selectedMaps[(current + step + selectedMaps.length) % selectedMaps.length];
+            setSelectedMap(next);
+            event.currentTarget
+              .querySelector<HTMLElement>(`[data-map-id="${next.id}"]`)
+              ?.focus();
+          }}
           sx={{
             display: "flex",
             gap: 1,
@@ -87,7 +104,10 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
                 key={map.id}
                 label={layerLabel(map)}
                 onClick={() => setSelectedMap(map)}
-                aria-pressed={selected}
+                role="radio"
+                aria-checked={selected}
+                data-map-id={map.id}
+                tabIndex={selected ? 0 : -1}
                 // The flow's pills: the chosen layer blue, the others outlined
                 sx={{
                   height: 34,
@@ -100,6 +120,12 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
                   backgroundColor: selected ? FLOW_COLORS.blue : FLOW_COLORS.white,
                   "&:hover": {
                     backgroundColor: selected ? FLOW_COLORS.blueDark : FLOW_COLORS.blue25,
+                  },
+                  // MUI's focus darkens a default Chip to gray, under white text
+                  "&.Mui-focusVisible": {
+                    backgroundColor: selected ? FLOW_COLORS.blue : FLOW_COLORS.white,
+                    outline: `2px solid ${FLOW_COLORS.blue}`,
+                    outlineOffset: 2,
                   },
                 }}
               />
