@@ -133,6 +133,11 @@ Each country's `index.json` is a list with one entry per layer:
 - **available_countries_codes**: only in the flat layout, the countries the layer
   covers. In the per-country layout the folder says it.
 
+The admin always writes these fields with the right types. A hand edit of the share
+that doesn't (a `version` of `"3"`, `references` that aren't a list of strings) hides
+only that layer: see "What the public app offers" in
+[Managing categories in the admin](#managing-categories-in-the-admin).
+
 The attributes files hold `name` and `alias` (required) plus the optional
 `coverage`, `source`, `resolution`, `contentDate`, `updateFrequency` and
 `publishDate`. Considerations are Markdown.
@@ -247,10 +252,24 @@ publishes or hides a category.
 **What the public app offers, whatever edited the share.** `GET /maps` and
 `GET /countries` only offer a layer whose `enabled` is `true` (a string like
 `"false"` doesn't count), whose category resolves and is enabled, whose years fit
-that category and whose raster file exists. Any other layer is hidden, logged once
-as an error, and shown in the admin with `category_issue` or `layer_issue`
-(`years_mismatch`, `missing_raster`). Like any hidden layer, it still resolves by id
-for analyses already open.
+that category, whose index fields have valid types and whose raster file exists. Any
+other layer is hidden, logged once as an error naming the country, the layer and the
+reason, and shown in the admin with `category_issue` or `layer_issue`. One bad layer
+never takes down the listing of its country or of any other. Like any hidden layer,
+it still resolves by id for analyses already open.
+
+| `layer_issue` | Why |
+|---|---|
+| `invalid_fields` | An index field has the wrong type, by the rules of creating a layer (below). Checked first. |
+| `years_mismatch` | Its years don't fit its category's `temporal`. |
+| `missing_raster` | Its raster file doesn't exist. |
+
+The type check is strict, because other code does arithmetic on these values: `id`
+is an integer; `version` an integer of at least 0 (`"3"` is not one); `pixel_size` a
+finite number greater than 0 and at most 10000; `references` missing or a list of
+strings; `raster_filename` missing, `null` or a string; `attributes_filename` and
+`considerations_filename` strings. A boolean never counts as a number. It checks only
+types: a `references` link that isn't http(s) is not caught here.
 
 **The admin UI explains these rules before the admin hits them.** On the Categories
 page and in the category editor (`/admin/categories/new` and
@@ -315,12 +334,20 @@ The admin shows and changes only that country's layers. Then:
   raster, version and published state are not edited there. The admin shows a
   layer whose category doesn't resolve (`category_issue`) so you can move it or
   repair the category.
+- **A layer with `invalid_fields`** is listed with the field it can't read shown
+  empty: `pixel_size` and `version` as `null` (the list shows "—" as the version, and
+  the form starts with an empty pixel size), `references` as `[]`, `raster_filename`
+  as `null`, and the attributes or considerations of a bad file name as `null`. It
+  can't be published (400). It is fixed on the share, by the operations team, not
+  from the admin: editing it or uploading its raster may still fail while its
+  `version` or a file name is invalid. A layer whose `id` isn't an integer can't be
+  addressed by any admin route, so it is left out of the admin listing and logged.
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 
 A country appears on the app's start page once it has at least one layer that
 `GET /maps` offers: published, with an enabled and valid category, years that fit it,
-and its raster.
+index fields of valid types, and its raster.
 
 GFW and TMF were migrated as one copy per country. The copies are independent: when a
 new GFW year comes out, each country's admin uploads it to their own copy, and
