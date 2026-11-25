@@ -5,7 +5,11 @@ import { Box, Breakpoint, Dialog, DialogContent } from "@mui/material";
 import { Map, CircleObject, PolygonObject } from "@/components/reusable/Map";
 import { Table, RowData, TableProps } from "@/components/reusable/Table";
 import { ModalHeader, ModalHeaderProps } from "@/components/reusable/Modals/ModalHeader";
-import { MODAL_PADDING, MODAL_PAPER } from "@/components/reusable/Modals/modalStyles";
+import {
+  MODAL_FOOTER,
+  MODAL_PADDING,
+  MODAL_PAPER,
+} from "@/components/reusable/Modals/modalStyles";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { FLOW_TABLE_COMPACT_SX } from "@/components/page/flow/flowTable";
 import { Coordinates } from "@/interfaces/Map";
@@ -125,8 +129,9 @@ export function BasePolygonModal<T>({
             {children}
           </Box>
         </Box>
-        {footer}
       </DialogContent>
+      {/* The modal's actions, over a hairline, as BaseModal's */}
+      {footer && <Box sx={MODAL_FOOTER}>{footer}</Box>}
     </Dialog>
   );
 }

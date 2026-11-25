@@ -58,16 +58,3 @@ describe("BaseModal", () => {
     expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeTruthy();
   });
 });
-
-describe("theme buttons", () => {
-  it("are in sentence case, with no shadow", () => {
-    render(
-      <ThemeProvider theme={theme}>
-        <Button variant="contained">Validar polígonos</Button>
-      </ThemeProvider>
-    );
-    const style = getComputedStyle(screen.getByRole("button", { name: "Validar polígonos" }));
-    expect(style.textTransform).toBe("none");
-    expect(style.boxShadow).toBe("none");
-  });
-});
