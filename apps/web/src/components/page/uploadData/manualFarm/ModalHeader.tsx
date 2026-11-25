@@ -9,17 +9,19 @@ import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
 /**
  * The heading of the manual farm modal and of its "How to draw" dialog, as a stage
  * page's section: an icon tile, the title and a line under it, and the close button.
+ * Only the title is the `DialogTitle`, which names the dialog: the subtitle goes in
+ * `subtitleId`, for the Dialog's `aria-describedby`.
  */
 export const ModalHeader: React.FC<{
   title: string;
   subtitle?: string;
+  subtitleId?: string;
   icon: React.ReactNode;
   onClose: () => void;
-}> = ({ title, subtitle, icon, onClose }) => {
+}> = ({ title, subtitle, subtitleId, icon, onClose }) => {
   const { t } = useTranslation();
   return (
-    <DialogTitle
-      component="div"
+    <Box
       sx={{
         position: "relative",
         display: "flex",
@@ -45,10 +47,11 @@ export const ModalHeader: React.FC<{
         {icon}
       </Box>
       <Box sx={{ minWidth: 0 }}>
-        <Box
+        <DialogTitle
           component="h2"
           sx={{
             margin: 0,
+            padding: 0,
             fontFamily: HEADING_FONT,
             fontSize: 20,
             fontWeight: 700,
@@ -58,10 +61,11 @@ export const ModalHeader: React.FC<{
           }}
         >
           {title}
-        </Box>
+        </DialogTitle>
         {subtitle && (
           <Box
             component="p"
+            id={subtitleId}
             sx={{ margin: 0, fontSize: 13.5, lineHeight: 1.45, color: FLOW_COLORS.muted }}
           >
             {subtitle}
@@ -81,6 +85,6 @@ export const ModalHeader: React.FC<{
       >
         <CloseIcon />
       </IconButton>
-    </DialogTitle>
+    </Box>
   );
 };

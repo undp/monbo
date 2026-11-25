@@ -17,7 +17,8 @@ export const EYEBROW = {
   lineHeight: 1.4,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: FLOW_COLORS.muted,
+  // ink2, not muted: at this size the label needs 4.5:1, also on the blue panel
+  color: FLOW_COLORS.ink2,
 } as const;
 
 const BUTTON = {
@@ -32,7 +33,7 @@ const BUTTON = {
 export const PRIMARY_BUTTON = {
   ...BUTTON,
   backgroundColor: FLOW_COLORS.blue,
-  "&:hover": { backgroundColor: "#0a4f7e", boxShadow: "none" },
+  "&:hover": { backgroundColor: FLOW_COLORS.blueDark, boxShadow: "none" },
 } as const;
 
 /** A secondary action: blue on white, with a hairline. */
@@ -40,7 +41,7 @@ export const SECONDARY_BUTTON = {
   ...BUTTON,
   color: FLOW_COLORS.blue,
   backgroundColor: FLOW_COLORS.white,
-  border: "1px solid #c9d8e6",
+  border: `1px solid ${FLOW_COLORS.fieldLine}`,
   "&:hover": { borderColor: FLOW_COLORS.blue, backgroundColor: FLOW_COLORS.blue25 },
 } as const;
 
@@ -52,13 +53,13 @@ export const TEXT_BUTTON = {
   "&:hover": { backgroundColor: FLOW_COLORS.blue25 },
 } as const;
 
-/** An outlined text field: round corners, the flow's hairline and a blue focus. */
+/** An outlined text field: round corners, a border as MUI's default contrast, a blue focus. */
 export const FIELD = {
   "& .MuiOutlinedInput-root": {
     borderRadius: "10px",
     backgroundColor: FLOW_COLORS.white,
-    "& fieldset": { borderColor: "#c9d8e6" },
-    "&:hover fieldset": { borderColor: "#8aa3bb" },
+    "& fieldset": { borderColor: FLOW_COLORS.fieldLine },
+    "&:hover fieldset": { borderColor: FLOW_COLORS.fieldLineHover },
     "&.Mui-focused fieldset": { borderColor: FLOW_COLORS.blue },
     // An error stays red, also while focused
     "&.Mui-error fieldset": { borderColor: FLOW_COLORS.bad },

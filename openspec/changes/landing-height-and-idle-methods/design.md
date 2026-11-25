@@ -26,7 +26,7 @@ Alternatives considered:
 
 ### D2. Muted methods that stay clickable
 
-A method not picked has a `#f5f7f9` background, a `#e6ebf0` border, a `#eceff3` icon tile with a `#7a8a99` icon, a `#56687a` title (5.4:1) and a `#5f7184` description (4.7:1). On hover it takes the usual white card, blue icon tile and dark texts, so it reads as something to click. The picked one keeps its blue border and tint. The button keeps `aria-pressed`, so assistive tech is unchanged.
+A method not picked has a `#f5f7f9` background, a `#e6ebf0` border, a `#eceff3` icon tile with a `#7a8a99` icon (3.1:1), a `#56687a` title (5.4:1) and a `#5f7184` description (4.7:1). They are `FLOW_COLORS` tokens (`idleBackground`, `idleLine`, `idleIconBackground`, `idleIcon`, `idleTitle`, `idleText`), next to the stage pages' other colors. On hover it takes the usual white card, blue icon tile and dark texts, so it reads as something to click. The picked one keeps its blue border and tint. The button keeps `aria-pressed`, so assistive tech is unchanged.
 
 ## Risks / Trade-offs
 

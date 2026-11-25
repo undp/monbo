@@ -19,6 +19,23 @@ export const FLOW_COLORS = {
   ink2: "#3d5873",
   muted: "#6b8299",
   line: "#e2ecf5",
+  /** A primary button's hover. */
+  blueDark: "#0a4f7e",
+  /** A hovered card's border, between the hairline and the blue. */
+  blueLine: "#b9d3e8",
+  /** A field's or a framed button's border: 1.74:1 on white, as MUI's default. */
+  fieldLine: "#b6c6d6",
+  fieldLineHover: "#8aa3bb",
+  /**
+   * A choice not picked (the upload methods): muted like a disabled control. Its
+   * texts keep 4.5:1 on `idleBackground`, and its icon 3:1 on `idleIconBackground`.
+   */
+  idleBackground: "#f5f7f9",
+  idleLine: "#e6ebf0",
+  idleTitle: "#56687a",
+  idleText: "#5f7184",
+  idleIconBackground: "#eceff3",
+  idleIcon: "#7a8a99",
   pageBackground: "#f6faf8",
   ok: "#2e9e5b",
   okBackground: "#e3f4ea",

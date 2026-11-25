@@ -12,7 +12,7 @@ The drawing modal (`uploadData/manualFarm/`) predates the v2 mockup. The stage p
 
 ### D1: Local styles, not theme overrides
 
-The modal's button and field styles live in `manualFarm/manualFarmStyles.ts` (`PRIMARY_BUTTON`, `SECONDARY_BUTTON`, `TEXT_BUTTON`, `FIELD`, `EYEBROW`, `MODAL_PAPER`) and use `FLOW_COLORS`. Overriding `MuiButton` in the theme would restyle every screen, including the ones not yet moved to v2.
+The modal's button and field styles live in `manualFarm/manualFarmStyles.ts` (`PRIMARY_BUTTON`, `SECONDARY_BUTTON`, `TEXT_BUTTON`, `FIELD`, `EYEBROW`, `MODAL_PAPER`) and use `FLOW_COLORS`, which gets the colors they need (`blueDark`, `fieldLine`, `fieldLineHover`) instead of hex values in the components. Overriding `MuiButton` in the theme would restyle every screen, including the ones not yet moved to v2.
 
 *Alternative:* a theme override. Rejected for its reach; it can come when the whole app is on v2.
 
@@ -31,7 +31,11 @@ The spec says the animation is recorded from the modal itself, so it is recorded
 ## Risks / Trade-offs
 
 - [The GIF's single palette turns the toolbar's blue text dark] → It already did; the animation is about the map, and the buttons stay legible.
-- [Contrast] → Texts use `ink`/`ink2`/`muted` on white or `blue25` (at least 4.5:1); field borders keep about the old contrast.
+- [Contrast] → The group labels are small (11.5 px), so they use `ink2`: 7.4:1 on white and 7.0:1 on the blue panel. The subtitle and the hints use the flow's `muted`, as the stage pages' subtitles do: 4.0:1 on white, under the 4.5:1 that AA asks of normal text. That gap is the whole flow's, and is left for a change of the token. Field and framed button borders are `fieldLine`, 1.74:1 on white, the same as MUI's default border; neither reaches 3:1, and each field is named by its label.
+
+### D5: The dialog is named by its title alone
+
+MUI names a Dialog by its whole `DialogTitle`. With the subtitle and the close button inside it, screen readers announced "Add a farm manually Draw the farm… Close". `ModalHeader` makes only the title the `DialogTitle` (an `h2`), puts the subtitle in the Dialog's `aria-describedby`, and leaves the close button outside. The "How to draw" dialog had the same issue, now gone.
 
 ## Migration Plan
 

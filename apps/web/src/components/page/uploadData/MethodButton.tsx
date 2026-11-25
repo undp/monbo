@@ -4,18 +4,6 @@ import { Box, ButtonBase } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
 
-// The methods not picked look muted, like a disabled control, but stay clickable:
-// hovering one brings its colors back. Texts keep 4.5:1 and the icon 3:1 on their
-// backgrounds.
-const IDLE = {
-  background: "#f5f7f9",
-  line: "#e6ebf0",
-  title: "#56687a",
-  description: "#5f7184",
-  iconBackground: "#eceff3",
-  icon: "#7a8a99",
-} as const;
-
 interface MethodButtonProps {
   icon: React.ReactNode;
   title: string;
@@ -50,21 +38,25 @@ export const MethodButton: React.FC<MethodButtonProps> = ({
         padding: "14px",
         textAlign: "left",
         borderRadius: "12px",
-        border: `1.5px solid ${selected ? FLOW_COLORS.blue : IDLE.line}`,
-        backgroundColor: selected ? FLOW_COLORS.blue25 : IDLE.background,
+        // A method not picked looks muted, like a disabled control, but stays
+        // clickable: hovering it brings its colors back
+        border: `1.5px solid ${selected ? FLOW_COLORS.blue : FLOW_COLORS.idleLine}`,
+        backgroundColor: selected ? FLOW_COLORS.blue25 : FLOW_COLORS.idleBackground,
         boxShadow: selected ? "0 0 0 3px rgba(13, 100, 160, 0.08)" : "none",
         transition: "border-color .15s, background-color .15s",
         "& .method-icon": {
-          backgroundColor: selected ? FLOW_COLORS.blue50 : IDLE.iconBackground,
-          color: selected ? FLOW_COLORS.blue : IDLE.icon,
+          backgroundColor: selected ? FLOW_COLORS.blue50 : FLOW_COLORS.idleIconBackground,
+          color: selected ? FLOW_COLORS.blue : FLOW_COLORS.idleIcon,
           transition: "background-color .15s, color .15s",
         },
-        "& .method-title": { color: selected ? FLOW_COLORS.ink : IDLE.title },
-        "& .method-description": { color: selected ? FLOW_COLORS.muted : IDLE.description },
+        "& .method-title": { color: selected ? FLOW_COLORS.ink : FLOW_COLORS.idleTitle },
+        "& .method-description": {
+          color: selected ? FLOW_COLORS.muted : FLOW_COLORS.idleText,
+        },
         "&:hover": selected
           ? { borderColor: FLOW_COLORS.blue }
           : {
-              borderColor: "#b9d3e8",
+              borderColor: FLOW_COLORS.blueLine,
               backgroundColor: FLOW_COLORS.white,
               "& .method-icon": { backgroundColor: FLOW_COLORS.blue50, color: FLOW_COLORS.blue },
               "& .method-title": { color: FLOW_COLORS.ink },

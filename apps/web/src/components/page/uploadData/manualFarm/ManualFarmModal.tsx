@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -66,11 +66,13 @@ export const ManualFarmModal: React.FC<ManualFarmModalProps> = ({
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   // Google Maps measures its container when it mounts: only after the Dialog opened
   const [mapReady, setMapReady] = useState(false);
+  const subtitleId = useId();
 
   return (
     <Dialog
       open={open}
       onClose={onCancel}
+      aria-describedby={subtitleId}
       fullWidth
       maxWidth="lg"
       fullScreen={fullScreen}
@@ -86,6 +88,7 @@ export const ManualFarmModal: React.FC<ManualFarmModalProps> = ({
     >
       <ManualFarmModalContent
         mapReady={mapReady}
+        subtitleId={subtitleId}
         onCancel={onCancel}
         {...props}
       />
@@ -94,8 +97,8 @@ export const ManualFarmModal: React.FC<ManualFarmModalProps> = ({
 };
 
 const ManualFarmModalContent: React.FC<
-  Omit<ManualFarmModalProps, "open"> & { mapReady: boolean }
-> = ({ country, initialRow, onCancel, onSave, mapReady }) => {
+  Omit<ManualFarmModalProps, "open"> & { mapReady: boolean; subtitleId: string }
+> = ({ country, initialRow, onCancel, onSave, mapReady, subtitleId }) => {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const editing = !!initialRow;
@@ -139,6 +142,7 @@ const ManualFarmModalContent: React.FC<
       <ModalHeader
         title={editing ? t("manualFarm:editTitle") : t("manualFarm:addTitle")}
         subtitle={t(editing ? "manualFarm:editSubtitle" : "manualFarm:addSubtitle")}
+        subtitleId={subtitleId}
         icon={editing ? <EditLocationAltOutlinedIcon /> : <AddLocationAltOutlinedIcon />}
         onClose={onCancel}
       />

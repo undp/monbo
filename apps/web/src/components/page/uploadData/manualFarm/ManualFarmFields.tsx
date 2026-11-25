@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Box, Button, IconButton, TextField } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -25,6 +25,8 @@ export const ManualFarmFields: React.FC<{
 }> = ({ form, showArea }) => {
   const { t } = useTranslation();
   const { values, fieldErrors, rowErrors } = form;
+  const mandatoryId = useId();
+  const optionalId = useId();
 
   const errorText = (field: FieldName) => {
     const error = fieldErrors[field];
@@ -47,15 +49,16 @@ export const ManualFarmFields: React.FC<{
       size="small"
       fullWidth
       {...extra}
-      sx={FIELD}
+      // A field's own sx adds to the shared look (MUI's array form)
+      sx={[FIELD, ...(Array.isArray(extra?.sx) ? extra.sx : [extra?.sx])]}
     />
   );
   const decimal = { slotProps: { htmlInput: { inputMode: "decimal" } } } as const;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-      <Box component="section" aria-labelledby="manual-farm-mandatory" sx={GROUP}>
-        <Box component="h3" id="manual-farm-mandatory" sx={EYEBROW}>
+      <Box component="section" aria-labelledby={mandatoryId} sx={GROUP}>
+        <Box component="h3" id={mandatoryId} sx={EYEBROW}>
           {t("manualFarm:fields:mandatoryTitle")}
         </Box>
         {textField("producerName")}
@@ -69,8 +72,8 @@ export const ManualFarmFields: React.FC<{
         {showArea && textField("area", { required: true, ...decimal })}
       </Box>
 
-      <Box component="section" aria-labelledby="manual-farm-optional" sx={GROUP}>
-        <Box component="h3" id="manual-farm-optional" sx={EYEBROW}>
+      <Box component="section" aria-labelledby={optionalId} sx={GROUP}>
+        <Box component="h3" id={optionalId} sx={EYEBROW}>
           {t("manualFarm:fields:optionalTitle")}
         </Box>
         {textField("id")}
