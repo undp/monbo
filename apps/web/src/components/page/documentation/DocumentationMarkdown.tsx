@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -15,6 +15,13 @@ import remarkDirective from "remark-directive";
 import { useTranslation } from "react-i18next";
 import { isWebUrl } from "@/utils/layerCatalog";
 import remarkDocumentationBlocks from "@/utils/remarkDocumentationBlocks";
+import { alpha } from "@mui/material/styles";
+import { PageEyebrow } from "@/components/page/flow/PageEyebrow";
+import {
+  FLOW_COLORS,
+  HEADING_FONT,
+  SECTION_ICON_TILE,
+} from "@/components/page/flow/flowStyles";
 
 // How the methodology page renders Markdown: its own sections, with their summary
 // and "More detail" blocks, and the layers' considerations. No raw HTML: without
@@ -29,19 +36,18 @@ const SummaryBox: React.FC<{ children: ReactNode }> = ({ children }) => {
     <Box
       component="aside"
       sx={{
-        backgroundColor: "#F3FAFD",
-        border: "1px solid #CDE6F3",
-        borderRadius: 2,
+        backgroundColor: FLOW_COLORS.blue25,
+        border: `1px solid ${FLOW_COLORS.line}`,
+        borderRadius: "12px",
         px: 3,
         pt: 2,
         pb: 0.5,
         mb: 3,
         "& ul": { mb: 1.5 },
+        "& li::marker": { color: FLOW_COLORS.leafDark },
       }}
     >
-      <Typography variant="h4" component="p" sx={{ fontWeight: 500, mb: 1 }}>
-        {t("methodology:summary")}
-      </Typography>
+      <PageEyebrow>{t("methodology:summary")}</PageEyebrow>
       {children}
     </Box>
   );
@@ -56,18 +62,36 @@ const DetailsBlock: React.FC<{ label: string; children: ReactNode }> = ({
     disableGutters
     elevation={0}
     sx={{
-      border: "1px solid #E0E0E0",
-      borderRadius: 2,
+      border: `1px solid ${FLOW_COLORS.line}`,
+      borderRadius: "12px",
       mb: 2,
+      overflow: "hidden",
       "&::before": { display: "none" },
+      "&.Mui-expanded": { borderColor: FLOW_COLORS.blueLine },
     }}
   >
-    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-      <Typography sx={{ fontWeight: 500 }}>{label}</Typography>
+    <AccordionSummary
+      expandIcon={<ExpandMoreIcon sx={{ color: FLOW_COLORS.blue }} />}
+      sx={{ "&:hover": { backgroundColor: FLOW_COLORS.blue25 } }}
+    >
+      <Typography sx={{ fontWeight: 600, color: FLOW_COLORS.ink }}>{label}</Typography>
     </AccordionSummary>
     <AccordionDetails sx={{ pt: 0 }}>{children}</AccordionDetails>
   </Accordion>
 );
+
+/** A section's title: the heading font, as the stage pages' titles. */
+const SECTION_HEADING = {
+  fontFamily: HEADING_FONT,
+  fontSize: { xs: 24, md: 28 },
+  fontWeight: 700,
+  lineHeight: 1.2,
+  letterSpacing: "-0.02em",
+  color: FLOW_COLORS.ink,
+  m: 0,
+} as const;
+
+const LINK = { color: FLOW_COLORS.blue, textDecorationColor: alpha(FLOW_COLORS.blue, 0.4) } as const;
 
 const markdownComponents: Components = {
   // remarkDocumentationBlocks marks the summary and details blocks.
@@ -84,25 +108,37 @@ const markdownComponents: Components = {
     return <div {...props}>{children}</div>;
   },
   h2: ({ children }) => (
-    <Typography
-      variant="h2"
-      sx={{ fontSize: 28, fontWeight: 500, lineHeight: "38px", mb: 2 }}
-    >
+    <Typography variant="h2" sx={{ ...SECTION_HEADING, mb: 2 }}>
       {children}
     </Typography>
   ),
   h3: ({ children }) => (
-    <Typography variant="h3" sx={{ fontWeight: 500, mt: 4, mb: 1.5 }}>
+    <Typography
+      variant="h3"
+      sx={{
+        fontFamily: HEADING_FONT,
+        fontSize: 19,
+        fontWeight: 700,
+        lineHeight: 1.3,
+        letterSpacing: "-0.01em",
+        color: FLOW_COLORS.ink,
+        mt: 4,
+        mb: 1.5,
+      }}
+    >
       {children}
     </Typography>
   ),
   p: ({ children }) => (
-    <Typography variant="body1" component="div" sx={{ mb: 2 }}>
+    <Typography variant="body1" component="div" sx={{ mb: 2, color: FLOW_COLORS.ink2 }}>
       {children}
     </Typography>
   ),
   ul: ({ children }) => (
-    <Box component="ul" sx={{ pl: 3, mt: 0, mb: 2, typography: "body1" }}>
+    <Box
+      component="ul"
+      sx={{ pl: 3, mt: 0, mb: 2, typography: "body1", color: FLOW_COLORS.ink2 }}
+    >
       {children}
     </Box>
   ),
@@ -116,15 +152,17 @@ const markdownComponents: Components = {
     <Box
       component="pre"
       sx={{
-        backgroundColor: "#F3FAFD",
-        borderLeft: "3px solid #03689E",
-        borderRadius: 1,
+        backgroundColor: FLOW_COLORS.blue25,
+        border: `1px solid ${FLOW_COLORS.line}`,
+        borderLeft: `3px solid ${FLOW_COLORS.blue}`,
+        borderRadius: "8px",
         px: 2,
         py: 1.5,
         mt: 0,
         mb: 2,
         overflowX: "auto",
-        fontSize: 15,
+        fontSize: 14.5,
+        color: FLOW_COLORS.ink,
         whiteSpace: "pre-wrap",
       }}
     >
@@ -137,6 +175,7 @@ const markdownComponents: Components = {
       <Link
         href={href}
         {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        sx={LINK}
       >
         {children}
       </Link>
@@ -153,24 +192,55 @@ const markdownComponents: Components = {
         width: "100%",
         maxWidth: 480,
         height: "auto",
-        borderRadius: 8,
-        border: "1px solid #E0E0E0",
+        borderRadius: 12,
+        border: `1px solid ${FLOW_COLORS.line}`,
       }}
     />
   ),
 };
 
-/** A section of the page, from its Markdown file. */
-export const DocumentationMarkdown: React.FC<{ children: string }> = ({ children }) => (
-  <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
-    {children}
-  </ReactMarkdown>
-);
+/**
+ * A section of the page, from its Markdown file. With an `icon`, the section's
+ * title gets it in a tinted tile, as a stage page's section heading.
+ */
+export const DocumentationMarkdown: React.FC<{ children: string; icon?: ReactNode }> = ({
+  children,
+  icon,
+}) => {
+  const components = useMemo<Components>(
+    () =>
+      icon
+        ? {
+            ...markdownComponents,
+            h2: ({ children: title }) => (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2.5 }}>
+                <Box aria-hidden sx={SECTION_ICON_TILE}>
+                  {icon}
+                </Box>
+                <Typography variant="h2" sx={SECTION_HEADING}>
+                  {title}
+                </Typography>
+              </Box>
+            ),
+          }
+        : markdownComponents,
+    [icon]
+  );
+  return (
+    <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
+      {children}
+    </ReactMarkdown>
+  );
+};
 
 // A layer's considerations sit inside a section, under its layer: every heading
 // is a small one, and images aren't shown (their size and source are unknown).
 const ConsiderationHeading = ({ children }: { children?: ReactNode }) => (
-  <Typography variant="h4" component="h4" sx={{ fontWeight: 600, fontSize: 15, mt: 2, mb: 1 }}>
+  <Typography
+    variant="h4"
+    component="h4"
+    sx={{ fontWeight: 700, fontSize: 15, mt: 2, mb: 1, color: FLOW_COLORS.ink }}
+  >
     {children}
   </Typography>
 );
@@ -184,7 +254,7 @@ const considerationComponents: Components = {
   h5: ConsiderationHeading,
   h6: ConsiderationHeading,
   p: ({ children }) => (
-    <Typography variant="body2" component="div" sx={{ mb: 1.5 }}>
+    <Typography variant="body2" component="div" sx={{ mb: 1.5, color: FLOW_COLORS.ink2 }}>
       {children}
     </Typography>
   ),

@@ -124,6 +124,38 @@ describe("MethodologyDocument", () => {
     ]);
   });
 
+  it("marks the section being read in the index", async () => {
+    // jsdom has no layout: section tops that put "layers" as the last one under the
+    // fixed header, on a page longer than the window (useCurrentSection's own tests
+    // cover the scroll and the page's end)
+    const tops: Record<string, number> = { calculation: -900, categories: -400, layers: 40 };
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.tagName !== "SECTION" || !this.id) return original.call(this);
+        return { top: tops[this.id] ?? 2000 } as DOMRect;
+      });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: 10000,
+      configurable: true,
+    });
+    try {
+      await renderDocument("en");
+      const index = screen.getByRole("navigation");
+      await waitFor(() =>
+        expect(within(index).getByRole("link", { name: "Layers" }).getAttribute("aria-current")).toBe(
+          "location"
+        )
+      );
+      expect(within(index).getByRole("link", { name: "Calculation" }).getAttribute("aria-current")).toBeNull();
+    } finally {
+      rect.mockRestore();
+      // Back to jsdom's own (0) for the next tests
+      delete (document.documentElement as unknown as { scrollHeight?: number }).scrollHeight;
+    }
+  });
+
   it("shows the methodology's title in the page's language", async () => {
     await renderDocument("en");
     expect(screen.getByRole("heading", { level: 1, name: "How Monbo works" })).toBeTruthy();

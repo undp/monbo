@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, SxProps, Theme } from "@mui/material";
-import { FLOW_COLORS, HEADING_FONT, STAGE_CARD } from "./flowStyles";
+import { FLOW_COLORS, HEADING_FONT, SECTION_ICON_TILE, STAGE_CARD } from "./flowStyles";
 
 interface Props {
   title: string;
@@ -38,19 +38,7 @@ export const FlowSection: React.FC<Props> = ({
         marginBottom: 2,
       }}
     >
-      <Box
-        aria-hidden
-        sx={{
-          width: 38,
-          height: 38,
-          flex: "none",
-          borderRadius: "10px",
-          display: "grid",
-          placeItems: "center",
-          backgroundColor: FLOW_COLORS.mint,
-          color: FLOW_COLORS.leafDark,
-        }}
-      >
+      <Box aria-hidden sx={SECTION_ICON_TILE}>
         {icon}
       </Box>
       <Box sx={{ minWidth: 0 }}>

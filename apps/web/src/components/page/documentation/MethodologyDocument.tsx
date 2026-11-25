@@ -1,10 +1,19 @@
 "use client";
 
-import { Fragment, useContext, useEffect, useRef, useState } from "react";
-import { Box, Divider, Link, Typography, useTheme } from "@mui/material";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Box, Link, Typography, useTheme } from "@mui/material";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
+import SquareFootOutlinedIcon from "@mui/icons-material/SquareFootOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import { STAGE_CARD } from "@/components/page/flow/flowStyles";
 import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
 import { useAvailableCountries } from "@/hooks/useAvailableCountries";
+import { useCurrentSection } from "@/hooks/useCurrentSection";
 import { useCountryLayerCatalog } from "@/hooks/useCountryLayerCatalog";
 import {
   DOCUMENTATION_SECTIONS,
@@ -12,6 +21,7 @@ import {
   fillDocumentationPlaceholders,
   sectionTitle,
   type DocumentationContent,
+  type DocumentationSection,
 } from "@/utils/documentation";
 import { CountryLayersSection } from "./CountryLayersSection";
 import { DocumentationMarkdown } from "./DocumentationMarkdown";
@@ -21,6 +31,17 @@ import { HEADING_FONT, SCROLL_MARGIN_TOP } from "./methodologyStyles";
 const HERO_IMAGE = "/images/landing/aerial-forest-river-farm-plots.webp";
 // The fixed header (64 px) plus some air: where the side index sticks.
 const INDEX_TOP = 88;
+
+// Each section's icon, beside its title, as a stage page's section has one
+const SECTION_ICONS: Record<DocumentationSection, ReactNode> = {
+  calculation: <CalculateOutlinedIcon />,
+  categories: <CategoryOutlinedIcon />,
+  layers: <LayersOutlinedIcon />,
+  limits: <RuleOutlinedIcon />,
+  upload: <UploadFileOutlinedIcon />,
+  validation: <FactCheckOutlinedIcon />,
+  area: <SquareFootOutlinedIcon />,
+};
 
 /**
  * The methodology page's body: a hero, an index (beside the content from 900 px,
@@ -45,6 +66,7 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
       : (countries[0]?.code ?? null);
   const countryName = countries.find((c) => c.code === country)?.name ?? null;
   const catalog = useCountryLayerCatalog(country, i18n.language);
+  const currentSection = useCurrentSection(DOCUMENTATION_SECTIONS, SCROLL_MARGIN_TOP);
 
   // The page renders once GET /config answers, after the browser looked for the
   // URL's anchor: go to it now, so /documentation#layers opens at its section.
@@ -71,30 +93,35 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
 
   const index = (
     <Box component="ol" sx={{ m: 0, p: 0, listStyle: "none" }}>
-      {DOCUMENTATION_SECTIONS.map((section) => (
-        <li key={section}>
-          <Link
-            href={`#${section}`}
-            underline="hover"
-            sx={{
-              display: "block",
-              py: 0.875,
-              px: 1.5,
-              fontSize: 14,
-              color: colors.inkSecondary,
-              borderLeft: `2px solid ${colors.line}`,
-              "&:hover": { color: colors.blue, borderColor: colors.blue },
-            }}
-          >
-            {sectionTitle(content[section])}
-          </Link>
-        </li>
-      ))}
+      {DOCUMENTATION_SECTIONS.map((section) => {
+        const isCurrent = section === currentSection;
+        return (
+          <li key={section}>
+            <Link
+              href={`#${section}`}
+              underline="hover"
+              aria-current={isCurrent ? "location" : undefined}
+              sx={{
+                display: "block",
+                py: 0.875,
+                px: 1.5,
+                fontSize: 14,
+                fontWeight: isCurrent ? 600 : 400,
+                color: isCurrent ? colors.blue : colors.inkSecondary,
+                borderLeft: `2px solid ${isCurrent ? colors.blue : colors.line}`,
+                "&:hover": { color: colors.blue, borderColor: colors.blue },
+              }}
+            >
+              {sectionTitle(content[section])}
+            </Link>
+          </li>
+        );
+      })}
     </Box>
   );
 
   return (
-    <Box sx={{ backgroundColor: colors.background, color: "#3A3541" }}>
+    <Box sx={{ backgroundColor: colors.background, color: colors.ink }}>
       <Box
         sx={{
           color: "common.white",
@@ -170,38 +197,55 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
           {index}
         </Box>
 
-        <Box sx={{ maxWidth: 880, minWidth: 0 }}>
-          {DOCUMENTATION_SECTIONS.map((section, position) => {
+        {/* Each section is a stage page's card */}
+        <Box
+          sx={{ maxWidth: 880, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}
+        >
+          {DOCUMENTATION_SECTIONS.map((section) => {
             const formerAnchor = FORMER_SECTION_ANCHORS[section];
             return (
-              <Fragment key={section}>
-                {position > 0 && <Divider sx={{ my: 6 }} />}
-                <Box component="section" id={section} sx={{ scrollMarginTop: SCROLL_MARGIN_TOP }}>
-                  {formerAnchor && (
-                    <Box
-                      component="span"
-                      id={formerAnchor}
-                      sx={{ display: "block", scrollMarginTop: SCROLL_MARGIN_TOP }}
-                    />
-                  )}
-                  <DocumentationMarkdown>
-                    {fillDocumentationPlaceholders(content[section], i18n.language)}
-                  </DocumentationMarkdown>
-                  {section === "layers" && (
-                    <CountryLayersSection
-                      countries={countries}
-                      countriesLoading={loading}
-                      countriesError={error}
-                      country={country}
-                      onSelectCountry={setChosenCountry}
-                      catalog={catalog}
-                    />
-                  )}
-                  {section === "limits" && (
-                    <LayerLimitsSection countryName={countryName} catalog={catalog} />
-                  )}
-                </Box>
-              </Fragment>
+              <Box
+                key={section}
+                component="section"
+                id={section}
+                sx={{
+                  ...STAGE_CARD,
+                  position: "relative",
+                  padding: { xs: "20px 16px", md: "28px 32px" },
+                  scrollMarginTop: SCROLL_MARGIN_TOP,
+                }}
+              >
+                {formerAnchor && (
+                  // At the card's top edge, not inside its padding: the old link
+                  // lands where the section's own does
+                  <Box
+                    component="span"
+                    id={formerAnchor}
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      scrollMarginTop: SCROLL_MARGIN_TOP,
+                    }}
+                  />
+                )}
+                <DocumentationMarkdown icon={SECTION_ICONS[section]}>
+                  {fillDocumentationPlaceholders(content[section], i18n.language)}
+                </DocumentationMarkdown>
+                {section === "layers" && (
+                  <CountryLayersSection
+                    countries={countries}
+                    countriesLoading={loading}
+                    countriesError={error}
+                    country={country}
+                    onSelectCountry={setChosenCountry}
+                    catalog={catalog}
+                  />
+                )}
+                {section === "limits" && (
+                  <LayerLimitsSection countryName={countryName} catalog={catalog} />
+                )}
+              </Box>
             );
           })}
         </Box>
