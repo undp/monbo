@@ -1,5 +1,6 @@
-# The Terraform state account of prod (infra/bootstrap.sh monboprodtfstate).
-resource_group_name  = "monbo-tfstate"
+# prod's Terraform state account (infra/bootstrap.sh). Its resource group, the one
+# UNDP granted, comes from TF_VAR_resource_group_name (infra/envs/prod.secrets.env),
+# which infra/lib.sh passes with -backend-config: it isn't committed.
 storage_account_name = "monboprodtfstate"
 container_name       = "tfstate"
 key                  = "prod/platform.tfstate"

@@ -11,7 +11,12 @@ output "default_domain" {
 }
 
 output "resource_group_name" {
-  value = azurerm_resource_group.apps.name
+  value = local.group
+}
+
+# For the administrator's AcrPull grant (docs/suggested_deployment.md#production).
+output "pull_identity_principal_id" {
+  value = azurerm_user_assigned_identity.pull.principal_id
 }
 
 output "api_app_name" {

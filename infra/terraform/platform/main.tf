@@ -1,6 +1,11 @@
 # The long-lived part of an environment: the layers and what protects them, the
 # image registry and the log workspace. Applied by hand after reading its plan;
 # infra/deploy.sh never applies this stack.
+#
+# Every environment lives in one resource group that already exists (prod: the one UNDP
+# granted, where the operators only hold Contributor; dev: the same layout, so it tests
+# what prod runs). The group is read, never created, modified or locked; nothing here
+# needs more than Contributor on it (docs/suggested_deployment.md#production).
 
 locals {
   prefix = "monbo-${var.env}"
@@ -11,22 +16,19 @@ locals {
     app = "monbo"
     env = var.env
   }
+  group = data.azurerm_resource_group.main.name
+}
+
+data "azurerm_resource_group" "main" {
+  name = var.resource_group_name
 }
 
 # --- Data: the layers ---------------------------------------------------------
-# Its own resource group with a delete lock: nothing here is deleted by accident,
-# and destroying the apps stack never touches it.
-
-resource "azurerm_resource_group" "data" {
-  name     = "${local.prefix}-data"
-  location = var.location
-  tags     = merge(local.tags, { purpose = "layers" })
-}
 
 resource "azurerm_storage_account" "data" {
   name                            = "${local.compact}data"
-  resource_group_name             = azurerm_resource_group.data.name
-  location                        = azurerm_resource_group.data.location
+  resource_group_name             = local.group
+  location                        = var.location
   account_kind                    = "StorageV2"
   account_tier                    = "Standard"
   account_replication_type        = "LRS"
@@ -59,11 +61,14 @@ resource "azurerm_storage_share" "maps" {
   }
 }
 
-# Daily snapshots of the share at 06:00 UTC, kept 30 days.
+# Daily snapshots of the share at 06:00 UTC, kept 30 days. Off by default
+# (share_backup_enabled): registering the account with the vault puts a lock on it,
+# which Contributor alone can't do.
 resource "azurerm_recovery_services_vault" "backup" {
+  count               = var.share_backup_enabled ? 1 : 0
   name                = "${local.prefix}-backup"
-  resource_group_name = azurerm_resource_group.data.name
-  location            = azurerm_resource_group.data.location
+  resource_group_name = local.group
+  location            = var.location
   sku                 = "Standard"
   tags                = local.tags
 
@@ -73,9 +78,10 @@ resource "azurerm_recovery_services_vault" "backup" {
 }
 
 resource "azurerm_backup_policy_file_share" "maps_daily" {
+  count               = var.share_backup_enabled ? 1 : 0
   name                = "maps-daily-30d"
-  resource_group_name = azurerm_resource_group.data.name
-  recovery_vault_name = azurerm_recovery_services_vault.backup.name
+  resource_group_name = local.group
+  recovery_vault_name = azurerm_recovery_services_vault.backup[0].name
   timezone            = "UTC"
 
   backup {
@@ -89,59 +95,43 @@ resource "azurerm_backup_policy_file_share" "maps_daily" {
 }
 
 resource "azurerm_backup_container_storage_account" "data" {
-  resource_group_name = azurerm_resource_group.data.name
-  recovery_vault_name = azurerm_recovery_services_vault.backup.name
+  count               = var.share_backup_enabled ? 1 : 0
+  resource_group_name = local.group
+  recovery_vault_name = azurerm_recovery_services_vault.backup[0].name
   storage_account_id  = azurerm_storage_account.data.id
 }
 
 resource "azurerm_backup_protected_file_share" "maps" {
-  resource_group_name       = azurerm_resource_group.data.name
-  recovery_vault_name       = azurerm_recovery_services_vault.backup.name
-  source_storage_account_id = azurerm_backup_container_storage_account.data.storage_account_id
+  count                     = var.share_backup_enabled ? 1 : 0
+  resource_group_name       = local.group
+  recovery_vault_name       = azurerm_recovery_services_vault.backup[0].name
+  source_storage_account_id = azurerm_backup_container_storage_account.data[0].storage_account_id
   source_file_share_name    = azurerm_storage_share.maps.name
-  backup_policy_id          = azurerm_backup_policy_file_share.maps_daily.id
+  backup_policy_id          = azurerm_backup_policy_file_share.maps_daily[0].id
 
   lifecycle {
     prevent_destroy = true
   }
 }
 
-# Created last, so it never blocks Terraform while it builds the group. Removing it
-# is a deliberate step (docs/suggested_deployment.md).
-resource "azurerm_management_lock" "data" {
-  name       = "${local.prefix}-data-no-delete"
-  scope      = azurerm_resource_group.data.id
-  lock_level = "CanNotDelete"
-  notes      = "Holds the Monbo layers; remove this lock before deleting anything here"
-
-  depends_on = [azurerm_backup_protected_file_share.maps]
-}
-
 # --- Platform: registry and logs ----------------------------------------------
-# Outside the locked group: losing them loses nothing that can't be rebuilt, and
-# cleaning old images or logs must not need the lock removed.
 
-resource "azurerm_resource_group" "platform" {
-  name     = "${local.prefix}-platform"
-  location = var.location
-  tags     = local.tags
-}
-
-# The apps pull with a managed identity (AcrPull, apps stack): no admin user, so
-# no registry password exists anywhere.
+# The apps pull with a managed identity (the apps stack's pull identity, once an
+# administrator grants it AcrPull): no admin user, so no registry password exists.
+# registry_admin_enabled turns the admin user on until that grant exists.
 resource "azurerm_container_registry" "main" {
   name                = "${local.compact}acr"
-  resource_group_name = azurerm_resource_group.platform.name
-  location            = azurerm_resource_group.platform.location
+  resource_group_name = local.group
+  location            = var.location
   sku                 = "Basic"
-  admin_enabled       = false
+  admin_enabled       = var.registry_admin_enabled
   tags                = local.tags
 }
 
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "${local.prefix}-logs"
-  resource_group_name = azurerm_resource_group.platform.name
-  location            = azurerm_resource_group.platform.location
+  resource_group_name = local.group
+  location            = var.location
   sku                 = "PerGB2018"
   retention_in_days   = var.log_retention_days
   tags                = local.tags

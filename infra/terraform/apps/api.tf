@@ -3,8 +3,9 @@
 resource "azurerm_container_app" "api" {
   name                         = local.api_name
   container_app_environment_id = azurerm_container_app_environment.main.id
-  resource_group_name          = azurerm_resource_group.apps.name
+  resource_group_name          = local.group
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
   tags                         = local.tags
 
   identity {
@@ -12,9 +13,30 @@ resource "azurerm_container_app" "api" {
     identity_ids = [azurerm_user_assigned_identity.pull.id]
   }
 
-  registry {
-    server   = local.platform.registry_login_server
-    identity = azurerm_user_assigned_identity.pull.id
+  # The pull identity, or the registry's admin user until it holds AcrPull.
+  dynamic "registry" {
+    for_each = local.platform.registry_admin_enabled ? [] : [1]
+    content {
+      server   = local.platform.registry_login_server
+      identity = azurerm_user_assigned_identity.pull.id
+    }
+  }
+
+  dynamic "registry" {
+    for_each = local.platform.registry_admin_enabled ? [1] : []
+    content {
+      server               = local.platform.registry_login_server
+      username             = data.azurerm_container_registry.main[0].admin_username
+      password_secret_name = "registry-password"
+    }
+  }
+
+  dynamic "secret" {
+    for_each = local.platform.registry_admin_enabled ? [1] : []
+    content {
+      name  = "registry-password"
+      value = data.azurerm_container_registry.main[0].admin_password
+    }
   }
 
   secret {
@@ -153,8 +175,4 @@ resource "azurerm_container_app" "api" {
       }
     }
   }
-
-  # The first pull needs the role assignment (it can take a minute to propagate;
-  # infra/deploy.sh retries once).
-  depends_on = [azurerm_role_assignment.acr_pull]
 }

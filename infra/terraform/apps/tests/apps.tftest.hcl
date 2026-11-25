@@ -9,17 +9,24 @@ mock_provider "azurerm" {
     }
   }
 
+  mock_data "azurerm_container_registry" {
+    defaults = {
+      admin_username = "monbodevacr"
+      admin_password = "mock-registry-password"
+    }
+  }
+
   # Realistic ids: the provider parses them when other resources reference them.
   mock_resource "azurerm_container_app_environment" {
     defaults = {
-      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-apps/providers/Microsoft.App/managedEnvironments/monbo-dev-env"
+      id             = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.App/managedEnvironments/monbo-dev-env"
       default_domain = "happy.eastus2.azurecontainerapps.io"
     }
   }
 
   mock_resource "azurerm_user_assigned_identity" {
     defaults = {
-      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev-apps/providers/Microsoft.ManagedIdentity/userAssignedIdentities/monbo-dev-pull"
+      id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/monbo-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/monbo-dev-pull"
       principal_id = "11111111-1111-1111-1111-111111111111"
     }
   }
@@ -29,20 +36,23 @@ override_data {
   target = data.terraform_remote_state.platform
   values = {
     outputs = {
-      location                   = "eastus2"
-      data_resource_group_name   = "monbo-dev-data"
+      location                   = "eastus"
+      resource_group_name        = "monbo-dev"
       storage_account_name       = "monbodevdata"
       maps_share_name            = "maps"
-      registry_id                = "/subscriptions/0/resourceGroups/monbo-dev-platform/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
+      registry_id                = "/subscriptions/0/resourceGroups/monbo-dev/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
+      registry_name              = "monbodevacr"
       registry_login_server      = "monbodevacr.azurecr.io"
-      log_analytics_workspace_id = "/subscriptions/0/resourceGroups/monbo-dev-platform/providers/Microsoft.OperationalInsights/workspaces/monbo-dev-logs"
+      registry_admin_enabled     = false
+      log_analytics_workspace_id = "/subscriptions/0/resourceGroups/monbo-dev/providers/Microsoft.OperationalInsights/workspaces/monbo-dev-logs"
     }
   }
 }
 
 variables {
   env                                = "dev"
-  state_storage_account_name         = "monbotfstate"
+  resource_group_name                = "monbo-dev"
+  state_storage_account_name         = "monbodevtfstate"
   api_image                          = "monbodevacr.azurecr.io/monbo-api:abc1234"
   web_image                          = "monbodevacr.azurecr.io/monbo-front:abc1234"
   gcp_maps_platform_api_key          = "api-key"
@@ -208,5 +218,63 @@ run "prod_hides_the_testing_banner" {
       "NEXT_PUBLIC_SHOW_TESTING_ENVIRONMENT_WARNING=false",
     )
     error_message = "prod must hide the testing-environment banner."
+  }
+}
+
+# The runs above pull by identity (AcrPull granted). This is every new environment until
+# an administrator grants AcrPull (envs/*.tfvars of the platform stack).
+run "registry_admin_until_acrpull" {
+  command = apply
+
+  override_data {
+    target = data.terraform_remote_state.platform
+    values = {
+      outputs = {
+        location                   = "eastus"
+        resource_group_name        = "monbo-dev"
+        storage_account_name       = "monbodevdata"
+        maps_share_name            = "maps"
+        registry_id                = "/subscriptions/0/resourceGroups/monbo-dev/providers/Microsoft.ContainerRegistry/registries/monbodevacr"
+        registry_name              = "monbodevacr"
+        registry_login_server      = "monbodevacr.azurecr.io"
+        registry_admin_enabled     = true
+        log_analytics_workspace_id = "/subscriptions/0/resourceGroups/monbo-dev/providers/Microsoft.OperationalInsights/workspaces/monbo-dev-logs"
+      }
+    }
+  }
+
+  assert {
+    condition = alltrue([
+      for app in [azurerm_container_app.api, azurerm_container_app.web] : (
+        length(app.registry) == 1 &&
+        app.registry[0].server == "monbodevacr.azurecr.io" &&
+        app.registry[0].username == "monbodevacr" &&
+        app.registry[0].password_secret_name == "registry-password" &&
+        contains([for s in app.secret : s.name], "registry-password") &&
+        length(app.identity[0].identity_ids) == 1
+      )
+    ])
+    error_message = "With registry_admin_enabled, both apps must pull with the admin user and keep the pull identity attached."
+  }
+}
+
+run "everything_in_the_platforms_group" {
+  command = apply
+
+  assert {
+    condition = (
+      azurerm_container_app_environment.main.resource_group_name == "monbo-dev" &&
+      azurerm_container_app_environment.main.location == "eastus" &&
+      azurerm_user_assigned_identity.pull.resource_group_name == "monbo-dev" &&
+      azurerm_user_assigned_identity.pull.name == "monbo-dev-pull" &&
+      azurerm_container_app.api.resource_group_name == "monbo-dev" &&
+      azurerm_container_app.web.resource_group_name == "monbo-dev" &&
+      output.resource_group_name == "monbo-dev" &&
+      output.pull_identity_principal_id == "11111111-1111-1111-1111-111111111111" &&
+      contains([for p in azurerm_container_app_environment.main.workload_profile : p.name], "Consumption") &&
+      azurerm_container_app.api.workload_profile_name == "Consumption" &&
+      azurerm_container_app.web.workload_profile_name == "Consumption"
+    )
+    error_message = "The apps must go in the platform's group and location, and output the pull identity for the AcrPull grant."
   }
 }

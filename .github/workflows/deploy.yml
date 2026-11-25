@@ -89,6 +89,8 @@ jobs:
           TF_VAR_gcp_maps_platform_signature_secret: ${{ secrets.TF_VAR_GCP_MAPS_PLATFORM_SIGNATURE_SECRET }}
           TF_VAR_front_gcp_maps_platform_api_key: ${{ secrets.TF_VAR_FRONT_GCP_MAPS_PLATFORM_API_KEY }}
           TF_VAR_admin_session_secret: ${{ secrets.TF_VAR_ADMIN_SESSION_SECRET }}
+          # The environment's one resource group (a secret only so the public logs mask it).
+          TF_VAR_resource_group_name: ${{ secrets.TF_VAR_RESOURCE_GROUP_NAME }}
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
