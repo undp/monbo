@@ -124,6 +124,41 @@ describe("MethodologyDocument", () => {
     ]);
   });
 
+  it("marks the section being read in the index", async () => {
+    // jsdom has no IntersectionObserver nor layout: a stub, and section tops that
+    // put "layers" as the last one under the fixed header
+    const tops: Record<string, number> = { calculation: -900, categories: -400, layers: 40 };
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    );
+    // Only the sections get a position: every other element keeps jsdom's
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.tagName !== "SECTION" || !this.id) return original.call(this);
+        return { top: tops[this.id] ?? 2000 } as DOMRect;
+      });
+    try {
+      await renderDocument("en");
+      fireEvent.scroll(window);
+      const index = screen.getByRole("navigation");
+      await waitFor(() =>
+        expect(within(index).getByRole("link", { name: "Layers" }).getAttribute("aria-current")).toBe(
+          "location"
+        )
+      );
+      expect(within(index).getByRole("link", { name: "Calculation" }).getAttribute("aria-current")).toBeNull();
+    } finally {
+      rect.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("shows the methodology's title in the page's language", async () => {
     await renderDocument("en");
     expect(screen.getByRole("heading", { level: 1, name: "How Monbo works" })).toBeTruthy();
