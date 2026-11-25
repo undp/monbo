@@ -23,6 +23,13 @@ import { getMaps } from "@/api/layerAnalysis";
 import { getLayerCategories } from "@/api/layerCategories";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
 import { getCountries } from "@/api/countries";
+import i18nConfig from "@/i18nConfig";
+import {
+  layerTextsOf,
+  replaceById,
+  withLayerTexts,
+  type LayerTexts,
+} from "@/utils/layerTexts";
 import { orderBy } from "lodash";
 import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
@@ -225,6 +232,14 @@ type KeptKey =
   | "farmsSourcesRevision";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
 
+// The texts of each layer seen in each UI language, so an analysed layer that is
+// later hidden (and no longer listed by /maps) still reads in the current language.
+const keptLayerTexts = new Map<string, LayerTexts>();
+// `<language>:<country>` fetches in flight, so a language is fetched once.
+const layerTextsFetches = new Set<string>();
+const textsKey = (language: string, country: string, id: number) =>
+  `${language}:${country}:${id}`;
+
 /**
  * Forgets the module state above: the kept flow, the in-memory country and its
  * subscribers. For tests, so a flow doesn't leak from one to the next.
@@ -232,6 +247,8 @@ const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
  */
 export const resetDataStoreForTests = () => {
   (Object.keys(keptState) as KeptKey[]).forEach((key) => delete keptState[key]);
+  keptLayerTexts.clear();
+  layerTextsFetches.clear();
   inMemorySelectedCountry = null;
   selectedCountryListeners.clear();
 };
@@ -413,6 +430,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
         known.byId.set(id, { polarity, temporal });
       }
 
+      for (const map of maps) {
+        keptLayerTexts.set(textsKey(locale, country, map.id), layerTextsOf(map));
+      }
       setAvailableMaps(maps);
       setAvailableCategories(categories);
       setAvailableMapsCountry(country);
@@ -426,7 +446,12 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       const refreshed = selectedMaps.flatMap((selected) => {
         const listed = maps.find((map) => map.id === selected.id);
         if (listed) return [listed];
-        return territorialAnalysisResults ? [selected] : [];
+        const kept = keptLayerTexts.get(textsKey(locale, country, selected.id));
+        return territorialAnalysisResults ? [withLayerTexts(selected, kept)] : [];
+      });
+      setReportGenerationParams((prev) => {
+        const maps = replaceById(prev.selectedMaps, refreshed);
+        return maps === prev.selectedMaps ? prev : { ...prev, selectedMaps: maps };
       });
       const calculationChanged =
         refreshed.length === selectedMaps.length &&
@@ -455,6 +480,38 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       }
     }
   );
+
+  // Once an analysis has results, keep its layers' texts in every UI language: a
+  // layer hidden later is no longer listed, and the exports and the report still
+  // have to read in the language the user switches to.
+  const keepLayerTexts = useEffectEvent(async () => {
+    const country = selectedCountry;
+    const analysed = territorialAnalysisParams.selectedMaps;
+    if (!territorialAnalysisResults || !country || !analysed.length) return;
+    for (const language of i18nConfig.locales) {
+      if (language === locale) continue;
+      const missing = analysed.some(
+        (map) => !keptLayerTexts.has(textsKey(language, country, map.id))
+      );
+      if (!missing) continue;
+      const fetchKey = `${language}:${country}`;
+      if (layerTextsFetches.has(fetchKey)) continue;
+      layerTextsFetches.add(fetchKey);
+      try {
+        for (const map of await getMaps(language, country)) {
+          keptLayerTexts.set(textsKey(language, country, map.id), layerTextsOf(map));
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        layerTextsFetches.delete(fetchKey);
+      }
+    }
+  });
+
+  useEffect(() => {
+    keepLayerTexts();
+  }, [territorialAnalysisResults, selectedCountry, locale]);
 
   // The latest fetch of each list. Every fetch takes the next request number and
   // its response is applied only while it is still the latest, so a late
