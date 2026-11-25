@@ -35,9 +35,11 @@ Invariants that decide what counts as a bug:
   The old `/deforestation_analysis/*` routes were removed without aliases: don't call them.
 - **Rasters are Git LFS files** under `apps/api/app/maps/layers/rasters/`, catalogued in
   `apps/api/app/maps/index.json`. Without `git lfs pull`, module 2 fails.
-- **The ratio** is `min(1.0, deforested_pixels × pixel_size² / geodesic_area)`, with
-  `rasterio.mask.mask(..., all_touched=True)` and the area from
-  `app/helpers/GeometryCalculator.py`. See `docs/deforestation_calculation.md` and
+- **The ratio** is `Σ area(layer pixel ∩ farm) / area(farm)`, both measured in the raster's
+  CRS: the pixels come from `rasterio.mask.mask(..., all_touched=True)` and each one counts
+  only by its part inside the farm (`get_loss_area_fraction` in
+  `modules/layer_analysis/helpers.py`). The hectares shown to users are geodesic
+  (`app/helpers/GeometryCalculator.py`). See `docs/deforestation_calculation.md` and
   `docs/polygon_area_calculation.md`.
 - **The PDF report is built in the browser.** The API only produces images and tiles.
 - **The admin (`/admin`) is opt-in.** It needs `ADMIN_SESSION_SECRET` and the per-country

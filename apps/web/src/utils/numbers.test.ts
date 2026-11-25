@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
+import type { ClassificationRule } from "./layerResults";
 import {
   formatResultPercentage,
   formatFindingPercentage,
@@ -9,11 +10,15 @@ import {
 } from "./numbers";
 
 // Values come from the API as unrounded fractions (0-1); thresholds are percents.
-const withThresholds = (deforestation: number, overlap = 0) =>
+// `rule` is a deforestation layer's: avoid, with the `deforestation` threshold.
+let rule: ClassificationRule = { polarity: "avoid", thresholdPercentage: 0 };
+const withThresholds = (deforestation: number, overlap = 0) => {
+  rule = { polarity: "avoid", thresholdPercentage: deforestation };
   setRuntimeConfig({
     deforestationThresholdPercentage: deforestation,
     overlapThresholdPercentage: overlap,
   });
+};
 
 describe("formatNumber", () => {
   it("uses each language's separators", () => {
@@ -39,77 +44,77 @@ describe("formatResultPercentage", () => {
   describe("without a threshold", () => {
     it("shows 0 as 0%", () => {
       withThresholds(0);
-      expect(formatResultPercentage(0, "es")).toBe("0%");
-      expect(formatResultPercentage(0, "en")).toBe("0%");
+      expect(formatResultPercentage(0, "es", rule)).toBe("0%");
+      expect(formatResultPercentage(0, "en", rule)).toBe("0%");
     });
 
     it("shows a value below 0.1% as below it, localized", () => {
       withThresholds(0);
-      expect(formatResultPercentage(0.0005, "es")).toBe("< 0,1%");
-      expect(formatResultPercentage(0.0005, "en")).toBe("< 0.1%");
+      expect(formatResultPercentage(0.0005, "es", rule)).toBe("< 0,1%");
+      expect(formatResultPercentage(0.0005, "en", rule)).toBe("< 0.1%");
     });
 
     it("shows one decimal", () => {
       withThresholds(0);
-      expect(formatResultPercentage(0.0283331208, "es")).toBe("2,8%");
-      expect(formatResultPercentage(0.0283331208, "en")).toBe("2.8%");
+      expect(formatResultPercentage(0.0283331208, "es", rule)).toBe("2,8%");
+      expect(formatResultPercentage(0.0283331208, "en", rule)).toBe("2.8%");
     });
   });
 
   describe("with a 1% threshold", () => {
     it("keeps one decimal above it", () => {
       withThresholds(1);
-      expect(formatResultPercentage(0.014, "es")).toBe("1,4%");
-      expect(formatResultPercentage(0.014, "en")).toBe("1.4%");
-      expect(formatResultPercentage(0.104999, "es")).toBe("10,5%");
+      expect(formatResultPercentage(0.014, "es", rule)).toBe("1,4%");
+      expect(formatResultPercentage(0.014, "en", rule)).toBe("1.4%");
+      expect(formatResultPercentage(0.104999, "es", rule)).toBe("10,5%");
     });
 
     it("shows a value at or below it as below the threshold", () => {
       withThresholds(1);
-      expect(formatResultPercentage(0.004, "es")).toBe("< 1%");
-      expect(formatResultPercentage(0.01, "en")).toBe("< 1%");
+      expect(formatResultPercentage(0.004, "es", rule)).toBe("< 1%");
+      expect(formatResultPercentage(0.01, "en", rule)).toBe("< 1%");
     });
   });
 
   describe("with a fractional threshold", () => {
     it("shows as many decimals as the threshold has", () => {
       withThresholds(0.25);
-      expect(formatResultPercentage(0.028333, "es")).toBe("2,83%");
-      expect(formatResultPercentage(0.028333, "en")).toBe("2.83%");
+      expect(formatResultPercentage(0.028333, "es", rule)).toBe("2,83%");
+      expect(formatResultPercentage(0.028333, "en", rule)).toBe("2.83%");
     });
 
     it("keeps at least one decimal", () => {
       withThresholds(0.5);
-      expect(formatResultPercentage(0.0283331208, "es")).toBe("2,8%");
+      expect(formatResultPercentage(0.0283331208, "es", rule)).toBe("2,8%");
     });
 
     it("localizes the below-threshold label", () => {
       withThresholds(0.25);
-      expect(formatResultPercentage(0.002, "es")).toBe("< 0,25%");
-      expect(formatResultPercentage(0.002, "en")).toBe("< 0.25%");
+      expect(formatResultPercentage(0.002, "es", rule)).toBe("< 0,25%");
+      expect(formatResultPercentage(0.002, "en", rule)).toBe("< 0.25%");
     });
 
     it("counts the decimals of a threshold the float stores inexactly", () => {
       withThresholds(0.07);
-      expect(formatResultPercentage(0.0005, "es")).toBe("< 0,07%");
-      expect(formatResultPercentage(0.00123, "es")).toBe("0,12%");
+      expect(formatResultPercentage(0.0005, "es", rule)).toBe("< 0,07%");
+      expect(formatResultPercentage(0.00123, "es", rule)).toBe("0,12%");
     });
 
     it("keeps a tiny threshold and its results from reading as 0%", () => {
       // The API accepts any percentage in 0-100, so a label must never say 0 for a
       // nonzero value: these reach the Excel/GeoJSON exports.
       withThresholds(0.0000001);
-      expect(formatResultPercentage(1e-10, "es")).toBe("< 0,0000001%");
-      expect(formatResultPercentage(1e-10, "en")).toBe("< 0.0000001%");
-      expect(formatResultPercentage(1.5e-9, "en")).toBe("0.0000002%");
-      expect(formatResultPercentage(1.5e-9, "es")).toBe("0,0000002%");
+      expect(formatResultPercentage(1e-10, "es", rule)).toBe("< 0,0000001%");
+      expect(formatResultPercentage(1e-10, "en", rule)).toBe("< 0.0000001%");
+      expect(formatResultPercentage(1.5e-9, "en", rule)).toBe("0.0000002%");
+      expect(formatResultPercentage(1.5e-9, "es", rule)).toBe("0,0000002%");
     });
   });
 
   it("shows one decimal with an integer threshold", () => {
     withThresholds(2);
-    expect(formatResultPercentage(0.104999, "es")).toBe("10,5%");
-    expect(formatResultPercentage(0.0283331208, "en")).toBe("2.8%");
+    expect(formatResultPercentage(0.104999, "es", rule)).toBe("10,5%");
+    expect(formatResultPercentage(0.0283331208, "en", rule)).toBe("2.8%");
   });
 });
 

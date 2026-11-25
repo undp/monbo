@@ -13,7 +13,11 @@ import type { components } from "./schema";
 export const listAdminCategories = (token: string) =>
   request<AdminCategories>("/categories", { token });
 
-/** 409 when the id is already used in the country or the categories file is unreadable. */
+/**
+ * The API makes the id from the Spanish name, adding `_2`, `_3`... when it is
+ * taken. 409 when the country's categories file can't be read, 400 when layers
+ * already pointing at that id don't fit the category.
+ */
 export const createAdminCategory = (token: string, input: CategoryCreate) =>
   request<AdminCategory>("/categories", { token, method: "POST", body: input });
 

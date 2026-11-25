@@ -379,9 +379,40 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setReportGenerationParams,
   ]);
 
+  // The last polarity and `temporal` seen of each category of `country`. A
+  // category missing from a poll (disabled) keeps its entry, so one that changes
+  // while hidden still counts as changed when it comes back.
+  const knownCategories = useRef({
+    country: null as string | null,
+    byId: new Map<string, Pick<LayerCategory, "polarity" | "temporal">>(),
+  });
+
   // Read the current analysis state on each poll without restarting the timer.
   const onMapsLoaded = useEffectEvent(
     (maps: MapData[], categories: LayerCategory[], country: string) => {
+      const known = knownCategories.current;
+      if (known.country !== country) {
+        known.country = country;
+        known.byId = new Map();
+      }
+      // Categories whose reading of a result changed since the last poll: the
+      // same value would now give the opposite finding, or another kind of one.
+      const reinterpreted = new Set(
+        categories
+          .filter((category) => {
+            const before = known.byId.get(category.id);
+            return (
+              before !== undefined &&
+              (before.polarity !== category.polarity ||
+                before.temporal !== category.temporal)
+            );
+          })
+          .map((category) => category.id)
+      );
+      for (const { id, polarity, temporal } of categories) {
+        known.byId.set(id, { polarity, temporal });
+      }
+
       setAvailableMaps(maps);
       setAvailableCategories(categories);
       setAvailableMapsCountry(country);
@@ -404,7 +435,9 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
             map.version !== selectedMaps[index].version ||
             map.pixelSize !== selectedMaps[index].pixelSize ||
             map.baseline !== selectedMaps[index].baseline ||
-            map.comparedAgainst !== selectedMaps[index].comparedAgainst
+            map.comparedAgainst !== selectedMaps[index].comparedAgainst ||
+            map.categoryId !== selectedMaps[index].categoryId ||
+            reinterpreted.has(map.categoryId)
         );
 
       if (calculationChanged && territorialAnalysisResults) {

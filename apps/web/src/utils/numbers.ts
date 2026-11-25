@@ -2,7 +2,6 @@ import { getOverlapThreshold } from "@/config/runtime";
 import { isOverlapAboveThreshold } from "./overlap";
 import {
   classifyResult,
-  deforestationRule,
   findingRatio,
   type ClassificationRule,
 } from "./layerResults";
@@ -160,8 +159,9 @@ export const formatOverlapPercentage = (
 
 /**
  * Formats a layer result as the percentage of the farm that is a finding: `value`
- * for an `avoid` rule, `1 − value` for a `required` one. Deforestation by default
- * (the PDF and the exports, until they read categories).
+ * for an `avoid` rule, `1 − value` for a `required` one. The rule is the layer's
+ * category's (`categoryRule`), never assumed: a default would read a `required`
+ * layer inverted without any error.
  *
  * If the rule has a threshold (> 0), findings at or below it are displayed as
  * "< X%" where X is the threshold. Otherwise, findings below
@@ -176,7 +176,7 @@ export const formatOverlapPercentage = (
 export const formatResultPercentage = (
   value: number,
   language = "es",
-  rule: ClassificationRule = deforestationRule()
+  rule: ClassificationRule
 ): string => {
   const finding = findingRatio(value, rule.polarity);
   if (finding === 0) return "0%";

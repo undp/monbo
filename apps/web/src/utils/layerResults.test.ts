@@ -12,7 +12,6 @@ import {
   classifyFarmInCategory,
   classifyResult,
   countResults,
-  deforestationRule,
   findingRatio,
   groupFarmsByResult,
   groupLayersByCategory,
@@ -100,21 +99,6 @@ describe("classifyResult", () => {
       expect(classifyResult(null, rule)).toBe("unknown");
       expect(classifyResult(undefined, rule)).toBe("unknown");
     }
-  });
-});
-
-describe("deforestationRule", () => {
-  it("is avoid with the deforestation threshold from GET /config", () => {
-    setRuntimeConfig({
-      deforestationThresholdPercentage: 2,
-      overlapThresholdPercentage: 7,
-    });
-    expect(deforestationRule()).toEqual({
-      polarity: "avoid",
-      thresholdPercentage: 2,
-    });
-    expect(classifyResult(0.02, deforestationRule())).toBe("ok");
-    expect(classifyResult(0.021, deforestationRule())).toBe("flagged");
   });
 });
 

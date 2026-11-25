@@ -4,7 +4,7 @@ import { CircleObject, Map, PolygonObject } from "@/components/reusable/Map";
 import { Box, Paper, Slide } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Text } from "@/components/reusable/Text";
-import { parsePolygonArea } from "@/utils/polygons";
+import { formatArea } from "@/utils/polygons";
 import { useTranslation } from "react-i18next";
 import { LayerTilesOverlay } from "./LayerTilesOverlay";
 import { useVisibleDataForAnalysisPage } from "@/hooks/useVisibleDataForAnalysisPage";
@@ -147,10 +147,7 @@ export const SelectedPolygonsMap: React.FC<SelectedPolygonsMapProps> = ({
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Text variant="body1">{t("common:surface")}:</Text>
             <Text variant="body1" sx={{ marginLeft: 1, textAlign: "right" }}>
-              {parsePolygonArea(
-                selectedFarmData?.polygon.area || 0,
-                i18n.language
-              )}
+              {formatArea(selectedFarmData?.polygon.area, i18n.language)}
             </Text>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>

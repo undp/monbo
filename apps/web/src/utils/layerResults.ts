@@ -1,4 +1,3 @@
-import { getDeforestationThreshold } from "@/config/runtime";
 import type {
   LayerAnalysisMapResults,
   MapData,
@@ -71,16 +70,6 @@ export const classifyResult = (
     ? "flagged"
     : "ok";
 };
-
-/**
- * The rule of the PDF report and the exports until they read categories (GC-7):
- * deforestation, with the threshold published at GET /config. Stage 2 uses
- * `categoryRule`.
- */
-export const deforestationRule = (): ClassificationRule => ({
-  polarity: "avoid",
-  thresholdPercentage: getDeforestationThreshold(),
-});
 
 /** The rule of a category's layers. */
 export const categoryRule = (

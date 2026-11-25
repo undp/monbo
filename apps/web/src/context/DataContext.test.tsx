@@ -280,6 +280,56 @@ describe("DataProvider polling with a selected layer", () => {
     expect(result.current.farmsData).toHaveLength(1);
   });
 
+  it("invalidates the analysis when the layer moves to another category", async () => {
+    const { result } = await withSelectedLayer(true);
+    const moved = { ...gfw, categoryId: "agricultural_frontier" };
+    mapsByCountry({ CR: [moved] });
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory(), makeFrontierCategory()]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([moved]);
+  });
+
+  it("invalidates the analysis when the layer's category flips its polarity", async () => {
+    const { result } = await withSelectedLayer(true);
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ polarity: "required" })]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+  });
+
+  it("invalidates the analysis when the category comes back with another reading", async () => {
+    const { result } = await withSelectedLayer(true);
+    // The admin hides the layer and its category, then republishes both with the
+    // category no longer temporal.
+    mapsByCountry({ CR: [] });
+    vi.mocked(getLayerCategories).mockResolvedValue([]);
+    await poll();
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
+
+    mapsByCountry({ CR: [gfw] });
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ temporal: false })]);
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+  });
+
+  it("keeps the analysis when only the category's threshold changes", async () => {
+    const { result } = await withSelectedLayer(true);
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ thresholdPercentage: 5 })]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
+    expect(result.current.analysisOutdated).toBe(false);
+  });
+
   it("refreshes a renamed layer without invalidating", async () => {
     const { result } = await withSelectedLayer(true);
     mapsByCountry({ CR: [{ ...gfw, name: "GFW (Hansen)" }] });
