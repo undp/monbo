@@ -276,19 +276,9 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
         ),
       }}
       footer={
-        <Box
-          sx={{
-            marginTop: 3,
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 2,
-            backgroundColor: "white",
-          }}
-        >
-          <Button variant="contained" onClick={handleModalClose}>
-            {t("common:close")}
-          </Button>
-        </Box>
+        <Button variant="contained" onClick={handleModalClose}>
+          {t("common:close")}
+        </Button>
       }
     >
       <Box

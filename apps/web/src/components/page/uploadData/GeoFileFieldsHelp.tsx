@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -38,12 +37,8 @@ export const GeoFileFieldsHelp: React.FC<GeoFileFieldsHelpProps> = ({
       handleClose={onClose}
       title={t("common:geoFile:help:title")}
       icon={<TableChartOutlinedIcon />}
+      // Closed from the heading's X: a second "Cerrar" would repeat it
       maxWidth="md"
-      actions={
-        <Button variant="contained" onClick={onClose}>
-          {t("common:close")}
-        </Button>
-      }
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Box component="p" sx={NOTE}>

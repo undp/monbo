@@ -8,9 +8,10 @@
 - [x] 2.2 `BaseModal`: the heading, `subtitle`, `icon`, `tone` and an `actions` footer
 - [x] 2.3 `ActionModal` (answers in the footer), `RestartAnalysisModal` (amber tile), "Formato" (downloads in the footer), `LayerTextsExampleModal` (icon, compact table)
 - [x] 2.4 `BasePolygonModal`: the heading and the compact table in a framed panel; icons and tones for the detail, overlaps and geometry error modals
-- [x] 2.5 `MapsDetailsModal`: the heading and the layers as pills
-- [x] 2.6 `GeoFileFieldsHelp` on `BaseModal`, with the compact table
+- [x] 2.5 `MapsDetailsModal`: the heading and the layers as a radio group of pills, with their own focus style
+- [x] 2.6 `GeoFileFieldsHelp` on `BaseModal`, with the compact table, closed from the heading's X only
 - [x] 2.7 `FLOW_TABLE_COMPACT_SX` in `flowTable.ts`, also for the drawing modal's vertex list
+- [x] 2.8 Review fixes: `BasePolygonModal`'s footer in `MODAL_FOOTER`; `ActionModal`'s question as the dialog's description (`describedById`); `fieldLine` in `palette.landing`; the theme's tests in `config/theme.test.tsx`
 
 ## 3. Verification
 
