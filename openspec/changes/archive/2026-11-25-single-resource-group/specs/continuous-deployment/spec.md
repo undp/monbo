@@ -9,7 +9,7 @@ The deploy identity SHALL hold only Contributor on its environment's resource gr
 
 Terraform SHALL assign no roles. `docs/suggested_deployment.md` SHALL record the exact commands, for any environment, and how to verify them. The identity SHALL NOT be able to assign roles, nor access another environment's group or state.
 
-#### Scenario: New environment without the grants
+#### Scenario: New environment without the manual grants
 
 - **WHEN** CI deploys an environment whose deploy identity lacks Contributor on its group
 - **THEN** the deploy fails with an authorization error before changing any app, and the documentation names the missing grant

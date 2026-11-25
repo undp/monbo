@@ -68,5 +68,7 @@
 - [x] 6.1 `openspec validate production-environment --strict`
 - [x] 6.2 With the local `dev` secrets, run `terraform plan` of `platform` with `envs/dev.tfvars`. Expect no changes (the state account is now explicit). Run `infra/deploy.sh dev --plan-only --skip-build` with the current tag. Neither changes Azure
   - Both `No changes`: `platform` with the explicit `monbotfstate`, and `apps` via `deploy.sh dev --plan-only --skip-build` with the tag `dev` serves.
-- [ ] 6.3 After merging into `dev`: confirm the push deploys `dev` as before, and the run shows `deploy-dev` and environment `dev`
-- [ ] 6.4 After the next release into `main`, with `DEPLOY_PROD` unset: confirm the deploy job is skipped, not failed, and that no `prod` environment was auto-created
+- [x] 6.3 After merging into `dev`: confirm the push deploys `dev` as before, and the run shows `deploy-dev` and environment `dev`
+  - 2026-11-25: the merge of #104 deployed `dev` from CI (job "Deploy to dev", environment `dev`), with the layout of `single-resource-group`.
+- [x] 6.4 After the next release into `main`, with `DEPLOY_PROD` unset: confirm the deploy job is skipped, not failed, and that no `prod` environment was auto-created
+  - 2026-11-25: release 2.0.0 (#156): the run on `main` concluded `skipped`, with no deployment to `prod`. The `prod` GitHub Environment existed already, created by hand for the manual deploy.
