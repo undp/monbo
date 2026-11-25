@@ -17,6 +17,7 @@ import {
 import { IconButton, SxProps, Box, Button } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 import { DataContext } from "@/context/DataContext";
@@ -235,11 +236,9 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
   return (
     <BasePolygonModal
       size="xl"
-      title={
-        <Text variant="h6" bold>
-          {t("polygonValidation:geometryInconsistencyModal.title")}
-        </Text>
-      }
+      title={t("polygonValidation:geometryInconsistencyModal.title")}
+      icon={<ErrorOutlineRoundedIcon />}
+      tone="bad"
       hideCloseButton
       isOpen={isOpen}
       row={row}

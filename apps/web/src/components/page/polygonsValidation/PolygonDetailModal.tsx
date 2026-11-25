@@ -16,7 +16,8 @@ import {
 } from "@/utils/polygons";
 import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
-import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
+import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import { Box } from "@mui/material";
 import { DataContext } from "@/context/DataContext";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
@@ -109,21 +110,11 @@ export const PolygonDetailModal: React.FC<PolygonDetailModalProps> = ({
       handleClose={handleClose}
       rowsGenerator={(farm) => generateRows(farm, t)}
       mapObjectsGenerator={generateMapObjects}
-      title={
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <PolygonTypeIcon
-            sx={{
-              gap: 1,
-            }}
-            polygonType={data.polygon.type}
-          />
-          <Text variant="h6" bold>
-            {data.polygon.type === "point"
-              ? t("common:point")
-              : t("common:polygon")}{" "}
-            · ID {data.id}
-          </Text>
-        </Box>
+      title={`${
+        data.polygon.type === "point" ? t("common:point") : t("common:polygon")
+      } · ID ${data.id}`}
+      icon={
+        data.polygon.type === "point" ? <PlaceOutlinedIcon /> : <PentagonOutlinedIcon />
       }
       mapCenter={data.polygon.details?.center ?? { lat: 0, lng: 0 }}
       tableTitle={

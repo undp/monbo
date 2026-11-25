@@ -7,8 +7,8 @@ import { Box, Dialog, DialogContent } from "@mui/material";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
-import { MODAL_PAPER } from "./manualFarmStyles";
-import { ModalHeader } from "./ModalHeader";
+import { ModalHeader } from "@/components/reusable/Modals/ModalHeader";
+import { MODAL_PAPER } from "@/components/reusable/Modals/modalStyles";
 
 // The size of the "How to draw" GIFs (public/images/manual-farm-drawing-*.gif),
 // recorded from the modal's map at its own size by scripts/record-drawing-gif.mjs

@@ -3,6 +3,7 @@
 import React, { useContext } from "react";
 import { Box, Button, Checkbox, FormControlLabel } from "@mui/material";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { useTranslation } from "react-i18next";
 import { CircleObject, PolygonObject } from "@/components/reusable/Map";
 import { Header, RowData } from "@/components/reusable/Table";
@@ -150,19 +151,20 @@ export const FarmOverlapsModal: React.FC<Props> = ({ view, onClose }) => {
     <BasePolygonModal
       size="xl"
       title={
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        // The dot is the farm's color on the map, as the table's rows have theirs
+        <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
           <FiberManualRecordIcon
             aria-hidden
             sx={{ width: 15, height: 15, color: colorAt(0) }}
           />
-          <Text variant="h6" bold>
-            {t("polygonValidation:farmOverlapsModal:title", {
-              id: farm.id,
-              interpolation: { escapeValue: false },
-            })}
-          </Text>
+          {t("polygonValidation:farmOverlapsModal:title", {
+            id: farm.id,
+            interpolation: { escapeValue: false },
+          })}
         </Box>
       }
+      icon={<WarningAmberRoundedIcon />}
+      tone="warn"
       hideCloseButton
       isOpen
       row={{ cells: {}, data: view }}

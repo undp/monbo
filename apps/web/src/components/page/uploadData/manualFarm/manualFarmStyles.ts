@@ -3,12 +3,6 @@ import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 // The manual farm modal's look (mockup v2): the stage pages' colors, sentence-case
 // buttons and rounder fields.
 
-/** The paper of the modal and of its "How to draw" dialog. */
-export const MODAL_PAPER = {
-  borderRadius: "16px",
-  boxShadow: "0 24px 60px rgba(11, 37, 69, 0.22)",
-} as const;
-
 /** A small uppercase label over a group of controls, as the "how to" panel's. */
 export const EYEBROW = {
   margin: 0,

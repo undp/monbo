@@ -84,6 +84,48 @@ const theme = createTheme({
       },
     },
   },
+  components: {
+    // The v2 look (mockup) for every button: sentence case, round corners, no
+    // shadow, and the flow's blue for the primary ones. A screen that styles a
+    // button with `sx` still overrides this.
+    MuiButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          textTransform: "none",
+          borderRadius: 10,
+          fontWeight: 600,
+          boxShadow: "none",
+          "&:hover": { boxShadow: "none" },
+          variants: [
+            {
+              props: { variant: "contained", color: "primary" },
+              style: {
+                backgroundColor: theme.palette.landing.blue,
+                "&:hover": { backgroundColor: theme.palette.landing.blueDark },
+              },
+            },
+            {
+              props: { variant: "outlined", color: "primary" },
+              style: {
+                color: theme.palette.landing.blue,
+                // 1.74:1 on white, as MUI's default border (FLOW_COLORS.fieldLine)
+                borderColor: "#b6c6d6",
+                backgroundColor: theme.palette.common.white,
+                "&:hover": {
+                  borderColor: theme.palette.landing.blue,
+                  backgroundColor: theme.palette.landing.blueTint,
+                },
+              },
+            },
+            {
+              props: { variant: "text", color: "primary" },
+              style: { color: theme.palette.landing.blue },
+            },
+          ],
+        }),
+      },
+    },
+  },
   typography: {
     fontFamily: "var(--font-roboto)",
     h3: {

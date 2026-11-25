@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
-import { FLOW_TABLE_FRAME, FLOW_TABLE_SX } from "@/components/page/flow/flowTable";
+import { FLOW_TABLE_COMPACT_SX, FLOW_TABLE_FRAME } from "@/components/page/flow/flowTable";
 import { Coordinates } from "@/interfaces/Map";
 import { Drawing, PolygonDrawing, RingRef, sameRing } from "@/utils/drawing";
 import { VertexRef } from "./DrawingMap";
@@ -21,14 +21,12 @@ import { EYEBROW } from "./manualFarmStyles";
 // Decimal places shown for a vertex (about 10 cm)
 const SHOWN_COORDINATE_DECIMALS = 6;
 
-// The stage pages' table, with compact rows: it lists many vertices in little room
+// The compact stage table, with tabular figures: it lists many vertices in little room
 const TABLE_SX = {
-  ...FLOW_TABLE_SX,
-  "& th": { ...FLOW_TABLE_SX["& th"], padding: "8px 14px" },
+  ...FLOW_TABLE_COMPACT_SX,
   "& td": {
-    ...FLOW_TABLE_SX["& td"],
+    ...FLOW_TABLE_COMPACT_SX["& td"],
     padding: "7px 14px",
-    fontSize: 13.5,
     fontVariantNumeric: "tabular-nums",
   },
   "& th[scope=rowgroup]": {

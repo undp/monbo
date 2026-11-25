@@ -1,32 +1,37 @@
-import {
-  Breakpoint,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-} from "@mui/material";
-
-import CloseIcon from "@mui/icons-material/Close";
-import { useTranslation } from "react-i18next";
+import { useId } from "react";
+import { Box, Breakpoint, Dialog, DialogContent } from "@mui/material";
+import { ModalHeader, ModalHeaderProps } from "./Modals/ModalHeader";
+import { MODAL_FOOTER, MODAL_PADDING, MODAL_PAPER } from "./Modals/modalStyles";
 
 export interface BaseModalProps {
   isOpen: boolean;
   handleClose: () => void;
   title: string;
+  /** Under the title; it also describes the dialog. */
+  subtitle?: string;
+  icon?: React.ReactNode;
+  tone?: ModalHeaderProps["tone"];
   children: React.ReactNode;
+  /** The modal's buttons, in a footer on the right. */
+  actions?: React.ReactNode;
   maxWidth?: Breakpoint;
   onAfterClose?: () => void;
 }
 
+/** A modal in the v2 look: `ModalHeader`, the content, and an optional footer. */
 export const BaseModal: React.FC<BaseModalProps> = ({
   isOpen,
   handleClose,
   title,
+  subtitle,
+  icon,
+  tone,
   maxWidth = "lg",
   children,
+  actions,
   onAfterClose,
 }) => {
-  const { t } = useTranslation();
+  const subtitleId = useId();
   return (
     <Dialog
       open={isOpen}
@@ -34,21 +39,19 @@ export const BaseModal: React.FC<BaseModalProps> = ({
       fullWidth
       maxWidth={maxWidth}
       onTransitionExited={onAfterClose}
+      aria-describedby={subtitle ? subtitleId : undefined}
+      slotProps={{ paper: { sx: MODAL_PAPER } }}
     >
-      <DialogTitle sx={{ fontSize: "24px" }}>{title}</DialogTitle>
-      <IconButton
-        aria-label={t("common:close")}
-        onClick={handleClose}
-        sx={(theme) => ({
-          position: "absolute",
-          right: theme.spacing(1.5),
-          top: theme.spacing(2),
-          color: theme.palette.grey[500],
-        })}
-      >
-        <CloseIcon />
-      </IconButton>
-      <DialogContent sx={{ paddingTop: 0 }}>{children}</DialogContent>
+      <ModalHeader
+        title={title}
+        subtitle={subtitle}
+        subtitleId={subtitleId}
+        icon={icon}
+        tone={tone}
+        onClose={handleClose}
+      />
+      <DialogContent sx={{ padding: MODAL_PADDING }}>{children}</DialogContent>
+      {actions && <Box sx={MODAL_FOOTER}>{actions}</Box>}
     </Dialog>
   );
 };

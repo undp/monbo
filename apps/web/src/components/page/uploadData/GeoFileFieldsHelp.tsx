@@ -1,10 +1,6 @@
 import {
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Table,
   TableBody,
   TableCell,
@@ -13,8 +9,14 @@ import {
 } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Text } from "@/components/reusable/Text";
+import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { FLOW_TABLE_COMPACT_SX, FLOW_TABLE_FRAME } from "@/components/page/flow/flowTable";
+import { BaseModal } from "@/components/reusable/BaseModal";
 import { GeoAttributeKey, geoAttributeMappings } from "@/utils/excel";
+
+const NOTE = { margin: 0, fontSize: 13.5, lineHeight: 1.5, color: FLOW_COLORS.ink2 } as const;
+const CODE = { fontFamily: "monospace", fontSize: 13 } as const;
 
 const KEYS = Object.keys(geoAttributeMappings) as GeoAttributeKey[];
 
@@ -31,13 +33,23 @@ export const GeoFileFieldsHelp: React.FC<GeoFileFieldsHelpProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{t("common:geoFile:help:title")}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <Text variant="body2" color="secondary">
-            {t("common:geoFile:help:intro")}
-          </Text>
+    <BaseModal
+      isOpen={open}
+      handleClose={onClose}
+      title={t("common:geoFile:help:title")}
+      icon={<TableChartOutlinedIcon />}
+      maxWidth="md"
+      actions={
+        <Button variant="contained" onClick={onClose}>
+          {t("common:close")}
+        </Button>
+      }
+    >
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box component="p" sx={NOTE}>
+          {t("common:geoFile:help:intro")}
+        </Box>
+        <Box sx={{ ...FLOW_TABLE_FRAME, ...FLOW_TABLE_COMPACT_SX }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -53,27 +65,20 @@ export const GeoFileFieldsHelp: React.FC<GeoFileFieldsHelpProps> = ({
                     {t(`common:geoFile:help:fields:${key}`)}
                     {geoAttributeMappings[key].mandatory && " *"}
                   </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace" }}>
-                    {geoAttributeMappings[key].geoFile}
-                  </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace" }}>
-                    {geoAttributeMappings[key].shapefile}
-                  </TableCell>
+                  <TableCell sx={CODE}>{geoAttributeMappings[key].geoFile}</TableCell>
+                  <TableCell sx={CODE}>{geoAttributeMappings[key].shapefile}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Text variant="body2" color="secondary">
-            {t("common:geoFile:help:mandatory")}
-          </Text>
-          <Text variant="body2" color="secondary">
-            {t("common:geoFile:help:notes")}
-          </Text>
         </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t("common:close")}</Button>
-      </DialogActions>
-    </Dialog>
+        <Box component="p" sx={NOTE}>
+          {t("common:geoFile:help:mandatory")}
+        </Box>
+        <Box component="p" sx={NOTE}>
+          {t("common:geoFile:help:notes")}
+        </Box>
+      </Box>
+    </BaseModal>
   );
 };
