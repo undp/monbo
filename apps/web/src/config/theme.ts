@@ -21,6 +21,8 @@ interface LandingPalette {
   inkSecondary: string;
   muted: string;
   line: string;
+  /** A field's or a framed button's border: 1.74:1 on white, as MUI's default. */
+  fieldLine: string;
   blue: string;
   blueDark: string;
   blueTint: string;
@@ -71,6 +73,7 @@ const theme = createTheme({
       inkSecondary: "#3d5873",
       muted: "#6b8299",
       line: "#e2ecf5",
+      fieldLine: "#b6c6d6",
       blue: "#0d64a0",
       blueDark: "#0a4f7e",
       blueTint: "#e8f1fa",
@@ -81,6 +84,47 @@ const theme = createTheme({
         deforestation: { main: "#2f8f5e", tint: "#e5f3ea" },
         protectedAreas: { main: "#0f7c86", tint: "#e0f2f3" },
         agriculturalFrontier: { main: "#a8741a", tint: "#f8eedb" },
+      },
+    },
+  },
+  components: {
+    // The v2 look (mockup) for every button: sentence case, round corners, no
+    // shadow, and the flow's blue for the primary ones. A screen that styles a
+    // button with `sx` still overrides this.
+    MuiButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          textTransform: "none",
+          borderRadius: 10,
+          fontWeight: 600,
+          boxShadow: "none",
+          "&:hover": { boxShadow: "none" },
+          variants: [
+            {
+              props: { variant: "contained", color: "primary" },
+              style: {
+                backgroundColor: theme.palette.landing.blue,
+                "&:hover": { backgroundColor: theme.palette.landing.blueDark },
+              },
+            },
+            {
+              props: { variant: "outlined", color: "primary" },
+              style: {
+                color: theme.palette.landing.blue,
+                borderColor: theme.palette.landing.fieldLine,
+                backgroundColor: theme.palette.common.white,
+                "&:hover": {
+                  borderColor: theme.palette.landing.blue,
+                  backgroundColor: theme.palette.landing.blueTint,
+                },
+              },
+            },
+            {
+              props: { variant: "text", color: "primary" },
+              style: { color: theme.palette.landing.blue },
+            },
+          ],
+        }),
       },
     },
   },

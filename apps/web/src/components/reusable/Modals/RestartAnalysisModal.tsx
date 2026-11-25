@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { ActionModal } from "./ActionModal";
 import { getCountryName } from "@/utils/countries";
 
@@ -25,6 +26,9 @@ export const RestartAnalysisModal: React.FC<RestartAnalysisModalProps> = ({
   return (
     <ActionModal
       maxWidth="sm"
+      // Changing the country drops the analysis: a warning
+      icon={<WarningAmberRoundedIcon />}
+      tone="warn"
       isOpen={!!pendingCountry}
       handleClose={onCancel}
       title={t("common:countrySelection:restartModal:title")}

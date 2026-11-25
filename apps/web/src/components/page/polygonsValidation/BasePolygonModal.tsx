@@ -1,24 +1,24 @@
 "use client";
 
 import React from "react";
-import {
-  Box,
-  Breakpoint,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-} from "@mui/material";
+import { Box, Breakpoint, Dialog, DialogContent } from "@mui/material";
 import { Map, CircleObject, PolygonObject } from "@/components/reusable/Map";
 import { Table, RowData, TableProps } from "@/components/reusable/Table";
-
-import CloseIcon from "@mui/icons-material/Close";
-import { useTranslation } from "react-i18next";
+import { ModalHeader, ModalHeaderProps } from "@/components/reusable/Modals/ModalHeader";
+import {
+  MODAL_FOOTER,
+  MODAL_PADDING,
+  MODAL_PAPER,
+} from "@/components/reusable/Modals/modalStyles";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
+import { FLOW_TABLE_COMPACT_SX } from "@/components/page/flow/flowTable";
 import { Coordinates } from "@/interfaces/Map";
 
 interface BasePolygonModalProps<T> {
   size?: Breakpoint;
   title: React.ReactNode;
+  icon?: React.ReactNode;
+  tone?: ModalHeaderProps["tone"];
   isOpen: boolean;
   handleClose: () => void;
   rowsGenerator: (data: T) => RowData<T>[];
@@ -46,6 +46,8 @@ interface BasePolygonModalProps<T> {
 export function BasePolygonModal<T>({
   size = "lg",
   title,
+  icon,
+  tone,
   isOpen,
   handleClose,
   rowsGenerator,
@@ -58,7 +60,6 @@ export function BasePolygonModal<T>({
   footer,
   hideCloseButton = false,
 }: BasePolygonModalProps<T>) {
-  const { t } = useTranslation();
   if (!row || !row.data) return null;
 
   const data = row.data;
@@ -66,23 +67,20 @@ export function BasePolygonModal<T>({
   const rows = rowsGenerator(data);
   const mapObjects = mapObjectsGenerator(data);
   return (
-    <Dialog open={isOpen} onClose={handleClose} fullWidth maxWidth={size}>
-      <DialogTitle component="div">{title}</DialogTitle>
-      {!hideCloseButton && (
-        <IconButton
-          aria-label={t("common:close")}
-          onClick={handleClose}
-          sx={(theme) => ({
-            position: "absolute",
-            right: theme.spacing(1.5),
-            top: theme.spacing(1.5),
-            color: theme.palette.grey[500],
-          })}
-        >
-          <CloseIcon />
-        </IconButton>
-      )}
-      <DialogContent sx={{ paddingTop: 0 }}>
+    <Dialog
+      open={isOpen}
+      onClose={handleClose}
+      fullWidth
+      maxWidth={size}
+      slotProps={{ paper: { sx: MODAL_PAPER } }}
+    >
+      <ModalHeader
+        title={title}
+        icon={icon}
+        tone={tone}
+        onClose={hideCloseButton ? undefined : handleClose}
+      />
+      <DialogContent sx={{ padding: MODAL_PADDING }}>
         <Box sx={{ display: "flex", gap: 2, height: 364 }}>
           <Box
             sx={{
@@ -92,7 +90,9 @@ export function BasePolygonModal<T>({
               maxWidth: 463,
             }}
           >
-            <Map center={mapCenter} objects={mapObjects} autoZoom />
+            <Box sx={{ height: "100%", borderRadius: "12px", overflow: "hidden" }}>
+              <Map center={mapCenter} objects={mapObjects} autoZoom />
+            </Box>
           </Box>
           <Box
             sx={{
@@ -103,42 +103,35 @@ export function BasePolygonModal<T>({
           >
             <Box
               sx={{
-                border: "1px solid #DEDEDE",
-                borderRadius: 2,
-                padding: 1,
-                gap: 1,
+                border: `1px solid ${FLOW_COLORS.line}`,
+                borderRadius: "12px",
+                overflow: "hidden",
                 maxHeight: "100%",
                 display: "flex",
                 flexDirection: "column",
+                // The stage pages' compact table, under the title's band
+                ...FLOW_TABLE_COMPACT_SX,
               }}
             >
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  color: FLOW_COLORS.ink,
+                  borderBottom: `1px solid ${FLOW_COLORS.line}`,
+                }}
+              >
                 {tableTitle}
               </Box>
-              <Table
-                headerStyle={{
-                  backgroundColor: "#F9F9F9",
-                  "& th:first-child": {
-                    borderTopLeftRadius: 8,
-                  },
-                  "& th:last-child": {
-                    borderTopRightRadius: 8,
-                  },
-                }}
-                bodyStyle={{
-                  "& tr:last-child td": {
-                    borderBottom: "none",
-                  },
-                }}
-                rows={rows}
-                {...tableProps}
-              />
+              <Table rows={rows} {...tableProps} />
             </Box>
             {children}
           </Box>
         </Box>
-        {footer}
       </DialogContent>
+      {/* The modal's actions, over a hairline, as BaseModal's */}
+      {footer && <Box sx={MODAL_FOOTER}>{footer}</Box>}
     </Dialog>
   );
 }

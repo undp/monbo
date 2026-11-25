@@ -52,3 +52,13 @@ export const FLOW_RESULT_PILL = {
   flagged: { color: FLOW_COLORS.bad, backgroundColor: FLOW_COLORS.badBackground },
   unknown: { color: FLOW_COLORS.muted, backgroundColor: FLOW_COLORS.blue50 },
 } as const;
+
+/**
+ * The same look with compact rows, for a table inside a modal or a panel (vertices,
+ * attribute names, a farm's points). Applies to every table under the element.
+ */
+export const FLOW_TABLE_COMPACT_SX = {
+  ...FLOW_TABLE_SX,
+  "& th": { ...FLOW_TABLE_SX["& th"], padding: "8px 14px" },
+  "& td": { ...FLOW_TABLE_SX["& td"], padding: "8px 14px", fontSize: 13.5 },
+} as const;

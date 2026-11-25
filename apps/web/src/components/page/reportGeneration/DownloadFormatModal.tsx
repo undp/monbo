@@ -2,6 +2,7 @@
 
 import { useCallback, useContext, useRef, useState } from "react";
 import { Box, Button } from "@mui/material";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import RadioButtonCheckedRoundedIcon from "@mui/icons-material/RadioButtonCheckedRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { useTranslation } from "react-i18next";
@@ -182,7 +183,20 @@ export const DownloadFormatModal: React.FC<Props> = ({
       isOpen={isOpen}
       handleClose={handleClose}
       title={text("title")}
+      icon={<DownloadRoundedIcon />}
       maxWidth="sm"
+      actions={
+        <>
+          <Button variant="outlined" onClick={onDownloadGeoJson}>
+            {text("downloadGeoJson")}
+          </Button>
+          <Button variant="contained" onClick={onDownloadPdf} loading={isDownloading}>
+            {isLarge
+              ? t("reportGeneration:buttons:downloadZip", { count: farmCount })
+              : text("downloadPdf")}
+          </Button>
+        </>
+      }
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLarge ? (
@@ -221,24 +235,6 @@ export const DownloadFormatModal: React.FC<Props> = ({
             ))}
           </Box>
         )}
-      </Box>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
-          gap: 1.5,
-          marginTop: 3,
-        }}
-      >
-        <Button variant="outlined" onClick={onDownloadGeoJson}>
-          {text("downloadGeoJson")}
-        </Button>
-        <Button variant="contained" onClick={onDownloadPdf} loading={isDownloading}>
-          {isLarge
-            ? t("reportGeneration:buttons:downloadZip", { count: farmCount })
-            : text("downloadPdf")}
-        </Button>
       </Box>
     </BaseModal>
   );

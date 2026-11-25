@@ -1,10 +1,12 @@
+import { useId } from "react";
 import { Box, Button, ButtonProps } from "@mui/material";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { BaseModal, BaseModalProps } from "../BaseModal";
 
 interface ActionModalProps
   extends Pick<
     BaseModalProps,
-    "isOpen" | "handleClose" | "title" | "maxWidth"
+    "isOpen" | "handleClose" | "title" | "maxWidth" | "icon" | "tone"
   > {
   description: string;
   actions: ({
@@ -13,30 +15,32 @@ interface ActionModalProps
   } & Omit<ButtonProps, "onClick">)[];
 }
 
+/**
+ * A question with its answers as buttons, in the modal's footer. The question
+ * describes the dialog, so a screen reader reads it with the title.
+ */
 export const ActionModal: React.FC<ActionModalProps> = ({
-  isOpen,
-  handleClose,
-  title,
-  maxWidth,
   description,
   actions,
+  ...modal
 }) => {
+  const descriptionId = useId();
   return (
     <BaseModal
-      isOpen={isOpen}
-      handleClose={handleClose}
-      title={title}
-      maxWidth={maxWidth}
+      {...modal}
+      describedById={descriptionId}
+      actions={actions.map(({ title, handler, ...rest }) => (
+        <Button key={title} onClick={handler} {...rest}>
+          {title}
+        </Button>
+      ))}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Box
+        component="p"
+        id={descriptionId}
+        sx={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: FLOW_COLORS.ink2 }}
+      >
         {description}
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-          {actions.map(({ title, handler, ...rest }) => (
-            <Button key={title} onClick={handler} {...rest}>
-              {title}
-            </Button>
-          ))}
-        </Box>
       </Box>
     </BaseModal>
   );
