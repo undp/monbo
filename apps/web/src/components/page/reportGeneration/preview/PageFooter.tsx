@@ -1,14 +1,12 @@
 "use client";
 
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { Footer } from "@/components/reusable/Footer";
-import { Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { useCallback, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DownloadTypeSelectionModal } from "./DownloadTypeSelectionModal";
 import { useDeforestationReportDownload } from "@/hooks/useDeforestationReportDownload";
 import { DataContext } from "@/context/DataContext";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 import { ReportContext } from "@/context/ReportContext";
 import { ZipProgress } from "./ZipProgress";
 
@@ -69,31 +67,20 @@ export function PageFooter() {
   return (
     <>
       <Footer>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onDownloadReportClick}
+          loading={isDownloading}
+          // A large report's ZIP shows its progress in the middle of the page.
+          disabled={!!progress}
         >
-          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onDownloadReportClick}
-              loading={isDownloading}
-              // A large report's ZIP shows its progress in the middle of the page.
-              disabled={!!progress}
-            >
-              {isLarge
-                ? t("reportGeneration:buttons:downloadZip", {
-                    count: farmCount,
-                  })
-                : t("reportGeneration:buttons:download")}
-            </Button>
-          </Box>
-        </Box>
+          {isLarge
+            ? t("reportGeneration:buttons:downloadZip", {
+                count: farmCount,
+              })
+            : t("reportGeneration:buttons:download")}
+        </Button>
       </Footer>
       {progress && (
         <ZipProgress

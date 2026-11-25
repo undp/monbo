@@ -1,13 +1,11 @@
 "use client";
 
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
 import { Footer } from "@/components/reusable/Footer";
-import { Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MapSelectionModal } from "./MapSelectionModal";
 import { useRouter } from "next/navigation";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
 
 export function PageFooter() {
   const { t } = useTranslation();
@@ -29,20 +27,9 @@ export function PageFooter() {
   return (
     <>
       <Footer>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="contained" onClick={handleOpenMapSelectionModal}>
-              {t("deforestationAnalysis:buttons:createReport")}
-            </Button>
-          </Box>
-        </Box>
+        <Button variant="contained" onClick={handleOpenMapSelectionModal}>
+          {t("deforestationAnalysis:buttons:createReport")}
+        </Button>
       </Footer>
       <MapSelectionModal
         isOpen={isMapSelectionModalOpen}
