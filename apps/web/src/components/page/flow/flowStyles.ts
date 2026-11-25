@@ -74,6 +74,18 @@ export const STAGE_CARD = {
   boxShadow: "0 1px 2px rgba(11, 37, 69, 0.05), 0 10px 30px rgba(11, 37, 69, 0.07)",
 } as const;
 
+/** A section heading's icon tile: mint, with the dark green icon (FlowSection). */
+export const SECTION_ICON_TILE = {
+  width: 38,
+  height: 38,
+  flex: "none",
+  borderRadius: "10px",
+  display: "grid",
+  placeItems: "center",
+  backgroundColor: FLOW_COLORS.mint,
+  color: FLOW_COLORS.leafDark,
+} as const;
+
 /**
  * Plus Jakarta Sans once GC-9's `--font-heading` exists, the body font before.
  */

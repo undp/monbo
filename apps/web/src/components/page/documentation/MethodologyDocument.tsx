@@ -13,6 +13,7 @@ import { STAGE_CARD } from "@/components/page/flow/flowStyles";
 import { useTranslation } from "react-i18next";
 import { DataContext } from "@/context/DataContext";
 import { useAvailableCountries } from "@/hooks/useAvailableCountries";
+import { useCurrentSection } from "@/hooks/useCurrentSection";
 import { useCountryLayerCatalog } from "@/hooks/useCountryLayerCatalog";
 import {
   DOCUMENTATION_SECTIONS,
@@ -43,39 +44,6 @@ const SECTION_ICONS: Record<DocumentationSection, ReactNode> = {
 };
 
 /**
- * The section being read: the last one whose top has passed under the fixed
- * header, for the side index to mark it. Null without IntersectionObserver.
- */
-const useCurrentSection = (): string | null => {
-  const [current, setCurrent] = useState<string | null>(null);
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    const sections = DOCUMENTATION_SECTIONS.map((id) => document.getElementById(id)).filter(
-      (element): element is HTMLElement => !!element
-    );
-    const update = () => {
-      // The last section whose top is above the band under the header
-      const passed = sections.filter(
-        (section) => section.getBoundingClientRect().top <= SCROLL_MARGIN_TOP + 40
-      );
-      setCurrent((passed.at(-1) ?? sections[0])?.id ?? null);
-    };
-    const observer = new IntersectionObserver(update, {
-      rootMargin: `-${SCROLL_MARGIN_TOP}px 0px -50% 0px`,
-      threshold: [0, 1],
-    });
-    sections.forEach((section) => observer.observe(section));
-    window.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", update);
-    };
-  }, []);
-  return current;
-};
-
-/**
  * The methodology page's body: a hero, an index (beside the content from 900 px,
  * above it on phones) and one section per Markdown file, with the deployment's
  * thresholds filled in. The layers and limits sections add the layers of the
@@ -98,7 +66,7 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
       : (countries[0]?.code ?? null);
   const countryName = countries.find((c) => c.code === country)?.name ?? null;
   const catalog = useCountryLayerCatalog(country, i18n.language);
-  const currentSection = useCurrentSection();
+  const currentSection = useCurrentSection(DOCUMENTATION_SECTIONS, SCROLL_MARGIN_TOP);
 
   // The page renders once GET /config answers, after the browser looked for the
   // URL's anchor: go to it now, so /documentation#layers opens at its section.
@@ -242,15 +210,23 @@ export const MethodologyDocument: React.FC<{ content: DocumentationContent }> = 
                 id={section}
                 sx={{
                   ...STAGE_CARD,
+                  position: "relative",
                   padding: { xs: "20px 16px", md: "28px 32px" },
                   scrollMarginTop: SCROLL_MARGIN_TOP,
                 }}
               >
                 {formerAnchor && (
+                  // At the card's top edge, not inside its padding: the old link
+                  // lands where the section's own does
                   <Box
                     component="span"
                     id={formerAnchor}
-                    sx={{ display: "block", scrollMarginTop: SCROLL_MARGIN_TOP }}
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      scrollMarginTop: SCROLL_MARGIN_TOP,
+                    }}
                   />
                 )}
                 <DocumentationMarkdown icon={SECTION_ICONS[section]}>

@@ -15,7 +15,13 @@ import remarkDirective from "remark-directive";
 import { useTranslation } from "react-i18next";
 import { isWebUrl } from "@/utils/layerCatalog";
 import remarkDocumentationBlocks from "@/utils/remarkDocumentationBlocks";
-import { FLOW_COLORS, HEADING_FONT } from "@/components/page/flow/flowStyles";
+import { alpha } from "@mui/material/styles";
+import { PageEyebrow } from "@/components/page/flow/PageEyebrow";
+import {
+  FLOW_COLORS,
+  HEADING_FONT,
+  SECTION_ICON_TILE,
+} from "@/components/page/flow/flowStyles";
 
 // How the methodology page renders Markdown: its own sections, with their summary
 // and "More detail" blocks, and the layers' considerations. No raw HTML: without
@@ -41,21 +47,7 @@ const SummaryBox: React.FC<{ children: ReactNode }> = ({ children }) => {
         "& li::marker": { color: FLOW_COLORS.leafDark },
       }}
     >
-      {/* The stage pages' eyebrow: green, spaced uppercase */}
-      <Box
-        component="p"
-        sx={{
-          margin: "0 0 10px",
-          fontSize: 12,
-          fontWeight: 700,
-          lineHeight: 1.2,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: FLOW_COLORS.leafDark,
-        }}
-      >
-        {t("methodology:summary")}
-      </Box>
+      <PageEyebrow>{t("methodology:summary")}</PageEyebrow>
       {children}
     </Box>
   );
@@ -99,7 +91,7 @@ const SECTION_HEADING = {
   m: 0,
 } as const;
 
-const LINK = { color: FLOW_COLORS.blue, textDecorationColor: "rgba(13, 100, 160, 0.4)" } as const;
+const LINK = { color: FLOW_COLORS.blue, textDecorationColor: alpha(FLOW_COLORS.blue, 0.4) } as const;
 
 const markdownComponents: Components = {
   // remarkDocumentationBlocks marks the summary and details blocks.
@@ -222,19 +214,7 @@ export const DocumentationMarkdown: React.FC<{ children: string; icon?: ReactNod
             ...markdownComponents,
             h2: ({ children: title }) => (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2.5 }}>
-                <Box
-                  aria-hidden
-                  sx={{
-                    width: 42,
-                    height: 42,
-                    flex: "none",
-                    borderRadius: "11px",
-                    display: "grid",
-                    placeItems: "center",
-                    backgroundColor: FLOW_COLORS.mint,
-                    color: FLOW_COLORS.leafDark,
-                  }}
-                >
+                <Box aria-hidden sx={SECTION_ICON_TILE}>
                   {icon}
                 </Box>
                 <Typography variant="h2" sx={SECTION_HEADING}>
