@@ -46,13 +46,23 @@ variable "github_repository" {
   default     = "undp/monbo"
 }
 
-# Where the Terraform state lives (infra/bootstrap.sh): the deploy identity gets access.
-variable "state_resource_group_name" {
-  type    = string
-  default = "monbo-tfstate"
+# The environment's one resource group. It must exist: infra/bootstrap.sh creates it
+# when the operators can (dev); otherwise it is the one granted (prod). Configuration of
+# the environment, not of the repository: TF_VAR_resource_group_name, from
+# infra/envs/<env>.secrets.env or the GitHub Environment.
+variable "resource_group_name" {
+  description = "The existing resource group every resource of the environment goes in. Read only: never modified or locked."
+  type        = string
 }
 
-variable "state_storage_account_name" {
-  type    = string
-  default = "monbotfstate"
+variable "registry_admin_enabled" {
+  description = "Pull images with the registry's admin user. Only until an administrator grants AcrPull to the pull identity."
+  type        = bool
+  default     = false
+}
+
+variable "share_backup_enabled" {
+  description = "Daily Azure Backup of the share (30 days). Configuring it puts a lock on the storage account, which needs more than Contributor."
+  type        = bool
+  default     = false
 }

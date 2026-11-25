@@ -65,7 +65,7 @@ seed_share() {
   key="$(storage_key)"
   if ! share_is_empty "$key"; then
     log "The '$MAPS_SHARE_NAME' share already has files"
-    echo "  All of them will be deleted: every layer, raster version and admin change on it."
+    echo "  All of them will be deleted: every layer, raster version, admin change and usage event on it."
     echo "  (Share snapshots and backups are kept: docs/suggested_deployment.md.)"
     read -r -p "Type the share name to confirm: " answer
     [ "$answer" = "$MAPS_SHARE_NAME" ] || die "Aborted; the share is unchanged"
@@ -83,7 +83,7 @@ seed_share() {
   echo "  Old id -> new id per country, for tests.regression.parity --mapping: $SEED_MAPPING_OUT"
 
   # Only now, with the new layers ready, empty the share: after a snapshot of what it
-  # holds, so this exact content can be restored (the daily backup may be hours old).
+  # holds, so this exact content can be restored (there may be no other recent one).
   if ! share_is_empty "$key"; then
     local snapshot
     snapshot="$(AZURE_STORAGE_KEY="$key" az storage share snapshot --name "$MAPS_SHARE_NAME" \

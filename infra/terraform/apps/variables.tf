@@ -3,12 +3,14 @@ variable "env" {
   type        = string
 }
 
-# Where the platform stack keeps its state (same values as envs/<env>.backend.hcl).
-variable "state_resource_group_name" {
-  type    = string
-  default = "monbo-tfstate"
+# The environment's one resource group, where everything is, the state account included
+# (TF_VAR_resource_group_name, from infra/envs/<env>.secrets.env or the GitHub
+# Environment; not committed).
+variable "resource_group_name" {
+  type = string
 }
 
+# Where the platform stack keeps its state (same account as envs/<env>.backend.hcl).
 variable "state_storage_account_name" {
   type = string
 }

@@ -5,8 +5,9 @@ output "location" {
   value = var.location
 }
 
-output "data_resource_group_name" {
-  value = azurerm_resource_group.data.name
+# The environment's one group: where the apps stack and the scripts find everything.
+output "resource_group_name" {
+  value = local.group
 }
 
 output "storage_account_id" {
@@ -21,8 +22,9 @@ output "maps_share_name" {
   value = azurerm_storage_share.maps.name
 }
 
+# Empty without the share backup (share_backup_enabled).
 output "backup_vault_name" {
-  value = azurerm_recovery_services_vault.backup.name
+  value = var.share_backup_enabled ? azurerm_recovery_services_vault.backup[0].name : ""
 }
 
 output "registry_id" {
@@ -37,12 +39,17 @@ output "registry_login_server" {
   value = azurerm_container_registry.main.login_server
 }
 
+# Whether the apps pull with the registry's admin user (until AcrPull is granted).
+output "registry_admin_enabled" {
+  value = var.registry_admin_enabled
+}
+
 output "log_analytics_workspace_id" {
   value = azurerm_log_analytics_workspace.main.id
 }
 
 # For the GitHub Environment's secrets (AZURE_CLIENT_ID, AZURE_TENANT_ID) and for the
-# manual role grants (docs/suggested_deployment.md#continuous-deployment).
+# administrator's grant (docs/suggested_deployment.md#the-administrators-grants).
 output "deploy_identity_client_id" {
   value = azurerm_user_assigned_identity.deploy.client_id
 }

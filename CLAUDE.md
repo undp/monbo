@@ -15,7 +15,9 @@ Read first: `docs/onboarding.md` (flow, setup, gotchas) and `docs/architecture.m
 - `tools/update-gfw-tmf/` is an offline Google Earth Engine job that regenerates the rasters. It
   never runs at request time. `tools/layers-ops/` seeds and manages layers on the Azure share.
 - `infra/` holds Terraform (`terraform/platform`, `terraform/apps`) and `deploy.sh`.
-- Every merge into `dev` deploys the dev environment (`.github/workflows/deploy.yml`).
+- Every merge into `dev` deploys the dev environment, and every merge into `main` deploys
+  `prod` once the repository variable `DEPLOY_PROD` is `true` (`.github/workflows/deploy.yml`,
+  `docs/suggested_deployment.md#production`).
 - `openspec/` holds specs (`specs/`) and change proposals (`changes/`). `docs/` holds the
   project docs.
 

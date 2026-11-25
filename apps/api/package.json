@@ -1,6 +1,6 @@
 {
   "name": "monbo-api",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "description": "FastAPI application",
   "scripts": {
     "install": "uv sync",

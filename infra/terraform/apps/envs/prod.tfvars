@@ -1,0 +1,17 @@
+# The production environment, deployed from the main branch. Secrets (and the
+# subscription) come from infra/envs/prod.secrets.env or the GitHub Environment, never
+# from this file.
+env = "prod"
+
+# Where platform's state is (as in envs/prod.backend.hcl; the group comes from
+# TF_VAR_resource_group_name).
+state_storage_account_name = "monboprodtfstate"
+
+api_size = { cpu = 1, memory = "2Gi" }
+web_size = { cpu = 0.5, memory = "1Gi" }
+
+overlap_threshold_percentage          = 1
+deforestation_threshold_percentage    = 2
+show_testing_environment_warning      = false
+max_requests_for_satellite_background = 90
+contact_url                           = "mailto:contact@monbo.org" # dev's for now; prod will get its own
