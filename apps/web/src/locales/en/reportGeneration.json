@@ -1,0 +1,90 @@
+{
+  "title": "Select the polygons you want to include in the report",
+  "searchPlaceholder": "Search by polygon or producer",
+  "paramsSelectionModal": {
+    "title": "Report generation",
+    "selectFarmsTitle": "Select the polygons to include",
+    "allFarms": "All ({{amount}})",
+    "selectFarms": "Select",
+    "selectMapsTitle": "Select map layers to consider",
+    "button": "Continue"
+  },
+  "words": {
+    "association": "Association",
+    "polygon": "Polygon",
+    "product": "Product",
+    "deforestation": "Deforestation",
+    "map": "Map",
+    "coordinates": "Coordinates",
+    "documentation": "Documentation"
+  },
+  "phrases": {
+    "deforestationAnalysis": "Deforestation Analysis",
+    "deforestationFree": "Deforestation Free",
+    "downloadGeojson": "Download GeoJSON",
+    "analysisPerformedBy": "Analysis performed by",
+    "originCountry": "Origin country",
+    "reportDate": "Report date",
+    "noDocumentation": "Not available"
+  },
+  "buttons": {
+    "generateReport": "Generate report",
+    "download": "Download",
+    "downloadZip": "Download ZIP ({{count}} PDFs)"
+  },
+  "preview": {
+    "title": "Report preview",
+    "error": "There was an error generating the report preview",
+    "retry": "Retry",
+    "largeReport": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm. The preview shows the first farm.",
+    "largeReportWithoutSatellite": "This report has {{count}} farms: it is downloaded as a ZIP with one PDF per farm, and the maps are generated without the satellite background image. The preview shows the first farm.",
+    "withoutSatellite": "This report has more than {{limit}} farms: the maps are generated without the satellite background image."
+  },
+  "downloadTypeSelectionModal": {
+    "title": "How do you want to download the report?",
+    "combinedOptionText": "1 single PDF with the {{amount}} selected polygons",
+    "separatedOptionText": "{{amount}} PDFs, one document per polygon",
+    "button": "Download"
+  },
+  "emptyFarmsSelectionModal": {
+    "title": "Report generation",
+    "description": "Please select at least one farm to generate a report",
+    "button": "Accept"
+  },
+  "attributes": {
+    "id": "ID",
+    "producer": "Producer",
+    "cropType": "Crop Type",
+    "production": "Production",
+    "productionQuantity": "Production (q)",
+    "productionDate": "Production Date",
+    "country": "Country",
+    "region": "Region",
+    "totalArea": "Total Area (ha)"
+  },
+  "coverPage": {
+    "titleFirstLine": "Deforestation",
+    "titleSecondLine": "Analysis Report"
+  },
+  "appendixPages": {
+    "deforestationExplanation": {
+      "title": "Deforestation Calculation",
+      "formulaSubtitle": "Formula used",
+      "formulaText": "The formula for calculating the deforestation percentage considers the ratio between the deforested area according to the reference map and the total area of the polygon.",
+      "deforestationStatesSubtitle": "Deforestation States",
+      "deforestationFreeText": "DEFORESTATION FREE",
+      "deforestationFreeExplanation": "Indicates that there has been no intervention that has caused the reduction of natural forest within the evaluated polygon, according to official maps or recognized methodologies.",
+      "withDeforestationText": "% DEFORESTATION",
+      "withDeforestationExplanation": "Quantifies the degree of deforestation or loss of forest cover of the evaluated polygon, according to the used reference map."
+    },
+    "mapsExplanation": {
+      "title": "Maps used for deforestation analysis",
+      "mapsText": "The maps used for deforestation analysis are:"
+    }
+  },
+  "zipProgress": {
+    "title": "Generating the ZIP",
+    "count": "{{done}} of {{total}} farms",
+    "hint": "You can stay on this page. Leaving it cancels the download."
+  }
+}

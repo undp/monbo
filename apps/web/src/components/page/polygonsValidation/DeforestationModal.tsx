@@ -1,0 +1,167 @@
+"use client";
+
+import { BaseModal, BaseModalProps } from "@/components/reusable/BaseModal";
+import { Text } from "@/components/reusable/Text";
+import { DataContext } from "@/context/DataContext";
+import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
+import {
+  Box,
+  Button,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+} from "@mui/material";
+import { useRouter } from "next/navigation";
+import { useCallback, useContext, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { MultiSelectionStep } from "../uploadData/MultiSelectionStep";
+import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
+import { MessageBox } from "@/components/reusable/MessageBox";
+import { getCountryName } from "@/utils/countries";
+
+export const DeforestationModal: React.FC<
+  Pick<BaseModalProps, "isOpen" | "handleClose">
+> = ({ isOpen, handleClose }) => {
+  const { t, i18n } = useTranslation();
+  const {
+    farmsData,
+    availableMaps,
+    availableMapsError,
+    selectedCountry,
+    polygonsValidationResults,
+    deforestationAnalysisParams: { polygonsSubset, selectedMaps },
+    setDeforestationAnalysisParams,
+    refreshAvailableMaps,
+  } = useContext(DataContext);
+  const router = useRouter();
+
+  // A layer enabled since the last fetch shows up when the modal opens.
+  useEffect(() => {
+    if (isOpen) refreshAvailableMaps();
+  }, [isOpen, refreshAvailableMaps]);
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
+
+  const allFarmsAmount = useMemo(() => farmsData?.length || 0, [farmsData]);
+
+  const validFarmsAmount = useMemo(
+    () =>
+      polygonsValidationResults?.farmResults.filter(
+        ({ status }) => status !== FarmValidationStatus.NOT_VALID
+      ).length || 0,
+    [polygonsValidationResults]
+  );
+
+  const onPolygonsSelectionChange = useCallback(
+    (value: "all" | "valid") => {
+      setDeforestationAnalysisParams((prev) => ({
+        ...prev,
+        polygonsSubset: value,
+      }));
+    },
+    [setDeforestationAnalysisParams]
+  );
+
+  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
+    selectedMaps,
+    availableMaps,
+  });
+
+  const onMapSelectionChange = useCallback(
+    (mapId: string, checked: boolean) => {
+      if (checked) {
+        setDeforestationAnalysisParams((prev) => ({
+          ...prev,
+          selectedMaps: [
+            ...prev.selectedMaps,
+            availableMaps.find((m) => m.id === Number(mapId))!,
+          ],
+        }));
+      } else {
+        setDeforestationAnalysisParams((prev) => ({
+          ...prev,
+          selectedMaps: prev.selectedMaps.filter((m) => m.id !== Number(mapId)),
+        }));
+      }
+    },
+    [availableMaps, setDeforestationAnalysisParams]
+  );
+
+  const handleContinue = useCallback(() => {
+    if (!farmsData) return;
+    router.push("/deforestation-analysis/upload-data");
+  }, [farmsData, router]);
+
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      handleClose={handleClose}
+      title={t("polygonValidation:deforestationModal:title")}
+      maxWidth="sm"
+      onAfterClose={() => {
+        setDeforestationAnalysisParams((prev) => ({
+          ...prev,
+          polygonsSubset: null,
+        }));
+      }}
+    >
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Text variant="h3" bold>
+            {t("polygonValidation:deforestationModal:polygonSelection")}
+          </Text>
+          <RadioGroup value={polygonsSubset} row sx={{ gap: 5 }}>
+            <FormControlLabel
+              value="all"
+              control={<Radio />}
+              label={`${t(
+                "polygonValidation:deforestationModal:all"
+              )} (${allFarmsAmount})`}
+              onChange={() => onPolygonsSelectionChange("all")}
+            />
+            <FormControlLabel
+              value="valid"
+              control={<Radio />}
+              label={`${t(
+                "polygonValidation:deforestationModal:valid"
+              )} (${validFarmsAmount})`}
+              onChange={() => onPolygonsSelectionChange("valid")}
+            />
+          </RadioGroup>
+        </Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Text variant="h3" bold>
+            {t("polygonValidation:deforestationModal:mapsSelection")}
+          </Text>
+          <MultiSelectionStep
+            sx={{ flexDirection: "column", gap: 1 }}
+            selectedOptions={selectedMapsOptions}
+            options={mapOptions}
+            onChange={onMapSelectionChange}
+          />
+          {!mapOptions.length && (
+            <MessageBox
+              message={t(
+                availableMapsError
+                  ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                  : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+                { country: countryName }
+              )}
+            />
+          )}
+        </Box>
+      </Box>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+        <Button
+          variant="contained"
+          disabled={!polygonsSubset || selectedMaps.length == 0}
+          onClick={handleContinue}
+        >
+          {t("polygonValidation:deforestationModal:continue")}
+        </Button>
+      </Box>
+    </BaseModal>
+  );
+};

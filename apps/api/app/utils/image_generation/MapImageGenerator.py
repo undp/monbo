@@ -1,0 +1,148 @@
+import asyncio
+from typing import Tuple
+
+from PIL import Image
+from shapely.geometry.base import BaseGeometry
+
+from app.utils.image_generation.constants import MapColors, MapDefaults
+from app.utils.image_generation.errors import (
+    MapGenerationError,
+    NoRasterDataOverlapError,
+)
+from app.utils.image_generation.GeometryHelper import GeometryHelper
+from app.utils.image_generation.GoogleMapsAPIHelper import GoogleMapsAPIHelper
+from app.utils.image_generation.ImageManipulationHelper import ImageManipulationHelper
+from app.utils.image_generation.RasterManipulationHelper import (
+    RasterManipulationHelper,
+)
+
+# """
+# The only meaningful improvements that might still be worth considering:
+# - Caching for expensive operations: If you're calling functions like
+#     calculate_zoom_level repeatedly with the same parameters, implementing caching
+#     could improve performance.
+# - Comprehensive test suite: Adding unit and integration tests would help ensure
+#     the code works as expected and prevent regressions
+# """
+
+
+class MapImageGenerator:
+    """
+    Coordinates the generation of composite map images with satellite imagery,
+    polygon overlays, and raster data visualization.
+    """
+
+    @staticmethod
+    def generate_solid_background(
+        output_size: Tuple[int, int] = MapDefaults.OUTPUT_SIZE,
+    ) -> Image.Image:
+        """
+        Generate a solid background image with the default forest green color.
+
+        This method creates a new RGB image filled with MapColors.SOLID_BACKGROUND
+        color, which is used as a fallback when satellite imagery is not available
+        or desired.
+
+        Args:
+            output_size (Tuple[int, int], optional): The dimensions (width, height)
+            of the output image in pixels. Defaults to MapDefaults.OUTPUT_SIZE.
+
+        Returns:
+            Image.Image: A new PIL Image in RGB mode filled with the solid background
+            color.
+        """
+        return Image.new("RGB", output_size, MapColors.SOLID_BACKGROUND)
+
+    @staticmethod
+    async def generate(
+        geometry: BaseGeometry,
+        tif_path: str,
+        point_radius_meters: float | None = None,
+        output_size: Tuple[int, int] = MapDefaults.OUTPUT_SIZE,
+        include_satelital_background: bool = True,
+    ) -> Image.Image:
+        """
+        Generate a composite map with Google Maps satellite imagery as base,
+        a geometry overlay (polygon or point), and optionally deforestation data.
+
+        Args:
+            geometry: Shapely geometry object (Polygon, MultiPolygon or Point). Must be in WGS84
+                coordinate system (EPSG:4326).
+            tif_path: Optional path to TIF file with deforestation data. If provided,
+                will attempt to overlay deforestation data from this file.
+            point_radius_meters: Radius for Point geometries in meters. Required if
+                geometry is a Point, must be None for Polygon geometries.
+            output_size: Output image dimensions as (width, height) tuple in pixels.
+                Defaults to MapDefaults.OUTPUT_SIZE.
+
+        Returns:
+            PIL Image with composited layers in RGBA mode. The layers are composited
+            in order: satellite imagery (bottom), deforestation data (if available),
+            geometry overlay (top), so the farm's outline stays visible over the
+            deforestation, as on the web map.
+
+        Raises:
+            GeometryTypeError: If geometry is not a Polygon, MultiPolygon or Point
+            ParameterValidationError: If point_radius_meters is provided for Polygon
+                or missing for Point geometries
+            GoogleMapsAPIError: If there are issues fetching satellite imagery
+        """
+        layers: list[Image.Image] = []
+
+        # Get the geometry bounds and calculate zoom level
+        min_lat, max_lat, min_lon, max_lon = GeometryHelper.calculate_geometry_bounds(
+            geometry, point_radius_meters
+        )
+
+        zoom_level = GoogleMapsAPIHelper.calculate_zoom_from_bounds(
+            min_lat, max_lat, min_lon, max_lon, output_size
+        )
+
+        if include_satelital_background:
+            # Get the satellite base image
+            satellite_img = await GoogleMapsAPIHelper.get_google_maps_satellite_image(
+                geometry, zoom_level, output_size
+            )
+            layers.append(satellite_img)
+        else:
+            # Add dark green background
+            satellite_img = MapImageGenerator.generate_solid_background(output_size)
+            layers.append(satellite_img)
+
+        # Generate deforestation image
+        try:
+            deforestation_overlay = (
+                await (
+                    RasterManipulationHelper.generate_deforestation_image_from_bounds(
+                        geometry,
+                        tif_path,
+                        zoom_level,
+                        output_size,
+                    )
+                )
+            )
+            layers.append(deforestation_overlay)
+        except NoRasterDataOverlapError:
+            # Simply don't add the layer, but don't interrupt the process
+            pass
+        except Exception as e:
+            # Re-raise with more context
+            raise MapGenerationError(
+                f"Error processing deforestation data: {str(e)}"
+            ) from e
+
+        # Create geometry overlay, above the deforestation (CPU-bound drawing: off
+        # the event loop)
+        geometry_overlay = await asyncio.to_thread(
+            GeometryHelper.create_feature_overlay,
+            geometry,
+            output_size,
+            zoom_level,
+            point_radius_meters,
+        )
+        layers.append(geometry_overlay)
+
+        # Combine all layers (decodes the satellite image: off the event loop)
+        return await asyncio.to_thread(
+            ImageManipulationHelper.combine_image_layers, *layers
+        )

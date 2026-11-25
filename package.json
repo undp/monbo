@@ -1,16 +1,18 @@
 {
   "name": "monbo",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "private": true,
   "description": "Root orchestrator for the Monbo monorepo (option A: delegates to each package; no pnpm workspace). A minimal root lockfile pins the concurrently devDependency.",
   "packageManager": "pnpm@10.26.1",
   "scripts": {
-    "dev": "pnpm exec concurrently -n front,api -c blue,green \"pnpm --dir monbo-front dev\" \"uv run --directory monbo-api fastapi dev app/main.py\"",
-    "test": "uv run --directory monbo-api pytest",
-    "lint": "pnpm --dir monbo-front lint && uv run --directory monbo-api ruff check . && uv run --directory monbo-api black --check . && uv run --directory monbo-api mypy app",
-    "build": "pnpm --dir monbo-front build"
+    "dev": "pnpm exec concurrently -n front,api -c blue,green \"pnpm --dir apps/web dev\" \"uv run --directory apps/api fastapi dev app/main.py\"",
+    "test": "uv run --directory apps/api pytest && pnpm --dir apps/web test",
+    "lint": "pnpm --dir apps/web lint && uv run --directory apps/api ruff check . && uv run --directory apps/api black --check . && uv run --directory apps/api mypy app",
+    "build": "pnpm --dir apps/web build",
+    "contracts": "uv run --directory apps/api python -m app.openapi && pnpm --dir apps/web generate:api-types",
+    "setup:worktree": "scripts/setup-worktree.sh"
   },
   "devDependencies": {
-    "concurrently": "10.0.5"
+    "concurrently": "10.0.6"
   }
 }

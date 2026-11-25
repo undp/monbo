@@ -1,0 +1,77 @@
+{
+  "name": "monbo-front",
+  "version": "2.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "start": "next start",
+    "build": "next build",
+    "postbuild": "cp -r public .next/standalone/ && mkdir -p .next/standalone/.next/static && cp -r .next/static .next/standalone/.next/",
+    "start:standalone": "node .next/standalone/server.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docker:build": "docker build -t monbo-front .",
+    "generate:api-types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.3.0",
+    "@googlemaps/markerclusterer": "^2.6.2",
+    "@mui/icons-material": "^7.3.11",
+    "@mui/material": "^7.3.11",
+    "@mui/material-nextjs": "^7.3.10",
+    "@mui/x-charts": "^9.17.0",
+    "@react-pdf/renderer": "^4.9.0",
+    "@vis.gl/react-google-maps": "^1.10.2",
+    "date-fns": "^4.4.0",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "fuse.js": "^7.5.0",
+    "i18next": "^26.7.2",
+    "i18next-resources-to-backend": "^1.2.4",
+    "jszip": "^3.10.2",
+    "lodash": "^4.18.1",
+    "next": "16.4.5",
+    "next-i18n-router": "^5.5.8",
+    "p-limit": "^7.3.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-dropzone": "^20.1.4",
+    "react-hook-form": "^7.91.0",
+    "react-i18next": "^17.1.13",
+    "react-markdown": "^10.1.0",
+    "remark-directive": "^4.0.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/file-saver": "^2.0.7",
+    "@types/google.maps": "^3.66.9",
+    "@types/lodash": "^4.17.27",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.26.0",
+    "eslint-config-next": "^16.4.5",
+    "jsdom": "^30.1.3",
+    "openapi-typescript": "7.13.0",
+    "remark-parse": "^11.0.0",
+    "typescript": "^6.0.3",
+    "unified": "^11.0.5",
+    "vitest": "^5.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "exceljs>uuid": "^11.1.1"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "title": "Validación de polígonos",
+  "validPolygons": "Polígonos validados",
+  "inconsistenciesTypes": {
+    "overlap": "Traslape",
+    "empty_polygon": "Polígono vacío",
+    "invalid_geometry": "Geometría inválida"
+  },
+  "inconsistentPolygons": {
+    "singular": "polígono inconsistente",
+    "plural": "polígonos inconsistentes"
+  },
+  "inconsistentPolygonsFound": {
+    "singular": "Se encontró {{count}} polígono inconsistente",
+    "plural": "Se encontraron {{count}} polígonos inconsistentes"
+  },
+  "errorPolygons": "Polígonos con error",
+  "searchPlaceholder": "Buscar polígono o productor",
+  "analize": "Analizar Deforestación",
+  "noResults": "No se encontraron resultados",
+  "noInconsistencies": "No hay inconsistencias",
+  "manualValidation": {
+    "snackbarAlert": {
+      "included": "incluido en la validación manual",
+      "excluded": "excluido de la validación manual"
+    },
+    "tableHeader": "Validación manual"
+  },
+  "deforestationModal": {
+    "title": "Análisis deforestación",
+    "polygonSelection": "Selecciona los polígonos a considerar",
+    "all": "Todos",
+    "valid": "Polígonos validados",
+    "mapsSelection": "Selecciona capas de mapas",
+    "continue": "Continuar"
+  },
+  "uploadDataPage": {
+    "loadingText": "Cargando los datos",
+    "title": "Carga de polígonos o puntos",
+    "uploadStep": {
+      "stepTitle": "Agrega tus fincas",
+      "submit": "Validar polígonos"
+    }
+  },
+  "overlapModal": {
+    "title": "Análisis de traslape",
+    "producers": "productores",
+    "area": "Superficie en conflicto",
+    "headers": {
+      "producer": "Productor",
+      "producerId": "ID Productor",
+      "type": "Tipo",
+      "id": "ID",
+      "area": "Superficie (ha)"
+    },
+    "callToAction": "Guardar Cambios"
+  },
+  "geometryInconsistencyModal": {
+    "title": "Inconsistencia de geometría",
+    "tableTitle": "Información del polígono",
+    "contentTitle": "Información de la inconsistencia",
+    "systemFeedback": "Feedback del sistema"
+  }
+}

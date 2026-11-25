@@ -1,0 +1,1107 @@
+import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { TFunction } from "i18next";
+import { uniq } from "lodash";
+import { getCountryName } from "@/utils/countries";
+
+// TODO: refactor to use only the exceljs library
+
+/**
+ * Validates a single coordinate pair [longitude, latitude].
+ * @param coord - The coordinate pair to validate
+ * @returns boolean indicating if the coordinate is valid
+ */
+const isValidCoordinatePair = (coord: unknown): boolean => {
+  if (!Array.isArray(coord) || coord.length !== 2) {
+    return false;
+  }
+
+  // Both longitude and latitude must be numbers
+  if (typeof coord[0] !== "number" || typeof coord[1] !== "number") {
+    return false;
+  }
+
+  // Basic coordinate range validation
+  if (coord[0] < -180 || coord[0] > 180 || coord[1] < -90 || coord[1] > 90) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Validates a linear ring (array of coordinate pairs).
+ * @param ring - The linear ring to validate
+ * @returns boolean indicating if the ring is valid
+ */
+const isValidLinearRing = (ring: unknown): boolean => {
+  if (!Array.isArray(ring) || ring.length < 4) {
+    return false; // At least 4 points needed for a closed ring
+  }
+
+  // Each coordinate must be a valid coordinate pair
+  for (const coord of ring) {
+    if (!isValidCoordinatePair(coord)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Validates an array of linear rings.
+ * @param rings - The array of linear rings to validate
+ * @returns boolean indicating if all rings are valid
+ */
+const isValidLinearRings = (rings: unknown): boolean => {
+  if (!Array.isArray(rings) || rings.length === 0) {
+    return false;
+  }
+
+  // Each linear ring must be valid
+  for (const ring of rings) {
+    if (!isValidLinearRing(ring)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Validates WKT (Well-Known Text) coordinate format.
+ * WKT format examples: POINT(-84.00230098 9.87830771), POLYGON((-84.02 9.83, -84.01 9.82, ...))
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid WKT format
+ */
+const validateWKTCoordinates = (coordinates: string): boolean => {
+  // Basic WKT validation - should start with geometry type and contain parentheses
+  // const allWktRegex =
+  //   /^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*\(/i;
+  const wktRegex = /^(POINT|POLYGON|MULTIPOLYGON)\s*\(/i;
+  return wktRegex.test(coordinates.trim());
+};
+
+/**
+ * Validates GeoJSON Point coordinate format.
+ * Format: [-84.00230098, 9.87830771]
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON Point format
+ */
+const validateGeoJSONPointCoordinates = (coordinates: string): boolean => {
+  // GeoJSON Point: [longitude, latitude] - exactly 2 numbers
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+    return isValidCoordinatePair(parsed);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Validates GeoJSON Polygon coordinate format.
+ * Format: [[[-84.02, 9.83],[-84.01, 9.82],...]] - array of linear rings
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON Polygon format
+ */
+const validateGeoJSONPolygonCoordinates = (coordinates: string): boolean => {
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+
+    // Must be an array of linear rings
+    return isValidLinearRings(parsed);
+  } catch {
+    return false; // Invalid JSON
+  }
+};
+
+/**
+ * Validates GeoJSON MultiPolygon coordinate format.
+ * Format: [[[[-84.06, 9.83],[-84.07, 9.84],...]],[[[-84.99, 10.75],...]]] - array of polygons
+ * @param coordinates - The coordinate string to validate
+ * @returns boolean indicating if the coordinates are valid GeoJSON MultiPolygon format
+ */
+const validateGeoJSONMultiPolygonCoordinates = (
+  coordinates: string
+): boolean => {
+  try {
+    const parsed = JSON.parse(coordinates.trim());
+
+    // Must be an array of polygons
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return false;
+    }
+
+    // Each polygon must be an array of linear rings
+    for (const polygon of parsed) {
+      if (!isValidLinearRings(polygon)) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false; // Invalid JSON
+  }
+};
+
+/**
+ * Creates an Excel cell object with line break support and centered vertical alignment.
+ *
+ * @param {string} value - The text content to be displayed in the cell
+ * @returns {XLSX.CellObject} A cell object configured with text wrapping and vertical centering
+ *
+ * @example
+ * const cell = createCellWithLineBreaks("Line 1\nLine 2");
+ * // Returns a cell object that will display the text on multiple lines
+ *
+ * @remarks
+ * The returned cell object has the following properties:
+ * - Value (v): The actual text content
+ * - Type (t): Set to "s" for string
+ * - Style (s): Contains alignment settings for text wrapping and vertical centering
+ */
+export const createCellWithLineBreaks = (
+  value: string
+): string | XLSX.CellObject => {
+  return {
+    v: value
+      .split("\r\n")
+      .join(String.fromCharCode(13) + String.fromCharCode(10)), // The cell value
+    t: "s", // Type: string
+    s: {
+      alignment: {
+        wrapText: true, // Enable text wrapping
+        vertical: "center",
+      },
+    },
+  };
+  // Replace \n with the ASCII character for line feed (char 10)
+  const valueWithChar10 = value.replace(/\n/g, String.fromCharCode(13));
+  // Create XML with explicit line breaks
+  const xmlValue = value.includes("\n")
+    ? value.split("\n").join(String.fromCharCode(13) + String.fromCharCode(10))
+    : value;
+
+  return {
+    v: valueWithChar10, // The cell value
+    t: "s", // Type: string
+    h: xmlValue,
+    s: {
+      alignment: {
+        wrapText: true, // Enable text wrapping
+        vertical: "center",
+      },
+    },
+  };
+};
+
+/**
+ * Reads an Excel file and returns a workbook object.
+ *
+ * @param {File} file - The Excel file to be read
+ * @returns {Promise<XLSX.WorkBook>} A promise that resolves to the workbook object
+ *
+ * @remarks
+ * This function:
+ * - Uses FileReader to read the file as an ArrayBuffer
+ * - Configures XLSX to parse dates properly using cellDates option
+ * - Returns a Promise that resolves with the parsed workbook
+ *
+ * @example
+ * const fileInput = document.getElementById('fileInput');
+ * fileInput.addEventListener('change', async (event) => {
+ *   const file = event.target.files[0];
+ *   const workbook = await readExcel(file);
+ *   // Process workbook data
+ * });
+ *
+ * @throws {Error} If the file cannot be read or parsed as an Excel workbook
+ */
+export const readExcel = async (file: File): Promise<XLSX.WorkBook> => {
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = (event) => {
+      const binaryStr = event.target?.result;
+      const workbook = XLSX.read(binaryStr, {
+        type: "binary",
+        cellDates: true,
+        raw: true, // To prevent type conversion
+        cellText: true, // To get raw text values
+      });
+
+      resolve(workbook);
+    };
+    reader.onerror = (event) => {
+      reject(event);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+/**
+ * Retrieves the data of a specific sheet from a workbook by its name.
+ *
+ * @param {XLSX.WorkBook} workbook - The workbook object containing multiple sheets.
+ * @param {string} sheetName - The name of the sheet to retrieve data from.
+ * @returns {XLSX.WorkSheet} The sheet data corresponding to the provided sheet name.
+ * @throws {Error} If the sheet name is not found in the workbook.
+ */
+export const getSheetDataByName = (
+  workbook: XLSX.WorkBook,
+  sheetName: string
+) => {
+  const sheetId = workbook.SheetNames.findIndex((name) => name === sheetName);
+  const sheet = workbook.Sheets[workbook.SheetNames[sheetId]];
+  return sheet;
+};
+
+/**
+ * Retrieves the data of a specific sheet from a workbook by its sheet index.
+ *
+ * @param {XLSX.WorkBook} workbook - The workbook object containing multiple sheets.
+ * @param {number} sheetId - The index of the sheet to retrieve.
+ * @returns {XLSX.WorkSheet} The sheet data corresponding to the specified sheet index.
+ * @throws {Error} If the sheet index is out of bounds or the workbook has no sheets.
+ */
+export const getSheetDataById = (workbook: XLSX.WorkBook, sheetId: number) => {
+  const sheet = workbook.Sheets[workbook.SheetNames[sheetId]];
+  return sheet;
+};
+
+/**
+ * Converts an Excel worksheet to a JSON array.
+ *
+ * @param {XLSX.WorkSheet} sheet - The Excel worksheet to convert
+ * @param {XLSX.Sheet2JSONOpts} [options] - Optional parameters to customize the conversion:
+ *   - blankrows: Whether to include blank rows (default: false)
+ *   - raw: Whether to return raw values vs formatted values (default: true)
+ *   - Other options supported by XLSX.utils.sheet_to_json()
+ * @returns {Array} A JSON array representing the worksheet data, with each element
+ *                  corresponding to a row in the worksheet
+ */
+export const sheetToJson = (
+  sheet: XLSX.WorkSheet,
+  options?: XLSX.Sheet2JSONOpts
+) => {
+  const defaultOptions: XLSX.Sheet2JSONOpts = {
+    blankrows: false, // Skip empty rows
+    raw: true, // Return raw values
+    defval: null, // Default value for empty cells
+    rawNumbers: true, // Keep numbers as raw strings
+  };
+  return XLSX.utils.sheet_to_json(sheet, { ...defaultOptions, ...options });
+};
+
+/**
+ * Removes the first N rows from the given worksheet by modifying the sheet's reference range.
+ *
+ * @param {XLSX.WorkSheet} sheet - The worksheet from which rows will be removed.
+ * @param {number} n - The number of rows to remove from the top of the worksheet.
+ * @throws {Error} If the sheet is empty or has no reference range defined.
+ * @returns {XLSX.WorkSheet} The modified worksheet with the first N rows removed.
+ *
+ * @remarks
+ * This function:
+ * - Modifies the worksheet's reference range (!ref) to exclude the first N rows
+ * - Does not actually delete the row data, just updates the visible range
+ * - Returns the same worksheet object that was passed in
+ * - Preserves all other worksheet properties and cell data
+ */
+export const removeFirstNRow = (sheet: XLSX.WorkSheet, n: number) => {
+  if (!sheet["!ref"]) {
+    throw new Error("Sheet is empty");
+  }
+  const range = XLSX.utils.decode_range(sheet["!ref"]);
+  range.s.r = n;
+  sheet["!ref"] = XLSX.utils.encode_range(range);
+  return sheet;
+};
+
+/**
+ * Creates an Excel worksheet from a 2D array of data with optional cell merges.
+ *
+ * @param {(string | XLSX.CellObject)[][]} data - 2D array containing the worksheet data. Each inner array represents
+ *                           a row, and each element represents a cell value or cell object.
+ * @param {SheetData["merges"]} merges - Optional array of cell ranges to merge in the worksheet.
+ *                                       Each range specifies start and end cells to merge.
+ * @returns {XLSX.WorkSheet} A new worksheet containing the formatted data with:
+ *                          - Proper handling of line breaks in cell values
+ *                          - Cell merges applied if specified
+ *                          - Auto-sized columns (25 characters width)
+ *                          - Dynamic row heights based on content (40pt for wrapped text, 20pt standard)
+ *                          - Hidden recalculation formula to force Excel updates
+ */
+export const createWorksheet = (
+  data: (string | XLSX.CellObject)[][],
+  merges?: SheetData["merges"]
+) => {
+  const ws = XLSX.utils.aoa_to_sheet([]);
+
+  // Process each row and cell to handle line breaks
+  data.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+
+      // If it's already a cell object, use it as is
+      if (cell && typeof cell === "object" && "v" in cell) {
+        ws[cellRef] = cell;
+      }
+      // If it's a string with newlines, convert to cell object
+      else if (typeof cell === "string" && cell.includes("\n")) {
+        ws[cellRef] = createCellWithLineBreaks(cell);
+      }
+      // Otherwise, just set the value
+      else {
+        ws[cellRef] = { v: cell };
+      }
+    });
+  });
+
+  // Set the ref attribute
+  if (data.length > 0 && data[0].length > 0) {
+    ws["!ref"] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: {
+        r: data.length - 1,
+        c: Math.max(...data.map((row) => row.length)) - 1,
+      },
+    });
+  }
+
+  // Apply merges if provided
+  if (merges) {
+    ws["!merges"] = merges;
+  }
+
+  // Set explicit column widths
+  ws["!cols"] = [];
+  for (let i = 0; i < (data[0]?.length || 0); i++) {
+    // Column with wrapped text should be wider
+    ws["!cols"].push({ wch: 25 });
+  }
+
+  // Set explicit row heights for any row containing wrapped text
+  ws["!rows"] = [];
+  for (let i = 0; i < data.length; i++) {
+    const hasWrappedText = data[i].some(
+      (cell) => typeof cell === "string" && cell.includes("\n")
+    );
+
+    if (hasWrappedText) {
+      ws["!rows"][i] = { hpt: 40 }; // Taller rows for wrapped text
+    } else {
+      ws["!rows"][i] = { hpt: 20 }; // Standard height
+    }
+  }
+
+  // Add a hidden cell with a formula that forces Excel to recalculate
+  const hiddenCellRef = XLSX.utils.encode_cell({ r: 0, c: 50 });
+  ws[hiddenCellRef] = { f: 'REPLACE("a","a","a")', t: "f", h: "" };
+
+  return ws;
+};
+
+export interface SheetData {
+  // Numbers are written as numeric cells
+  rows: (string | number | XLSX.CellObject)[][];
+  merges?: XLSX.Range[];
+}
+
+/**
+ * Generates an Excel workbook with multiple sheets from provided data.
+ *
+ * @param {Record<string, SheetData>} data - Object mapping sheet names to their data
+ * @returns {Promise<Blob>} Excel file as a Blob
+ *
+ * @remarks
+ * This function:
+ * - Creates a new Excel workbook using ExcelJS
+ * - For each sheet:
+ *   - Sets consistent column widths (30 for first 20 columns)
+ *   - Adds rows with proper text wrapping and height adjustment
+ *   - Applies any cell merges specified
+ *   - Makes first two rows bold
+ * - Configures text wrapping and vertical alignment for all cells
+ * - Adjusts row heights based on content (taller for wrapped text)
+ *
+ * @example
+ * const sheetData = {
+ *   "Sheet1": {
+ *     rows: [["Header1", "Header2"], ["Data1", "Data2"]],
+ *     merges: [{s: {r: 0, c: 0}, e: {r: 0, c: 1}}]
+ *   }
+ * };
+ * const excelBlob = await generateExcel(sheetData);
+ */
+export const generateExcel = async (data: Record<string, SheetData>) => {
+  const workbook = new ExcelJS.Workbook();
+
+  Object.entries(data).forEach(([sheetName, sheetData]) => {
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    // Set column widths for first 20 columns
+    worksheet.columns = Array(20)
+      .fill(null)
+      .map(() => ({
+        width: 30,
+      }));
+
+    // Add rows
+    sheetData.rows.forEach((row, idx) => {
+      const excelRow = worksheet.addRow(row);
+
+      // Set row height (in points)
+      const hasWrappedText = row.some(
+        (cell) => typeof cell === "string" && cell.includes("\n")
+      );
+      excelRow.height = hasWrappedText ? 25 : 16; // Taller rows for wrapped text
+
+      for (let i = 0; i < row.length; i++) {
+        const cell = worksheet.getCell(idx + 1, i + 1);
+
+        cell.alignment = {
+          wrapText: true,
+          vertical: "top",
+        };
+      }
+      // Commit the changes to ensure they're applied
+      excelRow.commit();
+    });
+
+    // Apply merges if any
+    if (sheetData.merges) {
+      sheetData.merges.forEach((merge) => {
+        worksheet.mergeCells(
+          merge.s.r + 1,
+          merge.s.c + 1,
+          merge.e.r + 1,
+          merge.e.c + 1
+        );
+      });
+    }
+
+    // Apply bold formatting AFTER all rows are created and merged
+    // This ensures it doesn't get overwritten by any other operations
+    for (let rowIndex = 1; rowIndex <= 2; rowIndex++) {
+      const row = worksheet.getRow(rowIndex);
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        // Create a completely new font object
+        cell.font = {
+          bold: true,
+          name: "Calibri",
+          size: 12,
+          color: { argb: "000000" },
+        };
+      });
+      row.commit();
+    }
+  });
+
+  // Write to buffer and download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  return blob;
+};
+
+/**
+ * Loads and extracts header rows from a predefined Excel template file for the given locale.
+ *
+ * @param locale - The locale code (e.g. 'en', 'es', 'pt') to get the template headers for
+ * @returns A promise that resolves to a 2D array containing the first 3 rows of headers from the template file:
+ *          - Row 1: Main headers in both languages
+ *          - Row 2: Sub-headers in both languages
+ *          - Row 3: Example values
+ *
+ * @remarks
+ * The template files are stored in the public directory with naming pattern:
+ * `/files/upload-file-template-{locale}.xlsx`
+ *
+ * The function:
+ * 1. Gets the template path for the locale
+ * 2. Fetches and reads the Excel file
+ * 3. Extracts just the first 3 header rows
+ *
+ * @example
+ * ```ts
+ * const headers = await loadTemplateHeaders('en');
+ * // headers = [
+ * //   ['ID', 'Producer Name', ...],      // Row 1 - Main headers
+ * //   ['ID', 'Name', ...],               // Row 2 - Sub-headers
+ * //   ['1', 'John Smith', ...]           // Row 3 - Examples
+ * // ]
+ * ```
+ *
+ * @throws {Error} If the template file cannot be fetched or parsed for the given locale
+ */
+export const loadTemplateHeaders = async (
+  locale: string
+): Promise<string[][]> => {
+  // Path to your template in the public directory
+  const templatePath = getUploadFileTemplatePath(locale);
+
+  // Fetch the template file
+  const response = await fetch(templatePath);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch template: ${response.statusText}`);
+  }
+
+  const templateArrayBuffer = await response.arrayBuffer();
+
+  // Load the template workbook
+  const templateWorkbook = XLSX.read(templateArrayBuffer, { type: "array" });
+
+  // Get the first sheet name
+  const firstSheetName = templateWorkbook.SheetNames[0];
+
+  // Get the first worksheet
+  const templateSheet = templateWorkbook.Sheets[firstSheetName];
+
+  // Convert to JSON to easily extract header rows
+  const templateData: string[][] = XLSX.utils.sheet_to_json(templateSheet, {
+    header: 1,
+  });
+
+  // Extract the first 3 rows (headers)
+  const headerRows = templateData.slice(0, 3);
+
+  return headerRows;
+};
+
+const headerKeywordsMappings: Record<string, string[]> = {
+  // attribute: [es-header, en-header]
+  id: ["id", "id"],
+  producerName: ["nombre productor", "producer name"],
+  productionDate: ["fecha producción", "production date"],
+  productionQuantity: ["cantidad producción", "production quantity"],
+  productionQuantityUnit: [
+    "unidad cantidad producción",
+    "production measurement unit",
+  ],
+  region: ["región", "region"],
+  // Only in older templates. Checked against the selected country (see
+  // loadExcelFileFarmsData), never used as the farm's country.
+  country: ["país", "country"],
+  coordinatesFormat: ["formato coordenadas", "coordinates format"],
+  geometryType: ["tipo geometría", "geometry type"],
+  farmCoordinates: ["coordenadas finca", "land coordinates"],
+  area: ["superficie [hectáreas]", "area [hectares]"],
+  cropType: ["tipo de cultivo", "crop type"],
+  association: ["asociación", "cooperative"],
+  documentName1: ["nombre documento 1", "document name 1"],
+  documentUrl1: ["enlace documento 1", "document link 1"],
+  documentName2: ["nombre documento 2", "document name 2"],
+  documentUrl2: ["enlace documento 2", "document link 2"],
+  documentName3: ["nombre documento 3", "document name 3"],
+  documentUrl3: ["enlace documento 3", "document link 3"],
+};
+
+/** The internal key a template header maps to, or undefined if none. */
+export const getHeaderKey = (header: string): string | undefined => {
+  // A header may hold both languages, one per line
+  const parts = header.split(/\r?\n/).map((part) => part.toLowerCase().trim());
+  return Object.keys(headerKeywordsMappings).find((key) =>
+    headerKeywordsMappings[key].some((h) => parts.includes(h))
+  );
+};
+
+/**
+ * The upload templates' columns (row 2), in order, as internal keys. The Excel
+ * exports write farms in this order under the templates' headers, so they can be
+ * uploaded again; a test checks it against the template files.
+ */
+export const TEMPLATE_COLUMNS = [
+  "id",
+  "producerName",
+  "productionDate",
+  "productionQuantity",
+  "productionQuantityUnit",
+  "region",
+  "coordinatesFormat",
+  "geometryType",
+  "farmCoordinates",
+  "area",
+  "cropType",
+  "association",
+  "documentName1",
+  "documentUrl1",
+  "documentName2",
+  "documentUrl2",
+  "documentName3",
+  "documentUrl3",
+] as const;
+
+export type TemplateColumn = (typeof TEMPLATE_COLUMNS)[number];
+
+export type GeoAttributeKey =
+  | "id"
+  | "producerName"
+  | "productionDate"
+  | "productionQuantity"
+  | "productionQuantityUnit"
+  | "cropType"
+  | "area"
+  | "region"
+  | "association"
+  | "country";
+
+export interface GeoAttributeNames {
+  // The names shown to users: for GeoJSON/KML/KMZ, and for Shapefiles, whose
+  // field names are at most 10 characters.
+  geoFile: string;
+  shapefile: string;
+  // Other accepted names, e.g. the EUDR GeoJSON's and Monbo's own GeoJSON export's.
+  // The template's es/en headers are accepted too.
+  aliases: string[];
+  mandatory: boolean;
+}
+
+/**
+ * The attributes a geo file's features are read from, like headerKeywordsMappings
+ * for the Excel template's columns. Names are matched ignoring case and surrounding
+ * spaces; when several are present, the first one with a value wins, in this order.
+ * A GeoJSON exported by Monbo (download.ts::getRowCommonDataAsObject) uses these
+ * names, so it can be uploaded again as is.
+ */
+export const geoAttributeMappings: Record<GeoAttributeKey, GeoAttributeNames> = {
+  id: { geoFile: "id", shapefile: "ID", aliases: [], mandatory: false },
+  producerName: {
+    geoFile: "producerName",
+    shapefile: "PRODUCTOR",
+    aliases: ["ProducerName"],
+    mandatory: true,
+  },
+  productionDate: {
+    geoFile: "productionDate",
+    shapefile: "FECHA_PROD",
+    aliases: [],
+    mandatory: true,
+  },
+  productionQuantity: {
+    geoFile: "productionQuantity",
+    shapefile: "CANTIDAD",
+    aliases: ["production"],
+    mandatory: true,
+  },
+  productionQuantityUnit: {
+    geoFile: "productionQuantityUnit",
+    shapefile: "UNIDAD",
+    aliases: [],
+    mandatory: true,
+  },
+  cropType: {
+    geoFile: "cropType",
+    shapefile: "CULTIVO",
+    aliases: [],
+    mandatory: true,
+  },
+  // Hectares. Monbo's GeoJSON export writes Area "0": that counts as missing.
+  area: {
+    geoFile: "area",
+    shapefile: "AREA_HA",
+    aliases: ["Area"],
+    mandatory: false,
+  },
+  region: { geoFile: "region", shapefile: "REGION", aliases: [], mandatory: false },
+  association: {
+    geoFile: "association",
+    shapefile: "ASOCIACION",
+    aliases: [],
+    mandatory: false,
+  },
+  // ISO 3166-1 alpha-2, as the EUDR GeoJSON's ProducerCountry. Only checked against
+  // the selected country, never used as the farm's country.
+  country: {
+    geoFile: "ProducerCountry",
+    shapefile: "PAIS",
+    aliases: [],
+    mandatory: false,
+  },
+};
+
+/** Every accepted name of a geo file attribute, lowercased, in priority order. */
+export const geoAttributeAcceptedNames = (key: GeoAttributeKey): string[] =>
+  uniq(
+    [
+      geoAttributeMappings[key].geoFile,
+      geoAttributeMappings[key].shapefile,
+      ...geoAttributeMappings[key].aliases,
+      ...headerKeywordsMappings[key],
+    ].map((name) => name.trim().toLowerCase())
+  );
+
+// The columns that place a farm. A geo file's geometry replaces them.
+export const COORDINATE_COLUMNS = [
+  "coordinatesFormat",
+  "geometryType",
+  "farmCoordinates",
+];
+
+/** Mandatory attributes of an Excel that carries the farms' coordinates. */
+export const EXCEL_MANDATORY_HEADERS: string[] = [
+  "producerName",
+  "productionDate",
+  "productionQuantity",
+  "productionQuantityUnit",
+  ...COORDINATE_COLUMNS,
+  "cropType",
+];
+
+/** Mandatory attributes of an Excel whose farms are placed by a polygons file:
+ * the coordinates come from the file, and the ID joins each row to its polygon. */
+export const GEO_FILE_EXCEL_MANDATORY_HEADERS: string[] = [
+  "id",
+  ...EXCEL_MANDATORY_HEADERS.filter(
+    (header) => !COORDINATE_COLUMNS.includes(header)
+  ),
+];
+
+interface ValidateDataParams {
+  data: Record<string, string | number | null>[];
+  mandatoryHeaders: string[];
+  t: TFunction<"translation", undefined>;
+  language: string;
+}
+
+/**
+ * Validates the provided data against mandatory headers and performs data validation checks.
+ *
+ * @param {Object} params - The parameters for the validation function.
+ * @param {Array<Object>} params.data - The data to be validated, where each object represents a row.
+ * @param {Array<string>} params.mandatoryHeaders - The list of mandatory headers that must be present and non-empty in each row.
+ * @param {Function} params.t - Translation function for error messages.
+ * @param {string} params.language - The language code ('en' or 'es') to be used for validation messages.
+ * @returns {string[]} Array of error messages found during validation.
+ *
+ * @remarks
+ * This function performs the following validations:
+ * - Checks that all mandatory headers have non-empty values
+ * - Validates farm coordinates are in the format [(x1,y1), (x2,y2), ...]
+ *
+ * Row numbers in error messages account for the 3 header rows in the template.
+ */
+export const validateData = ({
+  data,
+  mandatoryHeaders,
+  t,
+  language,
+}: ValidateDataParams): string[] => {
+  const errorMessages: string[] = [];
+
+  data.forEach((row, idx) => {
+    const rowIdx = idx + 4; // The template has 3 rows of headers, so we need to add 3 to the index for proper row numbering
+    // Check if all mandatory headers are present in each row
+    mandatoryHeaders.forEach((header) => {
+      if (!row[header]) {
+        const errorMsg = t("common:parseFileError:mandatoryDataMissing", {
+          header: headerKeywordsMappings[header][language === "es" ? 0 : 1],
+          row: rowIdx,
+        });
+        errorMessages.push(errorMsg);
+      }
+    });
+
+    // Check if coordinates format is valid
+    const validCoordinatesFormats = ["WKT", "GeoJSON"];
+    if (
+      row["coordinatesFormat"] &&
+      !validCoordinatesFormats.includes(row["coordinatesFormat"] as string)
+    ) {
+      const errorMsg = t("common:parseFileError:invalidCoordinatesFormat", {
+        row: rowIdx,
+      });
+      errorMessages.push(errorMsg);
+    }
+
+    // Check if geometry type is valid
+    // "Polygon" and "MultiPolygon" are interchangeable: the coordinates tell which
+    const validGeometryTypes = ["Point", "Polygon", "MultiPolygon"];
+    if (
+      row["geometryType"] &&
+      !validGeometryTypes.includes(row["geometryType"] as string)
+    ) {
+      const errorMsg = t("common:parseFileError:invalidGeometryType", {
+        row: rowIdx,
+      });
+      errorMessages.push(errorMsg);
+    }
+
+    // Check if coordinates are valid based on format and geometry type
+    if (
+      row["geometryType"] &&
+      "farmCoordinates" in row &&
+      typeof row["farmCoordinates"] === "string"
+    ) {
+      const coordinatesFormat = row["coordinatesFormat"] as string;
+      const geometryType = row["geometryType"] as string;
+      const coordinates = row["farmCoordinates"] as string;
+
+      let isValidCoordinates = false;
+
+      if (coordinatesFormat === "WKT") {
+        isValidCoordinates = validateWKTCoordinates(coordinates);
+      } else if (coordinatesFormat === "GeoJSON") {
+        if (geometryType === "Point") {
+          isValidCoordinates = validateGeoJSONPointCoordinates(coordinates);
+        } else if (
+          geometryType === "Polygon" ||
+          geometryType === "MultiPolygon"
+        ) {
+          isValidCoordinates =
+            validateGeoJSONPolygonCoordinates(coordinates) ||
+            validateGeoJSONMultiPolygonCoordinates(coordinates);
+        }
+      }
+
+      if (!isValidCoordinates) {
+        const errorMsg = t("common:parseFileError:invalidCoordinates", {
+          row: rowIdx,
+        });
+        errorMessages.push(errorMsg);
+      }
+    }
+  });
+
+  return errorMessages;
+};
+
+/**
+ * Parses an Excel worksheet to extract headers and data.
+ *
+ * @param {XLSX.WorkSheet} worksheet - The Excel worksheet to parse
+ * @returns {{
+ *   data: Record<string, string>[],
+ *   headers: string[]
+ * }} An object containing:
+ *   - data: Array of records representing the worksheet data (excluding headers)
+ *   - headers: Array of header strings from row 2 of the worksheet
+ *
+ * @remarks
+ * This function:
+ * - Extracts headers from row 2 (index 1) of the worksheet
+ * - Removes the first row and returns remaining data as an array of records
+ * - Assumes headers are in range A1:AA3 (3 header rows total)
+ * - Returns data starting from row 4 (after skipping 3 header rows)
+ * - Headers are taken from row 2 specifically, rows 1 and 3 are ignored
+ */
+const parseExcelData = (
+  worksheet: XLSX.WorkSheet
+): {
+  data: Record<string, string>[];
+  headers: string[];
+} => {
+  // Check mandatory headers
+  const headersData = sheetToJson(worksheet, { range: "A1:AA3", header: 1 });
+
+  const headers = headersData[1] as string[];
+
+  // Get all data
+  const dataSheet = removeFirstNRow(worksheet, 1);
+  return {
+    data: sheetToJson(dataSheet).slice(1) as Record<string, string>[],
+    headers,
+  };
+};
+
+type MappedData = Record<string, unknown> & {
+  documents: { name: string; url: string }[];
+};
+
+interface LoadExcelFileReturn {
+  data: MappedData[];
+  errorMessages: string[];
+  /** Rows with their coordinates filled in, even when the column is ignored */
+  rowsWithCoordinates: number;
+}
+
+interface LoadExcelFileOptions {
+  /** The attributes every row must have. */
+  mandatoryHeaders?: string[];
+  /** Attributes dropped from every row before validating it, e.g. the coordinate
+   * columns when a polygons file gives the geometry. */
+  ignoredColumns?: string[];
+}
+
+/**
+ * Loads and processes farm data from an Excel file.
+ *
+ * @param {File} file - The Excel file to process
+ * @param {TFunction} t - Translation function for error messages
+ * @param {string} language - Current language code for translations
+ * @param {string | null} selectedCountry - The analysis country
+ * @param {LoadExcelFileOptions} options - The mandatory attributes (the ones with
+ *   coordinates by default) and the attributes to ignore
+ * @returns {Promise<LoadExcelFileReturn>} Object containing:
+ *   - data: Array of processed farm records with consolidated document data
+ *   - errorMessages: Array of validation error messages
+ *   - rowsWithCoordinates: How many rows have their coordinates filled in
+ *
+ * @remarks
+ * This function:
+ * - Reads the Excel file and extracts data from first sheet
+ * - Maps Excel headers to internal data structure using headerKeywordsMappings
+ * - Processes special fields:
+ *   - Trims string values and converts empty strings to null
+ *   - Converts numeric IDs to strings
+ *   - Converts production dates to ISO strings
+ *   - Consolidates document fields into a documents array
+ * - Rejects an older template whose country column names another country than
+ *   the selected one
+ * - Validates mandatory fields and returns any validation errors
+ *
+ * @example
+ * const result = await loadExcelFileFarmsData(file, t, 'en', 'CO');
+ * if (result.errorMessages.length > 0) {
+ *   // Handle validation errors
+ * } else {
+ *   // Process result.data
+ * }
+ */
+export const loadExcelFileFarmsData = async (
+  file: File,
+  t: TFunction<"translation", undefined>,
+  language: string,
+  // The analysis country: every farm gets it, so a file can't list another one.
+  selectedCountry: string | null,
+  {
+    mandatoryHeaders = EXCEL_MANDATORY_HEADERS,
+    ignoredColumns = [],
+  }: LoadExcelFileOptions = {}
+): Promise<LoadExcelFileReturn> => {
+  const excel = await readExcel(file);
+  const worksheet = getSheetDataById(excel, 0);
+  const { data, headers } = parseExcelData(worksheet);
+
+  // Create a mapping from Excel header to our internal key
+  const headerToKeyMap: Record<string, string> = {};
+  headers.forEach((incomingHeader) => {
+    if (!incomingHeader) return;
+    const internalKey = getHeaderKey(incomingHeader);
+    if (internalKey) headerToKeyMap[incomingHeader] = internalKey;
+  });
+
+  let rowsWithCoordinates = 0;
+  // Remapping data based on header keywords
+  const mappedData: MappedData[] = data.map((row) => {
+    const newRow: MappedData = {
+      documents: [] as MappedData["documents"],
+    };
+
+    // Apply mapping to current row
+    Object.entries(row).forEach(([excelHeader, value]) => {
+      const internalKey = headerToKeyMap[excelHeader];
+      if (internalKey) {
+        newRow[internalKey] = value as string;
+
+        // Trim the value if it's a string
+        if (typeof newRow[internalKey] === "string") {
+          newRow[internalKey] = newRow[internalKey].trim();
+        }
+
+        // If the value is an empty string, set it to null
+        if (newRow[internalKey] === "") {
+          newRow[internalKey] = null;
+        }
+      }
+    });
+
+    // Convert id to string if it's a number
+    if (typeof newRow.id === "number") {
+      newRow.id = newRow.id.toString();
+    }
+
+    if (newRow.farmCoordinates) rowsWithCoordinates++;
+    ignoredColumns.forEach((column) => delete newRow[column]);
+
+    // Convert productionDate to ISO string if it's a Date
+    const dateValue = newRow.productionDate as unknown as Date; // The package returns a Date object automatically
+    if (dateValue instanceof Date) {
+      newRow.productionDate = dateValue.toISOString();
+    }
+
+    return newRow;
+  });
+
+  // Consolidate the documents into an array
+  mappedData.forEach((row) => {
+    row.documents = [];
+    if (row.documentUrl1) {
+      row.documents.push({
+        name: (row.documentName1 as string) ?? "",
+        url: row.documentUrl1 as string,
+      });
+    }
+    if (row.documentUrl2) {
+      row.documents.push({
+        name: (row.documentName2 as string) ?? "",
+        url: row.documentUrl2 as string,
+      });
+    }
+    if (row.documentUrl3) {
+      row.documents.push({
+        name: (row.documentName3 as string) ?? "",
+        url: row.documentUrl3 as string,
+      });
+    }
+    delete row.documentName1;
+    delete row.documentUrl1;
+    delete row.documentName2;
+    delete row.documentUrl2;
+    delete row.documentName3;
+    delete row.documentUrl3;
+  });
+
+  // An older template's country column must agree with the selected country,
+  // which every farm gets: otherwise the report would state the wrong country.
+  const otherCountries = uniq(
+    mappedData
+      .map((row) => (row.country as string | null | undefined)?.toUpperCase())
+      .filter((code): code is string => !!code && code !== selectedCountry)
+  );
+  mappedData.forEach((row) => delete row.country);
+  if (otherCountries.length > 0) {
+    const name = (code: string) =>
+      getCountryName(code, language === "en" ? "en" : "es") ?? code;
+    return {
+      data: mappedData,
+      errorMessages: [
+        t("common:parseFileError:otherCountry", {
+          countries: otherCountries.map(name).join(", "),
+          country: selectedCountry ? name(selectedCountry) : "",
+        }),
+      ],
+      rowsWithCoordinates,
+    };
+  }
+
+  // Validate data
+  const errorMessages = validateData({
+    data: mappedData as Record<string, string | number | null>[],
+    mandatoryHeaders,
+    t,
+    language,
+  });
+
+  return {
+    data: mappedData,
+    errorMessages,
+    rowsWithCoordinates,
+  };
+};
+
+/**
+ * Gets the path to the Excel template file for the specified locale
+ * @param locale - The locale code (e.g. 'en', 'es', 'pt') to get the template for
+ * @returns The file path to the localized Excel template
+ */
+export const getUploadFileTemplatePath = (locale: string): string => {
+  return `/files/m1-upload-file-template-${locale}.xlsx`;
+};
+
+/** The option 3 template: the main one without the coordinate columns, since a
+ * geo file places the farms, and with a mandatory ID that joins them. */
+export const getGeoUploadTemplatePath = (locale: string): string =>
+  `/files/m1-upload-file-template-geo-${locale}.xlsx`;

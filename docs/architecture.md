@@ -1,0 +1,495 @@
+# Architecture and infrastructure
+
+How Monbo is deployed, how its pieces talk to each other, how the API reads the
+deforestation rasters, and how each country administers its own layers. Step-by-step
+procedures live elsewhere and are linked from each section:
+[suggested_deployment.md](suggested_deployment.md) (deploying),
+[maps.md](maps.md) (managing layers) and [onboarding.md](onboarding.md) (running it
+locally).
+
+## The big picture
+
+Monbo has two applications and no database:
+
+- **monbo-front** (Next.js) serves the pages. It holds the user's analysis in the
+  browser only: nothing about farms is stored on the server.
+- **monbo-api** (FastAPI) parses the farm files, validates polygons, runs the
+  deforestation analysis, serves the map tiles and draws the report images.
+
+The only server-side state is the **deforestation layers**: rasters, their metadata
+and the country registry, all files under `MAPS_ROOT`. In Azure that is an Azure
+Files share; locally it is a folder.
+
+```mermaid
+flowchart LR
+  browser([Browser])
+
+  subgraph group["Resource group monbo-dev (prod: the group UNDP granted)"]
+    subgraph env["Container Apps environment monbo-dev-env · apps stack"]
+      front["monbo-front<br/>Next.js · port 3000"]
+      api["monbo-api<br/>FastAPI · port 8000 · 1 replica"]
+    end
+    pull[Pull identity<br/>AcrPull, granted by an administrator]
+    acr[(Container Registry<br/>platform stack)]
+    logs[Log Analytics<br/>platform stack]
+    share[("Azure Files share 'maps'<br/>mounted at /mnt/maps · platform stack")]
+  end
+
+  gmaps[Google Maps Platform]
+
+  browser -- "pages and JS" --> front
+  browser -- "REST calls and map tiles<br/>(NEXT_PUBLIC_API_URL)" --> api
+  browser -- "base map" --> gmaps
+  api -- "SMB mount: reads layers,<br/>admin writes" --> share
+  api -- "satellite background<br/>of report images" --> gmaps
+  acr -.->|images, via pull identity| front
+  acr -.->|images, via pull identity| api
+  env -.->|logs| logs
+```
+
+The browser calls the API directly: the frontend container only serves pages and
+static files, it doesn't proxy API calls. That is why the API's URL is a
+`NEXT_PUBLIC_` variable.
+
+The API owns the contract between the two: its OpenAPI document, committed as
+`apps/api/openapi.json`. The frontend's types for every request and response are
+generated from it into `apps/web/src/api/schema.d.ts` (`pnpm contracts` regenerates
+both), and CI fails when either file is out of date. Product settings both sides need,
+such as the overlap and deforestation thresholds, are set on the API too, and the
+frontend reads them at startup from `GET /config`.
+
+## Azure resources
+
+Everything is declared in Terraform under `infra/terraform/`, in two stacks per
+environment ([infra/README.md](../infra/README.md) explains the code,
+[suggested_deployment.md](suggested_deployment.md) the procedures): `platform` (the
+layers, the registry and the logs; applied by hand) and `apps` (the Container Apps;
+applied by `infra/deploy.sh` on every deploy). Each environment is a pair of
+`envs/<env>.tfvars` and `envs/<env>.backend.hcl` files per stack.
+
+**One resource group per environment.** Production runs in the one existing group UNDP
+granted, where the operators only hold Contributor: they
+can't create groups, assign roles or create locks. `dev` is prod's test environment, so
+it has the same layout in its own group, `monbo-dev`: what `dev` deploys is what `prod`
+runs. In both, Terraform creates no group, lock or role assignment; an administrator
+grants the identities their roles once
+([suggested_deployment.md](suggested_deployment.md#the-administrators-grants)).
+
+The names below are `dev`'s (`prod` replaces `dev` with `prod`). The storage account
+and the registry can't have hyphens: Azure only allows lowercase letters and digits in
+those globally unique names. Both environments run in East US (`eastus`).
+
+| Resource | Stack | What it does |
+|---|---|---|
+| Storage account `monbodevtfstate` | `infra/bootstrap.sh` | The Terraform state of both stacks. Read with its account key (operators may not get a data role on it); versioning and 30-day soft delete. |
+| Storage account `monbodevdata` and share `maps` | platform | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days, `prevent_destroy`. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
+| Container Registry `monbodevacr` (Basic) | platform | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. Its admin user is on only until the pull identity holds AcrPull. |
+| Log Analytics workspace `monbo-dev-logs` | platform | The apps' logs, kept 30 days. |
+| Managed identity `monbo-dev-deploy` | platform | What GitHub Actions deploys as (OIDC, no secret). Contributor on the group, granted by an administrator. |
+| Container Apps environment `monbo-dev-env` | apps | Shared network for both apps; sends their logs to Log Analytics. It also registers the share as environment storage `maps`, which the API's volume refers to. |
+| Managed identity `monbo-dev-pull` | apps | Both apps pull their images with it, once an administrator grants it AcrPull. |
+| Container App `monbo-api` | apps | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup and readiness probes on `/health`, liveness on `/health/live`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
+| Container App `monbo-front` | apps | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, startup probe on `/api/health`. |
+
+Both apps are defined in `infra/terraform/apps/api.tf` and `web.tf`. Terraform owns
+them entirely: a setting changed in the portal shows up in the next plan and is
+reverted by the next deploy.
+
+**What protects the layers.** There is no delete lock and no Azure Backup, because both
+need more than Contributor. The storage account and the share carry Terraform's
+`prevent_destroy`, deleted shares can be undeleted for 14 days, and `seed` takes a
+snapshot before it empties the share. The layers in Git can always be seeded again; the
+admin's edits and the usage events since the last snapshot can't. A UNDP administrator
+can add a lock on the storage account and the role that allows the daily backup
+(`share_backup_enabled`); see
+[suggested_deployment.md](suggested_deployment.md#the-administrators-grants).
+
+**Configuration and secrets.**
+
+- **API:**
+  - Container App secrets: the Google Maps key and signature secret, and
+    `ADMIN_SESSION_SECRET`. They come from `TF_VAR_*` variables (never from the
+    repository) and are referenced by environment variables.
+  - `ADMIN_ALLOWED_ORIGIN` is set to the frontend's URL.
+- **Frontend:**
+  - It is built once with placeholders (`__NEXT_PUBLIC_API_URL__`…).
+  - At start, `apps/web/entrypoint.sh` replaces them with the container's
+    environment variables, so the same image runs in any environment.
+  - Its Google Maps key is exposed to the browser by design.
+
+The share is mounted with `uid=10001,gid=10001`: the API image runs as that user,
+and `chmod` isn't possible on Azure Files. Details, first-time setup and rollback are
+in [suggested_deployment.md](suggested_deployment.md).
+
+### Why the API runs as a single replica
+
+Several things live in the API process's memory:
+
+- the lock that serializes writes to the share;
+- the cached registry and indexes;
+- the login rate limit;
+- the single raster ingestion slot.
+
+A second replica would have its own copies and could corrupt the share or run two
+ingestions at once. Don't scale the API out while the admin is enabled.
+
+### What survives what
+
+| Event | Effect |
+|---|---|
+| New revision or restart of the API | Layers, admin edits and ingestion job history are on the share and stay. An ingestion that was running is marked failed ("interrupted by restart") and its staging file is deleted. |
+| `terraform destroy` of the apps stack | Deletes the apps. The share and the registry stay. |
+| Someone deletes a file on the share | Restore it from a share snapshot (`seed`'s, or one taken by hand), or seed the Git layers again. With `share_backup_enabled`, from the vault's daily snapshot. |
+| Someone deletes the share | Undelete it within 14 days (soft delete). |
+
+## How farms come in
+
+The upload step of "Polygon validation" and "Deforestation analysis" shows one card
+per way to add farms (`FarmsUploadStep`). The cards build one list of farms, and the
+user sends it with the step's button. Templates and example files are in
+`public/files/`. `scripts/generate-upload-examples.py` makes the option 3 template
+and the examples, and the tests upload every example. The list lives in the page
+(`useUploadSources`), so it survives the loading screen. Each source yields the rows
+`/farms/parse` takes (`FarmRow`, the Excel template's keys):
+
+| Source | How its rows are made |
+|---|---|
+| **Excel template** | `loadExcelFileFarmsData`: coordinates as WKT or GeoJSON in a cell |
+| **Geo file** (GeoJSON, KML, KMZ, zipped Shapefile) | `POST /farms/import` reads it, then `geoFeaturesToFarmRows` reads each feature's attributes by fixed names (`geoAttributeMappings`: EUDR, Monbo's own GeoJSON download, short Shapefile names, the template's headers) |
+| **Geo file + Excel** | The Excel, joined to the features by ID (`joinRowsWithGeoFeatures`); an Excel with coordinates is rejected, so a farm is never placed twice; a KML placemark's name is its ID when it has none |
+| **Manual farm** | Drawn in `ManualFarmModal` on Google Maps, with our own drawing tool (Google's Drawing Library is gone), and its fields filled in. It can have holes and several parts: `utils/drawing.ts` checks every edit against the API's rules (no ring touches another, holes inside their part, parts apart or inside a hole) and orients the rings as it closes them |
+
+`utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
+together, in list order, and rejects an ID found in two sources, naming both.
+
+The user-facing explanation of the four ways, the accepted formats and geometries,
+and a point's area is the documentation page (`/documentation#upload`). Its text is
+in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the
+upload changes.
+
+`POST /farms/import` (`app/modules/farms/geo_import.py`) does the following:
+- reads the file with GDAL, without extracting a `.zip` or `.kmz` to disk;
+- reads every `.shp` in a zip and every KML layer;
+- reprojects to EPSG:4326 and drops Z. A Shapefile without `.prj` is rejected;
+- returns `{format, features}`. Each feature has its attributes and its geometry as
+  WKT (Point, Polygon with holes, or MultiPolygon).
+
+Problems come back as `snake_case` codes, which the web translates. The upload is
+limited to 20 MB, or 200 MB uncompressed. In a KML, the placemark's XML `id` (an
+exporting tool's id like `fincas.1`) is dropped, so the farm's ID is its
+ExtendedData `id` or, failing that, its name.
+
+## A farm's geometry
+
+Nothing is stored, so a farm travels between the web and the API on every call
+(validation, analysis, report images), and the API rebuilds its geometry each time.
+A point farm is a `center` and a `radius`. A polygon farm is a list of `parts`, each
+an `exterior` ring and its `holes`:
+
+- **One part** for a Polygon; **one part per polygon** for a MultiPolygon, which is
+  still one farm (one ID, one producer, one declared production), as the EUDR treats
+  it as one production place.
+- **Holes** are excluded from the farm's area, from its deforestation ratio (loss
+  inside a hole doesn't count) and from overlaps (a farm inside another's hole
+  doesn't overlap it).
+- **Rings are oriented by the API**: exteriors counter-clockwise, holes clockwise.
+  Google Maps only draws a hole empty when it winds opposite to its exterior, so the
+  web draws the rings as they come. The manual entry's drawing tool orients the
+  rings it draws the same way.
+- **`center`** is the farm's centroid when it lies inside the farm, and otherwise a
+  point Shapely guarantees inside it (a hole over the centroid, or parts apart).
+
+Uploads accept WKT and GeoJSON coordinates for Polygons and MultiPolygons, with or
+without holes. The geometry type is read from the coordinates, so `Polygon` and
+`MultiPolygon` are interchangeable in the template's geometry type column.
+
+`app/utils/polygons.py` is the only crossing between Shapely and the contract:
+`geometry_to_parts` (Shapely to parts, oriented) and `parts_to_geometry` (parts to a
+`Polygon` or `MultiPolygon`). `build_farm_geometry` in `app/utils/farms.py` builds a
+farm's geometry from what the web sends back. The web exports a farm with one part
+as a GeoJSON `Polygon` and one with several as a `MultiPolygon`, in the GeoJSON
+download and in the Excel downloads' coordinates column.
+
+## Where the API reads layers from
+
+`MAPS_ROOT` decides it. At startup, the API detects the layout:
+
+| Layout | Where | What works |
+|---|---|---|
+| Per country: `countries.json` plus one folder per country | Azure (`/mnt/maps`); locally `.local-maps` | Everything, including the admin |
+| Flat (legacy): one `index.json` at the root | Locally the default (`app/maps`, tracked in Git with LFS). The API image carries no layers | Public app only, read-only; the admin routes are not registered |
+
+A root holding both layouts is refused at startup, and so is one holding neither (an
+empty or missing `MAPS_ROOT`). `GET /health` reports the root in
+use and whether it is writable.
+
+All file access goes through `app/modules/layers/store.py`:
+
+- `LayerStore` handles one folder (a country, or the flat root);
+- `LayersRoot` handles the whole root, the registry, and finding a layer by country
+  and id.
+
+## How the app reads a layer's raster
+
+A layer is identified by **its country and its id**: each country numbers its layers
+from 0, so `CO/2` and `EC/2` are different layers. Every request that touches a
+raster carries the country (the frontend sends the one selected on the landing page).
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant A as monbo-api
+  participant S as MAPS_ROOT (share)
+
+  B->>A: GET /countries
+  A->>S: countries.json, each country's index.json (cached)
+  A-->>B: countries with a published layer
+  B->>A: GET /maps?country=CO&language=es
+  A->>S: CO/index.json, CO/metadata/... (cached)
+  A-->>B: published layers: id, version, pixel size, names, considerations
+  B->>A: POST /deforestation_analysis/analize {country, maps, farms}
+  A->>S: open CO/layers/rasters/<raster_filename>, read the farms' windows
+  A-->>B: deforestation ratio per farm and layer
+  B->>A: GET /deforestation_analysis/tiles/CO/2/dynamic/z/x/y.png?v=<version>
+  A->>S: read one window (overviews at low zoom)
+  A-->>B: 256×256 PNG
+```
+
+### 1. Finding the layers
+
+- **`GET /countries`**: the enabled countries with at least one enabled layer. The
+  landing page shows one card per country from it.
+- **`GET /maps?country=CO&language=es`**: Colombia's enabled layers, with their
+  metadata in the requested language and their `version`.
+
+The registry and each index are parsed once and **cached while the file's
+modification time and size don't change**, so most requests don't open them. An
+unreadable registry keeps the last valid copy, so a bad edit doesn't take the app
+down.
+
+### 2. The analysis
+
+`POST /deforestation_analysis/analize` with the country, the layer ids and the farms.
+For each requested layer of that country:
+
+1. Its raster is resolved as `<MAPS_ROOT>/<CC>/layers/rasters/<raster_filename>`
+   (from the index entry) and opened once with rasterio.
+2. For each farm, its polygon (or a circle of the farm's radius around its point) is
+   reprojected to the raster's CRS, and `rasterio.mask(crop=True, all_touched=True)`
+   reads only the pixels inside it.
+3. The ratio is the share of the farm's area on loss pixels (`1`): each loss pixel
+   counts by the area of its intersection with the polygon, both measured in the
+   raster's CRS (`get_loss_area_fraction`). A pixel the farm only grazes adds that
+   sliver, not a whole pixel, so the ratio is between 0 and 1 by construction.
+   The full method is in [`deforestation_calculation.md`](deforestation_calculation.md).
+
+Rasters are Cloud Optimized GeoTIFFs (512×512 tiles, DEFLATE compression), so only
+the tiles that cover a farm are read from the share, not the whole file.
+
+### 3. Map tiles
+
+`GET /deforestation_analysis/tiles/{country}/{id}/dynamic/{z}/{x}/{y}.png`:
+
+- The API reprojects the raster in one step, with nearest neighbour, onto the
+  tile's own 256×256 grid in Web Mercator (`render_loss_mask` in
+  `app/utils/image_generation/loss_mask.py`). Each tile pixel shows the source pixel
+  under its centre, so a loss pixel's edges are drawn where the raster puts them.
+- At low zoom it reads the coarsest of the COG's overviews whose pixel is still
+  finer than a tile pixel, instead of the full resolution.
+- It paints the loss pixels red on a transparent PNG. A tile outside the raster is
+  an empty PNG.
+- The rasters stay open between requests, shared with the report images (see
+  below).
+
+Until October 2026 the tiles and report images were read from a `WarpedVRT` of the
+whole raster, whose own Web Mercator grid doesn't line up with the raster's pixels.
+Resampling twice drew the loss pixels up to one pixel (about 13 m around a test farm
+in Ecuador) away from where they are.
+
+Tiles are cached by the browser for a day. The frontend adds the layer's `version`
+to the URL (`?v=<version>`), so a new raster isn't hidden behind cached tiles.
+
+### 4. Report images
+
+`POST /deforestation_analysis/generate-image` (feature, layer id, country) draws the
+raster around a farm on top of a Google Maps satellite image (Static Maps API, with
+the API's key and signature secret), for the PDF report. The farm is drawn last, so
+its outline stays visible over the loss. It returns a 640×420 JPEG (quality 85, no
+chroma subsampling), the aspect ratio of the map box on the PDF's farm page, which
+the report embeds as is.
+
+- **Drawn like the tiles.** The loss comes from `render_loss_mask` on the image's
+  own 640×420 grid, with the same overview rule: a farm more than about 10 km across
+  (zoom 11 or lower for a 30 m layer) is drawn from an overview, so its red share is
+  an approximation of the ratio `/analize` computes from the native pixels.
+- **One satellite call per farm.** The satellite image depends only on the farm's
+  center and zoom, not on the layer, so the API caches it in memory: bounded (256
+  images), for 10 minutes, and shared by concurrent requests. A report's images for
+  several layers make one Google call per farm. Failed calls aren't cached.
+- **The loss is drawn as on the map tiles.** It is reprojected in one step onto the
+  image's grid (the satellite image's), with `render_loss_mask`.
+- **Rasters stay open.** The rasters, and the overviews read so far, are kept open
+  between requests for the tiles and the report images (an LRU of 16,
+  keyed by the versioned filename and checked against the file's mtime and size, so
+  a raster rewritten in place, as by a seed, is reopened), with one reader at a time
+  per raster: GDAL handles aren't thread-safe.
+- **The event loop isn't blocked.** Drawing the overlay, compositing and encoding run
+  in threads, so tiles and other requests keep being served while a report's images
+  are generated.
+
+The PDF itself is rendered by the frontend in a Web Worker (see
+[the frontend's README](../apps/web/README.md#pdf-report)). A large report (more than
+1000 farm pages) is a ZIP with one PDF per farm, whose images are requested farm by
+farm while it's built: for 1000 farms × 5 layers, about 5000 requests over a few
+minutes, from one browser.
+
+### Raster versions and concurrency
+
+- Each raster upload is stored under a new name, `<stem>-v<version>.tif`.
+- Activating it is one atomic write of the country's `index.json`
+  (`raster_filename`, `version`). Requests read the index again on their next call
+  and open the new file.
+- A request that already opened the old file keeps reading it: the old versions are
+  never overwritten or deleted.
+- That is why raster reads take no lock.
+
+A layer created in the admin starts at version 0 and has no raster, so it can't be
+published until its first raster (v1) is uploaded.
+
+## How the per-country admin works
+
+Each country administers its own layers at `https://<frontend>/admin`, with its own
+passkey. There are no user accounts: one passkey per country, shared by that
+country's admins.
+
+### The country registry
+
+`MAPS_ROOT/countries.json` lists each country's ISO 3166-1 alpha-2 `code`, the
+**SHA-256 of its passkey** (never the passkey) and whether it is `enabled`.
+
+- It is managed only with the countries command:
+  - locally, `uv run python -m app.modules.admin.countries add|list|rotate|disable|enable`;
+  - in Azure, `tools/layers-ops/layers-ops.sh <env> countries …`, which edits the registry on the share
+    under a file lease and an ETag check, so two operators can't overwrite each
+    other.
+- `add` creates the country's empty folder and prints its passkey **once**.
+- The running API picks up any change on its next request (the cache is keyed on
+  the file), with no redeploy or restart.
+
+| Action | Effect |
+|---|---|
+| `add PE` | New country with an empty folder. It appears on the landing page once its admin publishes a layer. |
+| `rotate CR` | New passkey for Costa Rica; its admins are signed out at once. Other countries are untouched. |
+| `disable EC` | Ecuador disappears from the public app and its admin is locked out. Its data stays, and its layers still resolve for analyses already open. |
+| Rotating `ADMIN_SESSION_SECRET` | Every admin of every country is signed out. |
+
+### Logging in and the session
+
+```mermaid
+sequenceDiagram
+  participant B as Admin's browser
+  participant A as monbo-api
+  participant S as countries.json
+
+  B->>A: POST /admin/session {passkey}
+  A->>S: enabled countries and their passkey hashes
+  A->>A: SHA-256(passkey), compared with every hash in constant time
+  A-->>B: token (country, kid, expiry), signed HMAC-SHA256
+  B->>A: GET /admin/layers (Authorization: Bearer token)
+  A->>S: country still enabled? kid still its passkey's?
+  A-->>B: that country's layers only
+```
+
+- **Login.**
+  - The API hashes the passkey and compares it with every enabled country's hash,
+    without stopping early. The passkey alone tells which country it is.
+  - Failed logins are limited to 5 per client IP per 15 minutes.
+- **Token.**
+  - It carries the country, `kid` (the first 16 characters of that country's
+    passkey hash) and an expiry (`ADMIN_SESSION_TTL_MINUTES`, 60 by default).
+  - It is signed with `ADMIN_SESSION_SECRET`.
+- **Every admin call** checks:
+  - the signature and the expiry;
+  - that the country is still registered and enabled;
+  - that `kid` still matches its passkey hash.
+
+  That is what makes `rotate` and `disable` take effect immediately.
+- **Origin.** With `ADMIN_ALLOWED_ORIGIN` set, admin calls from another origin are
+  rejected (403). CORS stays open for the public routes, without credentials.
+- **Opt-in.** The admin only exists when `ADMIN_SESSION_SECRET` is set and the root
+  has the per-country layout. Otherwise the `/admin` API routes aren't registered.
+
+In the frontend:
+
+- the token lives in `sessionStorage` (closing the tab signs out), and it is checked
+  again with `GET /admin/session` when the page loads;
+- any 401 goes back to the login;
+- the header shows the administered country.
+
+### What an admin can touch
+
+Every admin route works on **the session's country only**:
+
+- **Layers:** listing, creating (the next id in that country), editing fields and
+  metadata, and publishing or hiding. They all use `<CC>/index.json` and
+  `<CC>/metadata/`.
+- **Rasters:** uploads go to that country's folder.
+- **Other countries:** an id or a job of another country answers 404, as if it
+  didn't exist.
+
+Writes to the share hold one process-wide lock. Each file is written to a temporary
+name and renamed into place, retrying when the SMB mount refuses the rename because
+another handle has the file open. Metadata is written before the index, so the index
+never points at a missing file.
+
+### Raster uploads
+
+```mermaid
+flowchart LR
+  B[Admin's browser] -- "PUT /admin/layers/{id}/raster<br/>raw body, progress" --> L["Container's local disk<br/>/tmp/monbo-staging"]
+  L -- "validate every pixel,<br/>convert to COG, verify" --> L
+  L -- "copy" --> ST["share: .staging/"]
+  ST -- "rename" --> R["share: CC/layers/rasters/&lt;stem&gt;-v&lt;n&gt;.tif"]
+  R -- "atomic write" --> I["share: CC/index.json<br/>raster_filename, version"]
+```
+
+1. The browser sends the file as the raw request body. The API streams it to the
+   container's **local disk** (`ADMIN_STAGING_DIR`), up to `ADMIN_MAX_UPLOAD_MB`
+   (500 MB).
+2. A background job validates it on that disk, much faster than over SMB:
+   - one integer band and a CRS;
+   - only 0, 1 and nodata, every pixel checked;
+   - a pixel size matching the layer's.
+
+   It then converts the raster to a COG and checks the conversion pixel by pixel.
+3. Only the verified COG is copied to the share and renamed to its versioned name.
+   The index is then updated in one write.
+4. The job's state is kept in `.jobs/` on the share:
+   - its status, its phase (validating, converting) and its validation progress;
+   - an error or warnings, if any.
+
+   The admin UI polls it and can cancel it until the raster is activated.
+5. **Only one ingestion runs at a time, across every country**; another upload gets
+   409.
+
+The rules and what each check means are in [maps.md](maps.md#raster-requirements).
+
+### Adding a country
+
+1. `tools/layers-ops/layers-ops.sh dev countries add PE`, and give the printed passkey to Peru's
+   admin through a password manager.
+2. Peru's admin logs in, creates its layers and uploads their rasters (the current
+   GFW and TMF rasters only cover Ecuador, Colombia and Costa Rica).
+3. Once a layer is published, Peru appears on the landing page.
+
+No code change or redeploy is needed.
+
+## Local development
+
+The same API runs locally with `MAPS_ROOT` pointing at a folder:
+
+- the Git-tracked `app/maps` (flat, read-only, no admin) by default;
+- or a per-country copy in `.local-maps` to try the admin.
+
+The frontend calls the API at `NEXT_PUBLIC_API_URL`. See
+[onboarding.md](onboarding.md#48-trying-the-layers-admin-locally).

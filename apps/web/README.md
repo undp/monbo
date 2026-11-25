@@ -1,0 +1,410 @@
+# Monbo Frontend
+
+This is the frontend application for Monbo, built with [Next.js 15](https://nextjs.org/docs), a powerful React framework for production.
+
+## Project Structure
+
+```
+apps/web/
+├── public/          # Static files
+├── src/
+│   ├── api/        # API client and services; schema.d.ts is generated from the API
+│   ├── app/        # Next.js app router pages
+│   ├── components/ # Reusable React components
+│   ├── config/     # Configuration files
+│   ├── content/    # Markdown of the documentation page, per language
+│   ├── context/    # React context providers
+│   ├── hooks/      # Custom React hooks
+│   ├── interfaces/ # Aliases of the generated API types, plus frontend-only types
+│   ├── locales/    # i18n translation files
+│   └── utils/      # Utility functions
+```
+
+## Running the Application
+
+There are many ways to run the frontend application. In any case the frontend will be available at `http://localhost:3000`.
+
+> The pnpm version is pinned via the `packageManager` field in `package.json`, so tools like Corepack and `pnpm/action-setup` use a consistent version. You can also run the frontend from the repo root via the orchestrator (`pnpm dev`, `pnpm lint`, `pnpm build`) — see the root [README](../README.md).
+
+### 1. Using Docker for development mode
+
+You can run the frontend in a Docker container in development mode. The source code will be mounted as a docker volume. This approach supports hot-reloading.
+
+First, you need to create a `.env` or `.env.development` file in the `apps/web` directory containing the environment variables (please use the `.env.development.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+Then, execute the following command:
+
+```sh
+cd apps/web
+docker build -f Dockerfile.dev -t monbo-front-dev .
+docker run -d -p 3000:3000 --name monbo-front-dev-container -v $(pwd):/app monbo-front-dev
+```
+
+### 2. Using Docker for production mode
+
+You can build and run the productionimage in a Docker container. Note that this approach does not support hot-reloading.
+
+First, you need to create a file in the `apps/web` directory containing the environment variables (please use the `.env.production.example` file as a template). In this case, the file name convention is not required. Then, execute the following command:
+
+```sh
+cd apps/web
+docker build -f Dockerfile.prod -t monbo-front-prod .
+docker run -d --env-file <env-file-relative-path> -p 3000:3000 --name monbo-front-prod-container monbo-front-prod
+```
+
+### 3. Run Next.js in development mode
+
+If you don't want to use Docker, you can run the NextJS development server with hot-reloading.
+
+First, you need to create a `.env` or `.env.development` file in the `apps/web` directory containing the environment variables (you can use the `.env.development.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and run the development server:
+
+```sh
+pnpm install
+pnpm dev
+```
+
+### 4. Start the Next.js production server
+
+This will start the NextJS production server.
+
+First, you need to create a `.env` or `.env.production` file in the `apps/web` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and run the production server:
+
+```sh
+pnpm install
+pnpm build
+pnpm start
+```
+
+### 5. Run the compiled Next.js in production mode
+
+This will build the NextJS standalone application and run the generated Node server.
+
+First, you need to create a `.env` or `.env.production` file in the `apps/web` directory containing the environment variables (you can use the `.env.production.example` file as a template).
+Please follow the file name convention, because it is used by Nextjs to load them automatically.
+
+Install the dependencies and start the server:
+
+```sh
+pnpm install
+pnpm build
+pnpm start:standalone
+```
+
+## Dependencies
+
+### Production Dependencies
+
+| Package                      | Version  | Description                                     |
+| ---------------------------- | -------- | ----------------------------------------------- |
+| @emotion/cache               | ^11.14.0 | Emotion's cache for CSS-in-JS                   |
+| @emotion/react               | ^11.14.0 | CSS-in-JS library for React                     |
+| @emotion/styled              | ^11.14.0 | Styled components for Emotion                   |
+| @fontsource/roboto           | ^5.1.0   | Self-hosted Roboto font files                   |
+| @googlemaps/markerclusterer  | ^2.5.3   | Marker clustering for Google Maps               |
+| @mui/icons-material          | ^6.3.0   | Material UI icons library                       |
+| @mui/material                | ^6.3.0   | Material UI component library                   |
+| @mui/material-nextjs         | ^6.3.0   | Material UI integration for Next.js             |
+| @vis.gl/react-google-maps    | ^1.4.2   | React components for Google Maps                |
+| file-saver                   | ^2.0.5   | File saving functionality for browsers          |
+| fuse.js                      | ^7.0.0   | Lightweight fuzzy-search library                |
+| i18next                      | ^24.2.0  | Internationalization framework                  |
+| i18next-resources-to-backend | ^1.2.1   | i18next backend for resource files              |
+| lodash                       | ^4.17.21 | JavaScript utility library                      |
+| next                         | 15.1.2   | React framework for production                  |
+| next-i18n-router             | ^5.5.1   | i18n routing for Next.js                        |
+| react                        | ^19.0.0  | JavaScript library for building user interfaces |
+| react-dom                    | ^19.0.0  | React package for DOM rendering                 |
+| react-dropzone               | ^14.3.5  | Drag and drop file upload for React             |
+| react-i18next                | ^15.4.0  | i18next integration for React                   |
+| react-markdown               | ^10.0.0  | Markdown renderer for React                     |
+| xlsx                         | ^0.18.5  | Excel file parser and generator                 |
+
+### Development Dependencies
+
+| Package            | Version  | Description                           |
+| ------------------ | -------- | ------------------------------------- |
+| @eslint/eslintrc   | ^3       | ESLint configuration utility          |
+| @types/file-saver  | ^2.0.7   | TypeScript definitions for file-saver |
+| @types/lodash      | ^4.17.13 | TypeScript definitions for lodash     |
+| @types/node        | ^20      | TypeScript definitions for Node.js    |
+| @types/react       | ^19      | TypeScript definitions for React      |
+| @types/react-dom   | ^19      | TypeScript definitions for React DOM  |
+| eslint             | ^9       | JavaScript linting utility            |
+| eslint-config-next | 15.1.2   | ESLint configuration for Next.js      |
+| typescript         | ^5       | JavaScript with syntax for types      |
+
+## Internationalization (i18n)
+
+The application supports multiple languages using i18next. Currently supported languages:
+
+- English (en)
+- Spanish (es)
+
+### Translation Structure
+
+```
+src/locales/
+├── en/
+│   ├── common.json
+│   ├── deforestationAnalysis.json
+│   ├── home.json
+│   └── polygonValidation.json
+└── es/
+    ├── common.json
+    ├── deforestationAnalysis.json
+    ├── home.json
+    └── polygonValidation.json
+```
+
+Each JSON file corresponds to a specific page or feature:
+
+- `common.json`: Shared translations used across the application
+- `deforestationAnalysis.json`: Translations for the deforestation analysis module
+- `home.json`: Home page translations
+- `polygonValidation.json`: Translations for polygon validation module
+
+If you want to add a new language, please follow the instructions in the [New Language Documentation](docs/new_language.md) file.
+
+### Documentation page
+
+`/documentation` (the book button in the header) explains to the app's users how farms are uploaded, how they are validated, how their area is measured and how deforestation is calculated. Its text is Markdown, one file per section and language, in `src/content/documentation/<locale>/` (`upload.md`, `validation.md`, `area.md`, `deforestation.md`, in the page's order: `DOCUMENTATION_SECTIONS` in `src/utils/documentation.ts`). The page reads them on the server and renders them with `react-markdown`. Each file is one section of the page, and its name is the section's anchor (`/documentation#area`).
+
+- **Summaries and details.** Each section starts, below its heading, with a `:::summary` block (the "In short" box) and keeps its worked computations and edge cases in collapsible `:::details[Label]` blocks, closed when the page opens. They are `remark-directive` container directives, which `src/utils/remarkDocumentationBlocks.ts` turns into elements that `MethodologyDocument` renders. No raw HTML is needed. A test fails on any other directive, on a section without its summary, and when the two languages don't have the same number of details blocks. Text that remark-directive would read as a directive, like `10:30`, is kept as written.
+- **Length.** With the details blocks closed, the Spanish text of the four sections is kept to at most 1,100 words.
+- **Thresholds.** The text never states the thresholds: it writes `{{overlapThreshold}}` and `{{deforestationThreshold}}`, which the page replaces with the values loaded from `GET /config` (`src/utils/documentation.ts`). A test checks that both languages have the same sections and use the same known placeholders.
+- **Keeping it in step.** The technical explanations are in `docs/` (`deforestation_calculation.md`, `polygon_area_calculation.md`) and in the API's README. When a calculation or a validation changes, update the page's Markdown in both languages along with them.
+- **A new language** needs its own folder under `src/content/documentation/`.
+
+## Development Guidelines
+
+### Code Style and Conventions
+
+- We use ESLint and Prettier for code formatting
+- Component naming follows PascalCase (e.g., `MapComponent.tsx`)
+- Hooks use camelCase with 'use' prefix (e.g., `useMapData.ts`)
+- CSS-in-JS follows BEM-like naming conventions
+
+### API types
+
+The types of every API request and response are generated from the API's OpenAPI
+(`apps/api/openapi.json`) into `src/api/schema.d.ts` with `openapi-typescript`. Don't
+edit that file, and don't write API shapes by hand: `src/interfaces/` re-exports the
+generated types under the names the code uses (`FarmData`, `MapData`, …) and only
+declares types that exist just in the frontend.
+
+When the API changes a model, run `pnpm contracts` at the repository root (it
+regenerates both files), fix what `tsc --noEmit` reports, and commit both generated
+files. `pnpm generate:api-types` regenerates only the types, from the committed
+`openapi.json`.
+
+### Testing
+
+Unit tests run with [Vitest](https://vitest.dev) in a jsdom environment, with
+[Testing Library](https://testing-library.com/docs/react-testing-library/intro/) for
+hooks:
+
+```bash
+pnpm test         # the whole suite, once
+pnpm test:watch   # re-runs the affected tests on save
+```
+
+`pnpm test` at the repository root runs the API's pytest suite and then this one.
+
+- **Where they live:** next to the code, as `src/**/*.test.ts(x)`. Shared helpers are
+  in `src/test/`:
+  - the setup;
+  - typed factories for farms, layers and results (`factories.ts`);
+  - `renderHookWithData` (`renderWithData.tsx`), which renders a hook under an
+    injected `DataContext` with the real translations. Its `wrapper` option mounts a
+    provider inside that context, as the `ReportProvider` tests do;
+  - `renderWithDataProvider`, which mounts the real `DataProvider`;
+  - `deferred`, to settle a mocked response when the test chooses;
+  - `FakeWorker` / `installFakeWorker` and `stubObjectUrls`, for the browser APIs
+    jsdom lacks;
+  - the upload-file helpers (`files.ts`).
+- **What they cover:**
+  - the formatting and domain helpers in `src/utils/`;
+  - upload validation and the real upload templates in `public/files/`;
+  - en/es translation parity;
+  - the hooks that read `DataContext`;
+  - the context providers (`DataProvider`, `AdminSessionProvider`, `ReportProvider`);
+  - the PDF worker client.
+
+  The PDF rendering itself (`reportPdf.worker.tsx`) and the components aren't
+  covered.
+- **What is replaced** (`src/test/setup.ts`): `next/navigation` (a shared router whose
+  methods are spies; `setSearchParams` and `setParams` control what the hooks read),
+  `file-saver`, and `fetch`. A request a test didn't stub fails that test; a test that
+  needs the API mocks the `@/api/*` module it goes through. Translations are the real
+  files, not a mock.
+- **Module state:** after every test, the setup resets:
+  - the runtime config (`GET /config`). A test that formats thresholds sets its own
+    with `setRuntimeConfig`;
+  - `DataContext`'s kept flow and selected country (`resetDataStoreForTests`);
+  - both storages;
+  - the timers.
+- **Fake timers:** a test that needs them (the layer polling, the admin session expiry)
+  calls `vi.useFakeTimers` itself, and advances time with `vi.advanceTimersByTimeAsync`
+  inside `act`. i18next needs real timers to start, so such a test awaits
+  `createTestI18n` for its locales before faking them; the instance is then reused.
+- **Imports:** tests import `describe`, `it`, `expect` and `vi` from `vitest` (no
+  globals), and `tsc --noEmit` type-checks them with the rest of the app.
+
+### Continuous Integration
+
+Pull requests into `dev` and `main` marked "ready for review" are validated by the
+`Tests, type-check, lint, build` job of the `CI` GitHub Actions workflow
+(`.github/workflows/ci.yml`), which runs `pnpm install --frozen-lockfile`,
+a check that `src/api/schema.d.ts` matches `apps/api/openapi.json`, `tsc --noEmit`,
+`pnpm run lint`, `pnpm test`, and `pnpm run build` on Node 24, caching the pnpm store and
+`.next/cache`. It runs when the PR changes `apps/web/` or the API contract
+(`apps/api/openapi.json`), or the workflow itself; otherwise it is skipped, which counts
+as passed. Draft PRs are skipped.
+
+### Performance Optimization
+
+- Image optimization using Next.js Image component
+- Code splitting and lazy loading for routes
+- Server-side rendering (SSR) for initial page loads
+- Static site generation (SSG) for static pages
+
+### Browser Support
+
+- Chrome (latest 2 versions)
+- Firefox (latest 2 versions)
+- Safari (latest 2 versions)
+- Edge (latest 2 versions)
+
+### Caching Strategies
+
+There is no caching strategy implemented because the analysis are executed on-demand and the results are not stored.
+
+### State Management
+
+- **Server State**: React Query for API data
+- **UI State**: React's useState and useReducer
+- **Global State**: React Context for:
+  - Theme preferences
+  - User settings
+  - Authentication
+  - Language preferences
+
+### Contributing
+
+1. Create a new branch from `dev`
+2. Make your changes
+3. Submit a pull request against `dev`
+4. Wait for review and approval
+
+### Troubleshooting Common Issues
+
+1. **Build failures**
+
+   ```sh
+   # Clear Next.js cache
+   rm -rf .next
+   pnpm build
+   ```
+
+2. **API connection issues**
+   - Verify NEXT_PUBLIC_API_URL in .env
+   - Check if backend is running
+   - Confirm CORS settings
+
+### Available Scripts
+
+```sh
+pnpm dev            # Run the development server
+pnpm build          # Build the production application
+pnpm start          # Start the production server
+pnpm lint           # Run ESLint
+pnpm docker:build   # Build the docker image
+pnpm generate:api-types  # Regenerate src/api/schema.d.ts from apps/api/openapi.json
+```
+
+### Environment Variables
+
+```sh
+NEXT_PUBLIC_GET_MAPS_URL=                       # URL to get available maps for deforestation analysis
+NEXT_PUBLIC_GET_CONFIG_URL=                     # URL of the API's product settings (GET /config); defaults to NEXT_PUBLIC_API_URL/config
+
+NEXT_PUBLIC_POLYGON_VALIDATION_PARSER_URL=      # URL to parse excel file data into valid Farm objects for polygon validation module
+NEXT_PUBLIC_POLYGON_VALIDATION_URL=             # URL to execute polygons validation and find inconsistencies
+NEXT_PUBLIC_DEFORESTATION_ANALYSIS_PARSER_URL=  # URL to parse excel file data into valid Farm objects for deforestation analysis
+NEXT_PUBLIC_DEFORESTATION_ANALYSIS_URL=         # URL to execute deforestation analysis
+NEXT_PUBLIC_DEFORESTATION_ANALYSIS_TILES_URL=   # URL to get map tiles with deforestation data drawn on them
+NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY=             # Google Maps API key
+NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION= # Most farms whose report images get a satellite background (one Google Static Maps call per farm); above it they get a solid one. Empty = no limit
+```
+
+The overlap and deforestation thresholds are not frontend variables: the API owns them (`OVERLAP_THRESHOLD_PERCENTAGE`, `DEFORESTATION_THRESHOLD_PERCENTAGE`) and publishes them at `GET /config`. The app loads them once at startup (`src/config/runtime.ts`) and renders the pages only after they arrive; if they can't be loaded it shows an error with a retry button.
+
+### PDF report
+
+The report is rendered in the browser with `@react-pdf/renderer`, off the main thread:
+
+- `ReportProvider` (`src/context/ReportContext.tsx`) wraps the preview page. It fetches the report images once per selection (`POST /deforestation_analysis/generate-image`, JPEG) and shares them with the preview and both downloads.
+- Every PDF renders in a Web Worker (`src/workers/reportPdf.worker.tsx`), which sets up its own i18next and runtime config. The page only shows the result in an iframe.
+- Once the preview is shown, the complete report (with links, which the preview hides) is pre-rendered, so "Download" saves it at once. The separated reports (a ZIP) render on click.
+- **Large reports** are those with more than `LARGE_REPORT_FARM_PAGES` (1000, in `src/config/constants.ts`) farm pages, that is, selected (farm, layer) pairs with a result. A complete PDF of a few thousand pages runs the tab out of memory, so:
+  - the preview shows only the first farm's PDF, with a notice;
+  - there is no complete PDF and no pre-render;
+  - "Download ZIP" builds a ZIP with one PDF per farm, farm by farm. Each farm's images are fetched a few farms ahead (with retries), its PDF is added in the worker, and its images are released, so memory doesn't grow with the farms. The footer shows the progress and can cancel the job, and leaving the page cancels it too. 1000 farms × 5 layers take about 3 minutes and give ~245 MB.
+- The fonts (`public/fonts/roboto`: Roboto regular, medium, bold, italic and bold italic, Apache 2.0) and images are served by the app itself: rendering makes no third-party requests.
+
+The endpoints of each module are defined as environment variables because this project is modularized and each module has its own backend service. You could use your own backend services by changing the environment variables and following the same structure for the requests and responses.
+
+### Architecture Decisions
+
+- Material UI for consistent design system
+- Emotion for CSS-in-JS styling
+- React Query for server state management
+- i18next for internationalization
+- Google Maps for mapping functionality
+
+## Dependency updates
+
+Frontend dependencies are updated by Dependabot (`npm` ecosystem on `/apps/web`,
+plus a `docker` entry for the two Dockerfiles), weekly, with minor and patch updates
+grouped into one pull request and each major isolated in its own. Nothing is
+automerged. See the root README for the full policy.
+
+### Outside Dependabot's reach
+
+Two dependencies need a manual check, because Dependabot can't update them:
+
+- **`xlsx` (SheetJS) comes from SheetJS's CDN**, not npm: SheetJS stopped publishing to
+  npm at 0.18.5, which has known vulnerabilities (prototype pollution, ReDoS), and
+  publishes its fixes only at `cdn.sheetjs.com`. `package.json` pins the versioned
+  tarball (`https://cdn.sheetjs.com/xlsx-<version>/xlsx-<version>.tgz`).
+  - **To bump it:** check the release notes at <https://docs.sheetjs.com> (or
+    <https://cdn.sheetjs.com/> for the versions), run
+    `pnpm add "xlsx@https://cdn.sheetjs.com/xlsx-<version>/xlsx-<version>.tgz"`, then
+    upload `apps/api/tests/regression/regression_farms.xlsx` in both modules and
+    download both Excel results.
+  - **Its content isn't verified.** pnpm records no integrity hash for a remote
+    tarball, so the lockfile pins the URL, not the bytes: we trust SheetJS's HTTPS
+    host. If that ever stops being acceptable, vendor the tarball
+    (`apps/web/vendor/xlsx-<version>.tgz`, declared as `file:vendor/...`, and copied
+    into both Dockerfiles before `pnpm install`): pnpm then records its `sha512` and
+    `--frozen-lockfile` fails if it changes.
+- **`pnpm.overrides` in `package.json`:** `"exceljs>uuid": "^11.1.1"`. `exceljs` 4.4.0
+  (its latest release) asks for `uuid ^8.3.0`, and the fix for GHSA-w5hq-g745-h8pq is
+  in 11.1.1. `exceljs` only calls `v4()`, which `uuid` 11 keeps, and the browser loads
+  `exceljs`'s prebundled build anyway. **Remove it** when `exceljs` allows
+  `uuid >= 11.1.1`.
+
+Other transitive alerts are fixed by refreshing the lockfile within the parents'
+ranges (`pnpm update <package> --depth Infinity`), not by overrides.
+
+## Deploy
+
+### Deploy on AWS
+
+TODO

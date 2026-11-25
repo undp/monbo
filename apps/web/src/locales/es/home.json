@@ -1,0 +1,41 @@
+{
+  "title": "Aplicación para la producción sostenible",
+  "subtitle": "Analiza, valida y documenta que tu producción está libre de deforestación y cumple con normativas locales y EUDR",
+  "validation": {
+    "title": "Validación de polígonos y puntos",
+    "description": "Descarga la plantilla, completa los datos y cárgala para validar traslapes o duplicidades automáticamente.",
+    "button": "Validar polígonos"
+  },
+  "deforestation": {
+    "title": "Análisis de deforestación",
+    "description": "Identifica si hay deforestación de una o más fincas, compara con fuentes de mapas globales y locales.",
+    "button": "Analizar deforestación"
+  },
+  "report": {
+    "title": "Generación de reporte",
+    "description": "Descarga en formato pdf o GeoJSON el detalle de producción y análisis de deforestación para presentar en la Debida Diligencia.",
+    "button": "Generar reporte"
+  },
+  "sameDataModal": {
+    "polygonValidation": {
+      "title": "Se utilizarán los mismos datos para validar",
+      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+    },
+    "deforestationAnalysis": {
+      "title": "Se utilizarán los mismos datos para el análisis de deforestación",
+      "description": "Puedes ver la información ya cargada o subir nuevos datos."
+    },
+    "uploadNewData": "Subir nuevos datos",
+    "sameData": "Continuar con los mismos datos"
+  },
+  "landing": {
+    "title": "¿Dónde está tu producción?",
+    "subtitle": "Elige el país para el análisis de deforestación. Solo puedes elegir países que tienen mapas disponibles.",
+    "noCountries": "No hay países con mapas disponibles en este momento.",
+    "loadError": "No pudimos cargar los países disponibles. Recarga la página para intentarlo de nuevo.",
+    "continueWith": "Continuar con {{country}}",
+    "continue": "Continuar",
+    "inviteTitle": "Tu país puede ser el próximo",
+    "inviteLink": "Contáctanos"
+  }
+}

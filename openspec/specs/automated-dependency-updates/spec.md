@@ -4,9 +4,7 @@
 
 Define how Dependabot keeps every managed ecosystem current, the review that each update must
 pass, and the policy for mutable image and action references.
-
 ## Requirements
-
 ### Requirement: Dependabot keeps dependencies current under review
 
 A Dependabot configuration (`.github/dependabot.yml`) SHALL check for available dependency updates on a weekly schedule. Minor and patch updates SHALL be grouped to keep pull-request volume low, while major updates SHALL be surfaced as separate pull requests so they can be reviewed and validated in isolation. Dependabot SHALL NOT automerge any pull request — every update is merged manually after CI passes and a human review. The number of concurrently open pull requests SHALL be bounded via `open-pull-requests-limit` so the queue stays manageable.
@@ -32,18 +30,23 @@ A Dependabot configuration (`.github/dependabot.yml`) SHALL check for available 
 
 ### Requirement: Dependabot covers all managed ecosystems
 
-The Dependabot configuration SHALL declare an `updates` entry for every dependency surface in the monorepo so none drifts unwatched. Because Dependabot requires one entry per ecosystem and directory, the configuration SHALL cover: both pnpm projects (`npm` ecosystem at the repository root for the pinned orchestrator dependency and in `monbo-front`), both Python `uv` projects (`uv` ecosystem in `monbo-api` and `scripts/update-gfw-tmf`), the Docker base images (`docker` ecosystem for each Dockerfile directory), and the GitHub Actions workflows (`github-actions` ecosystem). Docker coverage SHALL be verified against the non-standard `Dockerfile.dev` and `Dockerfile.prod` names rather than inferred from directory entries alone.
+The Dependabot configuration SHALL declare an `updates` entry for every dependency surface in the monorepo so none drifts unwatched. Because Dependabot requires one entry per ecosystem and directory, the configuration SHALL cover: both pnpm projects (`npm` ecosystem at the repository root for the pinned orchestrator dependency and in `apps/web`), both Python `uv` projects (`uv` ecosystem in `apps/api` and `tools/update-gfw-tmf`), the Docker base images (`docker` ecosystem for each Dockerfile directory, `apps/api` and `apps/web`), the Terraform providers (`terraform` ecosystem in `infra/terraform/platform` and `infra/terraform/apps`), and the GitHub Actions workflows (`github-actions` ecosystem). Docker coverage SHALL be verified against the non-standard `Dockerfile.dev` and `Dockerfile.prod` names rather than inferred from directory entries alone. When a package folder moves, its entries SHALL move with it in the same change.
 
 #### Scenario: All ecosystems are watched
 
 - **WHEN** Dependabot scans the repository
-- **THEN** it manages updates for both pnpm lockfiles (root orchestrator and `monbo-front`), the `uv.lock` files (`monbo-api` and `scripts/update-gfw-tmf`), the verified Dockerfile base images, and GitHub Actions references
+- **THEN** it manages updates for both pnpm lockfiles (root orchestrator and `apps/web`), the `uv.lock` files (`apps/api` and `tools/update-gfw-tmf`), the verified Dockerfile base images, the Terraform provider lock files of both stacks, and GitHub Actions references
 
 #### Scenario: Non-standard Dockerfiles are proven covered
 
 - **WHEN** Docker ecosystem coverage is validated
 - **THEN** an actual Dependabot scan or test pull request demonstrates whether all four `Dockerfile.dev`/`Dockerfile.prod` files are detected
 - **AND** any unsupported filename is assigned an explicit supported update strategy before Docker coverage is declared complete
+
+#### Scenario: No entry points at a missing folder
+
+- **WHEN** the `directory` values of `.github/dependabot.yml` are checked against the repository
+- **THEN** every one exists
 
 ### Requirement: Mutable image and action references have an explicit policy
 
@@ -59,3 +62,142 @@ Implementation SHALL decide and document whether the `ghcr.io/astral-sh/uv` imag
 - **WHEN** GitHub Actions update coverage is finalized
 - **THEN** the repository records whether third-party actions use full commit SHAs or major tags and why
 - **AND** a Dependabot update demonstrates that the selected reference form remains maintainable
+
+### Requirement: Dependabot pull requests open against dev
+
+All Dependabot pull requests, version updates and security updates alike, SHALL open against `dev`, the repository's default branch. The configuration SHALL achieve this by living on the default branch, not through `target-branch`. Setting `target-branch` would make the entries' options apply only to version updates and detach security updates from them.
+
+#### Scenario: Version updates open against dev
+
+- **WHEN** Dependabot opens a version-update pull request for any configured ecosystem
+- **THEN** the pull request's base branch is `dev`
+
+#### Scenario: Security updates open against dev
+
+- **WHEN** Dependabot opens a security-update pull request
+- **THEN** the pull request's base branch is `dev`
+- **AND** it carries the labels configured for its ecosystem entry
+
+#### Scenario: No entry sets target-branch
+
+- **WHEN** a maintainer reads `.github/dependabot.yml`
+- **THEN** no `updates` entry declares `target-branch`
+
+### Requirement: Deferred upgrades are encoded as ignore rules
+
+Every upgrade that a design decision defers or rejects SHALL be expressed as an `ignore` rule in `.github/dependabot.yml`, on the entry that would otherwise propose it. Each rule SHALL carry a comment naming its entry condition and the decision it comes from. A deferral SHALL be lifted by removing its rule once the entry condition is met. Ignores applied through `@dependabot ignore` PR comments SHALL NOT be used for policy, because they are not visible in the repository. Docker image tags whose runtime upgrade Dependabot classifies as a minor (for example `python:3.13` → `3.14`) SHALL be ignored with a version range rather than an update type.
+
+#### Scenario: A deferred major is not proposed
+
+- **WHEN** a new major of a deferred dependency is published (for example `@mui/material-nextjs` 9 while MUI 9 is deferred)
+- **THEN** Dependabot opens no pull request for it
+
+#### Scenario: A runtime tag classified as minor is not proposed
+
+- **WHEN** a `python:3.14-slim` image is available and Python 3.14 is deferred
+- **THEN** Dependabot does not propose it, neither alone nor inside the `minor-and-patch` group
+
+#### Scenario: Each ignore rule explains itself
+
+- **WHEN** a maintainer reads an `ignore` rule in `.github/dependabot.yml`
+- **THEN** a comment next to it states the entry condition and the design decision that deferred the upgrade
+
+### Requirement: Package updates wait out a release cooldown
+
+The `npm` and `uv` entries SHALL configure a Dependabot `cooldown`, so a newly published release is proposed only after it has been public for a minimum number of days. Majors SHALL wait at least as long as minors and patches. The cooldown SHALL NOT apply to security updates.
+
+#### Scenario: A same-day release is not proposed
+
+- **WHEN** a package version is published less than the cooldown period ago
+- **THEN** Dependabot does not propose it in a version-update pull request until the period has elapsed
+
+#### Scenario: Security fixes are not delayed
+
+- **WHEN** a security advisory has a patched version within the cooldown period
+- **THEN** the security update is proposed without waiting for the cooldown
+
+### Requirement: Security updates are enabled
+
+Dependabot security updates SHALL be enabled for the repository. They follow the normal flow into `dev` and reach `main` with the next release. A fix that production cannot wait for SHALL use the hotfix path defined by `branch-flow`.
+
+#### Scenario: A vulnerable dependency gets a pull request
+
+- **WHEN** a Dependabot alert opens for a dependency with a patched version
+- **THEN** Dependabot opens a security-update pull request against `dev`
+
+#### Scenario: An urgent fix reaches production
+
+- **WHEN** a security fix must reach production before the next release
+- **THEN** it is applied through a hotfix pull request into `main`
+- **AND** `main` is then merged into `dev`, and the Dependabot pull request on `dev` is merged or closed as superseded
+
+### Requirement: Configured labels exist
+
+Every label referenced in `.github/dependabot.yml` SHALL exist in the repository, so Dependabot can apply it to the pull requests it opens.
+
+#### Scenario: Pull requests are labelled without warnings
+
+- **WHEN** Dependabot opens a pull request for any configured entry
+- **THEN** the pull request carries the entry's labels
+- **AND** Dependabot posts no "labels could not be found" comment
+
+### Requirement: Security alerts are resolved, not left open
+
+Every open Dependabot alert SHALL be resolved: by updating the dependency to a patched version, or by dismissing it in GitHub as `vulnerable_code_not_used`, `tolerable_risk` or `inaccurate` (never `no_bandwidth` or `fix_started`) with a comment naming the evidence. An alert with no patched version in the registry SHALL NOT be dismissed while the vendor publishes a fix elsewhere; the fix SHALL be installed from there.
+
+#### Scenario: A transitive alert in unused code
+
+- **WHEN** an alert concerns a transitive package whose vulnerable code the app never runs, and no update within the parent's range fixes it
+- **THEN** it is fixed with an override or dismissed as `vulnerable_code_not_used`, with a comment saying why the code isn't reached
+
+#### Scenario: The registry has no fix
+
+- **WHEN** a dependency's patched version exists only outside its registry, as with SheetJS
+- **THEN** the dependency is installed from the vendor's versioned tarball instead of the alert being dismissed
+
+### Requirement: Dependencies outside Dependabot's reach are listed
+
+Every dependency Dependabot can't update SHALL be listed in the README of the package that has it, with the reason and the manual check: dependencies installed from a URL tarball, and `pnpm` overrides. Each override SHALL state the condition for removing it.
+
+#### Scenario: Bumping SheetJS
+
+- **WHEN** a maintainer looks for how to update `xlsx`
+- **THEN** `apps/web/README.md` says it comes from SheetJS's CDN, where to watch for releases, and how to change the version and test it
+
+#### Scenario: An override becomes unnecessary
+
+- **WHEN** the parent of an overridden package starts allowing the patched version
+- **THEN** the README's exit condition is met, and the override is removed in the next dependency update
+
+### Requirement: Security fixes are ordered by exposure
+
+When several Dependabot alerts are open, the fixes SHALL be merged in order of exposure. First come alerts in code that runs in a deployed environment and is reachable from outside. Then come runtime dependencies of deployed apps. Last come development-only dependencies and tools that aren't deployed. A fix for a deployed, reachable alert SHALL NOT wait behind a routine version update or behind fixes for less exposed alerts.
+
+#### Scenario: A deployed RCE goes first
+
+- **WHEN** open alerts include a remote code execution in a dependency of the deployed web, and others in development or tool lockfiles
+- **THEN** the web fix is merged first
+- **AND** the other fixes don't delay it
+
+#### Scenario: A conflicting security PR is regenerated, not skipped
+
+- **WHEN** the Dependabot pull request that carries a deployed fix conflicts with `dev`
+- **THEN** it is rebased or recreated by Dependabot, or replaced by a pull request with the fix
+- **AND** the alert isn't left open waiting for the next weekly run
+
+### Requirement: Fixes that share a lockfile may be consolidated
+
+When several Dependabot pull requests fix alerts in the same lockfile, their fixes, and those Dependabot opened no pull request for, can be applied together in one pull request instead of being merged and rebased one by one. Such a pull request SHALL move only the packages named by the alerts, plus what they require, and its description SHALL list the Dependabot pull requests it supersedes. After it merges, each superseded pull request SHALL be closed with a comment naming the pull request that replaced it.
+
+#### Scenario: Five PRs on one lockfile
+
+- **WHEN** five Dependabot pull requests each bump one transitive package in `tools/update-gfw-tmf/uv.lock`
+- **THEN** one pull request upgrades all five with `uv lock --upgrade-package`
+- **AND** the lockfile diff moves no unrelated package
+- **AND** after it merges, the five Dependabot pull requests are closed as superseded
+
+#### Scenario: An alert without a Dependabot PR
+
+- **WHEN** an alert has a patched version but Dependabot opened no pull request for it
+- **THEN** the fix is applied by hand, in the pull request that touches the same lockfile
+

@@ -1,0 +1,332 @@
+"use client";
+
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { UploadPageContent } from "@/components/page/uploadData/UploadPageContent";
+import { generateFarmsData } from "@/api/farms";
+import { analizeDeforestation } from "@/api/deforestationAnalysis";
+import {
+  DataContext,
+  readFlowGeneration,
+  readSelectedCountry,
+} from "@/context/DataContext";
+import { useRouter } from "next/navigation";
+import { SnackbarContext } from "@/context/SnackbarContext";
+import { LoadingScreen } from "@/components/reusable/LoadingScreen";
+import { FarmsUploadStep } from "@/components/page/uploadData/FarmsUploadStep";
+import { useUploadSources } from "@/components/page/uploadData/useUploadSources";
+import { TextHeaderStepContainer } from "@/components/page/uploadData/TextHeaderStepContainer";
+import { useTranslation } from "react-i18next";
+import { FarmData } from "@/interfaces/Farm";
+import { MultiSelectionStep } from "@/components/page/uploadData/MultiSelectionStep";
+import { useMapsForSelectedCountry } from "@/hooks/useMapsForSelectedCountry";
+import { MessageBox } from "@/components/reusable/MessageBox";
+import { Box, Button } from "@mui/material";
+import { getCountryName } from "@/utils/countries";
+import { FarmRow } from "@/interfaces/FarmRow";
+
+export function DeforestationAnalysisUploadDataPageContent() {
+  // const [file, setFile] = useState<File | null>(null);
+  const { openSnackbar } = useContext(SnackbarContext);
+  const router = useRouter();
+  const {
+    availableMaps,
+    availableMapsError,
+    farmsData,
+    setFarmsData,
+    deforestationAnalysisParams: { selectedMaps: selectedMapsForDeforestation },
+    setDeforestationAnalysisParams,
+    setDeforestationAnalysisResults,
+    selectedCountry,
+    analysisOutdated,
+    setAnalysisOutdated,
+    refreshAvailableMaps,
+  } = useContext(DataContext);
+  const { t, i18n } = useTranslation();
+
+  // A layer enabled since the last fetch shows up when the page opens.
+  useEffect(() => {
+    refreshAvailableMaps();
+  }, [refreshAvailableMaps]);
+  // With farms already loaded the analysis starts right away, unless no map is
+  // selected yet: then the form is shown so the user can pick one.
+  const [loading, setLoading] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // Whether the analysis may start: when the page opens with farms and layers
+  // (from the deforestation modal, or to recalculate an outdated analysis),
+  // after a file is parsed, or from the "Analyze" button. Choosing layers on
+  // the form never starts it, so the user can tick more than one.
+  const [analysisRequested, setAnalysisRequested] = useState(
+    () => !!farmsData && selectedMapsForDeforestation.length > 0
+  );
+  // The inputs of the latest analysis request, and whether the page is mounted:
+  // a request only stores its results while both still hold.
+  const prevDataRef = useRef<string | null>(null);
+  // Counts analysis requests, so a stale one can tell whether a newer one is
+  // still pending (and owns the loading screen).
+  const latestRequestRef = useRef(0);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const countryName = selectedCountry
+    ? (getCountryName(selectedCountry, i18n.language === "en" ? "en" : "es") ??
+      selectedCountry)
+    : "";
+
+  const { mapOptions, selectedMapsOptions } = useMapsForSelectedCountry({
+    selectedMaps: selectedMapsForDeforestation,
+    availableMaps,
+  });
+
+  const onMapSelectionChange = useCallback(
+    (id: string, checked: boolean) => {
+      setAnalysisRequested(false);
+      if (checked) {
+        setDeforestationAnalysisParams((prev) => ({
+          ...prev,
+          selectedMaps: [
+            ...prev.selectedMaps,
+            availableMaps.find((m) => m.id === Number(id))!,
+          ],
+        }));
+      } else {
+        setDeforestationAnalysisParams((prev) => ({
+          ...prev,
+          selectedMaps: prev.selectedMaps.filter((m) => m.id !== Number(id)),
+        }));
+      }
+    },
+    [availableMaps, setDeforestationAnalysisParams]
+  );
+
+  const performFarmsGeneration = useCallback(
+    async (data: Record<string, unknown>[]) => {
+      const generation = readFlowGeneration();
+      try {
+        // The upload has no country column: every farm is in the analysis country.
+        const results = await generateFarmsData(
+          data.map((row) => ({ ...row, country: selectedCountry })),
+          i18n.language,
+          { country: selectedCountry, module: "deforestation-analysis" }
+        );
+        // Started over or left meanwhile: don't bring the farms back.
+        if (!mountedRef.current || readFlowGeneration() !== generation) return;
+        // The country can change while the parser request is in flight.
+        setFarmsData(
+          results.map((farm) => ({
+            ...farm,
+            country: readSelectedCountry() ?? farm.country,
+          }))
+        );
+        setAnalysisRequested(true);
+      } catch (error) {
+        console.error(error);
+        openSnackbar({
+          message: t("common:snackbarAlerts:parsingFarmsDataError"),
+          type: "error",
+        });
+        setLoading(false);
+        return;
+      }
+    },
+    [openSnackbar, setFarmsData, t, i18n.language, selectedCountry]
+  );
+
+  const performDeforestationAnalysis = useCallback(
+    async (data: FarmData[], isCurrent: () => boolean) => {
+      const request = ++latestRequestRef.current;
+      // A stale response turns the loading screen off, unless a newer request
+      // is pending.
+      const settleStale = () => {
+        if (request === latestRequestRef.current) setLoading(false);
+      };
+      setLoading(true);
+      try {
+        const response = await analizeDeforestation(
+          data,
+          selectedMapsForDeforestation,
+          selectedCountry!
+        );
+        // A newer request (another country, or a layer that changed again)
+        // supersedes this one.
+        if (!isCurrent()) return settleStale();
+        setDeforestationAnalysisResults(response);
+        setAnalysisOutdated(false);
+        router.push(`/${i18n.language}/deforestation-analysis`);
+        openSnackbar({
+          message: analysisOutdated
+            ? t("deforestationAnalysis:uploadDataPage:analysisUpdated")
+            : t("common:snackbarAlerts:dataAnalizedSuccessfully"),
+          type: "success",
+        });
+      } catch {
+        if (!isCurrent()) return settleStale();
+        openSnackbar({
+          message: t("common:snackbarAlerts:performingAnalysisError"),
+          type: "error",
+        });
+        // TODO: we should navigate back to polygons validation page only if coming from there
+        // router.push("/polygons-validation");
+        setLoading(false);
+        // Back to the form: the "Analyze" button retries.
+        setAnalysisRequested(false);
+      }
+    },
+    [
+      selectedMapsForDeforestation,
+      selectedCountry,
+      router,
+      setDeforestationAnalysisResults,
+      setAnalysisOutdated,
+      analysisOutdated,
+      openSnackbar,
+      t,
+      i18n.language,
+    ]
+  );
+
+  useEffect(() => {
+    if (
+      !analysisRequested ||
+      !farmsData ||
+      !selectedMapsForDeforestation.length
+    ) {
+      prevDataRef.current = null;
+      return;
+    }
+
+    const serializedData = JSON.stringify({
+      country: selectedCountry,
+      farms: farmsData.map((farm) => [farm.id, farm.country]),
+      // Only an analysis invalidated by a layer change re-runs when the selected
+      // layers' calculation inputs change; ticking maps on the form doesn't.
+      calculationInputs: analysisOutdated
+        ? selectedMapsForDeforestation.map((map) => [
+            map.id,
+            map.version,
+            map.pixelSize,
+            map.baseline,
+            map.comparedAgainst,
+          ])
+        : null,
+    });
+    if (serializedData === prevDataRef.current) return;
+
+    prevDataRef.current = serializedData;
+    // Superseded once the inputs change (prevDataRef moves on), the country
+    // changes or the page unmounts. A re-run with the same inputs (e.g. the maps
+    // list refreshed, or Strict Mode replaying the effect) keeps it current.
+    void performDeforestationAnalysis(
+      farmsData,
+      () =>
+        mountedRef.current &&
+        prevDataRef.current === serializedData &&
+        readSelectedCountry() === selectedCountry
+    );
+  }, [
+    analysisRequested,
+    farmsData,
+    selectedCountry,
+    selectedMapsForDeforestation,
+    analysisOutdated,
+    performDeforestationAnalysis,
+  ]);
+
+  const upload = useUploadSources(selectedCountry);
+
+  const onUpload = useCallback(
+    (rows: FarmRow[]) => {
+      // A new upload is a new analysis, not a recalculation of an outdated one.
+      setAnalysisOutdated(false);
+      setLoading(true);
+      performFarmsGeneration(rows);
+    },
+    [performFarmsGeneration, setAnalysisOutdated]
+  );
+
+  if (loading && selectedMapsForDeforestation.length > 0)
+    return (
+      <LoadingScreen
+        text={t(
+          analysisOutdated
+            ? "deforestationAnalysis:uploadDataPage:recalculatingText"
+            : "deforestationAnalysis:uploadDataPage:loadingText"
+        )}
+      />
+    );
+
+  return (
+    <UploadPageContent title={t("deforestationAnalysis:uploadDataPage:title")}>
+      <TextHeaderStepContainer
+        title={t(
+          "deforestationAnalysis:uploadDataPage:mapSelectionStep:stepTitle"
+        )}
+      >
+        <MultiSelectionStep
+          selectedOptions={selectedMapsOptions}
+          options={mapOptions}
+          onChange={onMapSelectionChange}
+        />
+        {!mapOptions.length && (
+          <MessageBox
+            message={t(
+              availableMapsError
+                ? "deforestationAnalysis:uploadDataPage:mapSelectionStep:mapsLoadError"
+                : "deforestationAnalysis:uploadDataPage:mapSelectionStep:noMapsAvailable",
+              { country: countryName }
+            )}
+          />
+        )}
+      </TextHeaderStepContainer>
+      <TextHeaderStepContainer
+        title={t("deforestationAnalysis:uploadDataPage:uploadStep:stepTitle")}
+        subtitle={t("common:farmsUpload:intro")}
+        sx={{
+          flexGrow: 1,
+          opacity: selectedMapsForDeforestation.length === 0 ? 0.4 : 1,
+        }}
+      >
+        <FarmsUploadStep
+          upload={upload}
+          country={selectedCountry}
+          submitLabel={t("deforestationAnalysis:uploadDataPage:uploadStep:submit")}
+          onSubmit={onUpload}
+          disabled={selectedMapsForDeforestation.length === 0}
+        />
+        {farmsData && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            {t("deforestationAnalysis:uploadDataPage:uploadStep:loadedFarms", {
+              count: farmsData.length,
+            })}
+            <Button
+              variant="contained"
+              onClick={() => setAnalysisRequested(true)}
+              disabled={selectedMapsForDeforestation.length === 0}
+            >
+              {t("deforestationAnalysis:uploadDataPage:uploadStep:analyzeLoadedFarms")}
+            </Button>
+          </Box>
+        )}
+      </TextHeaderStepContainer>
+    </UploadPageContent>
+  );
+}
