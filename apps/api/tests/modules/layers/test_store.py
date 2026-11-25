@@ -79,6 +79,7 @@ def test_default_root_reads_the_git_tracked_layers():
 
 def test_custom_root_serves_only_its_enabled_layers(maps_root):
     maps_root.write_index([GFW, DISABLED])
+    maps_root.write_raster("gfw-v1.tif")
     maps_root.write_attributes(
         "en", "gfw.json", {"name": "Global Forest Watch", "alias": "GFW"}
     )
@@ -122,7 +123,7 @@ def test_analysis_includes_disabled_layers(maps_root):
     }
 
     response = client.post(
-        "/deforestation_analysis/analize", json={"maps": [7], "farms": [farm]}
+        "/layer_analysis/analyze", json={"maps": [7], "farms": [farm]}
     )
 
     # No raster file exists, so the value is None, but the disabled layer is analyzed.

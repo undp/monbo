@@ -118,11 +118,12 @@ beforeEach(() => {
 });
 
 describe("AdminUsagePageContent", () => {
-  it("titles the page without the overline or the session's country", async () => {
+  it("titles the page under the bare admin eyebrow, without the session's country", async () => {
     await renderPage();
     await screen.findByTestId("weekly-chart");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("App usage");
-    expect(screen.queryByText("Layers admin")).toBeNull();
+    expect(screen.getByText("Admin")).toBeTruthy();
+    expect(screen.queryByText(/Admin ·/)).toBeNull();
     expect(screen.queryByText(/Colombia/)).toBeNull();
   });
 
@@ -135,8 +136,8 @@ describe("AdminUsagePageContent", () => {
     expect(tile("Farm uploads").getByText("3")).toBeTruthy();
     expect(tile("Farm uploads").getByText("30 farms per upload on average")).toBeTruthy();
     expect(tile("Farm uploads").getByText("Recorded by the server")).toBeTruthy();
-    expect(tile("Deforestation analyses").getByText("4")).toBeTruthy();
-    expect(tile("Deforestation analyses").getByText("2 sessions analyzed")).toBeTruthy();
+    expect(tile("Territorial analyses").getByText("4")).toBeTruthy();
+    expect(tile("Territorial analyses").getByText("2 sessions analyzed")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("5")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("3 as one PDF · 2 as a ZIP")).toBeTruthy();
     expect(tile("Reports downloaded").getByText("Reported by the browser")).toBeTruthy();
@@ -179,12 +180,12 @@ describe("AdminUsagePageContent", () => {
     const costaRica = within(table.getByRole("row", { name: /^Costa Rica/ }));
     expect(costaRica.getAllByRole("cell").map((c) => c.textContent)).toEqual([
       "Costa Rica",
-      "3 ok · 1 errors",
+      "3 ok · 1 error",
       "30",
       "0 ok · 0 errors",
       "4 ok · 2 errors",
       "5",
-      "5 ok · 1 errors",
+      "5 ok · 1 error",
     ]);
     const unknown = within(table.getByRole("row", { name: /^Unknown country/ }));
     expect(unknown.getAllByRole("cell")[2].textContent).toBe("—");

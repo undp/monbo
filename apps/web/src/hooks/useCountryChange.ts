@@ -3,24 +3,25 @@ import { useRouter } from "next/navigation";
 import { DataContext } from "@/context/DataContext";
 
 interface CountryChangeOptions {
-  // Where to go once the country is set (the landing page goes to /home).
+  // Where to go once the country is set.
   navigateTo?: string;
 }
 
 /**
- * The one way to change the analysis country. Before a deforestation analysis the
+ * The one way to change the analysis country. Before a territorial analysis the
  * change applies at once: farms and validation results stay, chosen layers are
  * cleared. After an analysis it waits for the user to confirm a restart
- * (`pendingCountry`), which drops every loaded result and goes to /home.
+ * (`pendingCountry`), which drops every loaded result and goes to the start page.
  */
 export function useCountryChange() {
   const {
     selectedCountry,
     setSelectedCountry,
-    deforestationAnalysisResults,
+    territorialAnalysisResults,
     resetAnalysis,
     setFarmsData,
-    setDeforestationAnalysisParams,
+    setTerritorialAnalysisParams,
+    setAnalysisDraft,
     setReportGenerationParams,
   } = useContext(DataContext);
   const router = useRouter();
@@ -32,16 +33,19 @@ export function useCountryChange() {
         if (navigateTo) router.push(navigateTo);
         return;
       }
-      if (deforestationAnalysisResults) {
+      if (territorialAnalysisResults) {
         setPendingCountry(code);
         return;
       }
-      setDeforestationAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
+      setTerritorialAnalysisParams((prev) => ({ ...prev, selectedMaps: [] }));
+      // Another country's layers: the next analysis starts from none.
+      setAnalysisDraft(null);
       setFarmsData(
         (prev) => prev?.map((farm) => ({ ...farm, country: code })) ?? null
       );
       setReportGenerationParams((prev) => ({
         ...prev,
+        seeded: false,
         selectedMaps: [],
         selectedFarms: prev.selectedFarms.map((farm) => ({
           ...farm,
@@ -53,10 +57,11 @@ export function useCountryChange() {
     },
     [
       selectedCountry,
-      deforestationAnalysisResults,
+      territorialAnalysisResults,
       setFarmsData,
       setSelectedCountry,
-      setDeforestationAnalysisParams,
+      setTerritorialAnalysisParams,
+      setAnalysisDraft,
       setReportGenerationParams,
       router,
     ]
@@ -67,7 +72,7 @@ export function useCountryChange() {
     resetAnalysis();
     setSelectedCountry(pendingCountry);
     setPendingCountry(null);
-    router.push("/home");
+    router.push("/");
   }, [pendingCountry, resetAnalysis, setSelectedCountry, router]);
 
   const cancelRestart = useCallback(() => setPendingCountry(null), []);

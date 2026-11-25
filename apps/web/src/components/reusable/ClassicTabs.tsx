@@ -7,11 +7,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 function CustomTabPanel(
   props: PropsWithChildren<{
     index: number;
-    value: number;
+    value: number | undefined;
     keepMounted?: boolean;
   }>
 ) {
@@ -57,6 +58,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
   fullWidth = false,
   keepMounted = false,
 }) => {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(0);
 
   const handleChange = useCallback(
@@ -66,6 +68,11 @@ export const ClassicTabs: React.FC<TabsProps> = ({
     },
     [setSelectedTab, onChange]
   );
+
+  // The tabs can shrink between renders (a tab shown only when it has content). The
+  // effect below resets the state, but it runs after this render, which must not
+  // read a tab that no longer exists.
+  const activeIndex = selectedTab < tabs.length ? selectedTab : 0;
 
   useEffect(() => {
     if (selectedTab >= tabs.length) {
@@ -91,10 +98,10 @@ export const ClassicTabs: React.FC<TabsProps> = ({
         }}
       >
         <MUITabs
-          value={selectedTab}
+          value={activeIndex}
           onChange={handleChange}
           variant={fullWidth ? "fullWidth" : "standard"}
-          aria-label="Content tabs"
+          aria-label={t("common:contentTabs")}
         >
           {tabs.map((tab) => (
             <Tab
@@ -115,7 +122,7 @@ export const ClassicTabs: React.FC<TabsProps> = ({
         {tabs.map((tab) => (
           <CustomTabPanel
             key={tab.id}
-            value={tabs[selectedTab].id}
+            value={tabs[activeIndex]?.id}
             index={tab.id}
             keepMounted={keepMounted}
           >

@@ -1,0 +1,279 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { I18nextProvider } from "react-i18next";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createAdminCategory, updateAdminCategory } from "@/api/adminCategories";
+import { AdminApiError } from "@/api/adminLayers";
+import { AdminSessionContext } from "@/context/AdminSessionContext";
+import { SnackbarContext } from "@/context/SnackbarContext";
+import type { AdminCategory } from "@/interfaces/AdminLayer";
+import { makeAdminCategory, makeAdminLayer } from "@/test/factories";
+import { createTestI18n } from "@/test/i18n";
+import { CATEGORY_ICON_NAMES } from "@/components/reusable/LayerCategoryIcon";
+import { CategoryForm } from "./CategoryForm";
+import { CategoryPreview } from "./CategoryPreview";
+import { categoryLocks } from "./categoryRules";
+import { toCategoryFormValues } from "./categoryFormState";
+
+vi.mock("@/api/adminCategories", () => ({
+  createAdminCategory: vi.fn(),
+  updateAdminCategory: vi.fn(),
+}));
+
+const session = { token: "t", expiresAt: "2099-01-01T00:00:00Z", country: "CO" };
+const onSaved = vi.fn();
+const openSnackbar = vi.fn();
+
+const renderForm = async (
+  category: AdminCategory | null,
+  { layers = [makeAdminLayer()] } = {}
+) => {
+  const i18n = await createTestI18n("en");
+  render(
+    <I18nextProvider i18n={i18n}>
+      <AdminSessionContext.Provider
+        value={{
+          session,
+          ready: true,
+          login: vi.fn(),
+          logout: vi.fn(),
+          withToken: (call) => call("token"),
+        }}
+      >
+        <SnackbarContext.Provider value={{ openSnackbar }}>
+          <CategoryForm
+            category={category}
+            locks={categoryLocks(category, layers, true, "en")}
+            globalThreshold={0}
+            onCancel={vi.fn()}
+            onSaved={onSaved}
+          />
+        </SnackbarContext.Provider>
+      </AdminSessionContext.Provider>
+    </I18nextProvider>
+  );
+};
+
+const type = (label: RegExp | string, value: string, index = 0) =>
+  fireEvent.change(screen.getAllByLabelText(label)[index], { target: { value } });
+
+/** Fills every required field of a new category except the polarity. */
+const fillFrontier = () => {
+  type(/^ES/, "Frontera agrícola", 0);
+  type(/^EN/, "Agricultural frontier", 0);
+  type("No findings · ES *", "Dentro de la frontera agrícola");
+  type("No findings · EN *", "Inside the agricultural frontier");
+  type("With findings · ES *", "Fuera de la frontera agrícola");
+  type("With findings · EN *", "Outside the agricultural frontier");
+};
+
+const save = () => fireEvent.click(screen.getByRole("button", { name: "Create category" }));
+
+beforeEach(() => {
+  vi.mocked(createAdminCategory).mockImplementation(async (_token, input) =>
+    makeAdminCategory({ ...input, thresholdPercentage: input.thresholdPercentage ?? null })
+  );
+});
+
+describe("CategoryForm", () => {
+  it("doesn't save a new category without a polarity", async () => {
+    await renderForm(null);
+    fillFrontier();
+    save();
+    expect(
+      await screen.findByText("Choose what this category's layers mark.")
+    ).toBeTruthy();
+    expect(createAdminCategory).not.toHaveBeenCalled();
+  });
+
+  it("creates a category with the global threshold, leaving its id to the API", async () => {
+    await renderForm(null);
+    expect(
+      screen.getByText(
+        "The identifier is made from the Spanish name and can't be changed."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(/^Identifier/)).toBeNull();
+    fillFrontier();
+    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
+    save();
+    await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
+    const input = vi.mocked(createAdminCategory).mock.calls[0][1];
+    expect(input).toMatchObject({
+      polarity: "required",
+      temporal: false,
+      thresholdPercentage: null,
+      name: { es: "Frontera agrícola", en: "Agricultural frontier" },
+    });
+    expect(input).not.toHaveProperty("id");
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  });
+
+  it("offers every icon by name and the twelve colors, and saves the ones chosen", async () => {
+    await renderForm(null);
+    const icons = within(screen.getByRole("group", { name: "Icon" })).getAllByRole("button");
+    expect(icons).toHaveLength(26);
+    expect(icons.map((icon) => icon.getAttribute("aria-label"))).not.toContain(
+      expect.stringContaining("admin:")
+    );
+    expect(icons.map((icon) => icon.getAttribute("value"))).toEqual(CATEGORY_ICON_NAMES);
+    expect(screen.getAllByRole("button", { name: /^Color #/ })).toHaveLength(12);
+
+    fireEvent.click(screen.getByRole("button", { name: "Volcano" }));
+    fireEvent.click(screen.getByRole("button", { name: "Color #3949ab" }));
+    expect((screen.getByLabelText("Other color") as HTMLInputElement).value).toBe("#3949ab");
+    fillFrontier();
+    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
+    save();
+    await waitFor(() => expect(createAdminCategory).toHaveBeenCalled());
+    expect(vi.mocked(createAdminCategory).mock.calls[0][1]).toMatchObject({
+      icon: "volcano",
+      color: "#3949ab",
+    });
+  });
+
+  it("locks the polarity and temporal of a category with published layers, naming them", async () => {
+    const category = makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 });
+    vi.mocked(updateAdminCategory).mockResolvedValue(category);
+    await renderForm(category);
+    for (const radio of screen.getAllByRole("radio")) {
+      expect((radio as HTMLInputElement).disabled).toBe(true);
+    }
+    expect(screen.getByText(/while layers are published \(IDEAM 2020-2023\)/)).toBeTruthy();
+    expect(screen.getByText(/the category has layers \(IDEAM 2020-2023\)/)).toBeTruthy();
+    expect((screen.getByRole("switch", { name: /compare two years/ }) as HTMLInputElement).disabled).toBe(
+      true
+    );
+    // The texts and the threshold can still change.
+    type("No findings · EN *", "Clean");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(updateAdminCategory).toHaveBeenCalled());
+    expect(vi.mocked(updateAdminCategory).mock.calls[0][1]).toEqual("deforestation");
+  });
+});
+
+// i18next escapes interpolated values as HTML by default: the API's reasons and the
+// admin's names must reach the screen as typed, with their ' and &.
+describe("CategoryForm texts with ' and &", () => {
+  const createFrontier = () => {
+    fillFrontier();
+    fireEvent.click(screen.getByRole("radio", { name: /What is allowed/ }));
+    save();
+  };
+
+  it("shows a 409's reason as text (an unreadable categories file)", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(409, "The country's categories file can't be read (not valid JSON) & must be fixed")
+    );
+    await renderForm(null);
+    createFrontier();
+    expect(
+      await screen.findByText(
+        "The category couldn't be saved. The server refused the change: The country's categories file can't be read (not valid JSON) & must be fixed"
+      )
+    ).toBeTruthy();
+    expect(document.body.innerHTML).not.toContain("&amp;amp;");
+  });
+
+  it("shows a 400's reason as text (layers that already use the id)", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(400, "Category 'frontera_agricola' has published layers (8 & 9): hide them before creating it")
+    );
+    await renderForm(null);
+    createFrontier();
+    expect(
+      await screen.findByText(
+        /Category 'frontera_agricola' has published layers \(8 & 9\): hide them before creating it/
+      )
+    ).toBeTruthy();
+  });
+
+  it("shows a 422's details as text", async () => {
+    vi.mocked(createAdminCategory).mockRejectedValue(
+      new AdminApiError(422, [
+        { loc: ["body", "name", "es"], msg: "Value error, can't contain '<' & '>'" },
+      ])
+    );
+    await renderForm(null);
+    createFrontier();
+    expect(
+      await screen.findByText(/name\.es: Value error, can't contain '<' & '>'/)
+    ).toBeTruthy();
+  });
+
+  it("names a new category as typed", async () => {
+    await renderForm(null);
+    type(/^ES/, "Bosques & ríos d'Ana", 0);
+    type(/^EN/, "Forests & Ana's rivers", 0);
+    type("No findings · ES *", "Sin observaciones");
+    type("No findings · EN *", "No findings");
+    type("With findings · ES *", "Con observaciones");
+    type("With findings · EN *", "With findings");
+    fireEvent.click(screen.getByRole("radio", { name: /What must be avoided/ }));
+    save();
+    await waitFor(() =>
+      expect(openSnackbar).toHaveBeenCalledWith({
+        message: "Category Forests & Ana's rivers created.",
+        type: "success",
+      })
+    );
+  });
+
+  it("names the layers of a lock as typed", async () => {
+    const category = makeAdminCategory({ layerCount: 1, publishedLayerCount: 1 });
+    const layer = makeAdminLayer();
+    layer.attributes.en = { ...layer.attributes.en!, alias: "R&D's layer" };
+    await renderForm(category, { layers: [layer] });
+    expect(screen.getByText(/while layers are published \(R&D's layer\)/)).toBeTruthy();
+  });
+});
+
+describe("CategoryPreview", () => {
+  const renderPreview = async (polarity: "avoid" | "required" | null, threshold = "") => {
+    const i18n = await createTestI18n("en");
+    const values = {
+      ...toCategoryFormValues(),
+      name: { es: "Frontera agrícola", en: "Agricultural frontier" },
+      polarity,
+      useGlobalThreshold: threshold === "",
+      threshold,
+      resultLabels: {
+        ok: { es: "Dentro", en: "Inside" },
+        flagged: { es: "Fuera", en: "Outside" },
+      },
+    };
+    return render(
+      <I18nextProvider i18n={i18n}>
+        <CategoryPreview values={values} globalThreshold={0} />
+      </I18nextProvider>
+    );
+  };
+
+  it("asks for a polarity before showing results", async () => {
+    await renderPreview(null);
+    expect(screen.getByText("Choose what the layers mark to see the preview.")).toBeTruthy();
+    expect(screen.queryByText(/Outside/)).toBeNull();
+  });
+
+  it("changes which polygon has findings with the polarity", async () => {
+    const { unmount } = await renderPreview("avoid");
+    const preview = () => within(screen.getByRole("region", { name: "Preview" }));
+    expect(preview().getByText("Polygon that overlaps the layer by 18%")).toBeTruthy();
+    expect(preview().getByText("18% · Outside")).toBeTruthy();
+    expect(preview().getByText("Inside")).toBeTruthy();
+    unmount();
+
+    await renderPreview("required");
+    expect(preview().getByText("Polygon with 18% outside the layer")).toBeTruthy();
+    expect(preview().queryByText("Polygon that overlaps the layer by 18%")).toBeNull();
+    // The classifier, not the caption, picks the chip: 18% outside is still flagged.
+    expect(preview().getByText("18% · Outside")).toBeTruthy();
+  });
+
+  it("keeps the example above the threshold, and says when nothing can be flagged", async () => {
+    const { unmount } = await renderPreview("avoid", "40");
+    expect(screen.getByText("Polygon that overlaps the layer by 45%")).toBeTruthy();
+    unmount();
+    await renderPreview("avoid", "100");
+    expect(screen.getByText("With a 100% threshold no polygon has findings.")).toBeTruthy();
+  });
+});

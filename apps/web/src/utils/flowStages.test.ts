@@ -1,0 +1,149 @@
+import { describe, expect, it } from "vitest";
+import {
+  deriveFlowStages,
+  flowProgress,
+  stageFromPathname,
+  stageAction,
+  stageHref,
+  type FlowFlags,
+  type FlowStage,
+} from "./flowStages";
+
+const NOTHING: FlowFlags = { validationDone: false, analysisDone: false };
+const VALIDATED: FlowFlags = { validationDone: true, analysisDone: false };
+const ANALYZED_DIRECTLY: FlowFlags = { validationDone: false, analysisDone: true };
+const BOTH: FlowFlags = { validationDone: true, analysisDone: true };
+
+const states = (current: FlowStage | null, flags: FlowFlags) =>
+  deriveFlowStages(current, flags).map(({ state }) => state);
+const labels = (current: FlowStage | null, flags: FlowFlags) =>
+  deriveFlowStages(current, flags).map(({ labelKey }) => labelKey.split(".").pop());
+
+describe("stageFromPathname", () => {
+  it.each([
+    ["/polygons-validation", 1],
+    ["/polygons-validation/upload-data", 1],
+    ["/en/polygons-validation", 1],
+    ["/es/territorial-analysis/upload-data", 2],
+    ["/territorial-analysis/layers", 2],
+    ["/territorial-analysis", 2],
+    ["/report-generation", 3],
+    ["/report-generation/preview", 3],
+    ["/en/report-generation/preview", 3],
+  ])("%s is stage %i", (pathname, stage) => {
+    expect(stageFromPathname(pathname)).toBe(stage);
+  });
+
+  it.each(["/", "/en", "/home", "/documentation", "/admin/layers", "/en/admin/usage"])(
+    "%s is outside the flow",
+    (pathname) => {
+      expect(stageFromPathname(pathname)).toBeNull();
+    }
+  );
+});
+
+describe("deriveFlowStages", () => {
+  it("normal entry: here, go straight to 2, 3 waits for results", () => {
+    expect(states(1, NOTHING)).toEqual(["current", "available", "locked"]);
+    expect(labels(1, NOTHING)).toEqual(["current", "direct", "locked"]);
+  });
+
+  it("after validating, on stage 2: 1 is done and 3 still waits", () => {
+    expect(states(2, VALIDATED)).toEqual(["done", "current", "locked"]);
+    expect(labels(2, VALIDATED)).toEqual(["done", "current", "locked"]);
+  });
+
+  it("direct entry to stage 2: 1 is skipped and optional", () => {
+    expect(states(2, NOTHING)).toEqual(["skipped", "current", "locked"]);
+    expect(labels(2, NOTHING)).toEqual(["skipped", "current", "locked"]);
+  });
+
+  it("analysis done: stage 3 is available, not 'go straight there'", () => {
+    expect(states(2, BOTH)).toEqual(["done", "current", "available"]);
+    expect(labels(2, BOTH)).toEqual(["done", "current", "available"]);
+  });
+
+  it("back on stage 1 after the analysis", () => {
+    expect(states(1, BOTH)).toEqual(["current", "done", "available"]);
+    expect(labels(1, BOTH)).toEqual(["current", "done", "available"]);
+  });
+
+  it("on stage 3 after a direct analysis: 1 skipped, 2 done", () => {
+    expect(states(3, ANALYZED_DIRECTLY)).toEqual(["skipped", "done", "current"]);
+  });
+
+  it("stage 3 without results is locked wherever the user is", () => {
+    for (const current of [1, 2] as const) {
+      for (const flags of [NOTHING, VALIDATED]) {
+        expect(states(current, flags)[2]).toBe("locked");
+      }
+    }
+  });
+
+  it("stage 2 is never locked (D5)", () => {
+    for (const current of [null, 1, 2, 3] as const) {
+      for (const flags of [NOTHING, VALIDATED, ANALYZED_DIRECTLY, BOTH]) {
+        expect(states(current, flags)[1]).not.toBe("locked");
+      }
+    }
+  });
+});
+
+describe("flowProgress", () => {
+  it.each<[FlowStage, FlowFlags, [number, number]]>([
+    [1, NOTHING, [0.35, 0]],
+    [1, VALIDATED, [1, 0]],
+    [2, NOTHING, [1, 0.35]],
+    [2, BOTH, [1, 1]],
+    [3, BOTH, [1, 1]],
+  ])("on stage %i", (current, flags, progress) => {
+    expect(flowProgress(current, flags)).toEqual(progress);
+  });
+});
+
+describe("stageHref", () => {
+  it("goes to a stage's results when it has them", () => {
+    expect(stageHref(1, BOTH)).toBe("/polygons-validation");
+    expect(stageHref(2, BOTH)).toBe("/territorial-analysis");
+    expect(stageHref(3, BOTH)).toBe("/report-generation");
+  });
+
+  it("goes to a stage's upload page otherwise", () => {
+    expect(stageHref(1, NOTHING)).toBe("/polygons-validation/upload-data");
+    expect(stageHref(2, NOTHING)).toBe("/territorial-analysis/upload-data");
+  });
+
+  it("goes to stage 2's layers when farms are loaded, before an analysis", () => {
+    expect(stageHref(2, VALIDATED, { farmsLoaded: true })).toBe(
+      "/territorial-analysis/layers"
+    );
+    expect(stageHref(2, NOTHING, { farmsLoaded: true })).toBe(
+      "/territorial-analysis/layers"
+    );
+    expect(stageHref(2, BOTH, { farmsLoaded: true })).toBe("/territorial-analysis");
+  });
+});
+
+describe("stageAction", () => {
+  it("goes straight to stage 2: no modal after a validation", () => {
+    // The stage 2 page asks for the polygon subset itself (GC-6).
+    expect(stageAction(2, 1)).toBe("navigate");
+    expect(stageAction(2, 3)).toBe("navigate");
+  });
+
+  it("goes straight to the report: its page holds the choices", () => {
+    expect(stageAction(3, 2)).toBe("navigate");
+    expect(stageAction(3, 1)).toBe("navigate");
+  });
+
+  it("navigates for stage 1", () => {
+    expect(stageAction(1, 2)).toBe("navigate");
+  });
+
+  it("does nothing for the current stage, and opens no dialog", () => {
+    // On stage 2 while the analysis runs or after it fails: no analysis modal.
+    expect(stageAction(2, 2)).toBe("none");
+    expect(stageAction(3, 3)).toBe("none");
+    expect(stageAction(1, 1)).toBe("none");
+  });
+});

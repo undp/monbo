@@ -1,12 +1,15 @@
-# Deforestation layers
+# Map layers
 
-A layer is a binary GeoTIFF (`1` = forest loss after the baseline year, `0` = no
-loss) plus its metadata in English and Spanish. The API analyzes farms against it,
-serves its map tiles and draws it into the report images.
+A layer is a binary GeoTIFF (`1` = inside the layer, `0` = outside it) plus its
+metadata in English and Spanish. What "inside" means depends on the layer's
+[category](#categories): for a `deforestation` layer, forest lost after the baseline
+year; for a protected-areas layer, the protected areas. The API analyzes farms
+against it, serves its map tiles and draws it into the report images.
 
-Every layer belongs to one country, and each country has its own admin. Layers are
-managed with the **layers admin** (`/admin` in the frontend). Editing the files by
-hand is only for local work.
+Every layer belongs to one country and to one of that country's
+[categories](#categories) (all of today's layers are in `deforestation`), and each
+country has its own admin. Layers are managed with the **layers admin** (`/admin` in
+the frontend). Editing the files by hand is only for local work.
 
 ## Where layers live
 
@@ -30,6 +33,7 @@ What the admin needs. Inside `MAPS_ROOT`:
 ```
 countries.json                                   # the country registry
 CO/index.json                                    # Colombia's layers
+CO/categories.json                               # Colombia's layer categories (optional)
 CO/layers/rasters/<stem>-v<version>.tif          # one Cloud Optimized GeoTIFF per raster version
 CO/metadata/attributes/<en|es>/<name>.json       # name, alias, source... per language
 CO/metadata/considerations/<en|es>/<name>.md     # Markdown notes per language (optional)
@@ -89,7 +93,8 @@ Each country's `index.json` is a list with one entry per layer:
   "pixel_size": 30,
   "baseline": "2020",
   "compared_against": "2023",
-  "references": ["https://glad.earthengine.app/view/global-forest-change"]
+  "references": ["https://glad.earthengine.app/view/global-forest-change"],
+  "category_id": "deforestation"
 }
 ```
 
@@ -118,7 +123,12 @@ Each country's `index.json` is a list with one entry per layer:
   with latitude, so it is checked at the latitudes nearest to and farthest from the
   equator; a raster spanning too many latitudes is rejected (reproject it to an
   equal-area CRS or split it).
-- **baseline** / **compared_against**: First and last year of the loss period.
+- **baseline** / **compared_against**: First and last year of the loss period. Layers
+  of categories that are not `temporal` have none: both are `null`. Always write
+  both keys, even as `null`: releases before categories fail on a missing key (see
+  [Rolling back](#rolling-back-to-a-release-before-categories)).
+- **category_id**: The layer's [category](#categories) in its country. Missing means
+  `deforestation`.
 - **references**: http(s) links shown with the layer.
 - **available_countries_codes**: only in the flat layout, the countries the layer
   covers. In the per-country layout the folder says it.
@@ -127,27 +137,190 @@ The attributes files hold `name` and `alias` (required) plus the optional
 `coverage`, `source`, `resolution`, `contentDate`, `updateFrequency` and
 `publishDate`. Considerations are Markdown.
 
+## Categories
+
+A category groups a country's layers and says how a layer's result reads. The API
+always returns the same `value` for a farm and a layer: the fraction of the farm inside
+the layer's `1` pixels. The category tells the web what that means:
+
+- **polarity**: `avoid` when coinciding with the layer is a finding (deforestation,
+  protected areas): the finding is `value`. `required` when *not* coinciding is a
+  finding (agricultural frontier): the finding is `1 - value`.
+- **threshold**: a farm has findings when `100 × finding > threshold_percentage`.
+  Without one, the global `DEFORESTATION_THRESHOLD_PERCENTAGE` applies.
+- **result labels**: the wording of a result without findings (`ok`) and with
+  findings (`flagged`), in both languages.
+
+A country's categories live in `<CC>/categories.json`, a list like this one:
+
+```json
+{
+  "id": "protected_areas",
+  "name": {"es": "Áreas protegidas", "en": "Protected areas"},
+  "description": {"es": "…", "en": "…"},
+  "icon": "shield",
+  "color": "#1565c0",
+  "polarity": "avoid",
+  "threshold_percentage": 0,
+  "result_labels": {
+    "ok": {"es": "Fuera de áreas protegidas", "en": "Outside protected areas"},
+    "flagged": {"es": "En área protegida", "en": "In a protected area"}
+  },
+  "temporal": false,
+  "enabled": true
+}
+```
+
+- **id**: lowercase letters, digits and `_`, starting with a letter. Never reused.
+- **name** / **description**: both languages. **icon**: one of `forest`, `park`, `wetland`,
+  `leaf`, `wildlife`, `shield`, `legal`, `community`, `map`, `global`, `water`, `coast`,
+  `flood`, `agriculture`, `crop`, `coffee`, `pasture`, `mountain`, `volcano`, `landslide`,
+  `fire`, `mining`, `infrastructure`, `settlement`, `industry`, `layers` (`CategoryIcon` in
+  `apps/api/app/models/categories.py`). **color**: `#rrggbb`.
+- **threshold_percentage**: 0 to 100, or `null` for the global threshold.
+- **temporal**: whether the category's layers have `baseline` and
+  `compared_against`.
+- **enabled**: a disabled category hides its layers from the public app.
+
+Every country has a built-in **`deforestation`** category (`avoid`, `temporal`, the
+global threshold), used when the file doesn't define one, so a country without
+`categories.json` keeps working as before. A country that stores its own
+`deforestation` replaces the built-in one. The flat layout has no categories file:
+its only category is the built-in one.
+
+`GET /categories?country=CC` returns a country's enabled categories, with both
+languages and the threshold already resolved. `GET /maps` gives each layer's
+`categoryId`.
+
+**When a category is broken.** Each category in the file is checked on its own. A
+layer whose category doesn't resolve is hidden from the public app, the rest of the
+country keeps working, and the API logs an error naming the country, the layer and the
+category. Analyses and tiles that already use the layer still resolve it by id. The
+storage module tags the layer with the reason (`category_issue`), so the admin can
+show it:
+
+| Code | Why |
+|---|---|
+| `unknown_category` | The country has no category with that id. |
+| `invalid_category` | The category is in the file but fails validation, or its id is repeated. |
+| `unreadable_categories` | `categories.json` is not valid JSON or not a list, or can't be read: no category resolves, not even `deforestation`. A read error is retried on the next request. |
+
+A stored `deforestation` that fails validation is not replaced by the built-in one: its
+layers are hidden rather than judged with the global threshold instead of the
+country's.
+
+### Managing categories in the admin
+
+The admin API manages the session's country's categories (`/admin/categories`), and
+the admin's **Categories** page (`/[locale]/admin/categories`) uses it:
+
+- `GET /admin/categories` lists them, enabled or not, with their own threshold (`null`:
+  the global one) and how many layers, and published layers, each has. It also says
+  whether `categories.json` can be read (`readable`) and lists the problems of its
+  entries (`errors`). A rejected entry is not listed.
+- `POST /admin/categories` creates one, enabled. The API makes its permanent `id` from
+  the Spanish name ("Frontera agrícola" → `frontera_agricola`). An id already used in
+  the country, even by a rejected entry, and the reserved `deforestation` and `new` (the
+  admin's create page) get `_2`, `_3`... The response returns it.
+- `PUT /admin/categories/{id}` replaces its fields. Editing the built-in
+  `deforestation` stores it, first in the file. Editing a rejected entry repairs it.
+- `PATCH /admin/categories/{id}` enables or disables it.
+
+**A published layer never changes meaning in place.** The admin answers 400, and the
+message names the layers to hide first, when:
+
+| Action | Refused when |
+|---|---|
+| Disable or enable a category | it has published layers |
+| Change a category's polarity | it has published layers |
+| Change whether a category is temporal | it has any layer |
+| Repair a rejected category, or create one whose id layers already use | any of those layers is published, or their years don't fit its `temporal` |
+| Publish a layer | its category is disabled or doesn't resolve, or the layer's years don't fit it |
+| Move a layer to another category | the layer is published |
+
+Years fit when a temporal category's layers have both years and the others have
+none, each year is an integer from 1900 to 2100 and the baseline is not after the
+comparison year (the same rules as creating a layer). Thresholds, texts, icon and
+color can change at any time. A repair keeps the entry's `enabled`: only `PATCH`
+publishes or hides a category.
+
+**What the public app offers, whatever edited the share.** `GET /maps` and
+`GET /countries` only offer a layer whose `enabled` is `true` (a string like
+`"false"` doesn't count), whose category resolves and is enabled, whose years fit
+that category and whose raster file exists. Any other layer is hidden, logged once
+as an error, and shown in the admin with `category_issue` or `layer_issue`
+(`years_mismatch`, `missing_raster`). Like any hidden layer, it still resolves by id
+for analyses already open.
+
+**The admin UI explains these rules before the admin hits them.** On the Categories
+page and in the category editor (`/admin/categories/new` and
+`/admin/categories/<id>`, a page of its own), a control that a rule blocks (the enable switch, the
+polarity, "layers compare two years", a published layer's category in the layer
+form) is locked and says why, naming the layers to hide first. The polarity has no
+default: a new category can't be saved until the admin chooses it, and the editor's
+preview, beside the form, classifies two example polygons with the app's own classifier, so it shows
+which polygon gets the observation. The layer form shows the baseline and
+comparison years only for a temporal category and sends them as `null` otherwise.
+The layers list and the layer editor say why an enabled layer isn't public
+(`category_issue`, a disabled category, `layer_issue`) and how to fix it. Rejected
+entries of `categories.json` are reported on the Categories page but repaired on the
+share, not from the UI.
+
+Writes change one entry of `categories.json` and keep the others as they are stored,
+rejected ones included, so nothing the API can't validate (a hand edit, a file from a
+later release) is lost. When the file can't be read at all, every category write
+answers 409 and the file is left alone: fix it on the share (it is in the share's
+daily snapshot).
+
+### Rolling back to a release before categories
+
+Releases without categories ignore `category_id` and
+`categories.json`: `GET /maps`, analyses, tiles and the admin keep working, and admin
+edits keep each layer's `category_id`. Checked on 2026-11-16 by running that API
+against a root with categories. What changes silently, and what to do **before
+rolling back**:
+
+- That release treats **every** layer as deforestation. A layer of a `required`
+  category (agricultural frontier) would show inverted results. **Hide every layer
+  whose category is not `deforestation`** in the admin.
+- It only knows the global `DEFORESTATION_THRESHOLD_PERCENTAGE`. A country that stores
+  its own `deforestation` with a `threshold_percentage` goes back to the global
+  threshold, which applies to every country: **note it in the release notes**.
+- It doesn't hide layers because of their category. Layers hidden today by a disabled
+  or broken category (`category_issue`) are published again: **hide them in the admin
+  first**.
+- It answers 500 on `GET /maps` for a layer without a `baseline` or
+  `compared_against` key, so the keys are always written (as `null` when empty).
+
 ## Managing layers in the admin
 
 Log in at `/admin` with your country's admin passkey (see [Countries](#countries)).
 The admin shows and changes only that country's layers. Then:
 
-- **Create a layer**: fill in the layer fields and the metadata in both languages. It
-  belongs to your country, and starts unpublished and without a raster.
+- **Create a layer**: choose its category and fill in the layer fields and the
+  metadata in both languages. It belongs to your country, and starts unpublished and
+  without a raster. The category must be enabled. A temporal category needs both
+  years; any other takes none.
 - **Upload its raster**, in the Raster section of the layer's page: choose the file,
   then "Upload and validate". The section shows each phase (uploading, validating
   pixels, converting) and can cancel it. The layer keeps its current raster until
   the new one has been fully processed. See the requirements below.
-- **Publish or hide it**: a layer can only be published once it has a raster. An
+- **Publish or hide it**: a layer can only be published once it has a raster and while
+  its category is enabled and valid. An
   unpublished layer's Raster section ends with a "Publish layer" step; the layers
   list also publishes and hides layers.
 - **Edit it**: fields and metadata can be changed at any time, and the change is live
   immediately. Changing `pixel_size` is rejected if it disagrees with the current
-  raster. The id, raster, version and published state are not edited there.
+  raster. A published layer can't move to another category: hide it first. The id,
+  raster, version and published state are not edited there. The admin shows a
+  layer whose category doesn't resolve (`category_issue`) so you can move it or
+  repair the category.
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 
-A country appears on the app's landing map once it has at least one published layer.
+A country appears on the app's start page once it has at least one layer that
+`GET /maps` offers: published, with an enabled and valid category, years that fit it,
+and its raster.
 
 GFW and TMF were migrated as one copy per country. The copies are independent: when a
 new GFW year comes out, each country's admin uploads it to their own copy, and
@@ -181,18 +354,22 @@ values. A raster must be:
 
 - a GeoTIFF with **exactly one band** of **integer** values and a **coordinate
   reference system**;
-- **binary**: only `0` (no loss), `1` (loss) and, optionally, a nodata value. Every
-  pixel is checked. Nodata cannot be `1`, because the analysis counts `1` as loss.
+- **binary**: only `0` (outside the layer), `1` (inside the layer) and, optionally, a
+  nodata value. Every pixel is checked. Nodata cannot be `1`, because the analysis
+  counts the `1` pixels as the layer.
 - have a pixel area consistent with the layer's `pixel_size` (within 5% at every
   latitude of the raster).
 - no larger than `ADMIN_MAX_UPLOAD_MB` (500 MB by default).
 
 If the file doesn't declare its nodata value, enter it in the upload form.
 
-The upload is rejected with an explanation when a check fails. When the other values
-look like years (1980–2100), the raster has loss years instead of a binary mask:
-binarize it first (see below). An upload with no `1` pixels is accepted (its job
-records a warning).
+The upload is rejected with an explanation when a check fails. In a layer of a
+temporal category (one with a baseline, like `deforestation`), when the other values
+all look like years (1980–2100) the raster has the year of each change instead of a
+binary mask, and the error (`loss_years`) says to binarize it first (see below). In
+any other layer, or one whose category doesn't resolve, the same raster is rejected
+as not binary (`not_binary`). An upload with no `1` pixels is accepted, with the
+warning `no_positive_pixels`.
 
 ### What happens to an upload
 
@@ -253,6 +430,8 @@ then builds the per-country layout from it:
   2 in Colombia and MOCUPP is 2 in Costa Rica);
 - `--mapping-out <file>` writes each country's old id → new id, for the parity check;
 - rasters are copied whole, never clipped, because a farm can cross a border;
+- each country gets a `categories.json` with the `deforestation` category, the one
+  every migrated layer belongs to, so the Categories page shows it as stored;
 - every country is registered with a new passkey, printed once.
 
 The source is left untouched. In Azure, `tools/layers-ops/layers-ops.sh <env> seed` runs both

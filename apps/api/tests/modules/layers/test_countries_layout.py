@@ -55,6 +55,13 @@ def countries(country_root):
     )
     for code, raster in (("EC", "gfw.tif"), ("CO", "gfw.tif"), ("CR", "gfw.tif")):
         country_root.country(code).write_raster(raster, code.encode())
+    # Only layers with a raster are public.
+    for code, raster in (
+        ("EC", "ecuador.tif"),
+        ("CO", "ideam.tif"),
+        ("CR", "mocupp.tif"),
+    ):
+        country_root.country(code).write_raster(raster)
     country_root.country("CR").write_attributes(
         "es", "mocupp.json", {"name": "MOCUPP", "alias": "MOCUPP 2021-2022"}
     )
@@ -230,7 +237,7 @@ def test_copied_layers_resolve_to_their_own_folder(countries):
 
 
 def analysis(body):
-    return TestClient(create_app()).post("/deforestation_analysis/analize", json=body)
+    return TestClient(create_app()).post("/layer_analysis/analyze", json=body)
 
 
 def test_analysis_needs_the_country(countries):
@@ -262,13 +269,13 @@ def test_malformed_country_codes_are_422(countries, country):
     assert analysis({"country": country, "maps": [0], "farms": []}).status_code == 422
     assert client.get(f"/maps?country={country}").status_code == 422
     assert client.get(
-        f"/deforestation_analysis/tiles/{country}/0/dynamic/12/1/1.png"
+        f"/layer_analysis/tiles/{country}/0/dynamic/12/1/1.png"
     ).status_code in (
         404,
         422,
     )  # "" doesn't even match the route
     image = client.post(
-        "/deforestation_analysis/generate-image",
+        "/layer_analysis/generate-image",
         json={"country": country, "mapId": 0, "feature": {}},
     )
     assert image.status_code == 422
@@ -278,12 +285,10 @@ def test_tiles_of_an_unknown_country_or_id_are_404(countries):
     client = TestClient(create_app())
 
     assert (
-        client.get("/deforestation_analysis/tiles/PE/0/dynamic/12/1/1.png").status_code
-        == 404
+        client.get("/layer_analysis/tiles/PE/0/dynamic/12/1/1.png").status_code == 404
     )
     assert (
-        client.get("/deforestation_analysis/tiles/CO/2/dynamic/12/1/1.png").status_code
-        == 404
+        client.get("/layer_analysis/tiles/CO/2/dynamic/12/1/1.png").status_code == 404
     )
 
 
@@ -318,6 +323,7 @@ def test_countries_on_a_flat_root(maps_root):
             layer(1, "hidden.tif", available_countries_codes=["PE"], enabled=False),
         ]
     )
+    maps_root.write_raster("gfw.tif")
 
     assert public("/countries").json() == [{"code": "CO"}, {"code": "EC"}]
     assert [entry["id"] for entry in public("/maps?country=CO").json()] == [0]

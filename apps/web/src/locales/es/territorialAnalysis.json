@@ -1,0 +1,83 @@
+{
+  "searchPlaceholder": "Buscar por polígono o productor",
+  "mapFooter": "Línea base de {{baselineYear}} comparada con datos de {{comparedToYear}}",
+  "uploadDataPage": {
+    "loadingText": "Cargando los datos",
+    "recalculatingText": "Cambió una capa. Estamos recalculando el análisis…",
+    "analysisUpdated": "Recalculamos el análisis con la capa actualizada.",
+    "title": "Análisis territorial",
+    "subtitle": "Elige con qué capas de {{country}} quieres cruzar tus polígonos.",
+    "uploadSubtitle": "Súbelos como prefieras. Puedes combinar métodos: todo se suma en la misma lista.",
+    "continue": "Continuar",
+    "analyze": "Analizar",
+    "mapSelectionStep": {
+      "stepTitle": "Capas para el análisis",
+      "subtitle": "Agrupadas por categoría. Las definió el equipo de {{country}}.",
+      "howToRead": "Cómo leer cada capa",
+      "noMapsAvailable": "No hay capas disponibles para {{country}}",
+      "mapsLoadError": "No se pudieron cargar las capas de {{country}}. Recarga la página para intentarlo de nuevo."
+    },
+    "subset": {
+      "label": "Polígonos que se analizan",
+      "message_one": "Usarás {{count}} polígono de la validación.",
+      "message_other": "Usarás {{count}} polígonos de la validación.",
+      "unvalidated_one": "Usarás {{count}} polígono. No pasó por la validación.",
+      "unvalidated_other": "Usarás {{count}} polígonos. No pasaron por la validación.",
+      "leftOut_one": "{{ids}} queda fuera porque no pasó la validación.",
+      "leftOut_other": "{{ids}} quedan fuera porque no pasaron la validación.",
+      "idsAndMore_one": "{{ids}} y {{count}} más",
+      "idsAndMore_other": "{{ids}} y {{count}} más",
+      "valid": "Solo los válidos ({{count}})",
+      "all": "Todos ({{count}})",
+      "seePolygons": "Ver polígonos"
+    },
+    "polygonsLabel_one": "polígono",
+    "polygonsLabel_other": "polígonos",
+    "layersInLabel_one": "capa en",
+    "layersInLabel_other": "capas en",
+    "categoriesLabel_one": "categoría",
+    "categoriesLabel_other": "categorías"
+  },
+  "noDataShortText": "Sin dato",
+  "map": "Mapa",
+  "mapsInfoModal": {
+    "title": "Detalles de las capas",
+    "coverage": "Cobertura",
+    "source": "Fuente",
+    "resolution": "Resolución",
+    "contentDate": "Fecha del contenido",
+    "updateFrequency": "Frecuencia de actualización",
+    "publishDate": "Fecha de publicación",
+    "references": "Referencias",
+    "considerations": "Consideraciones"
+  },
+  "satelliteImageryDisclaimer": "La imagen satelital de Google Maps es referencial y no muestra el resultado de la capa.",
+  "categories": {
+    "uncategorized": "Sin categoría"
+  },
+  "results": {
+    "summaryLabel": "Resumen por categoría",
+    "layerCount_one": "{{count}} capa",
+    "layerCount_other": "{{count}} capas",
+    "okOfTotal": "{{ok}} de {{total}}",
+    "flaggedAndNoData": "{{flagged}} con observaciones · {{unknown}} sin dato",
+    "title": "Resultados del análisis territorial",
+    "subtitle": "{{polygons}} cruzados con {{layers}} de {{country}}.",
+    "polygonCount_one": "{{count}} polígono",
+    "polygonCount_other": "{{count}} polígonos",
+    "changeLayers": "Cambiar capas",
+    "flagged": "Con observaciones",
+    "ok": "Sin observaciones",
+    "layerResult": "Resultado",
+    "byPolygonTitle": "Resultado por polígono y capa",
+    "byPolygonSubtitle": "Porcentaje del polígono que coincide con cada capa.",
+    "seeOnMap": "Ver en el mapa",
+    "seeTable": "Ver tabla"
+  },
+  "layerPicker": {
+    "tickedOfTotal_one": "{{ticked}} de {{count}} capa",
+    "tickedOfTotal_other": "{{ticked}} de {{count}} capas"
+  },
+  "mapLegend": "Leyenda de la capa",
+  "mapFilters": "Filtrar por resultado"
+}

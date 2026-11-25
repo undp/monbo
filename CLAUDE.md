@@ -31,13 +31,15 @@ Invariants that decide what counts as a bug:
   `docs/maps.md`, "Usage events".
 - **Per-farm and per-map failures are swallowed on purpose.** `value: null` (area `-1`) means
   "could not be computed". The sentinel must never reach arithmetic or a report as a real value.
-- **`analize` is the contract spelling** (`POST /deforestation_analysis/analize`, `AnalizeBody`).
-  "Fixing" it on one side only breaks the contract.
+- **The analysis contract is `POST /layer_analysis/analyze`** (`AnalyzeBody` → `LayerResults`).
+  The old `/deforestation_analysis/*` routes were removed without aliases: don't call them.
 - **Rasters are Git LFS files** under `apps/api/app/maps/layers/rasters/`, catalogued in
   `apps/api/app/maps/index.json`. Without `git lfs pull`, module 2 fails.
-- **The ratio** is `min(1.0, deforested_pixels × pixel_size² / geodesic_area)`, with
-  `rasterio.mask.mask(..., all_touched=True)` and the area from
-  `app/helpers/GeometryCalculator.py`. See `docs/deforestation_calculation.md` and
+- **The ratio** is `Σ area(layer pixel ∩ farm) / area(farm)`, both measured in the raster's
+  CRS: the pixels come from `rasterio.mask.mask(..., all_touched=True)` and each one counts
+  only by its part inside the farm (`get_loss_area_fraction` in
+  `modules/layer_analysis/helpers.py`). The hectares shown to users are geodesic
+  (`app/helpers/GeometryCalculator.py`). See `docs/deforestation_calculation.md` and
   `docs/polygon_area_calculation.md`.
 - **The PDF report is built in the browser.** The API only produces images and tiles.
 - **The admin (`/admin`) is opt-in.** It needs `ADMIN_SESSION_SECRET` and the per-country
@@ -119,6 +121,9 @@ A new or changed layer touches these together:
 
 - its entry in `app/maps/index.json`: a unique `id`, `pixel_size` in meters, `baseline`,
   `compared_against` and ISO 3166-1 alpha-2 `available_countries_codes`;
+- its category: `category_id` (missing means `deforestation`, the only category of the
+  flat layout) must name a category of its country (`<CC>/categories.json` in the
+  per-country layout), or the layer is hidden from the public app;
 - the raster, as an LFS file;
 - the attribute (`.json`) and consideration (`.md`) metadata in both
   `metadata/*/es/` and `metadata/*/en/`.

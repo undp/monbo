@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SnackbarContext } from "@/context/SnackbarContext";
+import { DataContext, readFlowGeneration } from "@/context/DataContext";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { notifyUploadErrors } from "@/utils/uploadErrors";
 import {
@@ -17,15 +18,25 @@ import {
   rereadSources,
   sourceErrors,
   sourceLabel,
+  withoutRow,
 } from "@/utils/uploadSources";
 
 /**
  * The upload step's list of sources. It lives in the upload page, not in the step,
  * so it survives the loading screen: when /farms/parse rejects the upload, the user
- * gets the same list back to fix it.
+ * gets the same list back to fix it. With `kept` (both stages' upload pages) the
+ * list is the flow's, in its state, so it is still there when the user comes back
+ * to add or remove polygons, from either stage.
  */
-export const useUploadSources = (selectedCountry: string | null) => {
-  const [sources, setSources] = useState<UploadSource[]>([]);
+export const useUploadSources = (
+  selectedCountry: string | null,
+  { kept = false }: { kept?: boolean } = {}
+) => {
+  const [localSources, setLocalSources] = useState<UploadSource[]>([]);
+  const { uploadSources, setUploadSources } =
+    useContext(DataContext);
+  const sources = kept ? uploadSources : localSources;
+  const setSources = kept ? setUploadSources : setLocalSources;
   const [reading, setReading] = useState(0);
   const { openSnackbar } = useContext(SnackbarContext);
   const { t, i18n } = useTranslation();
@@ -52,7 +63,7 @@ export const useUploadSources = (selectedCountry: string | null) => {
       setSources((current) =>
         current.map((item) => (item.key === source.key ? source : item))
       ),
-    []
+    [setSources]
   );
 
   /**
@@ -78,9 +89,12 @@ export const useUploadSources = (selectedCountry: string | null) => {
     keep: (source: UploadSource) => boolean = () => true
   ) => {
     setReading((count) => count + files.length);
+    const generation = readFlowGeneration();
     for (const file of files) {
       try {
         const source = await settled(await read(file), context.selectedCountry);
+        // Started over meanwhile: the file belongs to the list that was cleared
+        if (readFlowGeneration() !== generation) continue;
         if (keep(source)) setSources((current) => [...current, source]);
         // A geo file missing the farms' data waits for its Excel: the list says
         // so and how, and its errors are one click away
@@ -110,11 +124,13 @@ export const useUploadSources = (selectedCountry: string | null) => {
 
   const attach = async (source: GeoSource, file: File) => {
     setReading((count) => count + 1);
+    const generation = readFlowGeneration();
     try {
       const joined = await settled(
         await attachExcel(source, file, context),
         context.selectedCountry
       );
+      if (readFlowGeneration() !== generation) return;
       replace(joined);
       notifyErrors(joined);
     } finally {
@@ -162,10 +178,22 @@ export const useUploadSources = (selectedCountry: string | null) => {
         console.error(error);
         done();
       });
-  }, [sources, selectedCountry, t, i18n.language, notifyErrors]);
+  }, [sources, setSources, selectedCountry, t, i18n.language, notifyErrors]);
 
   const remove = (source: UploadSource) =>
     setSources((current) => current.filter((item) => item.key !== source.key));
+
+  const removeAll = () => setSources([]);
+
+  /** Deletes one farm of the list; a source left without farms leaves it. */
+  const removeRow = (source: UploadSource, index: number) =>
+    setSources((current) =>
+      current.flatMap((item) => {
+        if (item.key !== source.key) return [item];
+        const left = withoutRow(item, index);
+        return left ? [left] : [];
+      })
+    );
 
   /** Adds a manual farm, or replaces the one being edited. */
   const saveManual = (row: FarmRow, key?: string) =>
@@ -189,6 +217,8 @@ export const useUploadSources = (selectedCountry: string | null) => {
     attach,
     detach,
     remove,
+    removeAll,
+    removeRow,
     saveManual,
     notifyErrors,
   };

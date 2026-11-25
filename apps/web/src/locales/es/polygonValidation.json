@@ -1,64 +1,106 @@
 {
-  "title": "Validación de polígonos",
-  "validPolygons": "Polígonos validados",
+  "title": "Valida tus polígonos",
   "inconsistenciesTypes": {
     "overlap": "Traslape",
     "empty_polygon": "Polígono vacío",
     "invalid_geometry": "Geometría inválida"
   },
-  "inconsistentPolygons": {
-    "singular": "polígono inconsistente",
-    "plural": "polígonos inconsistentes"
-  },
   "inconsistentPolygonsFound": {
     "singular": "Se encontró {{count}} polígono inconsistente",
     "plural": "Se encontraron {{count}} polígonos inconsistentes"
   },
-  "errorPolygons": "Polígonos con error",
   "searchPlaceholder": "Buscar polígono o productor",
-  "analize": "Analizar Deforestación",
   "noResults": "No se encontraron resultados",
-  "noInconsistencies": "No hay inconsistencias",
+  "export": {
+    "validSheet": "Polígonos válidos",
+    "inconsistentSheet": "Polígonos inconsistentes"
+  },
   "manualValidation": {
     "snackbarAlert": {
       "included": "incluido en la validación manual",
       "excluded": "excluido de la validación manual"
-    },
-    "tableHeader": "Validación manual"
-  },
-  "deforestationModal": {
-    "title": "Análisis deforestación",
-    "polygonSelection": "Selecciona los polígonos a considerar",
-    "all": "Todos",
-    "valid": "Polígonos validados",
-    "mapsSelection": "Selecciona capas de mapas",
-    "continue": "Continuar"
+    }
   },
   "uploadDataPage": {
     "loadingText": "Cargando los datos",
-    "title": "Carga de polígonos o puntos",
+    "title": "Valida tus polígonos",
     "uploadStep": {
-      "stepTitle": "Agrega tus fincas",
       "submit": "Validar polígonos"
-    }
+    },
+    "subtitle": "Súbelos como prefieras. Puedes combinar métodos: todo se suma en la misma lista."
   },
   "overlapModal": {
-    "title": "Análisis de traslape",
-    "producers": "productores",
-    "area": "Superficie en conflicto",
     "headers": {
       "producer": "Productor",
       "producerId": "ID Productor",
       "type": "Tipo",
       "id": "ID",
       "area": "Superficie (ha)"
-    },
-    "callToAction": "Guardar Cambios"
+    }
   },
   "geometryInconsistencyModal": {
     "title": "Inconsistencia de geometría",
     "tableTitle": "Información del polígono",
     "contentTitle": "Información de la inconsistencia",
-    "systemFeedback": "Feedback del sistema"
-  }
+    "systemFeedback": "Mensaje del sistema",
+    "farmDetails": "Detalles de la finca {{id}}"
+  },
+  "subtitle": "Revisamos tus polígonos y puntos. Corrige los que tienen observaciones o continúa con los que están listos.",
+  "kpis": {
+    "ready": "listos para analizar",
+    "overlap": "se superponen: puedes validarlos manualmente",
+    "error": "con error de geometría: corrígelos en tu archivo"
+  },
+  "results": {
+    "title": "Resultado de la validación",
+    "items_one": "{{count}} elemento",
+    "items_other": "{{count}} elementos",
+    "showAll": "Mostrar todos",
+    "addMore": "Agregar más polígonos",
+    "review": "Revisar",
+    "reviewFarm": "Revisar {{id}}",
+    "drawn": "Dibujo",
+    "columns": {
+      "id": "ID",
+      "producer": "Productor",
+      "crop": "Cultivo",
+      "production": "Producción",
+      "area": "Área",
+      "type": "Tipo",
+      "origin": "Origen",
+      "status": "Estado"
+    },
+    "status": {
+      "ready": "Listo",
+      "validatedManually": "Validado manualmente",
+      "overlapWith": "Se superpone con {{id}}",
+      "overlapMany_one": "Se superpone con {{count}} polígono",
+      "overlapMany_other": "Se superpone con {{count}} polígonos",
+      "emptyPolygon": "El polígono no tiene vértices",
+      "selfIntersection": "El polígono se cruza consigo mismo",
+      "tooFewPoints": "El polígono tiene menos de 3 vértices",
+      "holeOutside": "Un hueco queda fuera del polígono",
+      "invalidGeometry": "La geometría no es válida"
+    }
+  },
+  "farmOverlapsModal": {
+    "title": "Superposiciones de {{id}}",
+    "summary_one": "Se superpone con {{count}} polígono",
+    "summary_other": "Se superpone con {{count}} polígonos",
+    "headers": {
+      "id": "Se superpone con",
+      "producer": "Productor",
+      "area": "Superficie superpuesta",
+      "percentage": "% del más pequeño",
+      "criticality": "Criticidad"
+    },
+    "criticality": {
+      "HIGH": "Alta",
+      "MEDIUM": "Media"
+    },
+    "validate": "Validar {{id}} manualmente",
+    "validateHint": "Lo incluye en el análisis aunque se superponga con estos polígonos. Cada vecino se valida desde su propia fila."
+  },
+  "manualValidationsDropped_one": "Se quitó {{count}} validación manual: el polígono cambió o sus superposiciones ya no son las mismas. Revísalo de nuevo.",
+  "manualValidationsDropped_other": "Se quitaron {{count}} validaciones manuales: los polígonos cambiaron o sus superposiciones ya no son las mismas. Revísalos de nuevo."
 }

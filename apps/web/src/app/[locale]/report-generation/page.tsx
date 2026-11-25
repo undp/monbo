@@ -1,21 +1,15 @@
-import { Suspense } from "react";
-import { Box } from "@mui/material";
 import initTranslations from "@/utils/i18n";
 import { BasePageProps } from "@/interfaces";
 import TranslationsProvider from "@/context/TranslationProvider";
 import { NavigateHomepageWhenEmptyData } from "@/components/reusable/NavigateHomepageWhenEmptyData";
-import { SearchBar } from "@/components/reusable/inputs/SearchBar";
-import { SectionBackground } from "@/components/reusable/SectionBackground";
-import { PageTitle } from "@/components/page/reportGeneration/PageTitle";
-import { DeforestationResultsTable } from "@/components/page/reportGeneration/DeforestationResultsTable";
-import { PageFooter } from "@/components/page/reportGeneration/PageFooter";
 import { AnalysisOutdatedGuard } from "@/components/reusable/AnalysisOutdatedGuard";
+import { ReportPageContent } from "@/components/page/reportGeneration/ReportPageContent";
 
-const namespaces = ["common", "deforestationAnalysis", "reportGeneration"];
+const namespaces = ["common", "territorialAnalysis", "reportGeneration", "flow"];
 
-export default async function DeforestationAnalysis({ params }: BasePageProps) {
+export default async function ReportGeneration({ params }: BasePageProps) {
   const { locale } = await params;
-  const { t, resources } = await initTranslations(locale, namespaces);
+  const { resources } = await initTranslations(locale, namespaces);
 
   return (
     <TranslationsProvider
@@ -25,40 +19,7 @@ export default async function DeforestationAnalysis({ params }: BasePageProps) {
     >
       <AnalysisOutdatedGuard locale={locale}>
         <NavigateHomepageWhenEmptyData />
-        <Box
-          sx={{
-            padding: 3,
-            paddingBottom: 11,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            height: "calc(100vh - 64px)",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <PageTitle />
-            <Suspense>
-              <SearchBar
-                placeholder={t("reportGeneration:searchPlaceholder")}
-                style={{ minWidth: "400px" }}
-              />
-            </Suspense>
-          </Box>
-          <SectionBackground
-            sx={{ alignSelf: "stretch", flexGrow: 1, minHeight: 300, padding: 0 }}
-          >
-            <Suspense>
-              <DeforestationResultsTable />
-            </Suspense>
-          </SectionBackground>
-        </Box>
-        <PageFooter />
+        <ReportPageContent />
       </AnalysisOutdatedGuard>
     </TranslationsProvider>
   );

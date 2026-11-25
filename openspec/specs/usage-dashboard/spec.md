@@ -5,9 +5,7 @@
 Define `GET /admin/usage` and its aggregates (sessions, uploads, analyses, reports, and the
 successes and errors of each step, overall, by country and by week), the monthly rollups
 that keep it fast, and the admin usage page that shows them to any logged-in admin.
-
 ## Requirements
-
 ### Requirement: Usage aggregates for any admin
 
 `GET /admin/usage` SHALL require a valid admin session token, like every admin route. It SHALL return the figures for every country, whatever the session's country. It is the only admin route not limited to the session's country.
@@ -127,7 +125,7 @@ The response SHALL be the same whether a month comes from its rollup or from its
 
 ### Requirement: Admin usage page
 
-The frontend SHALL provide `/[locale]/admin/usage`, behind the admin login like the other admin pages. Its title SHALL be "App usage" ("Uso de la aplicación"), without the "Layers admin" overline and without the session's country: the page covers every country. It SHALL show:
+The frontend SHALL provide `/[locale]/admin/usage`, behind the admin login like the other admin pages. Its title SHALL be "App usage" ("Uso de la aplicación"), under the "Admin" eyebrow alone, without the session's country: the page covers every country. It SHALL show:
 - **a date range,** with presets "Last 30 days", "Last 90 days" and "This year", and custom dates;
 - **tiles with the totals,** each with an icon and its weekly trend as a sparkline:
   - sessions;
@@ -146,7 +144,7 @@ The page SHALL say the figures count browser sessions, not people. Report figure
 #### Scenario: Open the usage page
 
 - **WHEN** a PE admin opens the usage page
-- **THEN** the page is titled "App usage", without "Peru", and shows the last 30 days: the totals of every country, the donuts, the funnel, the outcomes, the weekly chart and a row for each country with events
+- **THEN** the page is titled "App usage" under the "Admin" eyebrow, without "Peru", and shows the last 30 days: the totals of every country, the donuts, the funnel, the outcomes, the weekly chart and a row for each country with events
 
 #### Scenario: Country shares
 

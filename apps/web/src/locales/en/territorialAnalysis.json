@@ -1,0 +1,83 @@
+{
+  "searchPlaceholder": "Search by polygon or producer",
+  "mapFooter": "{{baselineYear}} baseline compared to {{comparedToYear}} data",
+  "uploadDataPage": {
+    "loadingText": "Loading the data",
+    "recalculatingText": "A layer changed. Recalculating the analysis…",
+    "analysisUpdated": "The analysis was recalculated with the updated layer.",
+    "title": "Territorial analysis",
+    "subtitle": "Choose which {{country}} layers to cross your polygons with.",
+    "uploadSubtitle": "Upload them however you like. You can combine methods: everything goes into the same list.",
+    "continue": "Continue",
+    "analyze": "Analyze",
+    "mapSelectionStep": {
+      "stepTitle": "Layers for the analysis",
+      "subtitle": "Grouped by category, as defined by the {{country}} team.",
+      "howToRead": "How to read each layer",
+      "noMapsAvailable": "No layers available for {{country}}",
+      "mapsLoadError": "The layers for {{country}} could not be loaded. Reload the page to try again."
+    },
+    "subset": {
+      "label": "Polygons to analyze",
+      "message_one": "You will use {{count}} polygon from the validation.",
+      "message_other": "You will use {{count}} polygons from the validation.",
+      "unvalidated_one": "You will use {{count}} polygon. It wasn't validated.",
+      "unvalidated_other": "You will use {{count}} polygons. They weren't validated.",
+      "leftOut_one": "{{ids}} is left out because it didn't pass the validation.",
+      "leftOut_other": "{{ids}} are left out because they didn't pass the validation.",
+      "idsAndMore_one": "{{ids}} and {{count}} more",
+      "idsAndMore_other": "{{ids}} and {{count}} more",
+      "valid": "Valid only ({{count}})",
+      "all": "All ({{count}})",
+      "seePolygons": "See polygons"
+    },
+    "polygonsLabel_one": "polygon",
+    "polygonsLabel_other": "polygons",
+    "layersInLabel_one": "layer in",
+    "layersInLabel_other": "layers in",
+    "categoriesLabel_one": "category",
+    "categoriesLabel_other": "categories"
+  },
+  "noDataShortText": "No data",
+  "map": "Map",
+  "mapsInfoModal": {
+    "title": "Layer details",
+    "coverage": "Coverage",
+    "source": "Source",
+    "resolution": "Resolution",
+    "contentDate": "Content date",
+    "updateFrequency": "Update frequency",
+    "publishDate": "Publication date",
+    "references": "References",
+    "considerations": "Considerations"
+  },
+  "satelliteImageryDisclaimer": "Satellite imagery from Google Maps is for reference only and does not show the layer's result.",
+  "categories": {
+    "uncategorized": "No category"
+  },
+  "results": {
+    "summaryLabel": "Summary by category",
+    "layerCount_one": "{{count}} layer",
+    "layerCount_other": "{{count}} layers",
+    "okOfTotal": "{{ok}} of {{total}}",
+    "flaggedAndNoData": "{{flagged}} with findings · {{unknown}} no data",
+    "title": "Territorial analysis results",
+    "subtitle": "{{polygons}} crossed with {{layers}} of {{country}}.",
+    "polygonCount_one": "{{count}} polygon",
+    "polygonCount_other": "{{count}} polygons",
+    "changeLayers": "Change layers",
+    "flagged": "With findings",
+    "ok": "No findings",
+    "layerResult": "Result",
+    "byPolygonTitle": "Result by polygon and layer",
+    "byPolygonSubtitle": "Share of the polygon that falls in each layer.",
+    "seeOnMap": "See on the map",
+    "seeTable": "See table"
+  },
+  "layerPicker": {
+    "tickedOfTotal_one": "{{ticked}} of {{count}} layer",
+    "tickedOfTotal_other": "{{ticked}} of {{count}} layers"
+  },
+  "mapLegend": "Layer legend",
+  "mapFilters": "Filter by result"
+}

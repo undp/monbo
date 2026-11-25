@@ -111,6 +111,22 @@ describe("ManualFarmModal", () => {
     expect(map().initialBounds).toEqual(getCountryBounds("CL"));
   });
 
+  it("is named by its title alone, and described by its subtitle", async () => {
+    await renderModal();
+    // The subtitle and the close button sit outside the DialogTitle, which names it
+    const dialog = screen.getByRole("dialog", { name: "Agregar finca manualmente" });
+    expect(dialog.getAttribute("aria-describedby")).toBeTruthy();
+    expect(
+      document.getElementById(dialog.getAttribute("aria-describedby")!)?.textContent
+    ).toBe("Dibuja la finca en el mapa satelital y completa sus datos de producción.");
+  });
+
+  it("names the \"How to draw\" dialog by its title alone", async () => {
+    await renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "¿Cómo dibujar?" }));
+    expect(screen.getByRole("dialog", { name: "Cómo dibujar la finca" })).toBeTruthy();
+  });
+
   it("adds a drawn polygon as a GeoJSON row", async () => {
     const { onSave } = await renderModal();
     expect(addButton()).toHaveProperty("disabled", true);
@@ -151,6 +167,9 @@ describe("ManualFarmModal", () => {
     expect(
       screen.getByText(/haría que los bordes del polígono se crucen/)
     ).toBeTruthy();
+    // The warning's close button is named in Spanish, not MUI's default "Close"
+    const warning = screen.getByRole("alert");
+    expect(within(warning).getByRole("button", { name: "Cerrar" })).toBeTruthy();
     expect(map().drawing).toEqual(opened(square.slice(0, 3)));
   });
 

@@ -35,6 +35,18 @@ class Document(BaseModel):
     url: str
 
 
+class FarmOrigin(BaseModel):
+    """How a farm reached the upload: the method and its file. The API only echoes it
+    back in `FarmData`; it is never stored nor written to the usage events."""
+
+    # Responses always include defaulted fields: mark them required in the OpenAPI.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+    method: Literal["excel", "geoFile", "geoFileWithExcel", "manual"]
+    # The geo file's name when an Excel is joined to it; null for a manual farm
+    fileName: Optional[str] = Field(default=None, max_length=255)
+
+
 class FarmData(BaseModel):
     # Responses always include defaulted fields: mark them required in the OpenAPI.
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
@@ -51,6 +63,8 @@ class FarmData(BaseModel):
     association: Optional[str] = None
     documents: list[Document]
     polygon: PolygonSummary
+    # As sent to /farms/parse; null when the client sent none
+    origin: Optional[FarmOrigin] = None
 
 
 class InputFarmData(BaseModel):
@@ -69,6 +83,7 @@ class InputFarmData(BaseModel):
     association: Optional[str] = None
     area: Optional[int | float | str] = None
     documents: list[Document]
+    origin: Optional[FarmOrigin] = None
 
 
 class PreProcessedFarmData(BaseModel):
@@ -87,6 +102,7 @@ class PreProcessedFarmData(BaseModel):
     association: Optional[str] = None
     area: float
     documents: list[Document]
+    origin: Optional[FarmOrigin] = None
 
     model_config = {"arbitrary_types_allowed": True}
 

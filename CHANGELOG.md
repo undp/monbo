@@ -1,5 +1,31 @@
 ## [Unreleased]
 
+### Added
+
+- Group each country's layers into categories (`<CC>/categories.json`): Deforestation, Protected areas, Agricultural frontier or any other the country's admin creates. A category has a name, a description, an icon and color, a polarity (`avoid`: being inside the layer is the finding; `required`: being outside it is), a threshold and its own result wording, and says whether its layers compare two years (`temporal`). `GET /categories` lists the selected country's categories, and every layer names its `categoryId` (required in `GET /maps`; a layer without one is a Deforestation layer). A layer whose category is missing or disabled is hidden from the public app
+- The admin manages its country's categories at `/admin/categories` (`GET`/`POST /admin/categories`, `PUT`/`PATCH /admin/categories/{category_id}`), with a live preview of how a result will read. A category's polarity and `temporal` can't change while it has published layers, and the reserved ids (`deforestation`, `new`) can't be taken. Each layer picks its category in the layer form, and a published layer can't be moved to another one. `AdminLayer` adds `category_id`, `category_enabled`, `category_issue` and `layer_issue`, so the admin says why a layer isn't shown to the public
+- Layers of a category that doesn't compare years (`temporal: false`) are created without `baseline` and `compared_against`
+- Every farm carries its `origin` (the upload method and, for a file, its name) from the upload to the results, so the stage 1 table says where each polygon came from. The API only echoes it back: it is never stored nor written to the usage events
+- The methodology page explains every category of the selected country and lists its layers, which the start page no longer does
+
+### Changed
+
+- Stage 2 ("Análisis territorial") moves from `/deforestation-analysis` to `/territorial-analysis` (and `/territorial-analysis/upload-data`). The old URLs answer a permanent redirect (308) to the new ones, keeping the language prefix, the sub-path and the query string, so bookmarks and shared links keep working. The web's i18n namespace `deforestationAnalysis` becomes `territorialAnalysis`, and the generic components, hooks and state lose the deforestation name (`LayerResultsTable`, `useVisibleDataForAnalysisPage`, `territorialAnalysisResults` in `DataContext`, …). Usage events keep the `deforestation-analysis` module value
+- **Breaking:** the analysis routes move from `/deforestation_analysis` to `/layer_analysis`: `POST /layer_analysis/analyze` (it was `/deforestation_analysis/analize`), `POST /layer_analysis/generate-image` and `GET /layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`. The old routes are removed without aliases and answer 404. The schemas are renamed `AnalyzeBody`, `LayerResults` and `FarmLayerResult` (they were `AnalizeBody`, `MapData` and `FarmDeforestation`), with the same fields, so the JSON is unchanged. The frontend's build-time overrides are now `NEXT_PUBLIC_LAYER_ANALYSIS_URL`, `NEXT_PUBLIC_LAYER_ANALYSIS_TILES_URL` and `NEXT_PUBLIC_LAYER_ANALYSIS_IMAGE_GENERATION_URL`; the `NEXT_PUBLIC_DEFORESTATION_ANALYSIS_*_URL` names are no longer read
+- The web is redesigned after the v2 mockup:
+  - one start page (`/`) that asks for the country and shows the three steps; `/home` redirects to it;
+  - the flow runs as three stages under one header with a stepper. Stage 1 shows one table with a status per polygon and lets the user add polygons after a validation. Stage 2 picks the subset of polygons and the layers on one page, starts nothing until "Analizar", and shows the results by category. Stage 3 chooses the farms and layers and previews the report on one page;
+  - buttons, modals, notices, the loading screens, the download menu, the map controls, the admin login, the admin (with a left sidebar) and the methodology page share the new look. Icon-only buttons have an accessible name.
+- The web classifies every result in one place, by the layer's category: a `required` layer's finding is `1 − value`, a `null` result (or an unknown category) reads "No data", never a pass. The results table, its counters, the map, the PDF report and the Excel and GeoJSON exports all use it
+- The PDF report and the Excel and GeoJSON exports speak of each layer's category instead of deforestation: one page per farm and layer with the category's wording, and a cover without results
+- **Breaking:** raster ingestion no longer assumes a forest-loss mask: its messages speak of the layer's pixels (value 1), and the ingestion codes `nodata_is_loss` and `no_loss_pixels` are renamed `nodata_is_positive` and `no_positive_pixels`
+- The web's Spanish copy is neutral Spanish with `tú`, for Colombia and Ecuador
+
+### Fixed
+
+- The analysis map no longer lists a farm with no result (N/A: invalid polygon, outside the layer's coverage, unreadable layer) as deforestation-free: it goes to its own "No data" tab, shown when there is one. Every view now decides "deforestation-free" with one rule (a result at or below the deforestation threshold), so a farm with `0 < value ≤ threshold` is deforestation-free in the results table, its counter, the map and the PDF. The table cell and its counter used `value === 0` and the PDF used `value > 0`, so the free counter now includes those farms and they read "Def. Free" instead of "< 2% Def."
+- The testing-environment notice is shown in the flow header and on the start page, instead of the bottom bars, which the redesign removed
+
 ## [2.0.0] - 2026-11-25
 
 ### Added

@@ -22,9 +22,9 @@ describe("useCountryChange", () => {
       context: beforeAnalysis(),
     });
 
-    act(() => result.current.requestCountryChange("CR", { navigateTo: "/home" }));
+    act(() => result.current.requestCountryChange("CR", { navigateTo: "/polygons-validation" }));
 
-    expect(router.push).toHaveBeenCalledWith("/home");
+    expect(router.push).toHaveBeenCalledWith("/polygons-validation");
     expect(context.setSelectedCountry).not.toHaveBeenCalled();
   });
 
@@ -41,11 +41,13 @@ describe("useCountryChange", () => {
 
     const map = makeMap();
     expect(
-      nextState(context.setDeforestationAnalysisParams, {
+      nextState(context.setTerritorialAnalysisParams, {
         polygonsSubset: "valid" as const,
         selectedMaps: [map],
       })
     ).toEqual({ polygonsSubset: "valid", selectedMaps: [] });
+    // The layers being chosen on stage 2 were the other country's.
+    expect(context.setAnalysisDraft).toHaveBeenCalledWith(null);
     expect(
       nextState(context.setFarmsData, [makeFarm({ country: "CR" })])?.map((f) => f.country)
     ).toEqual(["PE"]);
@@ -53,10 +55,12 @@ describe("useCountryChange", () => {
 
     const report = nextState(context.setReportGenerationParams, {
       ...context.reportGenerationParams,
+      seeded: true,
       selectedMaps: [map],
       selectedFarms: [makeFarm({ country: "CR" })],
     });
     expect(report.selectedMaps).toEqual([]);
+    expect(report.seeded).toBe(false);
     expect(report.selectedFarms.map((f) => f.country)).toEqual(["PE"]);
   });
 
@@ -65,21 +69,21 @@ describe("useCountryChange", () => {
       context: beforeAnalysis(),
     });
 
-    act(() => result.current.requestCountryChange("PE", { navigateTo: "/home" }));
+    act(() => result.current.requestCountryChange("PE", { navigateTo: "/polygons-validation" }));
 
-    expect(router.push).toHaveBeenCalledWith("/home");
+    expect(router.push).toHaveBeenCalledWith("/polygons-validation");
   });
 
   describe("after an analysis", () => {
     const afterAnalysis = () =>
-      beforeAnalysis({ deforestationAnalysisResults: [makeMapResults(1, { F01: 0 })] });
+      beforeAnalysis({ territorialAnalysisResults: [makeMapResults(1, { F01: 0 })] });
 
     it("waits for the user to confirm a restart", async () => {
       const { result, context } = await renderHookWithData(useCountryChange, {
         context: afterAnalysis(),
       });
 
-      act(() => result.current.requestCountryChange("PE", { navigateTo: "/home" }));
+      act(() => result.current.requestCountryChange("PE", { navigateTo: "/polygons-validation" }));
 
       expect(result.current.pendingCountry).toBe("PE");
       expect(context.setSelectedCountry).not.toHaveBeenCalled();
@@ -87,7 +91,7 @@ describe("useCountryChange", () => {
       expect(router.push).not.toHaveBeenCalled();
     });
 
-    it("restarts on confirmation and goes home", async () => {
+    it("restarts on confirmation and goes to the start page", async () => {
       const { result, context } = await renderHookWithData(useCountryChange, {
         context: afterAnalysis(),
       });
@@ -97,7 +101,7 @@ describe("useCountryChange", () => {
 
       expect(context.resetAnalysis).toHaveBeenCalledOnce();
       expect(context.setSelectedCountry).toHaveBeenCalledWith("PE");
-      expect(router.push).toHaveBeenCalledWith("/home");
+      expect(router.push).toHaveBeenCalledWith("/");
       expect(result.current.pendingCountry).toBeNull();
     });
 

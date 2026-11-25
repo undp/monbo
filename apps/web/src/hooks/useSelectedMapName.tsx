@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 
 export const useSelectedMap = () => {
   const {
-    deforestationAnalysisParams: { selectedMaps },
+    territorialAnalysisParams: { selectedMaps },
   } = useContext(DataContext);
 
   const searchParams = useSearchParams();

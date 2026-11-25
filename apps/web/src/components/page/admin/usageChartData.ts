@@ -27,6 +27,9 @@ export const OUTCOME_COLORS = {
 /** The weekly trend's three series. */
 export const TREND_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"];
 
+/** Whether a chart has anything to draw: a range without usage only has zeros. */
+export const hasUsage = (values: number[]) => values.some((value) => value > 0);
+
 export const downloaded = (block: UsageBlock) =>
   block.reports.downloaded.pdf + block.reports.downloaded.zip;
 

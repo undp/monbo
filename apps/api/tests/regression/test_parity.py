@@ -1,9 +1,15 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.modules.layers.store import LayersRoot, set_layers_root
 from tests.regression.parity import compare_clients
-from tests.regression.pipeline import FIXTURE_MAPS_ROOT
+from tests.regression.pipeline import (
+    ANALYZE_PATH,
+    FIXTURE_MAPS_ROOT,
+    LEGACY_ANALYZE_PATH,
+    post_analysis,
+)
 
 
 def test_same_layers_give_no_differences():
@@ -37,3 +43,49 @@ def test_different_published_layers_are_reported():
     diffs = compare_clients(_StubClient([0, 1, 2]), _StubClient([0, 1]))
 
     assert diffs == ["Published layers differ: [0, 1, 2] vs [0, 1]"]
+
+
+class _RouteClient:
+    """Answers 404 on the routes it doesn't serve, like an API of another release."""
+
+    def __init__(self, served):
+        self.served = served
+        self.calls = []
+
+    def post(self, path, json):
+        self.calls.append(path)
+        status = 200 if path == self.served else 404
+
+        class _Response:
+            status_code = status
+
+            def raise_for_status(self):
+                if status != 200:
+                    raise AssertionError(f"{path} answered {status}")
+
+            def json(self):
+                return [{"mapId": 0, "version": 1, "farmResults": []}]
+
+        return _Response()
+
+
+def test_a_deployed_api_before_the_rename_gets_the_legacy_route():
+    client = _RouteClient(served=LEGACY_ANALYZE_PATH)
+
+    assert post_analysis(client, {"maps": [0]}, in_process=False)[0]["mapId"] == 0
+    assert client.calls == [ANALYZE_PATH, LEGACY_ANALYZE_PATH]
+
+
+def test_a_deployed_api_after_the_rename_gets_only_the_new_route():
+    client = _RouteClient(served=ANALYZE_PATH)
+
+    post_analysis(client, {"maps": [0]}, in_process=False)
+    assert client.calls == [ANALYZE_PATH]
+
+
+def test_in_process_there_is_no_fallback():
+    client = _RouteClient(served=LEGACY_ANALYZE_PATH)
+
+    with pytest.raises(AssertionError):
+        post_analysis(client, {"maps": [0]}, in_process=True)
+    assert client.calls == [ANALYZE_PATH]

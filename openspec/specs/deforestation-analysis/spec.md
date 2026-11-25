@@ -1,11 +1,11 @@
 # deforestation-analysis Specification
 
 ## Purpose
-How `POST /deforestation_analysis/analize` turns a farm and a layer into a deforestation ratio, and when it returns no ratio instead of a misleading one.
+How `POST /layer_analysis/analyze` turns a farm and a layer into a deforestation ratio, and when it returns no ratio instead of a misleading one.
 ## Requirements
 ### Requirement: Deforestation ratio per farm and layer
 
-For each requested layer and each farm, `POST /deforestation_analysis/analize` SHALL return the farm's deforestation ratio: the share of the farm polygon's area that lies on the layer's loss pixels. Each loss pixel SHALL count by the area of its intersection with the polygon, not in full. Both areas SHALL be measured in the raster's CRS. The layer's `pixel_size` SHALL NOT enter the ratio. The ratio SHALL be a number between 0 and 1, or `None` when no ratio can be computed. A farm that is a point SHALL be analysed as the circle built from its declared area.
+For each requested layer and each farm, `POST /layer_analysis/analyze` SHALL return the farm's deforestation ratio: the share of the farm polygon's area that lies on the layer's loss pixels. Each loss pixel SHALL count by the area of its intersection with the polygon, not in full. Both areas SHALL be measured in the raster's CRS. The layer's `pixel_size` SHALL NOT enter the ratio. The ratio SHALL be a number between 0 and 1, or `None` when no ratio can be computed. A farm that is a point SHALL be analysed as the circle built from its declared area.
 
 #### Scenario: Loss inside a polygon
 
@@ -123,4 +123,23 @@ The API's deforestation tiles SHALL paint each tile pixel from the value of the 
 
 - **WHEN** a tile doesn't overlap the raster
 - **THEN** the API returns an empty, transparent tile
+
+### Requirement: The analysis routes live under `/layer_analysis`
+
+The analysis SHALL be served at `POST /layer_analysis/analyze`, `POST /layer_analysis/generate-image` and `GET /layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png`. The routes they replace under `/deforestation_analysis` SHALL NOT be served, not even as hidden aliases, and a request to any of them SHALL get 404.
+
+#### Scenario: The old analysis route
+
+- **WHEN** a client posts an analysis body to `/deforestation_analysis/analize`
+- **THEN** the response is 404
+
+#### Scenario: The old image route
+
+- **WHEN** a client posts an image request to `/deforestation_analysis/generate-image`
+- **THEN** the response is 404
+
+#### Scenario: The old tile route
+
+- **WHEN** a client requests `/deforestation_analysis/tiles/EC/1/dynamic/0/0/0.png`
+- **THEN** the response is 404
 

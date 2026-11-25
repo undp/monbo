@@ -83,7 +83,11 @@ Ingestion SHALL reject the raster when it cannot be opened as a GeoTIFF, when it
 
 ### Requirement: Exhaustive binary validation
 
-Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL accept it only when all values belong to {0, 1} plus the nodata value (declared in the file or given at upload). Nodata SHALL NOT be 1, because 1 represents forest loss in the analysis. On failure, the message SHALL list up to 10 offending values. When the offending values fall within 1980–2100, the message SHALL add that they look like loss-year values that must be binarized against the baseline. A raster with no pixel equal to 1 SHALL be accepted with a warning.
+Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL accept it only when all values belong to {0, 1} plus the nodata value (declared in the file or given at upload). A raster is a mask of its layer: `0` is outside the layer and `1` is inside it. Messages SHALL describe it that way and SHALL NOT assume the layer is forest loss.
+
+Nodata SHALL NOT be 1, because 1 marks the pixels inside the layer; the error code is `nodata_is_positive`. On failure, the message SHALL list up to 10 offending values. When the layer's category is `temporal` and every offending value falls within 1980–2100, the error code SHALL be `loss_years` and the message SHALL add that they look like years that must be binarized against the layer's baseline. Otherwise the error code SHALL be `not_binary`. A layer whose category doesn't resolve SHALL be treated as not temporal. A raster with no pixel equal to 1 SHALL be accepted with the warning `no_positive_pixels`.
+
+Seeding SHALL apply the same rules, with each seeded layer's category.
 
 #### Scenario: Binary raster accepted
 
@@ -93,22 +97,37 @@ Ingestion SHALL read every pixel of the raster in bounded-size windows and SHALL
 #### Scenario: Stray value in a corner
 
 - **WHEN** a raster is binary except for one pixel equal to 2 in its last row
-- **THEN** the job fails and the message lists the value 2
+- **THEN** the job fails with `not_binary`, the message lists the value 2, and it describes 0 as outside the layer and 1 as inside it
 
-#### Scenario: Unprocessed loss-year raster
+#### Scenario: Unprocessed year raster in a temporal category
 
-- **WHEN** a raster contains values such as 2021, 2022, and 2023
-- **THEN** the job fails with a message listing those values and saying they look like loss years that must be binarized
+- **WHEN** a raster of a `deforestation` layer contains values such as 2021, 2022, and 2023
+- **THEN** the job fails with `loss_years`, listing those values and saying they look like years that must be binarized against the baseline
+
+#### Scenario: Year values in a category that is not temporal
+
+- **WHEN** a raster of a layer whose category is not temporal (for example, protected areas) contains 2021, 2022, and 2023
+- **THEN** the job fails with `not_binary`, listing those values, without mentioning years or a baseline
+
+#### Scenario: Year values in a layer whose category doesn't resolve
+
+- **WHEN** a raster of a layer whose `category_id` names no category of its country contains 2021, 2022, and 2023
+- **THEN** the job fails with `not_binary`
 
 #### Scenario: Custom nodata
 
 - **WHEN** a raster contains 0, 1, and 3, and the upload specifies `nodata=3`
 - **THEN** validation passes and the stored raster declares nodata 3
 
-#### Scenario: Nodata equals the forest-loss value
+#### Scenario: Nodata equals the value inside the layer
 
 - **WHEN** a raster declares nodata 1, or the upload specifies `nodata=1`
-- **THEN** ingestion fails and the layer keeps its previous raster
+- **THEN** ingestion fails with `nodata_is_positive` and the layer keeps its previous raster
+
+#### Scenario: No pixels inside the layer
+
+- **WHEN** a raster of any category contains only 0 and nodata
+- **THEN** the job succeeds with the warning `no_positive_pixels`, whose message says that no pixels inside the layer (value 1) were found
 
 ### Requirement: Raster resolution matches the layer pixel size
 
@@ -123,11 +142,6 @@ Ingestion SHALL compare the raster cell area, in square meters, with the area of
 
 - **WHEN** an EPSG:4326 raster covers 5° N to 34° S
 - **THEN** the job fails, reporting the smallest and largest pixel sizes, whatever `pixel_size` the layer declares
-
-#### Scenario: No deforestation pixels
-
-- **WHEN** a raster contains only 0 and nodata
-- **THEN** the job succeeds with a warning that no deforestation pixels were found
 
 ### Requirement: Conversion to COG with verification
 

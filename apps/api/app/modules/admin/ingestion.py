@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import env
+from app.modules.layers.categories import is_temporal
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
@@ -277,6 +278,16 @@ def _stop_if_cancelled(job_id: str) -> None:
         raise IngestionCancelled
 
 
+def _layer_is_temporal(store: LayerStore, layer_id: int) -> bool:
+    """Whether the layer's category is temporal, which only decides how year-like
+    values are reported. A missing layer is not: the job fails on it after
+    validation anyway."""
+    entry = next((e for e in store.read_index() or [] if e["id"] == layer_id), None)
+    return entry is not None and is_temporal(
+        entry["category_id"], store.read_categories()
+    )
+
+
 class _ValidationProgress:
     """`on_window` for the validation: stops a cancelled job, and records the
     progress once both PROGRESS_INTERVAL_S and PROGRESS_STEP have passed."""
@@ -324,7 +335,10 @@ def run_ingestion(
         _stop_if_cancelled(job_id)
         _save(store, job, status="running", phase="validating", progress=0)
         validation = validate_raster(
-            staged, requested_nodata, on_window=_ValidationProgress(store, job)
+            staged,
+            requested_nodata,
+            temporal=_layer_is_temporal(country_store, layer_id),
+            on_window=_ValidationProgress(store, job),
         )
         _save(
             store,

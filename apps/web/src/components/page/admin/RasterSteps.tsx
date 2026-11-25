@@ -25,7 +25,12 @@ export const RasterSteps: React.FC<{ steps: RasterStep[] }> = ({ steps }) => {
       component="ol"
       sx={{
         display: "grid",
-        gridTemplateColumns: `repeat(${steps.length}, 1fr)`,
+        // Stacked on a phone: three columns don't fit 390 px. `minmax(0, …)` lets a
+        // column shrink below its longest word instead of overflowing the page.
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          sm: `repeat(${steps.length}, minmax(0, 1fr))`,
+        },
         gap: 1.5,
         listStyle: "none",
         margin: 0,

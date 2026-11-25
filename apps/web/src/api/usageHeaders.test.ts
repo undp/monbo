@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateFarmsData } from "./farms";
 import { validatePolygons } from "./polygonValidation";
-import { analizeDeforestation } from "./deforestationAnalysis";
+import { analyzeLayers } from "./layerAnalysis";
 import { readUsageSession } from "@/utils/usageSession";
 import type { FarmData } from "@/interfaces/Farm";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 
 // Upload, validation and analysis carry the usage context in headers (spec
 // "Requests carry the usage context in headers").
@@ -48,7 +48,7 @@ describe("usage headers", () => {
   });
 
   it("are sent with an analysis", async () => {
-    await analizeDeforestation([farm], [{ id: 3 } as MapData], "EC");
+    await analyzeLayers([farm], [{ id: 3 } as MapData], "EC");
     expect(sentHeaders()).toMatchObject({
       "X-Monbo-Session": readUsageSession(),
       "X-Monbo-Country": "EC",

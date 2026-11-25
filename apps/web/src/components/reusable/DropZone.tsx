@@ -7,6 +7,8 @@ import React, { useCallback, useContext } from "react";
 import { SnackbarContext } from "@/context/SnackbarContext";
 import { useTranslation } from "react-i18next";
 import { uniqBy } from "lodash";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 
 interface DropZoneProps {
   onDrop: (acceptedFiles: File[]) => void;
@@ -26,6 +28,8 @@ interface DropZoneProps {
   invalidTypeMessage?: string;
   // Smaller text, for a drop zone inside a card
   compact?: boolean;
+  // The stage pages' look: an upload icon over the texts, on a white rounded box
+  appearance?: "default" | "flow";
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -36,6 +40,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   multiple = false,
   invalidTypeMessage,
   compact = false,
+  appearance = "default",
 }) => {
   const { openSnackbar } = useContext(SnackbarContext);
   const { t } = useTranslation();
@@ -69,6 +74,67 @@ export const DropZone: React.FC<DropZoneProps> = ({
     multiple,
     disabled,
   });
+
+  if (appearance === "flow")
+    return (
+      <Box
+        {...getRootProps()}
+        sx={{
+          flexGrow: 1,
+          minHeight: 160,
+          border: `1.5px dashed ${isDragActive ? FLOW_COLORS.blue : "#a9c4dc"}`,
+          borderRadius: "12px",
+          backgroundColor: isDragActive ? FLOW_COLORS.blue25 : FLOW_COLORS.white,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 1,
+          padding: compact ? 2 : "22px",
+          textAlign: "center",
+          color: FLOW_COLORS.ink2,
+          fontSize: 14,
+          cursor: disabled ? "default" : "pointer",
+          opacity: disabled ? 0.5 : 1,
+          transition: "border-color .15s, background-color .15s",
+          "&:hover": disabled ? undefined : { borderColor: FLOW_COLORS.blue },
+        }}
+      >
+        <input {...getInputProps()} />
+        <Box
+          aria-hidden
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            display: "grid",
+            placeItems: "center",
+            backgroundColor: FLOW_COLORS.blue50,
+            color: FLOW_COLORS.blue,
+          }}
+        >
+          <FileUploadOutlinedIcon />
+        </Box>
+        <Box component="b" sx={{ color: FLOW_COLORS.ink2, fontWeight: 700 }}>
+          {isDragActive
+            ? texts.activeDragzoneCallToAction
+            : texts.inactiveDragzoneCallToAction}
+        </Box>
+        {!isDragActive && (
+          <>
+            <Box component="span">
+              {texts.text}{" "}
+              <Box component="span" sx={{ color: FLOW_COLORS.blue }}>
+                {texts.buttonText}
+              </Box>
+            </Box>
+            <Box component="small" sx={{ color: FLOW_COLORS.muted, fontSize: 13 }}>
+              {texts.allowedExtensions ?? `.xlsx ${t("_or")} .xls`}
+            </Box>
+          </>
+        )}
+      </Box>
+    );
 
   return (
     <Box

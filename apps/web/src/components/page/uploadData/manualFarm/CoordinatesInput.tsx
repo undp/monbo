@@ -2,9 +2,12 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField } from "@mui/material";
 import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { Coordinates } from "@/interfaces/Map";
+import { FIELD } from "@/components/reusable/inputs/fieldStyles";
+import { EYEBROW, SECONDARY_BUTTON } from "./manualFarmStyles";
 
 interface CoordinatesInputProps {
   // "Go": the map moves to the typed position
@@ -64,41 +67,55 @@ export const CoordinatesInput: React.FC<CoordinatesInputProps> = ({
       error={typed.invalid}
       size="small"
       slotProps={{ htmlInput: { inputMode: "decimal" } }}
-      sx={{ flex: 1 }}
+      // On a phone both fields share the first row, and the buttons the second
+      sx={{ ...FIELD, flex: { xs: "1 1 calc(50% - 4px)", sm: 1 }, minWidth: 0 }}
     />
   );
 
   return (
-    <>
+    <Box component="section" aria-label={t("manualFarm:goTo:title")}>
+      <Box component="h3" sx={{ ...EYEBROW, marginBottom: 1.5 }}>
+        {t("manualFarm:goTo:title")}
+      </Box>
       <Box
         component="form"
         onSubmit={(event) => {
           event.preventDefault();
           go();
         }}
-        sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+        sx={{
+          display: "flex",
+          flexWrap: { xs: "wrap", sm: "nowrap" },
+          gap: 1,
+          alignItems: "flex-start",
+        }}
       >
         {field("lat", t("manualFarm:goTo:latitude"))}
         {field("lng", t("manualFarm:goTo:longitude"))}
-        <Button type="submit" variant="outlined" sx={{ height: 40 }}>
+        <Button
+          type="submit"
+          sx={{ ...SECONDARY_BUTTON, height: 40, minWidth: 56, flex: { xs: 1, sm: "none" } }}
+        >
           {t("manualFarm:actions:go")}
         </Button>
         <Button
-          variant="outlined"
           startIcon={<AddLocationAltOutlinedIcon />}
           onClick={add}
           disabled={addDisabled}
-          sx={{ height: 40, whiteSpace: "nowrap", flexShrink: 0 }}
+          sx={{ ...SECONDARY_BUTTON, height: 40, flex: { xs: 2, sm: "none" } }}
         >
           {t("manualFarm:actions:addPoint")}
         </Button>
       </Box>
       {typed.invalid && (
-        <Typography variant="caption" color="error">
+        <Box
+          component="p"
+          sx={{ margin: "6px 0 0", fontSize: 12.5, color: FLOW_COLORS.bad }}
+        >
           {t("manualFarm:goTo:invalid")}
-        </Typography>
+        </Box>
       )}
-    </>
+    </Box>
   );
 };
 

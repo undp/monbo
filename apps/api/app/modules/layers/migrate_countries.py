@@ -7,8 +7,10 @@ Each layer goes to every country in its `available_countries_codes`, so GFW and 
 get one copy per country. Each country numbers its layers from 0, in the order of
 their original ids. Rasters are copied whole, never clipped (a farm can cross a
 border), with `shutil.copyfile` so no permission bits are copied (the Azure Files
-mount refuses them). Every country found is registered with a new passkey, printed
-once. `--mapping-out` writes each country's `{old id: new id}`, which
+mount refuses them). Each country gets a `categories.json` holding the
+`deforestation` category, the one every migrated layer belongs to, so the admin shows
+it as stored from the start. Every country found is registered with a new passkey,
+printed once. `--mapping-out` writes each country's `{old id: new id}`, which
 `tests.regression.parity --mapping` uses to compare the two layouts.
 
 The source is left untouched, and the target must be empty.
@@ -21,6 +23,7 @@ import sys
 from pathlib import Path
 
 from app.modules.admin.countries import CountryError, add_country
+from app.modules.layers.categories import DEFAULT_CATEGORY
 from app.modules.layers.store import SUPPORTED_LANGUAGES, LayersRoot, LayerStore
 
 
@@ -128,8 +131,11 @@ def migrate(
             f"  {country} {layer_id}: {entry.get('raster_filename')} (was {entry['id']})"
         )
     # Indexes last: a country folder only lists layers whose files are in place.
+    # The categories go first, so every index entry resolves as soon as it's listed.
     for country, entries in by_country.items():
-        target_root.country_store(country).write_index(entries)
+        store = target_root.country_store(country)
+        store.write_categories([dict(DEFAULT_CATEGORY)])
+        store.write_index(entries)
     if mapping_out is not None:
         mapping_out.write_text(json.dumps(id_mapping(copies), indent=2) + "\n")
     log(

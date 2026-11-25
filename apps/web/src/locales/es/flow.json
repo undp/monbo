@@ -1,0 +1,36 @@
+{
+  "header": {
+    "analysisIn": "Análisis en <b>{{country}}</b>",
+    "changeCountry": "Cambiar país",
+    "freeNote": "Gratis · tus polígonos no se guardan en nuestros servidores"
+  },
+  "stepper": {
+    "label": "Etapas del análisis",
+    "stages": {
+      "1": "Validación",
+      "2": "Análisis territorial",
+      "3": "Reporte"
+    },
+    "states": {
+      "current": "Estás aquí",
+      "done": "Completada",
+      "direct": "Puedes ir directo",
+      "available": "Disponible",
+      "skipped": "Sin realizar · opcional",
+      "locked": "Con los resultados de la etapa 2"
+    }
+  },
+  "stageOf": "Etapa {{stage}} de 3",
+  "nextStage": {
+    "eyebrow": "Siguiente etapa",
+    "continue": "Continuar",
+    "analysis": {
+      "title": "Análisis territorial",
+      "description": "Cruza tus polígonos con las capas disponibles para {{country}}."
+    },
+    "report": {
+      "title": "Reporte",
+      "description": "Elige los polígonos y descarga el reporte para tu debida diligencia."
+    }
+  }
+}

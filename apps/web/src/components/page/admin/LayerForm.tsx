@@ -6,13 +6,17 @@ import {
   Button,
   Grid,
   IconButton,
-  Paper,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
   TextField,
   TextFieldProps,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import TranslateOutlinedIcon from "@mui/icons-material/TranslateOutlined";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,15 +28,27 @@ import {
   useWatch,
   Validate,
 } from "react-hook-form";
+import { FlowSection } from "@/components/page/flow/FlowSection";
 import { ClassicTabs } from "@/components/reusable/ClassicTabs";
+import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { Text } from "@/components/reusable/Text";
 import {
   ADMIN_LANGUAGES,
+  AdminCategory,
   AdminLanguage,
+  AdminLayer,
   LayerAttributes,
   OPTIONAL_ATTRIBUTE_KEYS,
 } from "@/interfaces/AdminLayer";
-import { LayerFormValues, validators } from "./layerFormState";
+import { categoryTints } from "@/utils/categoryColors";
+import { AS_TEXT } from "@/utils/asText";
+import { localizedText } from "@/utils/localizedText";
+import {
+  categoryValidators,
+  LayerFormValues,
+  usableCategories,
+  validators,
+} from "./layerFormState";
 import { LayerTextsExampleModal } from "./LayerTextsExampleModal";
 import enAdmin from "@/locales/en/admin.json";
 import esAdmin from "@/locales/es/admin.json";
@@ -45,22 +61,20 @@ const TAB_LABELS: Record<AdminLanguage, typeof enAdmin.form> = {
 
 export const Section: React.FC<{
   title: string;
-  // Shown right after the title (e.g. a help button)
+  /** In the heading's tile, as the stage pages' cards. */
+  icon: React.ReactNode;
+  // At the heading's right (e.g. a help button)
   titleAction?: React.ReactNode;
   // An anchor to scroll to
   id?: string;
   children: React.ReactNode;
-}> = ({ title, titleAction, id, children }) => (
+}> = ({ title, icon, titleAction, id, children }) => (
   // The scroll margin keeps the title clear of the fixed header.
-  <Paper id={id} sx={{ padding: 3, marginBottom: 3, scrollMarginTop: 88 }}>
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, marginBottom: 2 }}>
-      <Text variant="h6" component="h2" bold>
-        {title}
-      </Text>
-      {titleAction}
-    </Box>
-    {children}
-  </Paper>
+  <Box id={id} sx={{ scrollMarginTop: 88 }}>
+    <FlowSection title={title} icon={icon} action={titleAction}>
+      {children}
+    </FlowSection>
+  </Box>
 );
 
 type FormTextFieldProps = Omit<TextFieldProps, "name"> & {
@@ -191,19 +205,82 @@ const LanguageFields: React.FC<{ language: AdminLanguage }> = ({ language }) => 
   );
 };
 
-export const LayerForm: React.FC = () => {
-  const { t } = useTranslation();
+interface LayerFormProps {
+  /** The country's categories (enabled or not); empty until they load. */
+  categories: AdminCategory[];
+  /** The layer being edited; null for a new one. */
+  layer: AdminLayer | null;
+}
+
+export const LayerForm: React.FC<LayerFormProps> = ({ categories, layer }) => {
+  const { t, i18n } = useTranslation();
   const {
     control,
     formState: { errors },
   } = useFormContext<LayerFormValues>();
   const references = useFieldArray({ control, name: "references" });
   const [exampleOpen, setExampleOpen] = useState(false);
+  const categoryId = useWatch<LayerFormValues, "category_id">({ name: "category_id" });
+
+  const currentCategoryId = layer?.category_id ?? null;
+  const options = usableCategories(categories, currentCategoryId);
+  const rules = categoryValidators(categories, currentCategoryId);
+  const selected = categories.find(({ id }) => id === categoryId) ?? null;
+  // A layer whose category doesn't resolve keeps showing it, so the form says the truth;
+  // the validator asks for a valid one (the API refuses it).
+  const broken =
+    layer?.category_issue && categoryId === layer.category_id ? layer : null;
+  // A published layer can't change category (the API answers 400).
+  const categoryLocked = !!layer?.enabled;
 
   return (
     <>
-      <Section title={t("admin:form:sections:layer")}>
+      <Section
+        title={t("admin:form:sections:layer")}
+        icon={<LayersOutlinedIcon fontSize="small" />}
+      >
         <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <FormTextField
+              name="category_id"
+              label={t("admin:form:category")}
+              select
+              required
+              disabled={categoryLocked}
+              validate={rules.category}
+              helperText={
+                categoryLocked ? t("admin:form:categoryLocked") : t("admin:form:categoryHelp")
+              }
+            >
+              {broken && (
+                <MenuItem value={broken.category_id}>
+                  {t(`admin:layers:categoryIssue:${broken.category_issue}`, {
+                    category: broken.category_id,
+                    ...AS_TEXT,
+                  })}
+                </MenuItem>
+              )}
+              {options.map((category) => {
+                const name = localizedText(category.name, i18n.language);
+                return (
+                  <MenuItem key={category.id} value={category.id}>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <ListItemIcon
+                        sx={{ minWidth: 32, color: categoryTints(category.color).color }}
+                      >
+                        <LayerCategoryIcon icon={category.icon} fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>
+                        {category.enabled
+                          ? name
+                          : t("admin:form:categoryDisabledOption", { name, ...AS_TEXT })}
+                      </ListItemText>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+            </FormTextField>
+          </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <FormTextField
               name="pixel_size"
@@ -213,25 +290,36 @@ export const LayerForm: React.FC = () => {
               validate={validators.pixelSize}
             />
           </Grid>
-          <Grid size={{ xs: 6, md: 4 }}>
-            <FormTextField
-              name="baseline"
-              label={t("admin:form:baseline")}
-              type="number"
-              required
-              validate={validators.baseline}
-            />
-          </Grid>
-          <Grid size={{ xs: 6, md: 4 }}>
-            <FormTextField
-              name="compared_against"
-              label={t("admin:form:comparedAgainst")}
-              type="number"
-              required
-              validate={validators.year}
-              deps={["baseline"]}
-            />
-          </Grid>
+          {selected?.temporal && (
+            <>
+              <Grid size={{ xs: 6, md: 4 }}>
+                <FormTextField
+                  name="baseline"
+                  label={t("admin:form:baseline")}
+                  type="number"
+                  required
+                  validate={rules.baseline}
+                />
+              </Grid>
+              <Grid size={{ xs: 6, md: 4 }}>
+                <FormTextField
+                  name="compared_against"
+                  label={t("admin:form:comparedAgainst")}
+                  type="number"
+                  required
+                  validate={rules.comparedAgainst}
+                  deps={["baseline"]}
+                />
+              </Grid>
+            </>
+          )}
+          {selected && !selected.temporal && (
+            <Grid size={12}>
+              <Text color="secondary" variant="body2">
+                {t("admin:form:noYears")}
+              </Text>
+            </Grid>
+          )}
           <Grid size={12}>
             <Text color="secondary" variant="body2" sx={{ marginBottom: 1 }}>
               {t("admin:form:references")}
@@ -260,6 +348,7 @@ export const LayerForm: React.FC = () => {
 
       <Section
         title={t("admin:form:sections:texts")}
+        icon={<TranslateOutlinedIcon fontSize="small" />}
         titleAction={
           <IconButton
             aria-label={t("admin:form:example:open")}

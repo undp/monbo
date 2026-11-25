@@ -19,6 +19,7 @@ import sys
 import time
 from pathlib import Path
 
+from app.modules.layers.categories import CategoriesFile, is_temporal
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
@@ -66,7 +67,9 @@ def _seed_layer(
         raise SeedError(f"{destination} already exists; seed an empty directory")
     written.append(destination)
     try:
-        validation = validate_raster(raster, None)
+        # The source is a flat layout: no categories file, only the built-in one.
+        temporal = is_temporal(entry["category_id"], CategoriesFile())
+        validation = validate_raster(raster, None, temporal=temporal)
         check_pixel_size(entry["pixel_size"], validation.pixel_size_range_m)
         convert_to_cog(raster, destination)
         verify_same_pixels(raster, destination)

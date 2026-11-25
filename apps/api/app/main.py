@@ -15,8 +15,8 @@ from app.config.logger import configure_logging, get_logger
 from app.modules import (
     admin_router,
     config_router,
-    deforestation_analysis_router,
     farms_router,
+    layer_analysis_router,
     maps_router,
     polygons_validation_router,
     usage_router,
@@ -191,7 +191,7 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     )
     app.include_router(router)
     app.include_router(polygons_validation_router)
-    app.include_router(deforestation_analysis_router)
+    app.include_router(layer_analysis_router)
     app.include_router(maps_router)
     app.include_router(config_router)
     app.include_router(farms_router)

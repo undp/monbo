@@ -166,6 +166,46 @@ def test_a_non_binary_layer_aborts_and_leaves_nothing(source, tmp_path):
     assert not list((target / "layers" / "rasters").iterdir())
 
 
+def years():
+    """A loss-year raster instead of a binary mask."""
+    data = np.zeros((96, 96), "uint16")
+    data[:8, :8], data[8:16, :8], data[16:24, :8] = 2021, 2022, 2023
+    return data
+
+
+def seed_error(source, tmp_path, category_id=None):
+    """Seed with layer 4 as a year raster (in `category_id`, if given)."""
+    write_raster(source / "layers" / "rasters" / "b-v3.tif", years())
+    if category_id is not None:
+        index_path = source / "index.json"
+        index = json.loads(index_path.read_text())
+        index[1]["category_id"] = category_id
+        index_path.write_text(json.dumps(index))
+    with pytest.raises(SeedError, match=r"Layer 4 \(b-v3.tif\)") as error:
+        seed(source, tmp_path / "target", log=lambda _: None)
+    assert not (tmp_path / "target" / "index.json").exists()
+    return error.value
+
+
+def test_year_values_in_a_deforestation_layer_look_like_years(source, tmp_path):
+    error = seed_error(source, tmp_path)
+
+    assert error.__cause__.code == "loss_years"
+    assert error.__cause__.params["values"] == [2021, 2022, 2023]
+    assert "look like years" in str(error)
+
+
+def test_year_values_in_a_layer_of_an_unresolved_category_are_not_binary(
+    source, tmp_path
+):
+    # The flat layout has no categories file: only `deforestation` resolves.
+    error = seed_error(source, tmp_path, category_id="protected_areas")
+
+    assert error.__cause__.code == "not_binary"
+    assert error.__cause__.params["values"] == [2021, 2022, 2023]
+    assert "year" not in str(error).lower()
+
+
 def test_lfs_pointers_are_reported(source, tmp_path):
     (source / "layers" / "rasters" / "a.tif").write_text(
         "version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 1\n"

@@ -29,6 +29,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Categories
+         * @description Every category of the session's country, enabled or not, with its own threshold
+         *     (null: the global one) and how many layers use it. `readable` and `errors`
+         *     report the problems of the country's categories file: a rejected entry is not
+         *     listed, and its layers show `category_issue` in `GET /admin/layers`.
+         */
+        get: operations["list_categories_admin_categories_get"];
+        put?: never;
+        /**
+         * Create Category
+         * @description Create a category in the session's country, enabled and at the end of the
+         *     list. The API makes its permanent `id` from the Spanish name ("Frontera
+         *     agrícola" → `frontera_agricola`), with `_2`, `_3`... when the country already
+         *     uses (or used, in a rejected entry) that id; `deforestation` and `new` are never
+         *     given. Layers that already point at the id must be hidden and have years that
+         *     fit `temporal` (400).
+         */
+        post: operations["create_category_admin_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Category
+         * @description Replace a category's editable fields. The id and `enabled` don't change here.
+         *     The polarity can't change while the category has published layers, and
+         *     `temporal` can't change while it has any layer (400). Editing the built-in
+         *     "deforestation" stores it, first in the list. Editing a rejected entry repairs
+         *     it, once its layers are hidden.
+         */
+        put: operations["update_category_admin_categories__category_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set Category Enabled
+         * @description Enable or disable a category. A disabled category is left out of
+         *     `GET /categories`, and its layers out of `GET /maps`. A category with published
+         *     layers can't be disabled or enabled (400): hide the layers first, and publish
+         *     them afterwards with `PATCH /admin/layers/{id}`.
+         */
+        patch: operations["set_category_enabled_admin_categories__category_id__patch"];
+        trace?: never;
+    };
     "/admin/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -107,7 +170,8 @@ export interface paths {
          * Set Layer Enabled
          * @description Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
          *     public listing but still resolves by id for analyses and tiles. A layer can
-         *     only be enabled once it has a raster.
+         *     only be enabled once it has a raster (409), and while its category resolves, is
+         *     enabled and fits its years (400).
          */
         patch: operations["set_layer_enabled_admin_layers__layer_id__patch"];
         trace?: never;
@@ -192,6 +256,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Categories
+         * @description A country's enabled layer categories: the built-in "deforestation" first (unless
+         *     the country stores its own), then the country's in the order it keeps them.
+         *     Texts come in every language. `thresholdPercentage` is already resolved (the
+         *     category's own, or the global threshold). An unknown or disabled country gets an
+         *     empty list. Categories that fail validation are left out, and so are their
+         *     layers in `GET /maps`.
+         */
+        get: operations["get_categories_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config": {
         parameters: {
             query?: never;
@@ -227,60 +316,6 @@ export interface paths {
          *     flat layout, the countries listed by the enabled layers.
          */
         get: operations["get_countries_countries_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deforestation_analysis/analize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Analize */
-        post: operations["analize_deforestation_analysis_analize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deforestation_analysis/generate-image": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate Image */
-        post: operations["generate_image_deforestation_analysis_generate_image_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deforestation_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Serve Tile
-         * @description Serve a tile of a country's layer for the specified z/x/y.
-         */
-        get: operations["serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -381,7 +416,9 @@ export interface paths {
          * @description Endpoint to parse farm data and generate polygon information.
          *
          *     Args:
-         *         body (list[InputFarmData]): List of unprocessed farm data
+         *         body (list[InputFarmData]): List of unprocessed farm data. Each farm may
+         *             carry its `origin` (the upload method and file name), echoed back as
+         *             is and never stored
          *         locale (str): Locale for number parsing, either 'en' or 'es'. Defaults to 'en'
          *
          *     Returns:
@@ -454,6 +491,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/layer_analysis/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze */
+        post: operations["analyze_layer_analysis_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/layer_analysis/generate-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Image */
+        post: operations["generate_image_layer_analysis_generate_image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/layer_analysis/tiles/{country}/{map_id}/dynamic/{z}/{x}/{y}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Serve Tile
+         * @description Serve a tile of a country's layer for the specified z/x/y.
+         */
+        get: operations["serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/maps": {
         parameters: {
             query?: never;
@@ -467,7 +558,9 @@ export interface paths {
          *
          *     This endpoint reads the maps index file and their corresponding metadata
          *     files to return detailed information about each enabled map layer. Disabled
-         *     layers are left out here but remain usable by id for analysis and tiles.
+         *     layers, layers whose category is disabled or doesn't resolve, layers whose
+         *     years don't fit their category, and layers without a raster are left out here
+         *     but remain usable by id for analysis and tiles.
          *
          *     Args:
          *         language (str, optional): Language code for the metadata. Defaults to "en".
@@ -482,8 +575,9 @@ export interface paths {
          *           the country
          *         - name: Complete name of the layer (e.g., "Global Forest Watch")
          *         - alias: Short name or reference (e.g., "GFW 2020-2023")
-         *         - baseline: Base year for comparison
-         *         - comparedAgainst: Final year for comparison
+         *         - baseline: Base year for comparison (None for layers without years, in
+         *           categories that are not temporal)
+         *         - comparedAgainst: Final year for comparison (None likewise)
          *         - coverage: Geographic coverage of the layer
          *         - source: Origin of the layer data
          *         - resolution: Spatial resolution (e.g., "30 x 30 meters")
@@ -498,6 +592,8 @@ export interface paths {
          *         - availableCountriesCodes: The layer's country, as a one-element list of
          *           ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
          *           layer lists)
+         *         - categoryId: The id of the layer's category in its country (see
+         *           `GET /categories`)
          *         - version: Raster version, incremented on every raster replacement (the
          *           frontend appends it to tile URLs to bypass cached tiles)
          *         - pixelSize: Nominal pixel size in meters, used by the analysis formula
@@ -552,6 +648,70 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdminCategories
+         * @description Body of `GET /admin/categories`.
+         */
+        AdminCategories: {
+            /**
+             * Categories
+             * @description Every category of the session's country, enabled or not, in the order `GET /categories` uses. Rejected entries are not listed.
+             */
+            categories: components["schemas"]["AdminCategory"][];
+            /**
+             * Errors
+             * @description The problems of the country's categories file, one per entry
+             */
+            errors: string[];
+            /**
+             * Readable
+             * @description False when the country's categories file can't be read or parsed
+             */
+            readable: boolean;
+        };
+        /**
+         * AdminCategory
+         * @description A category as the admin sees it: like `LayerCategory`, with its own threshold
+         *     (not resolved), its state and how many layers use it.
+         */
+        AdminCategory: {
+            /** Color */
+            color: string;
+            description: components["schemas"]["LocalizedText"];
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
+            /** Id */
+            id: string;
+            /**
+             * Layercount
+             * @description Layers of the country in this category
+             */
+            layerCount: number;
+            name: components["schemas"]["LocalizedText"];
+            /**
+             * Polarity
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            /**
+             * Publishedlayercount
+             * @description Of those, the enabled ones
+             */
+            publishedLayerCount: number;
+            resultLabels: components["schemas"]["ResultLabels"];
+            /** Temporal */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null when it uses the global one
+             */
+            thresholdPercentage: number | null;
+        };
         /** AdminLayer */
         AdminLayer: {
             /** Attributes */
@@ -560,6 +720,18 @@ export interface components {
             };
             /** Baseline */
             baseline: number | null;
+            /**
+             * Category Enabled
+             * @description Whether the layer's category resolves and is enabled
+             */
+            category_enabled: boolean;
+            /** Category Id */
+            category_id: string;
+            /**
+             * Category Issue
+             * @description Why the layer's category doesn't resolve in its country (the layer is then hidden from the public app), or null when it does.
+             */
+            category_issue: ("unknown_category" | "invalid_category" | "unreadable_categories") | null;
             /** Compared Against */
             compared_against: number | null;
             /** Considerations */
@@ -572,6 +744,11 @@ export interface components {
             has_raster: boolean;
             /** Id */
             id: number;
+            /**
+             * Layer Issue
+             * @description Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.
+             */
+            layer_issue: ("years_mismatch" | "missing_raster") | null;
             /** Pixel Size */
             pixel_size: number;
             /** Raster Filename */
@@ -580,15 +757,6 @@ export interface components {
             references: string[];
             /** Version */
             version: number;
-        };
-        /** AnalizeBody */
-        AnalizeBody: {
-            /** Country */
-            country?: string | null;
-            /** Farms */
-            farms: components["schemas"]["FarmPolygonDetailData"][];
-            /** Maps */
-            maps: number[];
         };
         /** AnalysisUsage */
         AnalysisUsage: {
@@ -600,6 +768,15 @@ export interface components {
             /** Sessions */
             sessions: number;
         };
+        /** AnalyzeBody */
+        AnalyzeBody: {
+            /** Country */
+            country?: string | null;
+            /** Farms */
+            farms: components["schemas"]["FarmPolygonDetailData"][];
+            /** Maps */
+            maps: number[];
+        };
         /** BaseMapData */
         BaseMapData: {
             /** Alias */
@@ -608,6 +785,8 @@ export interface components {
             availableCountriesCodes: string[];
             /** Baseline */
             baseline: number | null;
+            /** Categoryid */
+            categoryId: string;
             /** Comparedagainst */
             comparedAgainst: number | null;
             /** Considerations */
@@ -668,6 +847,112 @@ export interface components {
              * @enum {string}
              */
             type: "report_requested" | "report_downloaded";
+        };
+        /**
+         * CategoryCreate
+         * @description Body of `POST /admin/categories`: no `id`. The API makes it from the Spanish
+         *     name, unique in the country and never reused, and returns it.
+         */
+        CategoryCreate: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description?: components["schemas"]["CategoryDescriptionInput"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
+            name: components["schemas"]["CategoryNameInput"];
+            /**
+             * Polarity
+             * @description `avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["CategoryResultLabelsInput"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null uses the global one
+             */
+            thresholdPercentage?: number | null;
+        };
+        /** CategoryDescriptionInput */
+        CategoryDescriptionInput: {
+            /**
+             * En
+             * @default
+             */
+            en: string;
+            /**
+             * Es
+             * @default
+             */
+            es: string;
+        };
+        /**
+         * CategoryInput
+         * @description Body of `PUT /admin/categories/{id}`: every editable field of a category.
+         *     `enabled` changes only through `PATCH`.
+         */
+        CategoryInput: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description?: components["schemas"]["CategoryDescriptionInput"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
+            name: components["schemas"]["CategoryNameInput"];
+            /**
+             * Polarity
+             * @description `avoid`: coinciding with the layer is a finding. `required`: not coinciding is. Can't change while the category has published layers.
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["CategoryResultLabelsInput"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year. Can't change while the category has any layer.
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description The category's own threshold; null uses the global one
+             */
+            thresholdPercentage?: number | null;
+        };
+        /** CategoryLabelInput */
+        CategoryLabelInput: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
+        /** CategoryNameInput */
+        CategoryNameInput: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
+        /** CategoryResultLabelsInput */
+        CategoryResultLabelsInput: {
+            /** @description Result with findings */
+            flagged: components["schemas"]["CategoryLabelInput"];
+            /** @description Result without findings */
+            ok: components["schemas"]["CategoryLabelInput"];
         };
         /** ConfigData */
         ConfigData: {
@@ -764,6 +1049,7 @@ export interface components {
             documents: components["schemas"]["Document"][];
             /** Id */
             id: string;
+            origin: components["schemas"]["FarmOrigin-Output"] | null;
             /** Polygon */
             polygon: components["schemas"]["PointSummary"] | components["schemas"]["PolygonShapeSummary"];
             /** Producer */
@@ -779,12 +1065,40 @@ export interface components {
             /** Region */
             region: string | null;
         };
-        /** FarmDeforestation */
-        FarmDeforestation: {
+        /** FarmLayerResult */
+        FarmLayerResult: {
             /** Farmid */
             farmId: string;
             /** Value */
             value: number | null;
+        };
+        /**
+         * FarmOrigin
+         * @description How a farm reached the upload: the method and its file. The API only echoes it
+         *     back in `FarmData`; it is never stored nor written to the usage events.
+         */
+        "FarmOrigin-Input": {
+            /** Filename */
+            fileName?: string | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "excel" | "geoFile" | "geoFileWithExcel" | "manual";
+        };
+        /**
+         * FarmOrigin
+         * @description How a farm reached the upload: the method and its file. The API only echoes it
+         *     back in `FarmData`; it is never stored nor written to the usage events.
+         */
+        "FarmOrigin-Output": {
+            /** Filename */
+            fileName: string | null;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "excel" | "geoFile" | "geoFileWithExcel" | "manual";
         };
         /** FarmPolygonDetailData */
         FarmPolygonDetailData: {
@@ -950,6 +1264,7 @@ export interface components {
             geometryType: "Point" | "Polygon" | "MultiPolygon";
             /** Id */
             id?: string | number | null;
+            origin?: components["schemas"]["FarmOrigin-Input"] | null;
             /** Producername */
             producerName: string;
             /** Productiondate */
@@ -1028,6 +1343,43 @@ export interface components {
             /** Updatefrequency */
             updateFrequency?: string | null;
         };
+        /** LayerCategory */
+        LayerCategory: {
+            /**
+             * Color
+             * @description Hex color, #rrggbb
+             */
+            color: string;
+            description: components["schemas"]["LocalizedText"];
+            /**
+             * Icon
+             * @enum {string}
+             */
+            icon: "forest" | "park" | "wetland" | "leaf" | "wildlife" | "shield" | "legal" | "community" | "map" | "global" | "water" | "coast" | "flood" | "agriculture" | "crop" | "coffee" | "pasture" | "mountain" | "volcano" | "landslide" | "fire" | "mining" | "infrastructure" | "settlement" | "industry" | "layers";
+            /**
+             * Id
+             * @description Stable slug, unique in its country, never reused
+             */
+            id: string;
+            name: components["schemas"]["LocalizedText"];
+            /**
+             * Polarity
+             * @description `avoid`: the finding is `value` (coinciding with the layer is a finding). `required`: the finding is `1 - value` (not coinciding is a finding).
+             * @enum {string}
+             */
+            polarity: "avoid" | "required";
+            resultLabels: components["schemas"]["ResultLabels"];
+            /**
+             * Temporal
+             * @description Whether its layers have a baseline and a comparison year
+             */
+            temporal: boolean;
+            /**
+             * Thresholdpercentage
+             * @description A farm has findings when 100 × finding > thresholdPercentage. Already resolved: the category's own threshold, or the global one.
+             */
+            thresholdPercentage: number;
+        };
         /**
          * LayerInput
          * @description Body of `POST /admin/layers` and `PUT /admin/layers/{id}`.
@@ -1035,9 +1387,14 @@ export interface components {
         LayerInput: {
             attributes: components["schemas"]["LocalizedAttributes"];
             /** Baseline */
-            baseline: number;
+            baseline?: number | null;
+            /**
+             * Category Id
+             * @description A category of the session's country. Its `temporal` decides the years: both required when it is temporal, both null when it isn't.
+             */
+            category_id: string;
             /** Compared Against */
-            compared_against: number;
+            compared_against?: number | null;
             considerations?: components["schemas"]["LocalizedConsiderations"];
             /**
              * Pixel Size
@@ -1046,6 +1403,15 @@ export interface components {
             pixel_size: number;
             /** References */
             references?: string[];
+        };
+        /** LayerResults */
+        LayerResults: {
+            /** Farmresults */
+            farmResults: components["schemas"]["FarmLayerResult"][];
+            /** Mapid */
+            mapId: number;
+            /** Version */
+            version: number;
         };
         /** LocalizedAttributes */
         LocalizedAttributes: {
@@ -1062,19 +1428,17 @@ export interface components {
             /** Es */
             es?: string | null;
         };
+        /** LocalizedText */
+        LocalizedText: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
         /** LoginBody */
         LoginBody: {
             /** Passkey */
             passkey: string;
-        };
-        /** MapData */
-        MapData: {
-            /** Farmresults */
-            farmResults: components["schemas"]["FarmDeforestation"][];
-            /** Mapid */
-            mapId: number;
-            /** Version */
-            version: number;
         };
         /** NotConfiguredResponse */
         NotConfiguredResponse: {
@@ -1196,6 +1560,13 @@ export interface components {
             requested: number;
             /** Requestedsessions */
             requestedSessions: number;
+        };
+        /** ResultLabels */
+        ResultLabels: {
+            /** @description Result with findings */
+            flagged: components["schemas"]["LocalizedText"];
+            /** @description Result without findings */
+            ok: components["schemas"]["LocalizedText"];
         };
         /** SessionData */
         SessionData: {
@@ -1369,6 +1740,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_categories_admin_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategories"];
+                };
+            };
+        };
+    };
+    create_category_admin_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_category_admin_categories__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_category_enabled_admin_categories__category_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1688,6 +2182,37 @@ export interface operations {
             };
         };
     };
+    get_categories_categories_get: {
+        parameters: {
+            query: {
+                country: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerCategory"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_config_config_get: {
         parameters: {
             query?: never;
@@ -1724,110 +2249,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CountryData"][];
-                };
-            };
-        };
-    };
-    analize_deforestation_analysis_analize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnalizeBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MapData"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    generate_image_deforestation_analysis_generate_image_post: {
-        parameters: {
-            query?: {
-                /** @description Whether to include satellite imagery as background */
-                include_satelital_background?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateImageBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    serve_tile_deforestation_analysis_tiles__country___map_id__dynamic__z___x___y__png_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                country: string;
-                map_id: number;
-                z: number;
-                x: number;
-                y: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2017,6 +2438,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    analyze_layer_analysis_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerResults"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_image_layer_analysis_generate_image_post: {
+        parameters: {
+            query?: {
+                /** @description Whether to include satellite imagery as background */
+                include_satelital_background?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateImageBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    serve_tile_layer_analysis_tiles__country___map_id__dynamic__z___x___y__png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                country: string;
+                map_id: number;
+                z: number;
+                x: number;
+                y: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

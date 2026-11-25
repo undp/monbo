@@ -1,21 +1,29 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCountries } from "@/api/countries";
-import { getMaps } from "@/api/deforestationAnalysis";
+import { getMaps } from "@/api/layerAnalysis";
+import { getLayerCategories } from "@/api/layerCategories";
 import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
   ON_DEMAND_REFRESH_MIN_GAP,
 } from "@/config/constants";
-import type { MapData } from "@/interfaces/DeforestationAnalysis";
+import type { MapData } from "@/interfaces/LayerAnalysis";
 import { deferred } from "@/test/deferred";
 import { createTestI18n } from "@/test/i18n";
-import { makeFarm, makeMap, makeMapResults } from "@/test/factories";
+import {
+  makeCategory,
+  makeFarm,
+  makeFrontierCategory,
+  makeMap,
+  makeMapResults,
+} from "@/test/factories";
 import { renderWithDataProvider } from "@/test/renderWithDataProvider";
 import { readFlowGeneration } from "./DataContext";
 
 vi.mock("@/api/countries", () => ({ getCountries: vi.fn() }));
-vi.mock("@/api/deforestationAnalysis", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/api/deforestationAnalysis")>()),
+vi.mock("@/api/layerCategories", () => ({ getLayerCategories: vi.fn() }));
+vi.mock("@/api/layerAnalysis", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/layerAnalysis")>()),
   getMaps: vi.fn(),
 }));
 
@@ -52,6 +60,9 @@ beforeEach(async () => {
   });
   vi.mocked(getCountries).mockResolvedValue([{ code: "CR" }, { code: "PE" }]);
   mapsByCountry();
+  vi.mocked(getLayerCategories).mockImplementation(async (country) =>
+    country === "PE" ? [makeCategory(), makeFrontierCategory()] : [makeCategory()]
+  );
 });
 
 /** A mounted provider with the countries loaded and `country` selected. */
@@ -185,6 +196,30 @@ describe("DataProvider layers", () => {
     expect(result.current.availableMaps).toEqual([gfw]);
   });
 
+  it("loads the country's categories with its layers", async () => {
+    const { result } = await withCountry("CR");
+    expect(getLayerCategories).toHaveBeenCalledWith("CR");
+    expect(result.current.availableCategories).toEqual([makeCategory()]);
+
+    act(() => result.current.setSelectedCountry("PE"));
+    await flush();
+    expect(result.current.availableMaps).toEqual([tmf]);
+    expect(result.current.availableCategories).toEqual([
+      makeCategory(),
+      makeFrontierCategory(),
+    ]);
+  });
+
+  it("shows no layers when the categories can't be loaded", async () => {
+    vi.mocked(getLayerCategories).mockRejectedValue(new Error("offline"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { result } = await withCountry("CR");
+
+    expect(result.current.availableMaps).toEqual([]);
+    expect(result.current.availableCategories).toEqual([]);
+    expect(result.current.availableMapsError).toBe(true);
+  });
+
   it("ignores a response for the previous country", async () => {
     const cr = deferred<MapData[]>();
     vi.mocked(getMaps).mockReturnValueOnce(cr.promise);
@@ -207,11 +242,11 @@ describe("DataProvider polling with a selected layer", () => {
     act(() => {
       const { current } = provider.result;
       current.setFarmsData([farm]);
-      current.setDeforestationAnalysisParams({ polygonsSubset: "all", selectedMaps: [gfw] });
+      current.setTerritorialAnalysisParams({ polygonsSubset: "all", selectedMaps: [gfw] });
       if (withResults) {
-        current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0.1 })]);
+        current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0.1 })]);
         current.setReportGenerationParams({
-          initialFarmSelection: "select",
+          seeded: true,
           selectedMaps: [gfw],
           selectedFarms: [farm],
           downloadType: "combined",
@@ -233,15 +268,66 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
     expect(result.current.reportGenerationParams).toMatchObject({
+      seeded: false,
       selectedMaps: [],
       selectedFarms: [],
       downloadType: null,
     });
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([changed]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([changed]);
     expect(result.current.farmsData).toHaveLength(1);
+  });
+
+  it("invalidates the analysis when the layer moves to another category", async () => {
+    const { result } = await withSelectedLayer(true);
+    const moved = { ...gfw, categoryId: "agricultural_frontier" };
+    mapsByCountry({ CR: [moved] });
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory(), makeFrontierCategory()]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([moved]);
+  });
+
+  it("invalidates the analysis when the layer's category flips its polarity", async () => {
+    const { result } = await withSelectedLayer(true);
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ polarity: "required" })]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+  });
+
+  it("invalidates the analysis when the category comes back with another reading", async () => {
+    const { result } = await withSelectedLayer(true);
+    // The admin hides the layer and its category, then republishes both with the
+    // category no longer temporal.
+    mapsByCountry({ CR: [] });
+    vi.mocked(getLayerCategories).mockResolvedValue([]);
+    await poll();
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
+
+    mapsByCountry({ CR: [gfw] });
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ temporal: false })]);
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).toBeNull();
+    expect(result.current.analysisOutdated).toBe(true);
+  });
+
+  it("keeps the analysis when only the category's threshold changes", async () => {
+    const { result } = await withSelectedLayer(true);
+    vi.mocked(getLayerCategories).mockResolvedValue([makeCategory({ thresholdPercentage: 5 })]);
+
+    await poll();
+
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
+    expect(result.current.analysisOutdated).toBe(false);
   });
 
   it("refreshes a renamed layer without invalidating", async () => {
@@ -250,9 +336,9 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisResults).not.toBeNull();
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
     expect(result.current.analysisOutdated).toBe(false);
-    expect(result.current.deforestationAnalysisParams.selectedMaps[0].name).toBe(
+    expect(result.current.territorialAnalysisParams.selectedMaps[0].name).toBe(
       "GFW (Hansen)"
     );
   });
@@ -263,8 +349,8 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([gfw]);
-    expect(result.current.deforestationAnalysisResults).not.toBeNull();
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([gfw]);
+    expect(result.current.territorialAnalysisResults).not.toBeNull();
   });
 
   it("invalidates the analysis on an on-demand refresh, as on a poll", async () => {
@@ -276,9 +362,9 @@ describe("DataProvider polling with a selected layer", () => {
     act(() => result.current.refreshAvailableMaps());
     await flush();
 
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([changed]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([changed]);
   });
 
   it("deselects a hidden layer without an analysis", async () => {
@@ -287,7 +373,7 @@ describe("DataProvider polling with a selected layer", () => {
 
     await poll();
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps).toEqual([]);
+    expect(result.current.territorialAnalysisParams.selectedMaps).toEqual([]);
   });
 });
 
@@ -384,7 +470,7 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
     act(() => {
       result.current.setFarmsData([makeFarm()]);
-      result.current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0 })]);
+      result.current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0 })]);
       result.current.setAnalysisOutdated(true);
     });
     const generation = readFlowGeneration();
@@ -394,10 +480,15 @@ describe("DataProvider analysis flow", () => {
     expect(result.current).toMatchObject({
       farmsData: null,
       polygonsValidationResults: null,
-      deforestationAnalysisResults: null,
+      territorialAnalysisResults: null,
       analysisOutdated: false,
-      deforestationAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
-      reportGenerationParams: { selectedMaps: [], selectedFarms: [], downloadType: null },
+      territorialAnalysisParams: { polygonsSubset: "valid", selectedMaps: [] },
+      reportGenerationParams: {
+        seeded: false,
+        selectedMaps: [],
+        selectedFarms: [],
+        downloadType: null,
+      },
     });
     expect(readFlowGeneration()).toBe(generation + 1);
     // The country is not part of the flow.
@@ -408,13 +499,13 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
     act(() => {
       result.current.setFarmsData([makeFarm()]);
-      result.current.setDeforestationAnalysisResults([makeMapResults(1, { F01: 0 })]);
+      result.current.setTerritorialAnalysisResults([makeMapResults(1, { F01: 0 })]);
     });
 
     act(() => result.current.invalidateAnalysis());
 
     expect(result.current.farmsData).toHaveLength(1);
-    expect(result.current.deforestationAnalysisResults).toBeNull();
+    expect(result.current.territorialAnalysisResults).toBeNull();
     expect(result.current.analysisOutdated).toBe(true);
   });
 
@@ -422,13 +513,13 @@ describe("DataProvider analysis flow", () => {
     const { result } = await withCountry("CR");
 
     act(() =>
-      result.current.setDeforestationAnalysisParams({
+      result.current.setTerritorialAnalysisParams({
         polygonsSubset: "all",
         selectedMaps: [makeMap({ id: 3 }), makeMap({ id: 1 }), makeMap({ id: 2 })],
       })
     );
 
-    expect(result.current.deforestationAnalysisParams.selectedMaps.map(({ id }) => id)).toEqual([
+    expect(result.current.territorialAnalysisParams.selectedMaps.map(({ id }) => id)).toEqual([
       1, 2, 3,
     ]);
   });

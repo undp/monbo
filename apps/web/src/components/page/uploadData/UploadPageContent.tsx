@@ -1,41 +1,19 @@
 "use client";
 
-import { Box } from "@mui/material";
-import { Text } from "@/components/reusable/Text";
 import React from "react";
-import { DevEnvWarning } from "@/components/reusable/DevEnvWarning";
-import { SHOW_TESTING_ENVIRONMENT_WARNING } from "@/config/env";
+import { FlowPage } from "@/components/page/flow/FlowPage";
+import { FlowPageHead } from "@/components/page/flow/FlowPageHead";
 
 interface Props {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }
 
-export const UploadPageContent: React.FC<Props> = ({ title, children }) => {
-  return (
-    <Box
-      sx={{
-        padding: 1.5,
-        paddingTop: 3,
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        minHeight: "calc(100vh - 64px)",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text variant="h3" sx={{ marginLeft: 1.5 }} bold>
-          {title}
-        </Text>
-        {SHOW_TESTING_ENVIRONMENT_WARNING && <DevEnvWarning />}
-      </Box>
-      {children}
-    </Box>
-  );
-};
+// The flow header above shows the testing-environment warning.
+export const UploadPageContent: React.FC<Props> = ({ title, subtitle, children }) => (
+  <FlowPage>
+    <FlowPageHead title={title} subtitle={subtitle} />
+    {children}
+  </FlowPage>
+);

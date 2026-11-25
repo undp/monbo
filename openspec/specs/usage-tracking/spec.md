@@ -5,9 +5,7 @@
 Define which usage events Monbo records about uploads, validations, analyses and reports, who records
 each one (the API or the browser), what an event may and may never carry, the anonymous
 session ID and the usage headers, the public `POST /events`, and where events are stored.
-
 ## Requirements
-
 ### Requirement: An anonymous session ID per browser tab
 
 The web SHALL create a random UUID v4 the first time it needs a session ID and SHALL keep it in `sessionStorage`, next to the selected country, for the life of the tab. When `sessionStorage` is unavailable, the ID SHALL live in memory for the page's life. The ID SHALL NOT be reset when the selected country changes. The web SHALL NOT store it in a cookie or in `localStorage`, and SHALL NOT derive it from anything about the user or the device.
@@ -34,12 +32,12 @@ The web SHALL create a random UUID v4 the first time it needs a session ID and S
 
 ### Requirement: Requests carry the usage context in headers
 
-The web SHALL send these headers on `POST /farms/parse`, `POST /polygons_validation/validate` and `POST /deforestation_analysis/analize`:
+The web SHALL send these headers on `POST /farms/parse`, `POST /polygons_validation/validate` and `POST /layer_analysis/analyze`:
 - `X-Monbo-Session`: the session ID;
 - `X-Monbo-Country`: the selected country code;
 - `X-Monbo-Module`: on `/farms/parse` only, `polygons-validation` or `deforestation-analysis`, after the page that sent the upload.
 
-The API SHALL treat every one of them as optional. The request SHALL be processed the same with or without them, and with invalid values. An invalid value is a session that isn't a UUID, a country that isn't two uppercase letters, or an unknown module. The API SHALL record such a value as `null`. For `/deforestation_analysis/analize`, the event's country SHALL be the request body's `country`, not the header.
+The API SHALL treat every one of them as optional. The request SHALL be processed the same with or without them, and with invalid values. An invalid value is a session that isn't a UUID, a country that isn't two uppercase letters, or an unknown module. The API SHALL record such a value as `null`. For `/layer_analysis/analyze`, the event's country SHALL be the request body's `country`, not the header.
 
 #### Scenario: Headers from the current web
 
@@ -58,7 +56,7 @@ The API SHALL treat every one of them as optional. The request SHALL be processe
 
 ### Requirement: The API records an event for each upload, validation and analysis
 
-The API SHALL record exactly one event for every request to `POST /farms/parse` (`upload`), `POST /polygons_validation/validate` (`validation`) and `POST /deforestation_analysis/analize` (`analysis`), whatever its result. The event's outcome SHALL be:
+The API SHALL record exactly one event for every request to `POST /farms/parse` (`upload`), `POST /polygons_validation/validate` (`validation`) and `POST /layer_analysis/analyze` (`analysis`), whatever its result. The event's outcome SHALL be:
 - `ok` when the status code is below 400;
 - `invalid_input` from 400 to 499;
 - `server_error` from 500 on, and when the request raises an unhandled exception.
@@ -84,7 +82,7 @@ On an error, the counts SHALL be absent.
 
 #### Scenario: Body that fails request validation
 
-- **WHEN** `/deforestation_analysis/analize` answers 422 because the body is malformed
+- **WHEN** `/layer_analysis/analyze` answers 422 because the body is malformed
 - **THEN** one `analysis` event is recorded with outcome `invalid_input`
 
 #### Scenario: Server error
@@ -92,19 +90,29 @@ On an error, the counts SHALL be absent.
 - **WHEN** `/polygons_validation/validate` raises an unhandled exception
 - **THEN** one `validation` event is recorded with outcome `server_error`, and the client gets a 500
 
+#### Scenario: The removed analysis route records nothing
+
+- **WHEN** a client posts an analysis body to `/deforestation_analysis/analize`, which answers 404
+- **THEN** no `analysis` event is recorded
+
 ### Requirement: The browser reports report requests and downloads
 
 The web SHALL send events to `POST /events`:
-- **`report_requested`:** when the user clicks "Generate report" with at least one farm selected, with `farms` set to the number of selected farms. A click with no farm selected SHALL NOT send it.
-- **`report_downloaded`, outcome `ok`:** after a report is saved. `format` SHALL be `pdf` for the complete report (one PDF) and `zip` for the separated or large report (one PDF per farm), and `farms` the number of farms in it.
+- **`report_requested`:** when the user presses "Generar vista previa" or "Actualizar vista previa" on the report page, with `farms` set to the number of ticked farms. The button is off with no farm ticked, so no event is sent for an empty choice.
+- **`report_downloaded`, outcome `ok`:** after a report is saved. `format` SHALL be `pdf` for the complete report (one PDF) and `zip` for the separated or large report (one PDF per farm), and `farms` the number of farms in it. Saving the GeoJSON SHALL NOT send it.
 - **`report_downloaded`, outcome `error`:** when a download fails with the error message shown to the user, with the same `format` and `farms`.
 
 Every event SHALL carry the session ID and the selected country. The web SHALL NOT send an event when the user cancels a large report, leaves the page during a render, or is sent back to re-run the analysis because a layer changed. The web SHALL send events in the background with `keepalive`, SHALL ignore their failures, and SHALL NOT show them to the user.
 
-#### Scenario: Generate report
+#### Scenario: Generate the preview
 
-- **WHEN** a user selects 5 farms and clicks "Generate report"
+- **WHEN** a user ticks 5 farms and presses "Generar vista previa"
 - **THEN** a `report_requested` event with `farms` 5 is sent
+
+#### Scenario: Opening the report page
+
+- **WHEN** the user opens the report page
+- **THEN** no `report_requested` event is sent
 
 #### Scenario: One PDF
 
@@ -115,6 +123,11 @@ Every event SHALL carry the session ID and the selected country. The web SHALL N
 
 - **WHEN** the user downloads the separated reports of 5 farms as a ZIP
 - **THEN** a `report_downloaded` event with outcome `ok`, `format` `zip` and `farms` 5 is sent
+
+#### Scenario: GeoJSON
+
+- **WHEN** the user saves the report's GeoJSON
+- **THEN** no `report_downloaded` event is sent
 
 #### Scenario: Cancelled large report
 

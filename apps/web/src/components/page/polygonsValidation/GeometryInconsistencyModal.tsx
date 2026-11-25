@@ -11,11 +11,13 @@ import {
   getPolygonVertices,
   parseLatitude,
   parseLongitude,
+  knownArea,
   parseAreaToHectares,
 } from "@/utils/polygons";
 import { IconButton, SxProps, Box, Button } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 import { DataContext } from "@/context/DataContext";
@@ -126,6 +128,7 @@ const generateRows = (
   return data.farmIds.map((farmId, idx) => {
     const farm = farmsData.find((farm) => farm.id === farmId);
     if (!farm) return null;
+    const area = knownArea(farm.polygon.area);
 
     return {
       haveActions: true,
@@ -150,9 +153,11 @@ const generateRows = (
         },
         id: { value: farm.id },
         area: {
-          value: farm.polygon.area
-            ? parseAreaToHectares(farm.polygon.area, 2, false, language)
-            : t("common:na"),
+          // 0 is a computed area; only a failed one is unknown
+          value:
+            area !== null
+              ? parseAreaToHectares(area, 2, false, language)
+              : t("common:na"),
         },
       },
       data,
@@ -231,11 +236,9 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
   return (
     <BasePolygonModal
       size="xl"
-      title={
-        <Text variant="h6" bold>
-          {t("polygonValidation:geometryInconsistencyModal.title")}
-        </Text>
-      }
+      title={t("polygonValidation:geometryInconsistencyModal.title")}
+      icon={<ErrorOutlineRoundedIcon />}
+      tone="bad"
       hideCloseButton
       isOpen={isOpen}
       row={row}
@@ -254,6 +257,12 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
         headers,
         actions: (item, idx) => (
           <IconButton
+            // Icon only: named by its farm, and saying whether its row is open
+            aria-label={t("polygonValidation:geometryInconsistencyModal.farmDetails", {
+              id: item.data?.farmIds[idx],
+              interpolation: { escapeValue: false },
+            })}
+            aria-expanded={openedRows.includes(item.data!.farmIds[idx])}
             onClick={() =>
               setOpenedRows((prev) => {
                 if (!item.data) return prev;
@@ -273,19 +282,9 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
         ),
       }}
       footer={
-        <Box
-          sx={{
-            marginTop: 3,
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 2,
-            backgroundColor: "white",
-          }}
-        >
-          <Button variant="contained" onClick={handleModalClose}>
-            {t("common:close")}
-          </Button>
-        </Box>
+        <Button variant="contained" onClick={handleModalClose}>
+          {t("common:close")}
+        </Button>
       }
     >
       <Box

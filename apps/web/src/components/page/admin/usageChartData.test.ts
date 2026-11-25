@@ -7,6 +7,7 @@ import {
   countryColors,
   countryShares,
   funnelStages,
+  hasUsage,
   stepOutcomes,
   weeklySeries,
 } from "./usageChartData";
@@ -162,5 +163,13 @@ describe("weeklySeries", () => {
     expect(weeklySeries(weekly, "sessions")).toEqual([2, 5]);
     expect(weeklySeries(weekly, "uploads")).toEqual([1, 3]);
     expect(weeklySeries(weekly, "reportsDownloaded")).toEqual([5, 5]);
+  });
+});
+
+describe("hasUsage", () => {
+  it("is false when every value is 0, and true with any count", () => {
+    expect(hasUsage([])).toBe(false);
+    expect(hasUsage([0, 0, 0])).toBe(false);
+    expect(hasUsage([0, 1, 0])).toBe(true);
   });
 });

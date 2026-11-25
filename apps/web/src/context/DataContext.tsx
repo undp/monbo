@@ -14,17 +14,31 @@ import {
 } from "react";
 import { ValidateFarmsResponse } from "@/interfaces/PolygonValidation";
 import { FarmData } from "@/interfaces/Farm";
+import type { UploadSource } from "@/utils/uploadSources";
 import {
-  DeforestationAnalysisMapResults,
+  LayerAnalysisMapResults,
   MapData,
-} from "@/interfaces/DeforestationAnalysis";
-import { getMaps } from "@/api/deforestationAnalysis";
+} from "@/interfaces/LayerAnalysis";
+import { getMaps } from "@/api/layerAnalysis";
+import { getLayerCategories } from "@/api/layerCategories";
+import type { LayerCategory } from "@/interfaces/LayerCategory";
 import { getCountries } from "@/api/countries";
 import { orderBy } from "lodash";
 import {
   AVAILABLE_MAPS_POLLING_INTERVAL,
   ON_DEMAND_REFRESH_MIN_GAP,
 } from "@/config/constants";
+
+/**
+ * What the stage 2 page is editing: the polygon subset and the layers (by id) of
+ * the next analysis. Kept apart from `territorialAnalysisParams`, which is what
+ * the current results were analysed with: editing never changes the results or the
+ * report until "Analizar" runs a new analysis.
+ */
+export interface AnalysisDraft {
+  polygonsSubset: "all" | "valid";
+  selectedMapIds: number[];
+}
 
 export interface DataContextValue {
   farmsData: FarmData[] | null;
@@ -33,23 +47,31 @@ export interface DataContextValue {
   setPolygonsValidationResults: Dispatch<
     SetStateAction<DataContextValue["polygonsValidationResults"]>
   >;
-  deforestationAnalysisParams: {
+  /** The subset and layers the current results were analysed with. */
+  territorialAnalysisParams: {
     polygonsSubset: "all" | "valid" | null;
     selectedMaps: MapData[];
   };
-  setDeforestationAnalysisParams: Dispatch<
-    SetStateAction<DataContextValue["deforestationAnalysisParams"]>
+  setTerritorialAnalysisParams: Dispatch<
+    SetStateAction<DataContextValue["territorialAnalysisParams"]>
   >;
-  deforestationAnalysisResults: DeforestationAnalysisMapResults[] | null;
-  setDeforestationAnalysisResults: Dispatch<
-    SetStateAction<DataContextValue["deforestationAnalysisResults"]>
+  /** The stage 2 page's choices for the next analysis; null until edited. */
+  analysisDraft: AnalysisDraft | null;
+  setAnalysisDraft: Dispatch<SetStateAction<AnalysisDraft | null>>;
+  territorialAnalysisResults: LayerAnalysisMapResults[] | null;
+  setTerritorialAnalysisResults: Dispatch<
+    SetStateAction<DataContextValue["territorialAnalysisResults"]>
   >;
   analysisOutdated: boolean;
   setAnalysisOutdated: Dispatch<SetStateAction<boolean>>;
   /** Drop results computed on a layer that changed since, and ask for a re-run. */
   invalidateAnalysis: () => void;
   reportGenerationParams: {
-    initialFarmSelection: "all" | "select";
+    /**
+     * The report page set its defaults (every farm and analysed layer) for the
+     * current analysis. Dropped with the choices, so the next visit sets them again.
+     */
+    seeded: boolean;
     selectedMaps: MapData[];
     selectedFarms: FarmData[];
     downloadType: "combined" | "separated" | null;
@@ -58,6 +80,9 @@ export interface DataContextValue {
     SetStateAction<DataContextValue["reportGenerationParams"]>
   >;
   availableMaps: MapData[];
+  // The selected country's layer categories (`GET /categories`), fetched with its
+  // layers: a layer is never listed without the categories of its own country.
+  availableCategories: LayerCategory[];
   // The selected country's layers could not be fetched (and none arrived yet)
   availableMapsError: boolean;
   setAvailableMaps: Dispatch<SetStateAction<MapData[]>>;
@@ -75,6 +100,16 @@ export interface DataContextValue {
   setSelectedCountry: (code: string | null) => void;
   // False until `selectedCountry` has been read from sessionStorage.
   countryHydrated: boolean;
+  /** The flow's upload list: both stages' upload pages show and edit it, so it
+   * is still there when the user comes back to add or remove polygons. */
+  uploadSources: UploadSource[];
+  setUploadSources: Dispatch<SetStateAction<UploadSource[]>>;
+  /** Goes up on every change to `uploadSources`. */
+  uploadSourcesRevision: number;
+  /** The `uploadSourcesRevision` the loaded farms were parsed from; null when
+   * they came from no list. Equal to it: the list didn't change since. */
+  farmsSourcesRevision: number | null;
+  setFarmsSourcesRevision: Dispatch<SetStateAction<number | null>>;
   // Drops the loaded farms, every result and the analysis and report params.
   resetAnalysis: () => void;
 }
@@ -122,15 +157,16 @@ const writeSelectedCountry = (code: string | null) => {
   selectedCountryListeners.forEach((listener) => listener());
 };
 
-const initialDeforestationAnalysisParams: DataContextValue["deforestationAnalysisParams"] =
+const initialTerritorialAnalysisParams: DataContextValue["territorialAnalysisParams"] =
   {
     polygonsSubset: "valid",
     selectedMaps: [],
   };
 
-const initialReportGenerationParams: DataContextValue["reportGenerationParams"] =
+/** No report choice: the report page sets its defaults on its next visit. */
+export const initialReportGenerationParams: DataContextValue["reportGenerationParams"] =
   {
-    initialFarmSelection: "all",
+    seeded: false,
     selectedMaps: [],
     selectedFarms: [],
     downloadType: null,
@@ -141,16 +177,19 @@ export const DataContext = createContext<DataContextValue>({
   setFarmsData: () => {},
   polygonsValidationResults: null,
   setPolygonsValidationResults: () => {},
-  deforestationAnalysisParams: initialDeforestationAnalysisParams,
-  setDeforestationAnalysisParams: () => {},
-  deforestationAnalysisResults: null,
-  setDeforestationAnalysisResults: () => {},
+  territorialAnalysisParams: initialTerritorialAnalysisParams,
+  setTerritorialAnalysisParams: () => {},
+  analysisDraft: null,
+  setAnalysisDraft: () => {},
+  territorialAnalysisResults: null,
+  setTerritorialAnalysisResults: () => {},
   analysisOutdated: false,
   setAnalysisOutdated: () => {},
   invalidateAnalysis: () => {},
   reportGenerationParams: initialReportGenerationParams,
   setReportGenerationParams: () => {},
   availableMaps: [],
+  availableCategories: [],
   availableMapsError: false,
   setAvailableMaps: () => {},
   refreshAvailableMaps: () => {},
@@ -160,6 +199,11 @@ export const DataContext = createContext<DataContextValue>({
   selectedCountry: null,
   setSelectedCountry: () => {},
   countryHydrated: false,
+  uploadSources: [],
+  setUploadSources: () => {},
+  uploadSourcesRevision: 0,
+  farmsSourcesRevision: null,
+  setFarmsSourcesRevision: () => {},
   resetAnalysis: () => {},
 });
 
@@ -171,10 +215,14 @@ export const DataContext = createContext<DataContextValue>({
 type KeptKey =
   | "farmsData"
   | "polygonsValidationResults"
-  | "deforestationAnalysisParams"
-  | "deforestationAnalysisResults"
+  | "territorialAnalysisParams"
+  | "analysisDraft"
+  | "territorialAnalysisResults"
   | "analysisOutdated"
-  | "reportGenerationParams";
+  | "reportGenerationParams"
+  | "uploadSources"
+  | "uploadSourcesRevision"
+  | "farmsSourcesRevision";
 const keptState: Partial<Pick<DataContextValue, KeptKey>> = {};
 
 /**
@@ -216,14 +264,16 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
   const [polygonsValidationResults, setPolygonsValidationResults] =
     useKeptState("polygonsValidationResults", null);
 
-  const [deforestationAnalysisParams, setDeforestationAnalysisParams] =
+  const [territorialAnalysisParams, setTerritorialAnalysisParams] =
     useKeptState(
-      "deforestationAnalysisParams",
-      initialDeforestationAnalysisParams
+      "territorialAnalysisParams",
+      initialTerritorialAnalysisParams
     );
 
-  const [deforestationAnalysisResults, setDeforestationAnalysisResults] =
-    useKeptState("deforestationAnalysisResults", null);
+  const [analysisDraft, setAnalysisDraft] = useKeptState("analysisDraft", null);
+
+  const [territorialAnalysisResults, setTerritorialAnalysisResults] =
+    useKeptState("territorialAnalysisResults", null);
   const [analysisOutdated, setAnalysisOutdated] = useKeptState(
     "analysisOutdated",
     false
@@ -234,22 +284,44 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     initialReportGenerationParams
   );
 
+  const [uploadSources, setUploadSourcesState] = useKeptState(
+    "uploadSources",
+    []
+  );
+  const [uploadSourcesRevision, setUploadSourcesRevision] = useKeptState(
+    "uploadSourcesRevision",
+    0
+  );
+  // Every change to the list counts, even one that leaves it equal: confirming
+  // it then re-parses it, which is the safe direction.
+  const setUploadSources = useCallback<
+    Dispatch<SetStateAction<UploadSource[]>>
+  >(
+    (action) => {
+      setUploadSourcesState(action);
+      setUploadSourcesRevision((revision) => revision + 1);
+    },
+    [setUploadSourcesState, setUploadSourcesRevision]
+  );
+  const [farmsSourcesRevision, setFarmsSourcesRevision] = useKeptState(
+    "farmsSourcesRevision",
+    null
+  );
+
   const invalidateAnalysis = useCallback(() => {
     // The API results and report used previous calculation inputs. Hide them
     // before the map or its interpretation switches to the new values.
-    setDeforestationAnalysisResults(null);
-    setReportGenerationParams((prev) => ({
-      ...prev,
-      selectedMaps: [],
-      selectedFarms: [],
-      downloadType: null,
-    }));
+    setTerritorialAnalysisResults(null);
+    setReportGenerationParams(initialReportGenerationParams);
     setAnalysisOutdated(true);
-  }, [setDeforestationAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
+  }, [setTerritorialAnalysisResults, setReportGenerationParams, setAnalysisOutdated]);
 
   // TODO: fetch API for available maps
   const [availableMaps, setAvailableMaps] = useState<
     DataContextValue["availableMaps"]
+  >([]);
+  const [availableCategories, setAvailableCategories] = useState<
+    LayerCategory[]
   >([]);
   // The country the current list belongs to, and the one whose fetch failed: a
   // list is only shown for its own country, and an error only while that
@@ -288,59 +360,101 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     flowGeneration += 1;
     setFarmsData(null);
     setPolygonsValidationResults(null);
-    setDeforestationAnalysisResults(null);
+    setTerritorialAnalysisResults(null);
     setAnalysisOutdated(false);
-    setDeforestationAnalysisParams(initialDeforestationAnalysisParams);
+    setTerritorialAnalysisParams(initialTerritorialAnalysisParams);
+    setAnalysisDraft(null);
     setReportGenerationParams(initialReportGenerationParams);
+    setUploadSources([]);
+    setFarmsSourcesRevision(null);
   }, [
+    setUploadSources,
+    setFarmsSourcesRevision,
+    setAnalysisDraft,
     setFarmsData,
     setPolygonsValidationResults,
-    setDeforestationAnalysisResults,
+    setTerritorialAnalysisResults,
     setAnalysisOutdated,
-    setDeforestationAnalysisParams,
+    setTerritorialAnalysisParams,
     setReportGenerationParams,
   ]);
 
-  // Read the current analysis state on each poll without restarting the timer.
-  const onMapsLoaded = useEffectEvent((maps: MapData[], country: string) => {
-    setAvailableMaps(maps);
-    setAvailableMapsCountry(country);
-    setAvailableMapsErrorCountry(null);
-    const selectedMaps = deforestationAnalysisParams.selectedMaps;
-    if (!selectedMaps.length) return;
-
-    // Public /maps only returns enabled layers. A hidden layer keeps its last
-    // metadata only while an existing analysis refers to it; otherwise it is
-    // deselected, so a hidden layer is never used for a new analysis.
-    const refreshed = selectedMaps.flatMap((selected) => {
-      const listed = maps.find((map) => map.id === selected.id);
-      if (listed) return [listed];
-      return deforestationAnalysisResults ? [selected] : [];
-    });
-    const calculationChanged =
-      refreshed.length === selectedMaps.length &&
-      refreshed.some(
-        (map, index) =>
-          map.version !== selectedMaps[index].version ||
-          map.pixelSize !== selectedMaps[index].pixelSize ||
-          map.baseline !== selectedMaps[index].baseline ||
-          map.comparedAgainst !== selectedMaps[index].comparedAgainst
-      );
-
-    if (calculationChanged && deforestationAnalysisResults) {
-      invalidateAnalysis();
-    }
-
-    if (
-      refreshed.length !== selectedMaps.length ||
-      refreshed.some((map, index) => map !== selectedMaps[index])
-    ) {
-      setDeforestationAnalysisParams((prev) => ({
-        ...prev,
-        selectedMaps: refreshed,
-      }));
-    }
+  // The last polarity and `temporal` seen of each category of `country`. A
+  // category missing from a poll (disabled) keeps its entry, so one that changes
+  // while hidden still counts as changed when it comes back.
+  const knownCategories = useRef({
+    country: null as string | null,
+    byId: new Map<string, Pick<LayerCategory, "polarity" | "temporal">>(),
   });
+
+  // Read the current analysis state on each poll without restarting the timer.
+  const onMapsLoaded = useEffectEvent(
+    (maps: MapData[], categories: LayerCategory[], country: string) => {
+      const known = knownCategories.current;
+      if (known.country !== country) {
+        known.country = country;
+        known.byId = new Map();
+      }
+      // Categories whose reading of a result changed since the last poll: the
+      // same value would now give the opposite finding, or another kind of one.
+      const reinterpreted = new Set(
+        categories
+          .filter((category) => {
+            const before = known.byId.get(category.id);
+            return (
+              before !== undefined &&
+              (before.polarity !== category.polarity ||
+                before.temporal !== category.temporal)
+            );
+          })
+          .map((category) => category.id)
+      );
+      for (const { id, polarity, temporal } of categories) {
+        known.byId.set(id, { polarity, temporal });
+      }
+
+      setAvailableMaps(maps);
+      setAvailableCategories(categories);
+      setAvailableMapsCountry(country);
+      setAvailableMapsErrorCountry(null);
+      const selectedMaps = territorialAnalysisParams.selectedMaps;
+      if (!selectedMaps.length) return;
+
+      // Public /maps only returns enabled layers. A hidden layer keeps its last
+      // metadata only while an existing analysis refers to it; otherwise it is
+      // deselected, so a hidden layer is never used for a new analysis.
+      const refreshed = selectedMaps.flatMap((selected) => {
+        const listed = maps.find((map) => map.id === selected.id);
+        if (listed) return [listed];
+        return territorialAnalysisResults ? [selected] : [];
+      });
+      const calculationChanged =
+        refreshed.length === selectedMaps.length &&
+        refreshed.some(
+          (map, index) =>
+            map.version !== selectedMaps[index].version ||
+            map.pixelSize !== selectedMaps[index].pixelSize ||
+            map.baseline !== selectedMaps[index].baseline ||
+            map.comparedAgainst !== selectedMaps[index].comparedAgainst ||
+            map.categoryId !== selectedMaps[index].categoryId ||
+            reinterpreted.has(map.categoryId)
+        );
+
+      if (calculationChanged && territorialAnalysisResults) {
+        invalidateAnalysis();
+      }
+
+      if (
+        refreshed.length !== selectedMaps.length ||
+        refreshed.some((map, index) => map !== selectedMaps[index])
+      ) {
+        setTerritorialAnalysisParams((prev) => ({
+          ...prev,
+          selectedMaps: refreshed,
+        }));
+      }
+    }
+  );
 
   // The latest fetch of each list. Every fetch takes the next request number and
   // its response is applied only while it is still the latest, so a late
@@ -385,8 +499,14 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     latest.startedAt = Date.now();
     latest.inFlight = true;
     let maps: MapData[];
+    let categories: LayerCategory[];
     try {
-      maps = await getMaps(locale, country);
+      // Both or neither: grouping layers without their categories would classify
+      // them with no rule.
+      [maps, categories] = await Promise.all([
+        getMaps(locale, country),
+        getLayerCategories(country),
+      ]);
     } catch (error) {
       console.error(error);
       if (request === latest.request) setAvailableMapsErrorCountry(country);
@@ -395,7 +515,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       if (request === latest.request) latest.inFlight = false;
     }
     if (request !== latest.request) return;
-    onMapsLoaded(maps, country);
+    onMapsLoaded(maps, categories, country);
   });
 
   // On-demand refetches skip a list fetched recently; the poll and a country
@@ -492,10 +612,14 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     () => (availableMapsCountry === selectedCountry ? availableMaps : []),
     [availableMaps, availableMapsCountry, selectedCountry]
   );
+  const currentCountryCategories = useMemo(
+    () => (availableMapsCountry === selectedCountry ? availableCategories : []),
+    [availableCategories, availableMapsCountry, selectedCountry]
+  );
 
-  const sortedDeforestationAnalysisParamsSelectedMaps = useMemo(
-    () => orderBy(deforestationAnalysisParams.selectedMaps, "id"),
-    [deforestationAnalysisParams.selectedMaps]
+  const sortedTerritorialAnalysisParamsSelectedMaps = useMemo(
+    () => orderBy(territorialAnalysisParams.selectedMaps, "id"),
+    [territorialAnalysisParams.selectedMaps]
   );
 
   const currentState = useMemo(() => {
@@ -504,13 +628,15 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setFarmsData,
       polygonsValidationResults,
       setPolygonsValidationResults,
-      deforestationAnalysisParams: {
-        ...deforestationAnalysisParams,
-        selectedMaps: sortedDeforestationAnalysisParamsSelectedMaps,
+      territorialAnalysisParams: {
+        ...territorialAnalysisParams,
+        selectedMaps: sortedTerritorialAnalysisParamsSelectedMaps,
       },
-      setDeforestationAnalysisParams,
-      deforestationAnalysisResults,
-      setDeforestationAnalysisResults,
+      setTerritorialAnalysisParams,
+      analysisDraft,
+      setAnalysisDraft,
+      territorialAnalysisResults,
+      setTerritorialAnalysisResults,
       analysisOutdated,
       setAnalysisOutdated,
       invalidateAnalysis,
@@ -518,6 +644,7 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       setReportGenerationParams,
       // Another country's list (still there right after a change) is never shown.
       availableMaps: currentCountryMaps,
+      availableCategories: currentCountryCategories,
       availableMapsError:
         availableMapsErrorCountry === selectedCountry &&
         availableMapsCountry !== selectedCountry,
@@ -529,6 +656,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
       selectedCountry,
       setSelectedCountry: writeSelectedCountry,
       countryHydrated,
+      uploadSources,
+      setUploadSources,
+      uploadSourcesRevision,
+      farmsSourcesRevision,
+      setFarmsSourcesRevision,
       resetAnalysis,
     };
   }, [
@@ -536,17 +668,20 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     setFarmsData,
     polygonsValidationResults,
     setPolygonsValidationResults,
-    deforestationAnalysisParams,
-    sortedDeforestationAnalysisParamsSelectedMaps,
-    setDeforestationAnalysisParams,
-    deforestationAnalysisResults,
-    setDeforestationAnalysisResults,
+    territorialAnalysisParams,
+    sortedTerritorialAnalysisParamsSelectedMaps,
+    setTerritorialAnalysisParams,
+    analysisDraft,
+    setAnalysisDraft,
+    territorialAnalysisResults,
+    setTerritorialAnalysisResults,
     analysisOutdated,
     setAnalysisOutdated,
     invalidateAnalysis,
     reportGenerationParams,
     setReportGenerationParams,
     currentCountryMaps,
+    currentCountryCategories,
     availableMapsCountry,
     availableMapsErrorCountry,
     setAvailableMaps,
@@ -556,6 +691,11 @@ const DataProvider: React.FC<{ children: React.ReactNode; locale: string }> = ({
     availableCountriesError,
     selectedCountry,
     countryHydrated,
+    uploadSources,
+    setUploadSources,
+    uploadSourcesRevision,
+    farmsSourcesRevision,
+    setFarmsSourcesRevision,
     resetAnalysis,
   ]);
 

@@ -1,9 +1,11 @@
 import { Button, CircularProgress, Menu, MenuItem } from "@mui/material";
-import DownloadIcon from "@mui/icons-material/Download";
-import React, { useCallback } from "react";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import React, { useCallback, useId } from "react";
+import { useTranslation } from "react-i18next";
+import { PAGE_ACTION_HEIGHT } from "@/components/page/flow/flowStyles";
 
 interface DownloadButtonProps {
-  size?: number;
   options?: {
     label: string;
     onClick: () => Promise<void> | void;
@@ -11,13 +13,17 @@ interface DownloadButtonProps {
   }[];
 }
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({
-  size = 35,
-  options,
-}) => {
+/**
+ * "Descargar", with its formats in a menu: an outlined button as the page's other
+ * actions (e.g. "Cambiar capas"), named by its text.
+ */
+export const DownloadButton: React.FC<DownloadButtonProps> = ({ options }) => {
+  const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const open = Boolean(anchorEl);
+  const buttonId = useId();
+  const menuId = useId();
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -46,23 +52,28 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     <>
       <Button
         variant="outlined"
-        sx={{ padding: 0, minWidth: size, height: size }}
-        id="basic-button"
+        id={buttonId}
         disabled={isLoading}
-        aria-controls={open ? "basic-menu" : undefined}
+        aria-controls={open ? menuId : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
         onClick={handleClick}
+        startIcon={
+          isLoading ? <CircularProgress size={18} color="inherit" /> : <DownloadRoundedIcon />
+        }
+        endIcon={<KeyboardArrowDownRoundedIcon />}
+        sx={{ height: PAGE_ACTION_HEIGHT, whiteSpace: "nowrap", flexShrink: 0 }}
       >
-        {isLoading ? <CircularProgress size={20} /> : <DownloadIcon />}
+        {t("common:download")}
       </Button>
       <Menu
-        id="basic-menu"
+        id={menuId}
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
+        slotProps={{
+          list: { "aria-labelledby": buttonId },
+          paper: { sx: { borderRadius: "10px", minWidth: 160 } },
         }}
       >
         {options?.map((option) => (

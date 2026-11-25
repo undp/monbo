@@ -1,6 +1,8 @@
 {
   "addTitle": "Agregar finca manualmente",
   "editTitle": "Editar finca",
+  "addSubtitle": "Dibuja la finca en el mapa satelital y completa sus datos de producción.",
+  "editSubtitle": "Ajusta el dibujo de la finca o sus datos de producción.",
   "close": "Cerrar",
   "geometry": {
     "label": "Dibujar",
@@ -48,6 +50,7 @@
     }
   },
   "goTo": {
+    "title": "Ir a coordenadas",
     "latitude": "Latitud",
     "longitude": "Longitud",
     "invalid": "Usa una latitud entre -90 y 90 y una longitud entre -180 y 180."
@@ -76,9 +79,12 @@
     "invalid": "No se pudo leer la geometría de esta finca: dibújala de nuevo."
   },
   "missingGeometry": "Dibuja el polígono o ubica el punto para agregar la finca.",
-  "openRing": {"part": "Cierra o descarta la parte para agregar la finca.", "hole": "Cierra o descarta el hueco para agregar la finca."},
+  "openRing": {
+    "part": "Cierra o descarta la parte para agregar la finca.",
+    "hole": "Cierra o descarta el hueco para agregar la finca."
+  },
   "fields": {
-    "mandatoryTitle": "Datos de la finca",
+    "mandatoryTitle": "Datos de producción",
     "optionalTitle": "Opcionales",
     "id": "ID",
     "producerName": "Nombre productor",

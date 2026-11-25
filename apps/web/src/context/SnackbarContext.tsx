@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, Grow, Snackbar, Stack } from "@mui/material";
+import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import React, {
   createContext,
   useCallback,
@@ -10,6 +11,15 @@ import React, {
 } from "react";
 
 export type SnackbarType = "success" | "info" | "error" | "warning";
+
+// The v2 look: a white card with the type's color on its icon and left edge, as
+// the stage pages' result pills use them
+const TYPE_COLORS: Record<SnackbarType, string> = {
+  success: FLOW_COLORS.ok,
+  info: FLOW_COLORS.blue,
+  warning: FLOW_COLORS.warn,
+  error: FLOW_COLORS.bad,
+};
 
 interface SnackbarContextValue {
   openSnackbar: (params: { message: string; type: SnackbarType }) => void;
@@ -34,10 +44,16 @@ interface SnackbarData {
 
 interface SnackbarProviderProps {
   children: React.ReactNode;
+  /**
+   * The translated name of each snackbar's close button. The provider sits in the
+   * root layout, above every page's translations, so the layout passes it in.
+   */
+  closeLabel: string;
 }
 
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
+  closeLabel,
 }) => {
   const [snackbarPool, setSnackbarPool] = useState<SnackbarData[]>([]);
 
@@ -103,6 +119,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
               key={id}
               open={open!}
               handleClose={() => handleCloseSnackbar(id)}
+              closeLabel={closeLabel}
               {...other}
             />
           ))}
@@ -117,12 +134,14 @@ interface CustomSnackbarProps {
   handleClose: () => void;
   message: React.ReactNode;
   type: SnackbarType;
+  closeLabel: string;
 }
 const CustomSnackbar: React.FC<CustomSnackbarProps> = ({
   open,
   handleClose,
   message,
   type,
+  closeLabel,
 }) => {
   useEffect(() => {
     if (!open) return;
@@ -133,7 +152,28 @@ const CustomSnackbar: React.FC<CustomSnackbarProps> = ({
 
   return (
     <Grow in={open} timeout={300} unmountOnExit>
-      <Alert onClose={handleClose} severity={type} variant="filled">
+      <Alert
+        onClose={handleClose}
+        closeText={closeLabel}
+        severity={type}
+        variant="outlined"
+        sx={{
+          alignItems: "center",
+          minWidth: 280,
+          maxWidth: 440,
+          padding: "6px 10px 6px 14px",
+          borderRadius: "12px",
+          border: `1px solid ${FLOW_COLORS.line}`,
+          borderLeft: `4px solid ${TYPE_COLORS[type]}`,
+          backgroundColor: FLOW_COLORS.white,
+          color: FLOW_COLORS.ink,
+          fontSize: 14,
+          fontWeight: 500,
+          boxShadow: "0 1px 2px rgba(11, 37, 69, 0.06), 0 12px 32px rgba(11, 37, 69, 0.14)",
+          "& .MuiAlert-icon": { color: TYPE_COLORS[type], opacity: 1 },
+          "& .MuiAlert-action .MuiIconButton-root": { color: FLOW_COLORS.muted },
+        }}
+      >
         {message}
       </Alert>
     </Grow>

@@ -41,6 +41,9 @@ importers:
       '@react-pdf/renderer':
         specifier: ^4.9.0
         version: 4.9.0(react@19.3.1)
+      '@tanstack/react-virtual':
+        specifier: ^3.14.26
+        version: 3.14.26(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@vis.gl/react-google-maps':
         specifier: ^1.10.2
         version: 1.10.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1020,6 +1023,15 @@ packages:
 
   '@swc/helpers@0.5.24':
     resolution: {integrity: sha512-6tcXo4kA8HgGO7AVmawB57RYi/piBPYVHVcO6dXjX+SZw8GoHmi262sp4v2Ha2kNP9Cx84qei27yT+fjS1lxgg==}
+
+  '@tanstack/react-virtual@3.14.26':
+    resolution: {integrity: sha512-HUDlfsrYH6ko5xH56L62Mcl/uzT+AGVNMHFuDNqDJMdZWc1AQa2oeVKNUvZ/RWBZQ4TYtyQerFrNvLnp39h65A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@tanstack/virtual-core@3.19.11':
+    resolution: {integrity: sha512-/5iHb0RHBvj8Di59FDs4ESNm45jls33aZAi4zccVXZjc/6ZvwQP6nzEYeT6weXjTf9E6/vrp2JhYWRyO+ZP13A==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -4652,6 +4664,14 @@ snapshots:
       tslib: 2.9.1
 
   '@swc/helpers@0.5.24': {}
+
+  '@tanstack/react-virtual@3.14.26(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      '@tanstack/virtual-core': 3.19.11
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+
+  '@tanstack/virtual-core@3.19.11': {}
 
   '@testing-library/dom@10.4.2':
     dependencies:

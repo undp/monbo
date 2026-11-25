@@ -21,7 +21,7 @@ from rasterio.transform import from_bounds
 
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.polygons import Coordinates
-from app.modules.deforestation_analysis.helpers import (
+from app.modules.layer_analysis.helpers import (
     get_loss_area_fraction,
     get_tile,
 )

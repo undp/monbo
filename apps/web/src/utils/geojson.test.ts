@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
+import type { TFunction } from "i18next";
+import { createTestI18n } from "@/test/i18n";
 import {
+  makeCategory,
   makeFarm,
+  makeFrontierCategory,
   makeMap,
   makeMapResults,
   makeMultiPolygonFarm,
@@ -10,7 +14,7 @@ import {
   makeValidationResults,
 } from "@/test/factories";
 import {
-  generateGeoJsonFarmsDataWithDeforestationAnalysis,
+  generateGeoJsonFarmsDataWithLayerAnalysis,
   generateGeoJsonFarmsDataWithPolygonsValidation,
   generateGeoJsonFeature,
 } from "./geojson";
@@ -76,37 +80,80 @@ describe("generateGeoJsonFarmsDataWithPolygonsValidation", () => {
   });
 });
 
-describe("generateGeoJsonFarmsDataWithDeforestationAnalysis", () => {
-  it("adds one formatted deforestation property per layer", () => {
+describe("generateGeoJsonFarmsDataWithLayerAnalysis", () => {
+  const tFor = async (locale: "es" | "en") =>
+    (await createTestI18n(locale)).getFixedT(locale) as TFunction;
+  const categories = [makeCategory({ thresholdPercentage: 2 }), makeFrontierCategory()];
+
+  it("adds each layer's finding and result, named after its category, in Spanish", async () => {
     setRuntimeConfig({
       deforestationThresholdPercentage: 1,
       overlapThresholdPercentage: 0,
     });
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" }), makeFarm({ id: "F02" }), makeFarm({ id: "F03" })],
       [makeMapResults(1, { F01: 0.014, F02: 0.004, F03: null })],
       [makeMap({ id: 1, alias: "GFW" })],
+      [makeCategory({ thresholdPercentage: 1 })],
+      await tFor("es"),
       "es"
     );
-    expect(
-      data.features.map((f) => f.properties["Deforestation according to GFW"])
-    ).toEqual(["1,4%", "< 1%", "N/A"]);
+    const property = (key: string) =>
+      data.features.map((f) => f.properties[key]);
+    expect(property("Deforestación · GFW — % hallazgo")).toEqual([
+      "1,4%",
+      "< 1%",
+      "Sin dato",
+    ]);
+    expect(property("Deforestación · GFW — Resultado")).toEqual([
+      "Con deforestación",
+      "Libre de deforestación",
+      "Sin dato",
+    ]);
   });
 
-  it("skips layers that are no longer available", () => {
-    setRuntimeConfig({
-      deforestationThresholdPercentage: 0,
-      overlapThresholdPercentage: 0,
+  it("reads a required category by what lies outside its layer, in English", async () => {
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
+      [makeFarm({ id: "F01" })],
+      [makeMapResults(5, { F01: 0.82 })],
+      [makeMap({ id: 5, alias: "UPRA", categoryId: "agricultural_frontier" })],
+      categories,
+      await tFor("en"),
+      "en"
+    );
+    expect(data.features[0].properties).toMatchObject({
+      "Agricultural frontier · UPRA — % finding": "18%",
+      "Agricultural frontier · UPRA — Result": "Outside the agricultural frontier",
     });
-    const data = generateGeoJsonFarmsDataWithDeforestationAnalysis(
+  });
+
+  it("says No data for a layer whose category is unknown", async () => {
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
+      [makeFarm({ id: "F01" })],
+      [makeMapResults(5, { F01: 0.5 })],
+      [makeMap({ id: 5, alias: "X", categoryId: "gone" })],
+      categories,
+      await tFor("en"),
+      "en"
+    );
+    expect(data.features[0].properties).toMatchObject({
+      "No category · X — % finding": "No data",
+      "No category · X — Result": "No data",
+    });
+  });
+
+  it("skips layers that are no longer available", async () => {
+    const data = generateGeoJsonFarmsDataWithLayerAnalysis(
       [makeFarm({ id: "F01" })],
       [makeMapResults(2, { F01: 0.5 })],
       [makeMap({ id: 1 })],
+      categories,
+      await tFor("en"),
       "en"
     );
     expect(
       Object.keys(data.features[0].properties).some((key) =>
-        key.startsWith("Deforestation according to")
+        key.includes(" — ")
       )
     ).toBe(false);
   });

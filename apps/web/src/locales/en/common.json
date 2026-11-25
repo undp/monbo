@@ -2,31 +2,38 @@
   "validatedManually": "Validated manually",
   "header": {
     "home": "Home",
-    "validation": "Polygon Validation",
-    "deforestation": "Deforestation Analysis",
-    "report": "Report Generation",
-    "documentation": "Documentation",
+    "analysis": "Analysis",
+    "methodology": "Methodology",
     "admin": {
       "layers": "Layers",
+      "categories": "Categories",
       "usage": "Usage",
-      "navigation": "Admin"
-    }
+      "navigation": "Admin",
+      "session": "Admin session",
+      "logout": "Log out"
+    },
+    "navigation": "Main navigation",
+    "menu": "Open the navigation menu",
+    "brandMarkTop": "UN",
+    "brandMarkBottom": "DP",
+    "logoLabel": "Monbo, by UNDP: go to the start page"
   },
   "language": {
     "select": "Language",
     "es": "Spanish",
     "en": "English"
   },
-  "documentation": {
-    "title": "Documentation",
-    "subtitle": "How to upload farms, and how Monbo validates polygons, measures farm areas and calculates deforestation.",
-    "contents": "On this page",
-    "summary": "In short"
-  },
   "cancel": "Cancel",
   "close": "Close",
+  "download": "Download",
+  "clearSearch": "Clear the search",
+  "mapControls": {
+    "center": "Center the map",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "contentTabs": "Content tabs",
   "all": "All",
-  "step": "Step",
   "surface": "Area",
   "devWarning": "You are in a testing environment; the analyses may not be official.",
   "polygon": "Polygon",
@@ -57,7 +64,7 @@
   "snackbarAlerts": {
     "parsingFarmsDataError": "An error occurred while processing the farms data",
     "performingAnalysisError": "An error occurred while performing the analysis",
-    "dataAnalizedSuccessfully": "Data analized successfully",
+    "dataAnalyzedSuccessfully": "Data analyzed successfully",
     "notValidFileContent": "The file content is not valid",
     "farmTooLargeForExcel": "Farm {{id}} has too many vertices for an Excel cell. Download the results as GeoJSON",
     "errorParsingDataForExcel": "There was an error parsing the data to generate the Excel file",
@@ -66,7 +73,8 @@
     "errorGeneratingGeoJsonFile": "There was an error generating the GeoJSON file",
     "errorDownloadingSeparatedReports": "There was an error downloading the separated reports",
     "errorDownloadingCompleteReport": "There was an error downloading the complete report",
-    "moreUploadErrors": "And {{count}} more errors in the file"
+    "moreUploadErrors_one": "And {{count}} more error in the file",
+    "moreUploadErrors_other": "And {{count}} more errors in the file"
   },
   "parseFileError": {
     "mandatoryDataMissing": "Missing mandatory data ({{header}}) in row {{row}}",
@@ -79,7 +87,7 @@
     "menuLabel": "Analysis country",
     "restartModal": {
       "title": "Changing the country restarts the analysis",
-      "description": "You already ran a deforestation analysis. To analyze {{country}} you have to start over and upload your polygons again. The loaded data and results will be lost.",
+      "description": "You already ran a territorial analysis. To analyze {{country}} you have to start over and upload your polygons again. You will lose the data you loaded and its results.",
       "cancel": "Cancel",
       "confirm": "Start over"
     }
@@ -135,12 +143,11 @@
     "featureWithoutRow": "There is no row in the Excel for {{feature}}"
   },
   "farmsUpload": {
-    "intro": "You can use any of these options, whichever fits your data best. You can combine them: all the farms add up in the list below.",
+    "intro": "Choose a method. You can combine them: everything adds up in the same list.",
     "dropzoneActive": "Drop the files here",
     "dropzoneButton": "Click to upload",
     "dropzoneText": "or drag and drop your files here",
-    "addManually": "Add manually",
-    "listTitle": "Farms to upload",
+    "listTitle": "Loaded polygons and points",
     "farmCount_one": "{{count}} farm",
     "farmCount_other": "{{count}} farms",
     "reading": "Reading…",
@@ -164,56 +171,55 @@
     "cards": {
       "excel": {
         "title": "Excel template",
-        "when": "You have each farm's coordinates as text (WKT or GeoJSON).",
+        "when": "Many polygons or points with their production data.",
         "steps": {
-          "1": "Download the template",
-          "2": "Fill in one row per farm, with its coordinates",
-          "3": "Upload it here"
+          "1": "Download the template.",
+          "2": "Fill in one row per polygon or point, with its coordinates and production data.",
+          "3": "Upload it here. You can upload several."
         },
         "drop": "Upload your Excel",
-        "extensions": ".xlsx · .xls",
-        "wrongType": "This is for the Excel template. Geo files (GeoJSON, KML, KMZ, Shapefile) go in “Geo file with data” or in “Geo file + Excel”."
+        "extensions": ".xlsx or .xls",
+        "wrongType": "This is for the Excel template. Geo files (GeoJSON, KML, KMZ, Shapefile) go in “Geo file” or in “Geo file + Excel”."
       },
       "geoData": {
-        "title": "Geo file with data",
-        "when": "Your farms are in a geo file (GeoJSON, KML/KMZ or Shapefile) that carries their data: producer, date, quantity, unit and crop.",
+        "title": "Geo file",
+        "when": "You already have a GeoJSON, KML or Shapefile with the data.",
         "steps": {
-          "1": "Check that the farms' attributes have the accepted names",
-          "2": "Upload the geo file (a Shapefile, in a .zip with its .prj)"
+          "1": "Check that each item has its producer, date, quantity, unit and crop.",
+          "2": "Upload the file (a Shapefile, in a .zip with its .prj). We show you the missing fields."
         },
         "drop": "Upload your geo file",
-        "extensions": ".geojson · .kml · .kmz · .zip",
-        "fieldsHelp": "Accepted names",
+        "extensions": ".geojson, .kml, .kmz or .zip (Shapefile)",
+        "fieldsHelp": "Accepted fields",
         "wrongType": "This is for a geo file. The Excel template goes in “Excel template”, or in “Geo file + Excel” with its geo file."
       },
       "geoExcel": {
         "title": "Geo file + Excel",
-        "when": "Your farms are in a geo file (GeoJSON, KML/KMZ or Shapefile), for example from Google Earth, and their data in an Excel. They are joined by each farm's ID.",
+        "when": "The geometries and the data are in separate files.",
         "steps": {
-          "1": "Give each farm in the geo file its ID (in Google Earth, as its name)",
-          "2": "Fill in this option's template with the same IDs",
-          "3": "Upload the geo file and the Excel"
+          "1": "Give each polygon or point its ID (in Google Earth, as its name).",
+          "2": "Fill in this option's template with the same IDs.",
+          "3": "Upload the geo file and the Excel: we join them by ID."
         },
         "geoDrop": "Geo file",
-        "geoExtensions": ".geojson · .kml · .kmz · .zip",
+        "geoExtensions": ".geojson, .kml, .kmz or .zip",
         "excelDrop": "Production Excel",
-        "excelExtensions": ".xlsx · .xls",
-        "waitingExcel": "The production Excel is missing to add the farms to the list",
-        "waitingGeo": "The geo file is missing to add the farms to the list",
+        "excelExtensions": ".xlsx or .xls",
+        "waitingExcel": "The production Excel is missing to add the polygons to the list",
+        "waitingGeo": "The geo file is missing to add the polygons to the list",
         "wrongGeoType": "This is for the geo file (GeoJSON, KML, KMZ or Shapefile). The production Excel goes next to it.",
         "wrongExcelType": "This is for the production Excel. The geo file goes next to it."
       },
       "manual": {
         "title": "Draw on the map",
-        "when": "Your farms aren't in a file, or there are only a few.",
+        "when": "One or a few polygons, quickly.",
         "steps": {
-          "1": "Find the farm on the map",
-          "2": "Draw its boundary or place a point",
-          "3": "Fill in its data"
+          "1": "Open the map and draw the polygon or place the point.",
+          "2": "Fill in the production data."
         }
       },
       "template": "Template",
-      "example": "Example",
+      "example": "See example",
       "exampleGeojson": "GeoJSON example",
       "exampleShapefile": "Shapefile example",
       "exampleKml": "KML example",
@@ -232,8 +238,47 @@
       "points_other": "{{count}} points",
       "and": "and",
       "sourcesWithProblems_one": "1 source with problems",
-      "sourcesWithProblems_other": "{{count}} sources with problems"
+      "sourcesWithProblems_other": "{{count}} sources with problems",
+      "polygonsLabel_one": "polygon",
+      "polygonsLabel_other": "polygons",
+      "pointsLabel_one": "point",
+      "pointsLabel_other": "points",
+      "emptyList": "The list is empty: add polygons to continue."
     },
-    "empty": "No farms yet: use one of the options above."
+    "empty": "No items yet.",
+    "methodsTitle": "How do you have your polygons or points?",
+    "methodsSubtitle": "Choose a method. You can use several.",
+    "howTo": "How to do it",
+    "dropTitle": "Drag your file here",
+    "browsePrefix": "or",
+    "browse": "browse your computer",
+    "loadedCount_one": "{{count}} loaded",
+    "loadedCount_other": "{{count}} loaded",
+    "emptyHint": "Use one or more of the methods above and your polygons will show up here.",
+    "removeAll": "Remove all",
+    "drawTitle": "Draw a polygon or place a point on the map",
+    "openMap": "Open map",
+    "removeFile": "Remove file",
+    "table": {
+      "id": "ID",
+      "producer": "Producer",
+      "crop": "Crop",
+      "production": "Production",
+      "type": "Type",
+      "origin": "Origin",
+      "actions": "Actions",
+      "drawn": "Drawing",
+      "removeRow": "Remove {{name}} from the list",
+      "editRow": "Edit {{name}}"
+    },
+    "notice": {
+      "actionOn": "{{action}}: {{name}}"
+    }
+  },
+  "layerResults": {
+    "categoryLayer": "{{- category}} · {{- layer}}",
+    "findingHeader": "{{- name}} — % finding",
+    "resultHeader": "{{- name}} — Result",
+    "sheetName": "Territorial analysis"
   }
 }

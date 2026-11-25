@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import { GeoImportRequestError, importGeoFile } from "@/api/farms";
 import { FarmRow } from "@/interfaces/FarmRow";
-import { ImportedFile } from "@/interfaces/Farm";
+import { FarmOrigin, ImportedFile } from "@/interfaces/Farm";
 import {
   COORDINATE_COLUMNS,
   GEO_FILE_EXCEL_MANDATORY_HEADERS,
@@ -29,6 +29,10 @@ interface SourceBase {
 
 export interface ExcelSource extends SourceBase {
   kind: "excel";
+  /** Positions in `rows` the user deleted from the list. Reading the same file
+   * again gives the same rows in the same order, so they survive a country
+   * change. */
+  removedRows: number[];
   name: string;
   /** Kept to read it again when the selected country changes */
   file: File;
@@ -43,6 +47,10 @@ export interface ExcelSource extends SourceBase {
 
 export interface GeoSource extends SourceBase {
   kind: "geo";
+  /** Positions the user deleted, in the Excel's rows when one is joined, else in
+   * the attribute rows. Attaching or detaching the Excel changes the rows, so it
+   * clears them. */
+  removedRows: number[];
   name: string;
   file: File;
   readFor: string | null;
@@ -96,6 +104,7 @@ export const readExcelSource = async (
   return {
     kind: "excel",
     key: newSourceKey(),
+    removedRows: [],
     name: file.name,
     file,
     readFor: selectedCountry,
@@ -115,6 +124,7 @@ export const readGeoSource = async (
   const source: GeoSource = {
     kind: "geo",
     key: newSourceKey(),
+    removedRows: [],
     name: file.name,
     file,
     readFor: selectedCountry,
@@ -195,6 +205,7 @@ export const attachExcel = async (
     return {
       ...source,
       readFor: selectedCountry,
+      removedRows: [],
       excel: {
         name: file.name,
         file,
@@ -214,6 +225,7 @@ export const attachExcel = async (
   return {
     ...source,
     readFor: selectedCountry,
+    removedRows: [],
     excel: {
       name: file.name,
       file,
@@ -236,12 +248,13 @@ export const readGeoFileWithExcel = async (
 
 export const detachExcel = (source: GeoSource): GeoSource => ({
   ...source,
+  removedRows: [],
   excel: null,
 });
 
 /**
  * The sources read again against the context's selected country, keeping their
- * keys: a file whose farms are in another country stops being uploadable when the
+ * keys and the rows the user deleted: a file whose farms are in another country stops being uploadable when the
  * user changes the country after dropping it. Manual farms, and files the API
  * rejected, stay as they are; a geo file isn't sent to the API again, its
  * features are kept.
@@ -259,22 +272,26 @@ export const rereadSources = (
           return {
             ...(await readExcelSource(source.file, context)),
             key: source.key,
+            removedRows: source.removedRows,
           };
         case "geo": {
           // A rejected file stays rejected whatever the country
           if (!source.geoFile)
             return { ...source, readFor: context.selectedCountry };
           const fromAttributes = withAttributeRows(source, context);
-          return source.excel
-            ? attachExcel(fromAttributes, source.excel.file, context)
-            : fromAttributes;
+          if (!source.excel) return fromAttributes;
+          // The same Excel again: its rows, and so the deleted ones, are the same
+          return {
+            ...(await attachExcel(fromAttributes, source.excel.file, context)),
+            removedRows: source.removedRows,
+          };
         }
       }
     })
   );
 
-/** The farms the source contributes, when it can be uploaded. */
-export const sourceRows = (source: UploadSource): FarmRow[] => {
+/** Every farm the source read, including the ones the user deleted. */
+const readRows = (source: UploadSource): FarmRow[] => {
   switch (source.kind) {
     case "excel":
       return source.rows;
@@ -282,6 +299,56 @@ export const sourceRows = (source: UploadSource): FarmRow[] => {
       return source.excel ? source.excel.rows : source.attributeRows;
     case "manual":
       return [source.row];
+  }
+};
+
+/** A farm of the list, with its position among the rows its source read: what
+ * deleting it from the list removes. */
+export interface ListedRow {
+  row: FarmRow;
+  index: number;
+}
+
+/** The source's farms left in the list, with their positions. */
+export const sourceListedRows = (source: UploadSource): ListedRow[] => {
+  const removed = source.kind === "manual" ? [] : source.removedRows;
+  return readRows(source)
+    .map((row, index) => ({ row, index }))
+    .filter(({ index }) => !removed.includes(index));
+};
+
+/** The farms the source contributes, when it can be uploaded. */
+export const sourceRows = (source: UploadSource): FarmRow[] =>
+  sourceListedRows(source).map(({ row }) => row);
+
+/**
+ * The source without the farm at `index`, or null when it has no farm left (a
+ * manual farm, or a file's last row): then the source leaves the list.
+ */
+export const withoutRow = (
+  source: UploadSource,
+  index: number
+): UploadSource | null => {
+  if (source.kind === "manual") return null;
+  const removedRows = source.removedRows.includes(index)
+    ? source.removedRows
+    : [...source.removedRows, index];
+  const left = { ...source, removedRows };
+  return sourceListedRows(left).length > 0 ? left : null;
+};
+
+/** How the farms of the source reached the upload, as /farms/parse echoes it. */
+export const sourceOrigin = (source: UploadSource): FarmOrigin => {
+  switch (source.kind) {
+    case "excel":
+      return { method: "excel", fileName: source.name };
+    case "geo":
+      return {
+        method: source.excel ? "geoFileWithExcel" : "geoFile",
+        fileName: source.name,
+      };
+    case "manual":
+      return { method: "manual", fileName: null };
   }
 };
 
@@ -449,5 +516,11 @@ export const collectUpload = (
   });
 
   if (errorMessages.length > 0) return { rows: [], errorMessages };
-  return { rows: sources.flatMap(sourceRows), errorMessages: [] };
+  return {
+    rows: sources.flatMap((source) => {
+      const origin = sourceOrigin(source);
+      return sourceRows(source).map((row) => ({ ...row, origin }));
+    }),
+    errorMessages: [],
+  };
 };
