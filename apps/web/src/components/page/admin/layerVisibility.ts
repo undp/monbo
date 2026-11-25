@@ -12,6 +12,7 @@ export type LayerBlocker =
   // The category resolves but is disabled
   | "category_disabled"
   // `layer_issue`
+  | "invalid_fields"
   | "years_mismatch"
   | "missing_raster";
 
@@ -23,8 +24,8 @@ type VisibilityFields = Pick<
 /**
  * What stops a layer from being public, whether it is enabled or not, or null.
  * One reason, in the order the admin fixes them: the category first (moving the
- * layer to another category also changes which years it needs), then its years,
- * then its raster.
+ * layer to another category also changes which years it needs), then the types of
+ * its index fields, its years and its raster.
  */
 export const layerBlocker = (layer: VisibilityFields): LayerBlocker | null => {
   if (layer.category_issue) return layer.category_issue;

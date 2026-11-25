@@ -236,6 +236,7 @@
             "anyOf": [
               {
                 "enum": [
+                  "invalid_fields",
                   "years_mismatch",
                   "missing_raster"
                 ],
@@ -245,12 +246,20 @@
                 "type": "null"
               }
             ],
-            "description": "Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.",
+            "description": "Why the layer can't be public even with a usable category: an index field has an invalid type (`invalid_fields`), its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.",
             "title": "Layer Issue"
           },
           "pixel_size": {
-            "title": "Pixel Size",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pixel size in meters; null when the index holds an invalid value",
+            "title": "Pixel Size"
           },
           "raster_filename": {
             "anyOf": [
@@ -271,8 +280,16 @@
             "type": "array"
           },
           "version": {
-            "title": "Version",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Raster version; null when the index holds an invalid value",
+            "title": "Version"
           }
         },
         "required": [

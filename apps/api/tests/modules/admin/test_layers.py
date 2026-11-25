@@ -1,4 +1,5 @@
 import json
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -799,3 +800,144 @@ def test_a_layer_can_always_be_hidden(categories, client, admin_headers):
     )
 
     assert response.status_code == 200
+
+
+# --- Index fields of the wrong type ---------------------------------------------------
+
+BAD_FIELDS = [
+    ("version", "abc"),
+    ("pixel_size", "abc"),
+    ("references", "x"),
+    ("references", [1, 2]),
+    ("raster_filename", 5),
+    ("attributes_filename", 5),
+    ("considerations_filename", 5),
+    ("id", "abc"),
+]
+STRICT_FIELDS = [
+    ("version", "3"),
+    ("version", True),
+    ("pixel_size", "30"),
+    ("pixel_size", 0),
+]
+
+
+def with_bad_layer(country, field, value, **extra):
+    index = json.loads(country.store.index_path.read_text())
+    country.write_index([*index, {**GFW, "id": 7, field: value, **extra}])
+
+
+def ids(response):
+    return {entry["id"] for entry in response.json()}
+
+
+@pytest.mark.parametrize("field, value", BAD_FIELDS)
+def test_a_layer_with_an_invalid_field_is_hidden_and_the_rest_is_served(
+    layers, client, field, value
+):
+    with_bad_layer(layers, field, value)
+
+    colombia = client.get("/maps?country=CO")
+    everything = client.get("/maps")
+    countries = client.get("/countries")
+
+    assert colombia.status_code == 200
+    assert ids(colombia) == {0}
+    assert everything.status_code == 200
+    assert ids(everything) == {0, 2}
+    assert countries.status_code == 200
+    assert countries.json() == [{"code": "CO"}, {"code": "EC"}]
+
+
+@pytest.mark.parametrize("field, value", BAD_FIELDS)
+def test_an_invalid_field_is_logged_once(layers, client, caplog, field, value):
+    with_bad_layer(layers, field, value)
+
+    with caplog.at_level(logging.ERROR):
+        client.get("/maps?country=CO")
+        client.get("/maps?country=CO")
+
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if f"'{field}' is invalid" in record.getMessage()
+    ]
+    assert len(messages) == 1
+    assert "Layer " in messages[0] and "CO" in messages[0]
+
+
+@pytest.mark.parametrize("field, value", STRICT_FIELDS)
+def test_a_lax_but_wrong_field_is_not_listed(layers, client, field, value):
+    with_bad_layer(layers, field, value)
+
+    assert ids(client.get("/maps?country=CO")) == {0}
+
+
+@pytest.mark.parametrize(
+    "field, value, shown",
+    [
+        ("version", "abc", {"version": None}),
+        ("pixel_size", "abc", {"pixel_size": None}),
+        ("references", "x", {"references": []}),
+        ("references", [1, 2], {"references": []}),
+        (
+            "raster_filename",
+            5,
+            {"raster_filename": None, "has_raster": False},
+        ),
+        ("attributes_filename", 5, {"attributes": {"en": None, "es": None}}),
+        ("considerations_filename", 5, {"considerations": {"en": None, "es": None}}),
+    ],
+)
+def test_the_admin_lists_a_layer_with_an_invalid_field(
+    layers, client, admin_headers, field, value, shown
+):
+    with_bad_layer(layers, field, value)
+
+    response = client.get("/admin/layers", headers=admin_headers)
+
+    assert response.status_code == 200
+    by_id = {entry["id"]: entry for entry in response.json()}
+    assert by_id[0]["layer_issue"] is None
+    assert by_id[7]["layer_issue"] == "invalid_fields"
+    for key, expected in shown.items():
+        assert by_id[7][key] == expected
+
+
+def test_the_admin_leaves_out_a_layer_whose_id_is_not_an_integer(
+    layers, client, admin_headers
+):
+    with_bad_layer(layers, "id", "abc")
+
+    response = client.get("/admin/layers", headers=admin_headers)
+
+    assert response.status_code == 200
+    assert ids(response) == {0, 5}
+
+
+@pytest.mark.parametrize("field, value", [("version", "abc"), ("raster_filename", 5)])
+def test_a_layer_with_an_invalid_field_cant_be_published(
+    layers, client, admin_headers, field, value
+):
+    with_bad_layer(layers, field, value, enabled=False)
+    index_before = layers.store.index_path.read_text()
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": True}, headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    assert f"'{field}'" in response.json()["detail"]
+    assert layers.store.index_path.read_text() == index_before
+
+
+def test_a_layer_with_an_invalid_field_can_be_hidden(layers, client, admin_headers):
+    with_bad_layer(layers, "version", "abc")
+
+    response = client.patch(
+        "/admin/layers/7", json={"enabled": False}, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert response.json()["enabled"] is False
+    assert response.json()["layer_issue"] == "invalid_fields"

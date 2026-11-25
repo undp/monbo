@@ -150,6 +150,23 @@ describe("layers list", () => {
     expect(await screen.findByText("wetlands · doesn't exist")).toBeTruthy();
   });
 
+  it("names invalid index fields and shows a missing version as a dash", async () => {
+    mockApi(
+      [makeAdminLayer({ id: 4, layer_issue: "invalid_fields", version: null, pixel_size: null })],
+      [makeAdminCategory()]
+    );
+    await withProviders(<AdminLayersPageContent />);
+    expect(
+      await screen.findByText(
+        /IDEAM 2020-2023 is published, but doesn't appear in the analysis: its index entry has fields of an invalid type\./
+      )
+    ).toBeTruthy();
+    expect(screen.getByText(/Ask the operations team to fix its entry in the index\./)).toBeTruthy();
+    // Row 0 is the header; the version is the third cell from the end.
+    const row = screen.getAllByRole("row")[1];
+    expect(within(row).getAllByRole("cell").at(-3)?.textContent).toBe("—");
+  });
+
   it("explains why a layer can't be published instead of asking the API", async () => {
     mockApi(
       [makeAdminLayer({ id: 4, enabled: false, category_id: "frontier", category_enabled: false })],

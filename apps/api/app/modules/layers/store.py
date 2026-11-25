@@ -47,6 +47,7 @@ from app.modules.layers.categories import (
     CategoriesFile,
     StoredCategory,
     effective_categories,
+    index_fields_problem,
     parse_categories,
     resolve_category,
     years_fit,
@@ -710,9 +711,10 @@ class LayersRoot:
           (`unknown_category`, `invalid_category`, `unreadable_categories`);
         - `category_enabled`: whether the resolved category is enabled (False when
           it doesn't resolve);
-        - `layer_issue`: `years_mismatch` when the category resolves but the
-          layer's years don't fit its `temporal`, else None (`is_public` adds
-          `missing_raster`, which needs the disk).
+        - `layer_issue`: `invalid_fields` when an index field has the wrong type,
+          else `years_mismatch` when the category resolves but the layer's years
+          don't fit its `temporal`, else None (`is_public` adds `missing_raster`,
+          which needs the disk).
         The tags only exist on what this class returns: `LayerStore.read_index()`
         returns entries as stored, so they are never written back."""
         by_id = {c["id"]: c for c in effective_categories(categories_file)}
@@ -722,18 +724,23 @@ class LayersRoot:
             )
             layer["category_issue"] = issue
             layer["category_enabled"] = bool(category and category["enabled"])
-            layer["layer_issue"] = (
-                "years_mismatch"
-                if category is not None and not years_fit(layer, category["temporal"])
-                else None
-            )
+            fields_problem = index_fields_problem(layer)
+            if fields_problem is not None:
+                layer["layer_issue"] = "invalid_fields"
+                self._log_hidden(
+                    layer, f"its index field '{fields_problem}' is invalid"
+                )
+            elif category is not None and not years_fit(layer, category["temporal"]):
+                layer["layer_issue"] = "years_mismatch"
+            else:
+                layer["layer_issue"] = None
             if issue is not None:
                 self._log_hidden(
                     layer,
                     f"its category '{layer['category_id']}' doesn't resolve "
                     f"({issue})",
                 )
-            elif layer["layer_issue"] and is_enabled(layer):
+            elif layer["layer_issue"] == "years_mismatch" and is_enabled(layer):
                 self._log_hidden(
                     layer, f"its years don't fit category '{layer['category_id']}'"
                 )

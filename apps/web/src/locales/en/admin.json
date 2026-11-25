@@ -51,6 +51,7 @@
         "invalid_category": "its category “{{category}}” has an error in the categories file.",
         "unreadable_categories": "your country's categories file can't be read.",
         "category_disabled": "its category “{{category}}” is disabled.",
+        "invalid_fields": "its index entry has fields of an invalid type.",
         "years_mismatch": "its years don't fit its category.",
         "missing_raster": "it has no raster."
       },
@@ -59,6 +60,7 @@
         "invalid_category": "Edit it and choose another category, or ask operations to fix the categories file.",
         "unreadable_categories": "Ask operations to fix the categories file.",
         "category_disabled": "Enable its category in Categories, or edit it and choose another one.",
+        "invalid_fields": "Ask the operations team to fix its entry in the index.",
         "years_mismatch": "Edit it and fix its years: a category that compares two years needs a baseline and a comparison year; the others need none.",
         "missing_raster": "Upload its raster."
       },
@@ -67,6 +69,7 @@
         "invalid_category": "Hide it and edit it to choose another category, or ask operations to fix the categories file.",
         "unreadable_categories": "Ask operations to fix the categories file.",
         "category_disabled": "Hide it; then enable its category and publish it again, or edit it and choose another category.",
+        "invalid_fields": "Ask the operations team to fix its entry in the index.",
         "years_mismatch": "Edit it and fix its years: a category that compares two years needs a baseline and a comparison year; the others need none.",
         "missing_raster": "Upload its raster."
       }
