@@ -5,7 +5,6 @@
 Define which countries exist and who administers them: the `countries.json` registry of a
 per-country layers root, the command that adds, rotates, disables and enables countries, how the
 running API picks up its changes, and the public list of countries a visitor can analyze.
-
 ## Requirements
 ### Requirement: Country registry file
 
@@ -82,7 +81,7 @@ None of these commands SHALL delete a country's folder or its layers.
 
 ### Requirement: Public list of countries
 
-`GET /countries` SHALL return the countries that are enabled in the registry and have at least one enabled layer, as a list of objects with a `code` field, sorted by code. It SHALL NOT require authentication.
+`GET /countries` SHALL return the countries that are enabled in the registry and have at least one layer that `GET /maps` lists (enabled, with a category that resolves and is enabled), as a list of objects with a `code` field, sorted by code. It SHALL NOT require authentication.
 
 #### Scenario: Current countries
 
@@ -98,6 +97,11 @@ None of these commands SHALL delete a country's folder or its layers.
 
 - **WHEN** PE's admin uploads a raster and enables the layer
 - **THEN** `GET /countries` includes PE
+
+#### Scenario: Only layers with a broken or disabled category
+
+- **WHEN** PE's only enabled layer has `category_id: "frontier"`, and PE's `frontier` category is disabled or doesn't exist
+- **THEN** `GET /countries` does not include PE
 
 ### Requirement: Frontend reads the available countries from the API
 

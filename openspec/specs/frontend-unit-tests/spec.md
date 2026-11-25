@@ -59,7 +59,8 @@ Fake timers SHALL be enabled per test, only by the tests that need them.
 The suite SHALL cover the web's framework-independent logic:
 
 - percentage, number, area and coordinate formatting (`utils/numbers`, `utils/polygons`), in both supported languages;
-- threshold checks (`utils/deforestation`);
+- the overlap threshold check (`utils/overlap`);
+- the classification of layer results by polarity, threshold and missing data (`utils/layerResults`);
 - string and date helpers (`utils/strings`, `utils/dates`);
 - layer labels (`utils/layerLabel`);
 - the GeoJSON export (`utils/geojson`);
@@ -76,6 +77,11 @@ Formatting assertions SHALL state the expected text for each language, not repro
 
 - **WHEN** a row declares `GeoJSON` and `Polygon` but its coordinates are not a GeoJSON polygon
 - **THEN** `validateData` returns the invalid-coordinates message for that row
+
+#### Scenario: Classification covers both polarities and no data
+
+- **WHEN** the classification tests run
+- **THEN** they cover polarity `avoid` and `required`, a value exactly on the threshold, and a `null` value
 
 ### Requirement: The upload templates parse
 
@@ -107,12 +113,12 @@ For every translation namespace, the English and Spanish files SHALL define the 
 
 ### Requirement: Hooks that read the data context are covered
 
-The suite SHALL cover the hooks that derive values from `DataContext` without owning state: `useVisibleDataForDeforestationPage`, `useValidFarmsDataForValidationPage`, `useDeforestationFreeResultsCountByMap`, `useCountryChange`, `useModuleRouter`, `useMapsForSelectedCountry`, `useAvailableCountries` and `useSelectedMap` (in `useSelectedMapName.tsx`), plus the context-free `useSearch` and `useSortedTable`. These hooks SHALL be tested with an injected context value built by a shared helper, not with the real `DataProvider`.
+The suite SHALL cover the hooks that derive values from `DataContext` without owning state: `useVisibleDataForAnalysisPage`, `useValidFarmsDataForValidationPage`, `useNoObservationsCountByMap`, `useCountryChange`, `useModuleRouter`, `useAvailableCountries` and `useSelectedMap` (in `useSelectedMapName.tsx`), plus the context-free `useSearch` and `useSortedTable`. These hooks SHALL be tested with an injected context value built by a shared helper, not with the real `DataProvider`.
 
 #### Scenario: Invalid farms are hidden when the analysis covers valid polygons
 
 - **WHEN** the context has three farms, one of them `NOT_VALID`, deforestation results for them, and `polygonsSubset` is `"valid"`
-- **THEN** `useVisibleDataForDeforestationPage` returns the two other farms, and only their results
+- **THEN** `useVisibleDataForAnalysisPage` returns the two other farms, and only their results
 
 #### Scenario: Country change after an analysis waits for confirmation
 

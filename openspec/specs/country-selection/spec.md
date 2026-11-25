@@ -7,52 +7,38 @@ countries that have layers), the `/` and `/home` routes, the single selected cou
 persistence, the header selector and its lock after an analysis, layer lists limited to that
 country, and the upload template without a country column.
 ## Requirements
-### Requirement: Module cards served at /home
-
-The page with the three module cards SHALL be served at `/[locale]/home`. Continuing from the landing page SHALL navigate to `/home`. The header's "Home" button and the header logo SHALL go to the landing page (`/`). Every redirect that returns the user to the start of the flow SHALL go to `/home`.
-
-#### Scenario: After choosing a country
-
-- **WHEN** the user selects Colombia on the landing page and continues
-- **THEN** the browser navigates to `/home` and shows the three module cards
-
-#### Scenario: Header home button
-
-- **WHEN** the user is on `/polygons-validation` and clicks "Home" in the header
-- **THEN** the browser navigates to the landing page
-
 ### Requirement: A single selected country, kept for the browser session
 
 The application SHALL hold exactly one selected country (an ISO 3166-1 alpha-2 code) or none. The selection SHALL survive page reloads within the same browser tab session and SHALL NOT survive closing the tab. A stored country that is not among the countries with layers SHALL be discarded, together with the farms and results loaded for it. The previous multi-country preference stored under the `localStorage` key `deforestationAnalysis.selectedCountries` SHALL be removed.
 
 #### Scenario: Reload keeps the country
 
-- **WHEN** the user selected Ecuador and reloads `/home`
-- **THEN** Ecuador is still the selected country and the landing page is not shown
+- **WHEN** the user selected Ecuador and reloads `/polygons-validation/upload-data`
+- **THEN** Ecuador is still the selected country and the start page is not shown
 
 #### Scenario: New tab starts without a country
 
 - **WHEN** the user opens the application in a new tab
-- **THEN** no country is selected until the landing page preselects Colombia
+- **THEN** no country is selected until the start page preselects Colombia
 
 #### Scenario: Stored country no longer available
 
 - **WHEN** the tab session holds CR and, after a reload, no layer lists CR
-- **THEN** the selection is cleared and the user is shown the landing page
+- **THEN** the selection is cleared and the user is shown the start page
 
 #### Scenario: Stored country dropped with a flow loaded
 
 - **WHEN** an analysis for EC is loaded, EC loses its last layer, and the user changes the language
-- **THEN** the selection and the loaded farms and results are cleared, and the landing page starts from an empty flow
+- **THEN** the selection and the loaded farms and results are cleared, and the start page starts from an empty flow
 
 ### Requirement: Module pages require a selected country
 
-Every page under `/home`, `/polygons-validation`, `/deforestation-analysis`, and `/report-generation`, including their sub-pages, SHALL redirect to the landing page when no country is selected. The redirect SHALL NOT happen before the stored selection has been read. The admin pages SHALL NOT require a selected country.
+Every page under `/polygons-validation`, `/territorial-analysis`, and `/report-generation`, including their sub-pages, SHALL redirect to the start page when no country is selected. The redirect SHALL NOT happen before the stored selection has been read. The start page and the admin pages SHALL NOT require a selected country.
 
 #### Scenario: Direct link without a country
 
 - **WHEN** a user in a new tab opens `/polygons-validation/upload-data`
-- **THEN** they are redirected to the landing page
+- **THEN** they are redirected to the start page
 
 #### Scenario: Admin unaffected
 
@@ -61,17 +47,22 @@ Every page under `/home`, `/polygons-validation`, `/deforestation-analysis`, and
 
 ### Requirement: Country selector in the header
 
-On every page, the landing page included, the header SHALL show the selected country's name, placed to the left of the language menu, as a control that lists the available countries. The header SHALL NOT show the selector when no country is selected.
+On every page except the start page, the header SHALL show the selected country's name, placed to the left of the language menu, as a control that lists the available countries. The header SHALL NOT show the selector when no country is selected. On the start page the country is chosen in the start bar instead, and the header SHALL NOT show the selector.
 
 #### Scenario: Selector shows the current country
 
-- **WHEN** the selected country is CO and the language is Spanish
+- **WHEN** the selected country is CO, the language is Spanish, and the user is on `/polygons-validation`
 - **THEN** the header shows "Colombia" to the left of the language icon
 
-#### Scenario: Follows the landing page's cards
+#### Scenario: Follows the start page's pills
 
-- **WHEN** the user chooses the Costa Rica card on the landing page
+- **WHEN** the user chooses the Costa Rica pill on the start page and then opens stage 1
 - **THEN** the header shows "Costa Rica"
+
+#### Scenario: Hidden on the start page
+
+- **WHEN** a country is selected and the user is on the start page
+- **THEN** the header shows no country selector
 
 ### Requirement: Changing the country before an analysis
 
@@ -89,15 +80,15 @@ While no deforestation analysis result exists, choosing a different country from
 
 ### Requirement: Country locked after an analysis, with a restart confirmation
 
-Once a deforestation analysis result exists, choosing a different country SHALL NOT change it directly. It SHALL open a modal explaining that changing the country requires starting a new analysis and uploading the polygons again. The lock SHALL depend only on whether an analysis result exists, not on the current page. The same rule SHALL apply when the choice is made on the landing page.
+Once a deforestation analysis result exists, choosing a different country SHALL NOT change it directly. It SHALL open a modal explaining that changing the country requires starting a new analysis and uploading the polygons again. The lock SHALL depend only on whether an analysis result exists, not on the current page. The same rule SHALL apply when the choice is made on the start page.
 
-- If the user accepts, the application SHALL clear the farms, the polygon validation results, the analysis results, and the analysis and report parameters, SHALL set the new country, and SHALL navigate to `/home`.
+- If the user accepts, the application SHALL clear the farms, the polygon validation results, the analysis results, and the analysis and report parameters, SHALL set the new country, and SHALL navigate to the start page.
 - If the user cancels, nothing SHALL change and the user SHALL stay on the same page.
 
 #### Scenario: Accept restart
 
 - **WHEN** an analysis exists for CO, the user picks Costa Rica in the header, and accepts the modal
-- **THEN** all loaded data is cleared, the selected country is CR, and the browser shows `/home`
+- **THEN** all loaded data is cleared, the selected country is CR, and the browser shows the start page
 
 #### Scenario: Cancel restart
 
@@ -107,11 +98,6 @@ Once a deforestation analysis result exists, choosing a different country SHALL 
 #### Scenario: Locked on the validation page too
 
 - **WHEN** an analysis exists and the user goes back to `/polygons-validation` and picks another country
-- **THEN** the restart modal opens
-
-#### Scenario: Landing page cannot bypass the lock
-
-- **WHEN** an analysis exists for CO and the user opens the landing page and chooses the Ecuador card
 - **THEN** the restart modal opens
 
 ### Requirement: Layer choices restricted to the selected country
@@ -152,54 +138,6 @@ The farm upload templates (en and es) SHALL NOT contain a country column, and th
 - **WHEN** the selected country is CO and the user uploads an older file whose country column says EC for some rows
 - **THEN** the upload is rejected with a message naming Ecuador and asking for one country per upload, and no farm is sent to the API
 
-### Requirement: Landing page with country cards
-
-The frontend SHALL serve a landing page at `/[locale]` that asks the user to choose the country for the deforestation analysis. It SHALL show one card per country with layers, and only those countries. Each card SHALL show the country's name, translated to the current language, over its silhouette. The selected card SHALL be highlighted. Choosing a card SHALL select that country; exactly one card SHALL be selected at a time, and the cards SHALL be usable with the keyboard. When the user arrives without a selected country, Colombia SHALL be selected, or the first country if Colombia has no layers. A "Continue with {country}" button SHALL navigate to `/home`. The page SHALL show a loading state until the list of countries has been fetched. If fetching the list fails before any list has arrived, the page SHALL show an error message asking the user to reload the page, instead of the loading state.
-
-#### Scenario: Current countries
-
-- **WHEN** the layers list the country codes EC, CO, and CR
-- **THEN** the landing page shows the Colombia, Costa Rica, and Ecuador cards, and no card for any other country
-
-#### Scenario: Default and change
-
-- **WHEN** a user in a new tab opens the landing page and then chooses the Ecuador card
-- **THEN** Colombia is selected at first, and after the choice Ecuador's card is highlighted, the header shows Ecuador, and the button reads "Continue with Ecuador"
-
-#### Scenario: Continue
-
-- **WHEN** the user clicks "Continue with Ecuador"
-- **THEN** the browser navigates to `/home` with Ecuador as the selected country
-
-#### Scenario: Keyboard selection
-
-- **WHEN** a keyboard user tabs to the Costa Rica card and presses Enter
-- **THEN** Costa Rica becomes the selected country
-
-#### Scenario: Countries cannot be fetched
-
-- **WHEN** fetching the countries fails while the landing page loads
-- **THEN** the page shows an error message asking to reload the page, and reloading after the API recovers shows the country cards
-
-#### Scenario: New country appears without a frontend change
-
-- **WHEN** an admin enables a layer for PE
-- **THEN** after the next refresh the landing page shows a Peru card
-
-### Requirement: Card to request a new country
-
-After the country cards, the landing page SHALL show a "Your country could be next" card with a "Contact us" link that opens the value of `NEXT_PUBLIC_CONTACT_URL`, configured at container start without rebuilding the image. The value MAY be an `https:` URL or a `mailto:` link. The card SHALL NOT select a country. When the variable is empty or unset, the card SHALL NOT be shown.
-
-#### Scenario: Contact URL configured
-
-- **WHEN** `NEXT_PUBLIC_CONTACT_URL` is `mailto:monbo@undp.org`
-- **THEN** the card opens a new email to that address
-
-#### Scenario: Contact URL not configured
-
-- **WHEN** `NEXT_PUBLIC_CONTACT_URL` is not set
-- **THEN** the landing page shows no card to request a country
-
 ### Requirement: Country and layer lists refreshed on demand
 
 The frontend SHALL fetch the country list and the selected country's layer list when the app loads, when the selected country or language changes, and every five minutes. It SHALL also refetch both lists when the tab becomes visible again or the window regains focus, and SHALL refetch the selected country's layer list when the deforestation modal on the polygon validation page opens and when the deforestation upload page opens. The report's layer selection SHALL NOT trigger a refetch, because it lists the layers already analyzed.
@@ -230,4 +168,57 @@ On-demand refetches of a list SHALL be skipped while a fetch of that list is in 
 
 - **WHEN** no on-demand trigger happens for five minutes
 - **THEN** both lists are fetched by the poll, as before
+
+### Requirement: /home redirects to the start page
+
+`/[locale]/home` SHALL NOT render a page of its own. It SHALL redirect to the start page of the same language (`/[locale]`), whether or not a country is selected. Every in-app redirect that returns the user to the start of the flow SHALL go to the start page. The header's "Home" button and the header logo SHALL go to the start page.
+
+#### Scenario: Spanish
+
+- **WHEN** the user opens `/es/home`
+- **THEN** the browser ends on the Spanish start page (`/es`, served as `/`)
+
+#### Scenario: English
+
+- **WHEN** the user opens `/en/home`
+- **THEN** the browser ends on `/en`
+
+#### Scenario: Data cleared on a module page
+
+- **WHEN** the user is on `/polygons-validation` and the loaded farms are cleared
+- **THEN** the browser navigates to the start page
+
+### Requirement: Country choice on the start page
+
+The start page SHALL let the user choose the analysis country among the countries with layers, and only those, as pills in its start bar. Each pill SHALL show the country's name, translated to the current language, and its silhouette. Choosing a pill SHALL select that country through the same rules as the header selector, including the restart confirmation once an analysis exists. Exactly one pill SHALL be selected at a time, and the pills SHALL be usable with the keyboard. When the user arrives without a selected country, Colombia SHALL be selected, or the first country if Colombia has no layers. The start bar SHALL show a loading state until the list of countries has been fetched. If fetching the list fails before any list has arrived, it SHALL show an error message asking the user to reload the page. When the list is empty it SHALL say that no country is available yet.
+
+#### Scenario: Current countries
+
+- **WHEN** the layers list the country codes EC, CO, and CR
+- **THEN** the start bar shows the Colombia, Costa Rica, and Ecuador pills, and no pill for any other country
+
+#### Scenario: Default and change
+
+- **WHEN** a user in a new tab opens the start page and then chooses the Ecuador pill
+- **THEN** Colombia is selected at first, and after the choice the Ecuador pill is highlighted and the button reads "Empezar en Ecuador"
+
+#### Scenario: Keyboard selection
+
+- **WHEN** a keyboard user tabs to the Costa Rica pill and presses Enter
+- **THEN** Costa Rica becomes the selected country
+
+#### Scenario: Countries cannot be fetched
+
+- **WHEN** fetching the countries fails while the start page loads
+- **THEN** the start bar shows an error message asking to reload the page, and the step cards are still shown
+
+#### Scenario: New country appears without a frontend change
+
+- **WHEN** an admin enables a layer for PE
+- **THEN** after the next refresh the start bar shows a Peru pill with Peru's silhouette
+
+#### Scenario: Start page cannot bypass the lock
+
+- **WHEN** an analysis exists for CO and the user picks the Ecuador pill on the start page
+- **THEN** the restart modal opens
 
