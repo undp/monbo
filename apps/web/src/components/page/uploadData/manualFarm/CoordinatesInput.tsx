@@ -6,7 +6,8 @@ import { Box, Button, TextField } from "@mui/material";
 import AddLocationAltOutlinedIcon from "@mui/icons-material/AddLocationAltOutlined";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { Coordinates } from "@/interfaces/Map";
-import { EYEBROW, FIELD, SECONDARY_BUTTON } from "./manualFarmStyles";
+import { FIELD } from "@/components/reusable/inputs/fieldStyles";
+import { EYEBROW, SECONDARY_BUTTON } from "./manualFarmStyles";
 
 interface CoordinatesInputProps {
   // "Go": the map moves to the typed position

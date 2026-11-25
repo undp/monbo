@@ -25,6 +25,12 @@
   },
   "cancel": "Cancelar",
   "close": "Cerrar",
+  "download": "Descargar",
+  "mapControls": {
+    "center": "Centrar el mapa",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar"
+  },
   "contentTabs": "Pestañas de contenido",
   "all": "Todos",
   "surface": "Área",

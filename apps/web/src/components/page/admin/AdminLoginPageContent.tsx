@@ -1,12 +1,20 @@
 "use client";
 
 import React, { useContext, useEffect, useState } from "react";
-import { Alert, Box, Button, Paper, TextField } from "@mui/material";
+import { Alert, Box, Button, TextField } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { AdminApiError } from "@/api/adminLayers";
 import { AdminSessionContext } from "@/context/AdminSessionContext";
-import { Text } from "@/components/reusable/Text";
+import { PageEyebrow } from "@/components/page/flow/PageEyebrow";
+import {
+  FLOW_COLORS,
+  HEADING_FONT,
+  STAGE_CARD,
+  stagePageBackground,
+} from "@/components/page/flow/flowStyles";
+import { FIELD } from "@/components/reusable/inputs/fieldStyles";
 import { localizedPath } from "@/utils/languageChange";
 
 export const AdminLoginPageContent: React.FC = () => {
@@ -53,24 +61,67 @@ export const AdminLoginPageContent: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", padding: 6 }}>
-      <Paper
+    // The stage pages' background and card, as the signed-in admin pages
+    <Box
+      sx={{
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: { xs: "32px 16px", md: "72px 16px" },
+        background: stagePageBackground,
+      }}
+    >
+      <Box
         component="form"
         onSubmit={onSubmit}
         sx={{
-          width: 440,
-          padding: 4,
+          ...STAGE_CARD,
+          width: "100%",
+          maxWidth: 440,
+          padding: { xs: 3, md: 4 },
           display: "flex",
           flexDirection: "column",
           gap: 2,
         }}
       >
-        <Text variant="h5" component="h1" bold>
-          {t("admin:login:title")}
-        </Text>
-        <Text color="secondary" variant="body2">
-          {t("admin:login:subtitle")}
-        </Text>
+        <Box
+          aria-hidden
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: "12px",
+            display: "grid",
+            placeItems: "center",
+            backgroundColor: FLOW_COLORS.blue50,
+            color: FLOW_COLORS.blue,
+          }}
+        >
+          <LockOutlinedIcon />
+        </Box>
+        <Box>
+          <PageEyebrow>{t("admin:eyebrowAll")}</PageEyebrow>
+          <Box
+            component="h1"
+            sx={{
+              margin: "6px 0 0",
+              fontFamily: HEADING_FONT,
+              fontSize: 26,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              letterSpacing: "-0.02em",
+              color: FLOW_COLORS.ink,
+            }}
+          >
+            {t("admin:login:title")}
+          </Box>
+          <Box
+            component="p"
+            sx={{ margin: "8px 0 0", fontSize: 14.5, lineHeight: 1.5, color: FLOW_COLORS.ink2 }}
+          >
+            {t("admin:login:subtitle")}
+          </Box>
+        </Box>
         <TextField
           label={t("admin:login:passkeyLabel")}
           type="password"
@@ -79,16 +130,22 @@ export const AdminLoginPageContent: React.FC = () => {
           onChange={(e) => setPasskey(e.target.value)}
           autoFocus
           fullWidth
+          sx={FIELD}
         />
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ borderRadius: "10px" }}>
+            {error}
+          </Alert>
+        )}
         <Button
           type="submit"
           variant="contained"
+          size="large"
           disabled={!passkey || submitting}
         >
           {t("admin:login:submit")}
         </Button>
-      </Paper>
+      </Box>
     </Box>
   );
 };

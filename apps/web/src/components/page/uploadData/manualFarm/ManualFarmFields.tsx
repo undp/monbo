@@ -12,7 +12,8 @@ import {
   MAX_DOCUMENTS,
   TextField as TextFieldName,
 } from "./ManualFarmModalForm";
-import { EYEBROW, FIELD } from "./manualFarmStyles";
+import { FIELD } from "@/components/reusable/inputs/fieldStyles";
+import { EYEBROW } from "./manualFarmStyles";
 import { ManualFarmForm } from "./useManualFarmForm";
 
 const GROUP = { display: "flex", flexDirection: "column", gap: 1.75 } as const;

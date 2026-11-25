@@ -1,42 +1,50 @@
-import { Box, Paper, CircularProgress } from "@mui/material";
-import { Text } from "@/components/reusable/Text";
+import { Box, CircularProgress } from "@mui/material";
+import {
+  FLOW_COLORS,
+  FLOW_CONTENT_MAX_WIDTH,
+  STAGE_CARD,
+} from "@/components/page/flow/flowStyles";
 
 interface LoadingScreenProps {
   text: string;
 }
 
+/**
+ * A page's wait (an analysis, a file being read): a stage card with a spinner, as
+ * wide as a stage page's body, so it fits under the flow header.
+ */
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ text }) => {
   return (
     <Box
       sx={{
-        height: "calc(100vh - 64px)",
-        padding: 3,
+        padding: { xs: "24px 16px", md: "32px 24px" },
+        backgroundColor: FLOW_COLORS.pageBackground,
       }}
     >
-      <Paper
+      <Box
+        role="status"
+        aria-live="polite"
         sx={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#F5F5F5",
+          ...STAGE_CARD,
+          maxWidth: FLOW_CONTENT_MAX_WIDTH,
+          minHeight: 360,
+          margin: "0 auto",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          borderRadius: 2,
+          gap: 2.5,
+          textAlign: "center",
         }}
-        elevation={0}
       >
+        <CircularProgress size={56} thickness={3.6} sx={{ color: FLOW_COLORS.blue }} />
         <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 3,
-          }}
+          component="p"
+          sx={{ margin: 0, fontSize: 15, fontWeight: 500, color: FLOW_COLORS.ink2 }}
         >
-          <CircularProgress size={120} />
-          <Text variant="body1">{text}</Text>
+          {text}
         </Box>
-      </Paper>
+      </Box>
     </Box>
   );
 };
