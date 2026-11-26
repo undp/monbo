@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { inTimeZone, TIME_ZONES } from "@/test/timeZone";
-import { longFormatDateByLanguage, shortFormatDateByLanguage } from "./dates";
+import {
+  calendarDay,
+  longFormatDateByLanguage,
+  shortFormatDateByLanguage,
+} from "./dates";
 
 // Local times (no "Z"), so the date doesn't depend on the machine's timezone.
 const DATE = "2024-11-25T12:00:00";
@@ -50,5 +54,19 @@ describe.each(TIME_ZONES)("a production date in %s", (zone) => {
     expect(shortFormatDateByLanguage("2025-01-15T00:00:00", "es")).toBe(
       "15-01-2025"
     );
+  });
+});
+
+describe.each(TIME_ZONES)("calendarDay in %s", (zone) => {
+  inTimeZone(zone);
+
+  it("is the day the app shows, whatever the format it came in", () => {
+    expect(calendarDay(new Date(2025, 0, 15).toISOString())).toBe("2025-01-15");
+    expect(calendarDay("2025-01-15")).toBe("2025-01-15");
+    expect(calendarDay("2025-01-15T00:00:00")).toBe("2025-01-15");
+  });
+
+  it("is a date it can't read as written", () => {
+    expect(calendarDay("15/01/2025")).toBe("15/01/2025");
   });
 });

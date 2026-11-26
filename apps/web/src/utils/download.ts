@@ -1,4 +1,5 @@
 import { FarmData } from "@/interfaces/Farm";
+import { calendarDay } from "./dates";
 
 export const getCoordinates = (farm: FarmData): string[] => {
   const coordinates: string[] = [];
@@ -16,6 +17,10 @@ export const getCoordinates = (farm: FarmData): string[] => {
   return coordinates;
 };
 
+/** The farm's area in hectares, not rounded; null when the API couldn't compute it. */
+export const areaHectares = (farm: FarmData): number | null =>
+  farm.polygon.area && farm.polygon.area > 0 ? farm.polygon.area / 10000 : null;
+
 /*
 This EUDR document is intended for users (Economic Operators) of the European Commission’s EUDR
 Information System (IS) and for parties interested in producing compatible geolocation files for use in
@@ -23,15 +28,17 @@ the central EUDR information system.
 */
 export const getRowCommonDataAsObject = (
   farm: FarmData
-): Record<string, string> => {
+): Record<string, string | number> => {
+  const area = areaHectares(farm);
   return {
     id: farm.id,
     /* EUDR GeoJson File Description Additional Properties */
     ProducerName: farm.producer,
     ProducerCountry: farm.country || "", // ISO 3166-1 alpha-2 country code
-    Area: "0", // TODO: when refactoring the excel manipulation, we should have the area of the farm
+    // The EUDR reads Area as a number of hectares and a string as 0
+    ...(area !== null ? { Area: area } : {}),
     /* Our custom properties */
-    productionDate: farm.productionDate || "",
+    productionDate: farm.productionDate ? calendarDay(farm.productionDate) : "",
     production: farm.production.toString(),
     productionQuantityUnit: farm.productionQuantityUnit || "",
     region: farm.region || "",

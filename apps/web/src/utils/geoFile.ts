@@ -234,7 +234,7 @@ export const geoFeaturesToFarmRows = (
     });
     row.productionQuantity = toNumberIfMachineFormatted(row.productionQuantity);
     row.area = toNumberIfMachineFormatted(row.area);
-    // Monbo's GeoJSON download writes "Area": "0" for every farm
+    // Exports made before the area was written carry "Area": "0" for every farm
     if (row.area === 0 || row.area === "0") row.area = null;
 
     const country = geoFeatureCountry(feature.properties);

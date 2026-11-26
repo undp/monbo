@@ -17,13 +17,16 @@ import {
 } from "./excel";
 import {
   makeCategory,
+  makeFarm,
   makeFrontierCategory,
   makeMultiPolygonFarm,
 } from "@/test/factories";
+import { inTimeZone, TIME_ZONES } from "@/test/timeZone";
 import {
   FarmTooLargeForExcelError,
   buildLayerSheets,
   buildPolygonValidationSheets,
+  farmToTemplateRow,
 } from "./resultsExport";
 
 // The Excel exports, written and read back the way users download and upload them.
@@ -42,7 +45,7 @@ const POLYGON_FARM: FarmData = {
   producer: "Ana Pérez",
   producerId: "",
   cropType: "Café Arábica",
-  productionDate: "2024-11-25T00:00:00.000Z",
+  productionDate: new Date(2024, 10, 25).toISOString(),
   // A decimal quantity: written as text, a Spanish upload rejects "1200.5"
   production: 1200.5,
   productionQuantityUnit: "kg",
@@ -68,7 +71,7 @@ const POINT_FARM: FarmData = {
   producer: "José Mora",
   producerId: "",
   cropType: "Cacao",
-  productionDate: "2024-12-01T00:00:00.000Z",
+  productionDate: new Date(2024, 11, 1).toISOString(),
   production: 300,
   productionQuantityUnit: "kg",
   country: COUNTRY,
@@ -90,7 +93,7 @@ const SMALL_POINT_FARM: FarmData = {
   producer: "Luisa Rojas",
   producerId: "",
   cropType: "Cacao",
-  productionDate: "2024-12-01T00:00:00.000Z",
+  productionDate: new Date(2024, 11, 1).toISOString(),
   production: 20,
   productionQuantityUnit: "kg",
   country: COUNTRY,
@@ -112,7 +115,7 @@ const UPLOADED = [
   {
     id: "F01",
     producerName: "Ana Pérez",
-    productionDate: "2024-11-25T00:00:00.000Z",
+    productionDate: "2024-11-25",
     productionQuantity: 1200.5,
     productionQuantityUnit: "kg",
     region: "Alajuela",
@@ -129,7 +132,7 @@ const UPLOADED = [
   {
     id: "F02",
     producerName: "José Mora",
-    productionDate: "2024-12-01T00:00:00.000Z",
+    productionDate: "2024-12-01",
     productionQuantity: 300,
     productionQuantityUnit: "kg",
     region: null,
@@ -144,7 +147,7 @@ const UPLOADED = [
   {
     id: "F03",
     producerName: "Luisa Rojas",
-    productionDate: "2024-12-01T00:00:00.000Z",
+    productionDate: "2024-12-01",
     productionQuantity: 20,
     productionQuantityUnit: "kg",
     region: null,
@@ -442,5 +445,26 @@ describe.each(LOCALES)("the %s Excel export of holes and parts", (locale) => {
     await expect(sheetsFor(farm)).rejects.toEqual(
       new FarmTooLargeForExcelError("F10")
     );
+  });
+});
+
+describe.each(TIME_ZONES)("the production date of a template row in %s", (zone) => {
+  inTimeZone(zone);
+
+  const cell = (farm: FarmData, column: (typeof TEMPLATE_COLUMNS)[number]) =>
+    farmToTemplateRow(farm)[TEMPLATE_COLUMNS.indexOf(column)];
+
+  it("is the calendar day of an Excel cell or the manual form", () => {
+    const farm = makeFarm({
+      productionDate: new Date(2025, 0, 15).toISOString(),
+    });
+    expect(cell(farm, "productionDate")).toBe("2025-01-15");
+  });
+
+  it("is written as typed when it isn't a date, and empty when missing", () => {
+    expect(cell(makeFarm({ productionDate: "15/01/2025" }), "productionDate")).toBe(
+      "15/01/2025"
+    );
+    expect(cell(makeFarm({ productionDate: "" }), "productionDate")).toBe("");
   });
 });

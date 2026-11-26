@@ -10,6 +10,8 @@ import {
   MapData,
 } from "@/interfaces/LayerAnalysis";
 import type { LayerCategory } from "@/interfaces/LayerCategory";
+import { areaHectares } from "./download";
+import { calendarDay } from "./dates";
 import { formatOverlapPercentage } from "./numbers";
 import { findingPercentCell, layerResultColumns } from "./layerCategories";
 import {
@@ -58,7 +60,7 @@ export const farmToTemplateRow = (farm: FarmData): Cell[] => {
   const values: Record<TemplateColumn, Cell> = {
     id: farm.id,
     producerName: farm.producer,
-    productionDate: farm.productionDate || "",
+    productionDate: farm.productionDate ? calendarDay(farm.productionDate) : "",
     productionQuantity: farm.production,
     productionQuantityUnit: farm.productionQuantityUnit || "",
     region: farm.region || "",
@@ -68,10 +70,7 @@ export const farmToTemplateRow = (farm: FarmData): Cell[] => {
     // In hectares, not rounded: an upload takes 0 as a missing area and gives
     // the point 1 ha, so a small point must keep its exact area. Empty when the
     // API could not compute it (null or -1).
-    area:
-      farm.polygon.area && farm.polygon.area > 0
-        ? farm.polygon.area / 10000
-        : "",
+    area: areaHectares(farm) ?? "",
     cropType: farm.cropType,
     association: farm.association || "",
     documentName1: farm.documents[0]?.name || "",
