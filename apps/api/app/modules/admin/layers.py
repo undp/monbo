@@ -12,12 +12,18 @@ meaning in place (see `categories.py`).
 """
 
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from rasterio import open as rasterio_open
 from rasterio.errors import RasterioIOError
 
-from app.modules.layers.categories import LayerIssue, stored_year, years_fit
+from app.modules.layers.categories import (
+    LayerIssue,
+    index_fields_problem,
+    stored_year,
+    years_fit,
+)
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
@@ -47,20 +53,34 @@ def _position(index: list[dict], layer_id: int) -> int:
 def _to_admin_layer(
     store: LayerStore, entry: dict, categories: CountryCategories
 ) -> AdminLayer:
+    fields_problem = index_fields_problem(entry)
+    attributes_filename = entry.get("attributes_filename")
+    considerations_filename = entry.get("considerations_filename")
     attributes = {}
     considerations = {}
     for language in SUPPORTED_LANGUAGES:
-        stored = store.read_attributes(entry["attributes_filename"], language)
+        stored = (
+            store.read_attributes(attributes_filename, language)
+            if isinstance(attributes_filename, str)
+            else None
+        )
         attributes[language] = (
             StoredAttributes.model_validate(stored) if stored else None
         )
-        considerations[language] = store.read_considerations(
-            entry["considerations_filename"], language
+        considerations[language] = (
+            store.read_considerations(considerations_filename, language)
+            if isinstance(considerations_filename, str)
+            else None
         )
     category, issue = categories.resolve(entry["category_id"])
-    has_raster = store.has_raster(entry.get("raster_filename"))
+    raster_filename = entry.get("raster_filename")
+    if not isinstance(raster_filename, str):
+        raster_filename = None
+    has_raster = store.has_raster(raster_filename)
     layer_issue: LayerIssue | None = None
-    if category is not None and not years_fit(entry, category["temporal"]):
+    if fields_problem is not None:
+        layer_issue = "invalid_fields"
+    elif category is not None and not years_fit(entry, category["temporal"]):
         layer_issue = "years_mismatch"
     elif not has_raster:
         layer_issue = "missing_raster"
@@ -70,13 +90,13 @@ def _to_admin_layer(
         category_issue=issue,
         category_enabled=bool(category and category["enabled"]),
         layer_issue=layer_issue,
-        pixel_size=entry["pixel_size"],
+        pixel_size=_shown_field(entry, "pixel_size"),
         baseline=_shown_year(entry.get("baseline")),
         compared_against=_shown_year(entry.get("compared_against")),
-        references=entry.get("references", []),
+        references=_shown_field(entry, "references") or [],
         enabled=is_enabled(entry),
-        version=entry["version"],
-        raster_filename=entry.get("raster_filename"),
+        version=_shown_field(entry, "version"),
+        raster_filename=raster_filename,
         has_raster=has_raster,
         attributes=attributes,
         considerations=considerations,
@@ -120,6 +140,21 @@ def _shown_year(value: object) -> int | None:
         return stored_year(value)
     except ValueError:
         return None
+
+
+def _shown_field(entry: dict, field: str) -> Any:
+    """An index field for the admin; null when its value has the wrong type (a hand
+    edit), which `layer_issue` then reports as `invalid_fields`. The other fields of
+    the probe are valid stand-ins, so only `field` can make it fail."""
+    probe = {
+        "id": 0,
+        "version": 1,
+        "pixel_size": 1,
+        "attributes_filename": "",
+        "considerations_filename": "",
+        field: entry.get(field),
+    }
+    return entry.get(field) if index_fields_problem(probe) is None else None
 
 
 def _year(year: int | None) -> str | None:
@@ -200,7 +235,15 @@ def list_layers(session: Session = Depends(require_admin)):
     store = country_store(session)
     index = index_or_500(store)
     categories = read_country_categories(store)
-    return [_to_admin_layer(store, entry, categories) for entry in index]
+    addressable = [entry for entry in index if index_fields_problem(entry) != "id"]
+    if len(addressable) < len(index):
+        logger.error(
+            "%s layer(s) of %s are left out of the admin listing: their index "
+            "field 'id' is invalid",
+            len(index) - len(addressable),
+            session.country,
+        )
+    return [_to_admin_layer(store, entry, categories) for entry in addressable]
 
 
 def _free_metadata_stem(store: LayerStore, index: list[dict], layer_id: int) -> str:
@@ -304,7 +347,7 @@ def set_layer_enabled(
     Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
     public listing but still resolves by id for analyses and tiles. A layer can
     only be enabled once it has a raster (409), and while its category resolves, is
-    enabled and fits its years (400).
+    enabled and fits its years, and its index fields have valid types (400).
     """
     store = country_store(session)
     with store.locked():
@@ -312,6 +355,13 @@ def set_layer_enabled(
         position = _position(index, layer_id)
         entry = index[position]
         categories = read_country_categories(store)
+        fields_problem = index_fields_problem(entry)
+        if body.enabled and fields_problem is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Layer {layer_id} can't be published: its index field "
+                f"'{fields_problem}' is invalid",
+            )
         if body.enabled and not store.has_raster(entry.get("raster_filename")):
             raise HTTPException(
                 status_code=409, detail="Upload a raster before enabling the layer"

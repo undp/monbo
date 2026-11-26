@@ -16,6 +16,7 @@ from app.modules.layers.categories import (
     DEFAULT_CATEGORY,
     CategoriesFile,
     effective_categories,
+    index_fields_problem,
     is_temporal,
     parse_categories,
     years_fit,
@@ -718,3 +719,68 @@ def test_maps_of_a_country_only_check_that_countrys_rasters(co, monkeypatch):
 
     assert listed("CO") == {0: "deforestation", 1: "protected_areas"}
     assert set(checked) == {"CO"}
+
+
+# --- The types of an index entry's fields -------------------------------------------
+
+
+def valid_entry(**overrides):
+    return layer(7, "seven.tif", **{"version": 1, **overrides})
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {},
+        {"pixel_size": 30.5},
+        {"version": 0},
+        {"raster_filename": None},
+        {"pixel_size": 10_000},
+    ],
+)
+def test_a_valid_entry_has_no_field_problem(overrides):
+    assert index_fields_problem(valid_entry(**overrides)) is None
+
+
+def test_an_entry_without_references_has_no_field_problem():
+    entry = valid_entry()
+    del entry["references"]
+
+    assert index_fields_problem(entry) is None
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("id", "abc"),
+        ("id", True),
+        ("version", "abc"),
+        ("version", "3"),
+        ("version", True),
+        ("version", -1),
+        ("pixel_size", "abc"),
+        ("pixel_size", "30"),
+        ("pixel_size", True),
+        ("pixel_size", 0),
+        ("pixel_size", -5),
+        ("pixel_size", 10_001),
+        ("pixel_size", float("inf")),
+        ("pixel_size", float("nan")),
+        ("references", "x"),
+        ("references", [1, 2]),
+        ("references", None),
+        ("raster_filename", 5),
+        ("attributes_filename", 5),
+        ("considerations_filename", 5),
+    ],
+)
+def test_an_invalid_field_is_named(field, value):
+    assert index_fields_problem(valid_entry(**{field: value})) == field
+
+
+@pytest.mark.parametrize("field", ["attributes_filename", "considerations_filename"])
+def test_a_missing_file_name_is_named(field):
+    entry = valid_entry()
+    del entry[field]
+
+    assert index_fields_problem(entry) == field

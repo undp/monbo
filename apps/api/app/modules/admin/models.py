@@ -25,6 +25,7 @@ from app.modules.layers.categories import (
     DESCRIPTION_MAX_LENGTH,
     LABEL_MAX_LENGTH,
     NAME_MAX_LENGTH,
+    PIXEL_SIZE_MAX,
     THRESHOLD_MAX,
     THRESHOLD_MIN,
     YEAR_MAX,
@@ -79,7 +80,9 @@ class LayerInput(_Strict):
             "both required when it is temporal, both null when it isn't."
         ),
     )
-    pixel_size: float = Field(gt=0, le=10_000, description="Pixel size in meters")
+    pixel_size: float = Field(
+        gt=0, le=PIXEL_SIZE_MAX, description="Pixel size in meters"
+    )
     baseline: int | None = YEAR
     compared_against: int | None = YEAR
     references: list[str] = Field(default_factory=list, max_length=20)
@@ -145,17 +148,22 @@ class AdminLayer(BaseModel):
     )
     layer_issue: LayerIssue | None = Field(
         description=(
-            "Why the layer can't be public even with a usable category: its years "
-            "don't fit the category's `temporal` (`years_mismatch`), or it has no "
-            "raster (`missing_raster`). Null when nothing stops it."
+            "Why the layer can't be public even with a usable category: an index "
+            "field has an invalid type (`invalid_fields`), its years don't fit the "
+            "category's `temporal` (`years_mismatch`), or it has no raster "
+            "(`missing_raster`). Null when nothing stops it."
         )
     )
-    pixel_size: float
+    pixel_size: float | None = Field(
+        description="Pixel size in meters; null when the index holds an invalid value"
+    )
     baseline: int | None
     compared_against: int | None
     references: list[str]
     enabled: bool
-    version: int
+    version: int | None = Field(
+        description="Raster version; null when the index holds an invalid value"
+    )
     raster_filename: str | None
     has_raster: bool
     attributes: dict[str, StoredAttributes | None]

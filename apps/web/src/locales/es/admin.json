@@ -51,6 +51,7 @@
         "invalid_category": "su categoría «{{category}}» tiene un error en el archivo de categorías.",
         "unreadable_categories": "el archivo de categorías de tu país no se puede leer.",
         "category_disabled": "su categoría «{{category}}» está deshabilitada.",
+        "invalid_fields": "su entrada en el índice tiene campos de un tipo inválido.",
         "years_mismatch": "sus años no coinciden con su categoría.",
         "missing_raster": "no tiene raster."
       },
@@ -59,6 +60,7 @@
         "invalid_category": "Edítala y elige otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
         "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
         "category_disabled": "Habilita su categoría en Categorías, o edítala y elige otra.",
+        "invalid_fields": "Pide al equipo de operaciones que corrija su entrada en el índice.",
         "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
         "missing_raster": "Sube su raster."
       },
@@ -67,6 +69,7 @@
         "invalid_category": "Ocúltala y edítala para elegir otra categoría, o pide al equipo de operaciones que corrija el archivo de categorías.",
         "unreadable_categories": "Pide al equipo de operaciones que corrija el archivo de categorías.",
         "category_disabled": "Ocúltala; después habilita su categoría y vuelve a publicarla, o edítala y elige otra categoría.",
+        "invalid_fields": "Pide al equipo de operaciones que corrija su entrada en el índice.",
         "years_mismatch": "Edítala y corrige sus años: una categoría que compara dos años necesita año base y año de comparación; las demás, ninguno.",
         "missing_raster": "Sube su raster."
       }

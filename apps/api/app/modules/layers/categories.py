@@ -15,6 +15,7 @@ A layer whose category doesn't resolve gets a `category_issue` code. It is left 
 of the public listings, and the admin shows the code so the country can fix it.
 """
 
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -37,11 +38,12 @@ DESCRIPTION_MAX_LENGTH = 1000
 LABEL_MAX_LENGTH = 60
 THRESHOLD_MIN = 0
 THRESHOLD_MAX = 100
+PIXEL_SIZE_MAX = 10_000  # also LayerInput.pixel_size's `le`
 
 # Why a layer's category doesn't resolve. Stable codes: the admin translates them.
 CategoryIssue = Literal["unknown_category", "invalid_category", "unreadable_categories"]
 # Why a layer whose category resolves still can't be public. Stable codes too.
-LayerIssue = Literal["years_mismatch", "missing_raster"]
+LayerIssue = Literal["invalid_fields", "years_mismatch", "missing_raster"]
 
 
 class _Stored(BaseModel):
@@ -238,3 +240,41 @@ def years_fit(entry: dict, temporal: bool) -> bool:
     if years_problem(baseline, compared_against) is not None:
         return False
     return (baseline is not None) == temporal
+
+
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number(value: Any) -> bool:
+    return _is_int(value) or isinstance(value, float)
+
+
+def index_fields_problem(entry: dict) -> str | None:
+    """The first index field the listings read whose value has the wrong type (a
+    hand edit), by the rules of creating a layer; None when they all do. Strict on
+    purpose: `"3"` is not a version, since the raster upload does arithmetic on it."""
+    if not _is_int(entry.get("id")):
+        return "id"
+    version: Any = entry.get("version")
+    if not (_is_int(version) and version >= 0):
+        return "version"
+    pixel_size: Any = entry.get("pixel_size")
+    if not (
+        _is_number(pixel_size)
+        and math.isfinite(pixel_size)
+        and 0 < pixel_size <= PIXEL_SIZE_MAX
+    ):
+        return "pixel_size"
+    references = entry.get("references", [])
+    if not isinstance(references, list) or not all(
+        isinstance(reference, str) for reference in references
+    ):
+        return "references"
+    raster_filename = entry.get("raster_filename")
+    if raster_filename is not None and not isinstance(raster_filename, str):
+        return "raster_filename"
+    for filename_field in ("attributes_filename", "considerations_filename"):
+        if not isinstance(entry.get(filename_field), str):
+            return filename_field
+    return None

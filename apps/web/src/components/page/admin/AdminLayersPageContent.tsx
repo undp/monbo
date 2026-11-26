@@ -261,7 +261,7 @@ export const AdminLayersPageContent: React.FC = () => {
                           </Box>
                         )}
                       </TableCell>
-                      <TableCell align="right">{layer.version}</TableCell>
+                      <TableCell align="right">{layer.version ?? "—"}</TableCell>
                       <TableCell align="center">
                         <Switch
                           checked={layer.enabled}
