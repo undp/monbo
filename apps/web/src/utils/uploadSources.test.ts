@@ -4,14 +4,16 @@ import { GeoImportRequestError, importGeoFile } from "@/api/farms";
 import type { ImportedFeature, ImportedFile } from "@/interfaces/Farm";
 import { readPublicFile, toFile } from "@/test/files";
 import { createTestI18n } from "@/test/i18n";
-import { getUploadFileTemplatePath } from "./excel";
+import { getUploadFileTemplatePath, loadExcelFileFarmsData } from "./excel";
 import {
+  GeoSource,
   ManualSource,
   UploadSource,
   attachExcel,
   canAttachExcel,
   collectUpload,
   detachExcel,
+  isMissingData,
   isReadForCountry,
   isUploadable,
   newSourceKey,
@@ -20,6 +22,7 @@ import {
   rereadSources,
   sourceErrors,
   sourceListedRows,
+  sourceMissing,
   sourceProblem,
   sourceRows,
   uploadSummary,
@@ -50,11 +53,20 @@ const templateRow = (id: string | null, coordinates: (string | null)[]) => [
   "Café",
 ];
 
-const excel = (rows: unknown[][], name = "datos.xlsx") => {
+const excel = (rows: unknown[][], name = "datos.xlsx", countries?: string[]) => {
   const bytes = readPublicFile(getUploadFileTemplatePath("es").replace(/^\//, ""));
   const workbook = XLSX.read(bytes, { type: "array" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   XLSX.utils.sheet_add_aoa(sheet, rows, { origin: "A4", cellDates: true });
+  if (countries) {
+    // An older template's country column, after the template's 11 columns
+    XLSX.utils.sheet_add_aoa(sheet, [["País"]], { origin: "L2" });
+    XLSX.utils.sheet_add_aoa(
+      sheet,
+      countries.map((country) => [country]),
+      { origin: "L4" }
+    );
+  }
   return toFile(XLSX.write(workbook, { type: "array", bookType: "xlsx" }), name);
 };
 
@@ -569,5 +581,138 @@ describe("withoutRow", () => {
     expect(source).not.toBeNull();
     expect(withoutRow(source!, 2)).toBeNull();
     expect(withoutRow(manual("M-1"), 0)).toBeNull();
+  });
+});
+
+describe("a deleted row's problems", () => {
+  const INVALID = ["GeoJSON", "Polygon", "[[malformed"];
+  const VALID = ["GeoJSON", "Polygon", GEOJSON_POLYGON];
+  // Row 5 of the template is the second farm
+  const threeFarms = async (selectedCountry = "CR") =>
+    readFileSource(
+      excel([
+        templateRow("F01", VALID),
+        templateRow("F02", INVALID),
+        templateRow("F03", VALID),
+      ]),
+      await context(selectedCountry)
+    );
+  const peruFarm = async (selectedCountry = "CO") =>
+    readFileSource(
+      excel(
+        [templateRow("F01", VALID), templateRow("F02", VALID)],
+        "datos.xlsx",
+        ["CO", "PE"]
+      ),
+      await context(selectedCountry)
+    );
+
+  it("clears an Excel's error when the row that causes it is deleted", async () => {
+    const source = await threeFarms();
+    expect(sourceErrors(source)).toHaveLength(1);
+    expect(isUploadable(source)).toBe(false);
+
+    const left = withoutRow(source, 1)!;
+
+    expect(sourceErrors(left)).toEqual([]);
+    expect(isUploadable(left)).toBe(true);
+    expect(sourceProblem(left, (await context()).t)).toBeNull();
+    expect(uploadSummary([left])).toMatchObject({ farms: 2, sourcesWithProblems: 0 });
+  });
+
+  it("keeps the error of row 5 when another row is deleted", async () => {
+    const left = withoutRow(await threeFarms(), 0)!;
+
+    expect(sourceErrors(left)).toEqual([
+      "Coordenadas inválidas en la fila 5",
+    ]);
+    expect(isUploadable(left)).toBe(false);
+    expect(uploadSummary([left]).sourcesWithProblems).toBe(1);
+  });
+
+  it("clears the other-country error when the row of that country is deleted", async () => {
+    const source = await peruFarm();
+    expect(sourceErrors(source)).toHaveLength(1);
+    expect(isUploadable(source)).toBe(false);
+
+    const left = withoutRow(source, 1)!;
+
+    expect(sourceErrors(left)).toEqual([]);
+    expect(isUploadable(left)).toBe(true);
+  });
+
+  it("clears a geo file's missing data when the features that miss it are deleted", async () => {
+    const source = await readFileSource(
+      geoFile("fincas.geojson", {
+        format: "geojson",
+        features: [
+          feature(1, { id: "G-1", ...COMPLETE }),
+          feature(2, { id: "G-2", ...COMPLETE, producerName: null }),
+          feature(3, { id: "G-3", ...COMPLETE }),
+        ],
+      }),
+      await context()
+    );
+    const { t } = await context();
+    expect(isMissingData(source)).toBe(true);
+    expect(sourceProblem(source, t)).toContain("1");
+
+    const left = withoutRow(source, 1)!;
+
+    expect(isMissingData(left)).toBe(false);
+    expect(sourceProblem(left, t)).toBeNull();
+    expect(sourceErrors(left)).toEqual([]);
+    expect(isUploadable(left)).toBe(true);
+    expect(sourceMissing(left as GeoSource)).toEqual({ attributes: [], features: 0 });
+  });
+
+  it("keeps the deleted row's error dropped when the file is read again", async () => {
+    const source = withoutRow(await threeFarms("CR"), 1)!;
+
+    const [other] = await rereadSources([source], await context("CO"));
+    const [back] = await rereadSources([other], await context("CR"));
+
+    expect(sourceErrors(other)).toEqual([]);
+    expect(sourceErrors(back)).toEqual([]);
+    expect(isUploadable(back)).toBe(true);
+  });
+
+  it("brings back the error of a row that is still listed when the file is read again", async () => {
+    const source = withoutRow(await threeFarms("CR"), 0)!;
+
+    const [reread] = await rereadSources([source], await context("CO"));
+
+    expect(sourceErrors(reread)).toEqual([
+      "Coordenadas inválidas en la fila 5",
+    ]);
+  });
+});
+
+describe("loadExcelFileFarmsData's row problems", () => {
+  it("flags the row of another country alone and still validates the other rows", async () => {
+    const { t } = await context("CO");
+    const { rowProblems, errorMessages } = await loadExcelFileFarmsData(
+      excel(
+        [
+          templateRow("F01", ["GeoJSON", "Polygon", "[[malformed"]),
+          templateRow("F02", ["GeoJSON", "Polygon", GEOJSON_POLYGON]),
+        ],
+        "datos.xlsx",
+        ["CO", "PE"]
+      ),
+      t,
+      "es",
+      "CO"
+    );
+
+    expect(rowProblems).toHaveLength(2);
+    expect(rowProblems[0].otherCountry).toBeNull();
+    expect(rowProblems[0].errors).toEqual([
+      "Coordenadas inválidas en la fila 4",
+    ]);
+    expect(rowProblems[1].otherCountry).toContain("Perú");
+    expect(rowProblems[1].errors).toEqual([]);
+    expect(errorMessages[0]).toBe(rowProblems[1].otherCountry);
+    expect(errorMessages).toHaveLength(2);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTestI18n, type TestLocale } from "@/test/i18n";
-import { validateData } from "./excel";
+import { validateData, validateRows } from "./excel";
 
 // The upload's mandatory attributes (excel.ts keeps them private).
 const MANDATORY = [
@@ -106,5 +106,25 @@ describe("validateData", () => {
     expect(await validate([validRow(overrides)])).toEqual([
       "Coordenadas inválidas en la fila 4",
     ]);
+  });
+});
+
+describe("validateRows", () => {
+  const rows = async (data: Row[]) => {
+    const { t } = await createTestI18n("es");
+    return validateRows({ data, mandatoryHeaders: MANDATORY, t, language: "es" });
+  };
+
+  it("returns one array per row, empty for a valid row, in the order of the input", async () => {
+    expect(await rows([validRow(), validRow({ producerName: null }), validRow()])).toEqual([
+      [],
+      ["Falta dato obligatorio (nombre productor) en la fila 5"],
+      [],
+    ]);
+  });
+
+  it("flattens to what validateData reports", async () => {
+    const data = [validRow({ cropType: null }), validRow({ coordinatesFormat: "KML" })];
+    expect((await rows(data)).flat()).toEqual(await validate(data));
   });
 });

@@ -5,6 +5,7 @@ import { Accept } from "react-dropzone";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { ImportedFeature, ImportedFile, ImportIssue } from "@/interfaces/Farm";
 import { getCountryName } from "@/utils/countries";
+import { RowProblems, problemMessages } from "@/utils/rowProblems";
 import {
   GeoAttributeKey,
   geoAttributeAcceptedNames,
@@ -104,16 +105,23 @@ export const geoIssueText = (
     defaultValue: feature ? `${feature}: ${issue.message}` : issue.message,
   });
 
+/** The problems /farms/import found in one feature, naming it. */
+const featureIssuesOf = (
+  t: TFunction,
+  geoFile: ImportedFile,
+  feature: ImportedFeature
+): string[] => {
+  const label = featureLabel(
+    t,
+    feature,
+    geoFeatureId(feature.properties, usesNameAsId(geoFile))
+  );
+  return feature.errors.map((issue) => geoIssueText(t, issue, label));
+};
+
 /** The problems /farms/import found in the features, each naming its feature. */
 export const featureIssues = (t: TFunction, geoFile: ImportedFile): string[] =>
-  geoFile.features.flatMap((feature) => {
-    const label = featureLabel(
-      t,
-      feature,
-      geoFeatureId(feature.properties, usesNameAsId(geoFile))
-    );
-    return feature.errors.map((issue) => geoIssueText(t, issue, label));
-  });
+  geoFile.features.flatMap((feature) => featureIssuesOf(t, geoFile, feature));
 
 /** The farms' countries in an EUDR GeoJSON's `ProducerCountry`, other than the
  * analysis country: the report would state the wrong country, as with the old
@@ -182,7 +190,7 @@ export const geoFeatureCountry = (properties: Properties): string | null => {
 };
 
 // The ID is read by geoFeatureId (with the KML name), the country only checked
-const DATA_KEYS = (Object.keys(geoAttributeMappings) as GeoAttributeKey[]).filter(
+export const DATA_KEYS = (Object.keys(geoAttributeMappings) as GeoAttributeKey[]).filter(
   (key) => key !== "id" && key !== "country"
 );
 
@@ -195,6 +203,8 @@ export interface MissingAttributes {
 interface FarmRowsResult {
   rows: FarmRow[];
   errorMessages: string[];
+  /** What is wrong with each feature, in the order of `rows` */
+  rowProblems: RowProblems[];
   missing: MissingAttributes;
 }
 
@@ -210,11 +220,10 @@ export const geoFeaturesToFarmRows = (
   // The analysis country: every farm gets it, so a file can't list another one.
   selectedCountry: string | null
 ): FarmRowsResult => {
-  const errorMessages = featureIssues(t, geoFile);
-  const countries: string[] = [];
   const nameIsId = usesNameAsId(geoFile);
   const missingAttributes = new Set<GeoAttributeKey>();
   let featuresMissingData = 0;
+  const rowProblems: RowProblems[] = [];
 
   const rows = geoFile.features.map((feature) => {
     const properties = cleanProperties(feature.properties);
@@ -229,22 +238,28 @@ export const geoFeaturesToFarmRows = (
     if (row.area === 0 || row.area === "0") row.area = null;
 
     const country = geoFeatureCountry(feature.properties);
-    if (country) countries.push(country);
 
     const label = featureLabel(t, feature, id);
     const missingHere = DATA_KEYS.filter(
       (key) => geoAttributeMappings[key].mandatory && row[key] === null
     );
     if (missingHere.length > 0) featuresMissingData++;
-    missingHere.forEach((key) => {
-      missingAttributes.add(key);
-      errorMessages.push(
-        t("common:geoFile:mandatoryAttributeMissing", {
-          attribute: `${geoAttributeMappings[key].geoFile} / ${geoAttributeMappings[key].shapefile}`,
-          feature: label,
-          ...AS_TEXT,
-        })
-      );
+    missingHere.forEach((key) => missingAttributes.add(key));
+    rowProblems.push({
+      otherCountry: country
+        ? otherCountryError([country], t, language, selectedCountry)
+        : null,
+      errors: [
+        ...featureIssuesOf(t, geoFile, feature),
+        ...missingHere.map((key) =>
+          t("common:geoFile:mandatoryAttributeMissing", {
+            attribute: `${geoAttributeMappings[key].geoFile} / ${geoAttributeMappings[key].shapefile}`,
+            feature: label,
+            ...AS_TEXT,
+          })
+        ),
+      ],
+      missing: missingHere,
     });
 
     return {
@@ -259,8 +274,5 @@ export const geoFeaturesToFarmRows = (
     attributes: DATA_KEYS.filter((key) => missingAttributes.has(key)),
     features: featuresMissingData,
   };
-  const countryError = otherCountryError(countries, t, language, selectedCountry);
-  if (countryError) return { rows, errorMessages: [countryError], missing };
-
-  return { rows, errorMessages, missing };
+  return { rows, errorMessages: problemMessages(rowProblems), rowProblems, missing };
 };

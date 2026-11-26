@@ -3,6 +3,7 @@ import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 import { createTestI18n } from "@/test/i18n";
 import { FarmRow } from "@/interfaces/FarmRow";
+import { NO_ROW_PROBLEMS } from "@/utils/rowProblems";
 import {
   ExcelSource,
   GeoSource,
@@ -37,6 +38,7 @@ const excel = (rows: FarmRow[]): ExcelSource => ({
   readFor: "CO",
   rows,
   errorMessages: [],
+  rowProblems: rows.map(() => NO_ROW_PROBLEMS),
   withoutCoordinates: false,
 });
 
@@ -49,8 +51,12 @@ const kmzMissingData = (): GeoSource => ({
   readFor: "CO",
   geoFile: { format: "kmz", features: [] },
   attributeRows: [],
-  attributeErrors: ["Falta el productor"],
-  attributeMissing: { attributes: ["producerName"], features: 12 },
+  attributeErrors: [],
+  attributeProblems: Array.from({ length: 12 }, () => ({
+    otherCountry: null,
+    errors: ["Falta el productor"],
+    missing: ["producerName" as const],
+  })),
   excel: null,
 });
 

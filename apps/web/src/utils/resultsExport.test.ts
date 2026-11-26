@@ -6,6 +6,7 @@ import { createTestI18n, type TestLocale } from "@/test/i18n";
 import { FarmData } from "@/interfaces/Farm";
 import { InconsistentPolygonData } from "@/interfaces/PolygonValidation";
 import { MapData } from "@/interfaces/LayerAnalysis";
+import { NO_ROW_PROBLEMS } from "@/utils/rowProblems";
 import {
   SheetData,
   TEMPLATE_COLUMNS,
@@ -277,6 +278,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     expect(await upload(await validationSheets(locale), locale)).toEqual({
       data: UPLOADED,
       errorMessages: [],
+      rowProblems: UPLOADED.map(() => NO_ROW_PROBLEMS),
       rowsWithCoordinates: UPLOADED.length,
     });
   });
@@ -285,6 +287,7 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
     expect(await upload(await layerSheets(locale), locale)).toEqual({
       data: UPLOADED,
       errorMessages: [],
+      rowProblems: UPLOADED.map(() => NO_ROW_PROBLEMS),
       rowsWithCoordinates: UPLOADED.length,
     });
   });
