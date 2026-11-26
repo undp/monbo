@@ -175,6 +175,13 @@ missing data counts only its listed features (`sourceMissing`). Whole-file probl
 coordinates joined to a geo file) and a geo file joined to an Excel (option 3, whose
 join lists no row when anything fails) stay until the file is removed or fixed.
 
+The list (`FarmRowsTable`) marks each row that has problems of its own (`rowMark` in
+`utils/uploadSources.ts`) with an icon in its ID cell: the file notice's warning icon
+when the row only lacks mandatory data, its error icon otherwise. The icon's tooltip
+lists the row's problems, and it is focusable, with an accessible name that says the
+farm and its problems. A drawn farm and the rows of an Excel joined to a geo file get
+no icon: the joined Excel's problems belong to the whole file.
+
 The user-facing explanation of the four ways, the accepted formats and geometries,
 and a point's area is the documentation page (`/documentation#upload`). Its text is
 in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the
@@ -223,6 +230,19 @@ farm's geometry from what the web sends back. The web exports a farm with one pa
 as a GeoJSON `Polygon` and one with several as a `MultiPolygon`, in the GeoJSON
 download and in the Excel downloads' coordinates column.
 
+The GeoJSON download follows the EUDR Information System's GeoJSON file description,
+which reads a feature's `Area` as the hectares of a `Point` (4 ha when it is missing)
+and only as a number: a string such as `"3"` is read as 0. So the download writes
+`Area` as a number, the farm's area in hectares, not rounded, for points and polygons,
+and leaves it out when the API couldn't compute the area (`null` or `-1`). The Excel
+downloads write the same value in their area column (`areaHectares` in
+`utils/download.ts`). Both write `productionDate` as the calendar day the app shows
+(`yyyy-MM-dd`, `calendarDay` in `utils/dates.ts`), not the UTC instant stored for a
+date read from an Excel cell or the manual form; a date the app can't read is written
+as it was typed. A GeoJSON downloaded before November 2026 has `"Area": "0"` on every
+feature, and uploading it still works: an area of 0 reads as a missing one (a point
+then gets the default 1 ha; a polygon's area is always computed).
+
 ## Where the API reads layers from
 
 `MAPS_ROOT` decides it. At startup, the API detects the layout:
@@ -255,10 +275,13 @@ sequenceDiagram
   participant S as MAPS_ROOT (share)
 
   B->>A: GET /countries
-  A->>S: countries.json, each country's index.json (cached)
+  A->>S: countries.json, each country's index.json and categories.json (cached)
+  A->>S: stat the raster of every layer otherwise public (has_raster, not cached)
   A-->>B: countries with a published layer
   B->>A: GET /maps?country=CO&language=es
-  A->>S: CO/index.json, CO/metadata/... (cached)
+  A->>S: countries.json, each country's index.json and categories.json (cached)
+  A->>S: stat the raster of each CO layer otherwise public (has_raster, not cached)
+  A->>S: read CO/metadata/... of each listed layer (not cached)
   A-->>B: published layers: id, version, pixel size, names, considerations
   B->>A: POST /layer_analysis/analyze {country, maps, farms}
   A->>S: open CO/layers/rasters/<raster_filename>, read the farms' windows
@@ -282,10 +305,14 @@ sequenceDiagram
 The registry and each index are parsed once and **cached while the file's
 modification time and size don't change**, so most requests don't open them. An
 unreadable registry keeps the last valid copy, so a bad edit doesn't take the app
-down.
+down. Each country's `categories.json` is cached the same way. The metadata files are
+not: `GET /maps` reads the attributes and considerations of each layer it lists.
 
-**Whether each layer's raster exists is not cached.** Both listings check every
-layer's raster file on the share on every request (`LayerStore.has_raster`), so a
+**Whether each layer's raster exists is not cached.** Both listings decide what to
+offer with `LayersRoot.is_public`: a layer must be enabled, its category must resolve
+and be enabled, its years must fit it and its index fields must be valid. Only for a
+layer that passes all of that, `is_public` then checks the raster file on the share
+(`LayerStore.has_raster`), on every request, so a
 raster deleted by hand, or lost in a snapshot restore, stops being listed on the next
 request even though its index didn't change. A cache keyed on the index would keep
 listing that layer, and every farm would then come back as `value: null`. Measured on

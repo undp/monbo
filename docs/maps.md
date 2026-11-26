@@ -256,7 +256,11 @@ that category, whose index fields have valid types and whose raster file exists.
 other layer is hidden, logged once as an error naming the country, the layer and the
 reason, and shown in the admin with `category_issue` or `layer_issue`. One bad layer
 never takes down the listing of its country or of any other. Like any hidden layer,
-it still resolves by id for analyses already open.
+it still resolves by id for analyses already open, with two exceptions: an entry
+whose `id` isn't an integer is skipped by every lookup by id (analysis, tiles,
+images and the admin; a boolean never counts as an id), so the rest of its country
+keeps working, and an analysis of a layer whose `version` is invalid answers 400
+naming the layer and `version`.
 
 | `layer_issue` | Why |
 |---|---|
@@ -338,10 +342,24 @@ The admin shows and changes only that country's layers. Then:
   empty: `pixel_size` and `version` as `null` (the list shows "—" as the version, and
   the form starts with an empty pixel size), `references` as `[]`, `raster_filename`
   as `null`, and the attributes or considerations of a bad file name as `null`. It
-  can't be published (400). It is fixed on the share, by the operations team, not
-  from the admin: editing it or uploading its raster may still fail while its
-  `version` or a file name is invalid. A layer whose `id` isn't an integer can't be
-  addressed by any admin route, so it is left out of the admin listing and logged.
+  can't be published (400). Its `version` and file names are fixed on the share, by
+  the operations team, not from the admin. An operation that needs one of its
+  invalid fields answers 400 naming the layer and the field, writes nothing, and the
+  admin UI shows that reason:
+  - **editing it** needs `attributes_filename`, `considerations_filename` and
+    `raster_filename`. A missing or invalid `pixel_size` or `references` doesn't
+    block it: the edit overwrites them, so the form is the way to repair them;
+  - **uploading its raster** needs `version`, `pixel_size` and `raster_filename`,
+    checked before the file is received. The job checks them again before
+    converting and before activating: if a hand edit broke one meanwhile, the job
+    fails with the code `invalid_fields` (not `unexpected`), which names the field,
+    and the layer keeps its raster and version.
+- **An entry whose `id` isn't an integer** (missing, `"3"`, a list, a boolean) can't
+  be addressed by any admin route: it is left out of the admin listing and of the
+  categories' layer counts, and logged. The other layers of the country keep working.
+  **Creating a layer answers 400** while any such entry exists, naming its position
+  in the index and its value, because the new layer's id could clash with it once it
+  is repaired (`"3"` becoming `3`). Fix the entry in `index.json` first.
 
 Layers can't be deleted, only hidden. That keeps ids and past results stable.
 

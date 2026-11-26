@@ -42,3 +42,5 @@ A farm given as a point has no boundary. Its area is the **area declared** in th
 - It narrows by 1 − cos(latitude): 1.5% at 10°, the latitude of Costa Rica, and 13% at 30°.
 
 The area shown for the point is the declared one, not the circle's.
+
+The exports write a farm's area in hectares, not rounded, so a small point keeps its exact area when the file is uploaded again. The GeoJSON download writes it as the EUDR `Area` property, a number, and leaves it out when the area couldn't be computed: see [architecture.md](architecture.md#a-farms-geometry).
