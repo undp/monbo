@@ -40,8 +40,7 @@ the samples match it.
 ```bash
 # from apps/api
 GCP_MAPS_PLATFORM_API_KEY= GCP_MAPS_PLATFORM_SIGNATURE_SECRET= uv run fastapi dev app/main.py
-# from apps/web, in another terminal (the public API: production's). Step 8 below
-# runs in this same terminal, so the test checks the links against the variable.
+# from apps/web, in another terminal (the public API: production's)
 export SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)"
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION=1 \
 NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL="${SAMPLE_REPORTS_API_URL:?}/download-geojson" \
@@ -64,6 +63,13 @@ Then, for each language:
 7. Check that no farm map has a satellite photo behind it (they show a plain dark
    green background) and that no page mentions Google Maps: the satellite caption is
    printed only when the maps have the satellite background.
-8. Run `pnpm exec vitest run src/components/page/landing/sampleReports.test.ts` and
-   open "Descargar GeoJSON" / "Download GeoJSON" on a farm sheet: it downloads that
+8. From `apps/web`, check the links against the variable (without it, that check is
+   skipped):
+
+   ```bash
+   SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)" \
+   pnpm exec vitest run src/components/page/landing/sampleReports.test.ts
+   ```
+
+   Then open "Descargar GeoJSON" / "Download GeoJSON" on a farm sheet: it downloads that
    farm's GeoJSON from production's API.
