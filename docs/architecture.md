@@ -261,6 +261,10 @@ sequenceDiagram
   start page shows one country pill per country from it.
 - **`GET /maps?country=CO&language=es`**: Colombia's enabled layers, with their
   metadata in the requested language and their `version`.
+  Once an analysis has results, the web also asks for the other UI language once
+  (at most one extra call per language and country), so the analysed layers' texts
+  can follow a language change even for a layer hidden afterwards
+  (`docs/onboarding.md` §2.1).
 
 The registry and each index are parsed once and **cached while the file's
 modification time and size don't change**, so most requests don't open them. An

@@ -25,6 +25,7 @@ import {
   includesSatelliteBackground,
   mapsWithResults,
 } from "@/utils/layerImages";
+import { layerTextsOf } from "@/utils/layerTexts";
 import { countFarmPages, isLargeReport } from "@/utils/reportSize";
 import {
   ReportPdfClient,
@@ -52,8 +53,10 @@ import type {
 //   farm's PDF, and its download is a ZIP built farm by farm (`buildLargeReportZip`).
 
 interface Selection {
-  /** Identifies the selection: what's fetched or rendered for it is reused. */
+  /** Identifies the selection: what's rendered for it is reused. */
   key: string;
+  /** What the layer images depend on: the layer texts don't change them. */
+  imagesKey: string;
   country: string;
   farms: FarmData[];
   maps: MapData[];
@@ -228,7 +231,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       !results.length
     )
       return null;
-    const key = JSON.stringify([
+    const imagesKey = JSON.stringify([
       selectedCountry,
       locale,
       results.map((r) => `${r.mapId}@${r.version}`).sort(),
@@ -236,9 +239,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       // A category edited by the admin changes the report's results and texts.
       availableCategories,
     ]);
+    const key = JSON.stringify([imagesKey, selectedMaps.map(layerTextsOf)]);
     const farmPages = countFarmPages(selectedFarms, results);
     return {
       key,
+      imagesKey,
       country: selectedCountry,
       farms: selectedFarms,
       maps: selectedMaps,
@@ -281,7 +286,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       kind: ReportPdfRequest["kind"],
       showLinks: boolean
     ): Promise<Blob> => {
-      const images = await keyed(imagesRef, s.key, () =>
+      const images = await keyed(imagesRef, s.imagesKey, () =>
         fetchLayerImages(s.country, s.maps, s.farms, s.results)
       );
       return workerClient().render({

@@ -31,9 +31,9 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
   const {
     territorialAnalysisParams: { selectedMaps },
   } = useContext(DataContext);
-  const [selectedMap, setSelectedMap] = useState<MapData | null>(
-    selectedMaps[0]
-  );
+  const [selectedMapId, setSelectedMapId] = useState<number | null>(null);
+  const selectedMap =
+    selectedMaps.find((map) => map.id === selectedMapId) ?? selectedMaps[0] ?? null;
 
   const attributes = [
     "coverage",
@@ -77,7 +77,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
             const current = selectedMaps.findIndex((map) => map.id === selectedMap.id);
             const next =
               selectedMaps[(current + step + selectedMaps.length) % selectedMaps.length];
-            setSelectedMap(next);
+            setSelectedMapId(next.id);
             event.currentTarget
               .querySelector<HTMLElement>(`[data-map-id="${next.id}"]`)
               ?.focus();
@@ -103,7 +103,7 @@ export const MapsDetailsModal: React.FC<Props> = ({ open, onClose }) => {
               <Chip
                 key={map.id}
                 label={layerLabel(map)}
-                onClick={() => setSelectedMap(map)}
+                onClick={() => setSelectedMapId(map.id)}
                 role="radio"
                 aria-checked={selected}
                 data-map-id={map.id}
