@@ -1,4 +1,4 @@
-import { inflateSync } from "node:zlib";
+import { constants, inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { readPublicFile } from "@/test/files";
 
@@ -21,27 +21,42 @@ const latin1 = (bytes: Uint8Array) => Buffer.from(bytes).toString("latin1");
 // PDF literal strings escape `(`, `)` and `\` with a backslash.
 const unescapePdfString = (value: string) => value.replace(/\\(.)/g, "$1");
 
-/** Every link target in the PDF, from its raw objects and its compressed streams. */
-const pdfUris = (bytes: Uint8Array): string[] => {
+/** The PDF's raw objects and every compressed stream it holds, inflated. */
+const pdfSources = (bytes: Uint8Array) => {
   const raw = latin1(bytes);
-  const sources = [raw];
+  const inflated: string[] = [];
   for (const [, stream] of raw.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
     try {
-      sources.push(latin1(inflateSync(Buffer.from(stream, "latin1"))));
+      // `\r?\n` before `endstream` can eat the stream's last byte: sync flush
+      // inflates it anyway instead of failing on the truncated end.
+      const data = inflateSync(Buffer.from(stream, "latin1"), {
+        finishFlush: constants.Z_SYNC_FLUSH,
+      });
+      inflated.push(latin1(data));
     } catch {
-      // Not a FlateDecode stream (images, fonts): it holds no links.
+      // Not a FlateDecode stream (JPEG images): it holds no links.
     }
   }
-  return sources.flatMap((source) =>
+  const flateStreams = raw.match(/\/FlateDecode/g)?.length ?? 0;
+  return { sources: [raw, ...inflated], inflated: inflated.length, flateStreams };
+};
+
+const linkTargets = (sources: string[]) =>
+  sources.flatMap((source) =>
     [...source.matchAll(/\/URI\s*\(((?:\\.|[^\\)])*)\)/g)].map(([, uri]) =>
       unescapePdfString(uri)
     )
   );
-};
 
 describe.each(Object.entries(SAMPLE_REPORTS))("sample report (%s)", (_, path) => {
-  const uris = pdfUris(readPublicFile(path));
+  const { sources, inflated, flateStreams } = pdfSources(readPublicFile(path));
+  const uris = linkTargets(sources);
   const geojsonLinks = uris.filter((uri) => uri.includes("/download-geojson"));
+
+  it("reads every compressed stream, so no link hides in one", () => {
+    expect(flateStreams).toBeGreaterThan(0);
+    expect(inflated).toBe(flateStreams);
+  });
 
   it("links every GeoJSON to the production API", () => {
     expect(geojsonLinks).toHaveLength(SAMPLE_FARM_IDS.length);
