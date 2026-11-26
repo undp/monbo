@@ -30,7 +30,7 @@ export const LayerTilesOverlay = () => {
 
     return () => {
       // Google disables its API when it rejects the key: getArray() then returns undefined
-      const overlays: google.maps.MapType[] | undefined =
+      const overlays: (google.maps.MapType | null)[] | undefined =
         map.overlayMapTypes.getArray();
       const idx = overlays?.indexOf(overlay) ?? -1;
       if (idx > -1) {
