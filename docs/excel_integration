@@ -50,9 +50,23 @@ El archivo Excel descargado de este módulo contiene dos pestañas, con el nombr
 - **Polígonos inconsistentes**. En esta pestaña se detalla la información de los polígonos que presemntan inconsistencias.
   - Presenta una lista detallada de los polígonos con inconsistencias, incluyendo el porcentaje de traslape que genera dichas inconsistencias.
 
-#### **Módulo de Análisis de Deforestación**
+#### **Módulo de Análisis Territorial**
 
-El archivo Excel descargado contiene una pestaña única que detalla el porcentaje (%) de deforestación para cada polígono analizado, según cada mapa incluido en el proceso:
+El archivo Excel descargado (`step2-results.xlsx`) contiene una pestaña única, «Análisis territorial» (en inglés, «Territorial analysis»). Primero repite las columnas de la plantilla de carga, así que el archivo se puede volver a cargar. Después agrega dos columnas por cada capa analizada, ordenadas por categoría y, dentro de cada categoría, por capa. El encabezado nombra la categoría y la capa (su alias o, si no tiene, su nombre) en el idioma de la aplicación:
 
-- **0%**: El polígono está libre de deforestación.
-- **100%**: El polígono está completamente deforestado.
+- **«Categoría · Capa — % hallazgo»**: la parte del polígono que cuenta como hallazgo, en porcentaje, como número de 0 a 100 redondeado a 4 decimales. Si no hay resultado, dice «Sin dato».
+- **«Categoría · Capa — Resultado»**: la etiqueta que la categoría define para un polígono sin hallazgo o con hallazgo (en la categoría Deforestación, «Libre de deforestación» o «Con deforestación»). Si no hay resultado, dice «Sin dato».
+
+**El hallazgo depende de la polaridad de la categoría.** El análisis entrega, por polígono y capa, la fracción del polígono que coincide con la capa (`value`, entre 0 y 1; ver `docs/deforestation_calculation.md`). La polaridad de la categoría dice qué parte de esa fracción es hallazgo:
+
+- **`avoid`** (deforestación, áreas protegidas): coincidir con la capa es el hallazgo. % hallazgo = 100 × `value`. Un 100 % indica que todo el polígono coincide con la capa.
+- **`required`** (frontera agrícola): no coincidir con la capa es el hallazgo. % hallazgo = 100 × (1 − `value`). Un polígono que queda 82 % dentro de la frontera tiene 18 % de hallazgo; uno que queda completo dentro tiene 0 %.
+
+**El resultado depende del umbral de la categoría.** Un polígono tiene hallazgo solo cuando su % hallazgo es estrictamente mayor que el umbral; si es igual o menor, recibe la etiqueta sin hallazgo. Por eso 0 % nunca es hallazgo, pero tampoco lo es un porcentaje pequeño que no supera el umbral: con un umbral de 2, un polígono con 1 % de deforestación sale «Libre de deforestación». El umbral es el `thresholdPercentage` de cada categoría, que `GET /categories` entrega ya resuelto: el umbral propio de la categoría o, si no define uno, el umbral global `DEFORESTATION_THRESHOLD_PERCENTAGE`, que la API también publica en `GET /config`. La categoría Deforestación incluida por defecto usa el global. Cada categoría puede tener su propio umbral, así que un mismo porcentaje puede ser hallazgo en una categoría y no en otra. El archivo no incluye los umbrales.
+
+**«Sin dato» no es 0 %.** Las dos columnas de una capa dicen «Sin dato» cuando:
+
+- la API no pudo calcular el resultado del polígono para esa capa (`value: null`; por ejemplo, un polígono fuera de la cobertura del raster) o el polígono no tiene resultado para ella. Una falla en un polígono no detiene el análisis de los demás;
+- la categoría de la capa ya no está entre las del país (se deshabilitó o se eliminó después del análisis). El encabezado de esa capa dice «Sin categoría», y sus resultados no se leen con la regla de otra categoría.
+
+«Sin dato» significa que el resultado no se conoce: no indica que el polígono esté libre de hallazgos. Como es texto, las fórmulas numéricas de Excel lo omiten; no lo reemplaces por 0.
