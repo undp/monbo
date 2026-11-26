@@ -171,7 +171,7 @@ export interface paths {
          * @description Publish (enable) or hide (disable) a layer. A hidden layer disappears from the
          *     public listing but still resolves by id for analyses and tiles. A layer can
          *     only be enabled once it has a raster (409), and while its category resolves, is
-         *     enabled and fits its years (400).
+         *     enabled and fits its years, and its index fields have valid types (400).
          */
         patch: operations["set_layer_enabled_admin_layers__layer_id__patch"];
         trace?: never;
@@ -746,17 +746,23 @@ export interface components {
             id: number;
             /**
              * Layer Issue
-             * @description Why the layer can't be public even with a usable category: its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.
+             * @description Why the layer can't be public even with a usable category: an index field has an invalid type (`invalid_fields`), its years don't fit the category's `temporal` (`years_mismatch`), or it has no raster (`missing_raster`). Null when nothing stops it.
              */
-            layer_issue: ("years_mismatch" | "missing_raster") | null;
-            /** Pixel Size */
-            pixel_size: number;
+            layer_issue: ("invalid_fields" | "years_mismatch" | "missing_raster") | null;
+            /**
+             * Pixel Size
+             * @description Pixel size in meters; null when the index holds an invalid value
+             */
+            pixel_size: number | null;
             /** Raster Filename */
             raster_filename: string | null;
             /** References */
             references: string[];
-            /** Version */
-            version: number;
+            /**
+             * Version
+             * @description Raster version; null when the index holds an invalid value
+             */
+            version: number | null;
         };
         /** AnalysisUsage */
         AnalysisUsage: {

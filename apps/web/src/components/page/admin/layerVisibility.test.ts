@@ -15,6 +15,7 @@ describe("layerVisibility", () => {
       "unreadable_categories",
     ],
     [{ category_enabled: false }, "category_disabled"],
+    [{ layer_issue: "invalid_fields" }, "invalid_fields"],
     [{ layer_issue: "years_mismatch" }, "years_mismatch"],
     [{ layer_issue: "missing_raster", has_raster: false }, "missing_raster"],
   ] as const)("an enabled layer with %o is hidden by %s", (fields, reason) => {
@@ -27,6 +28,14 @@ describe("layerVisibility", () => {
         makeAdminLayer({ category_enabled: false, layer_issue: "missing_raster" })
       )
     ).toBe("category_disabled");
+  });
+
+  it("says the category before invalid fields", () => {
+    expect(
+      layerBlocker(
+        makeAdminLayer({ category_issue: "unknown_category", category_enabled: false, layer_issue: "invalid_fields" })
+      )
+    ).toBe("unknown_category");
   });
 
   it("tells a hidden layer what would stop publishing it", () => {

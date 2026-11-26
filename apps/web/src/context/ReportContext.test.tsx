@@ -317,6 +317,31 @@ describe("ReportProvider with a selection", () => {
   });
 });
 
+describe("ReportProvider layer texts", () => {
+  const withTexts = (map: typeof gfw) =>
+    reportContext([f1, f2], {
+      reportGenerationParams: {
+        seeded: true,
+        selectedMaps: [map],
+        selectedFarms: [f1, f2],
+        downloadType: null,
+      },
+    });
+
+  it("renders again with the new texts, without fetching the images again", async () => {
+    const rendered = await renderReport(withTexts({ ...gfw, alias: "GFW es" }));
+    await rendered.result.current.getCompleteReport();
+
+    rendered.setContext(withTexts({ ...gfw, alias: "GFW en" }));
+    rendered.rerender(undefined);
+    await rendered.result.current.getCompleteReport();
+
+    expect(requests()).toHaveLength(2);
+    expect(requests()[1].maps[0].alias).toBe("GFW en");
+    expect(fetchLayerImages).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ReportProvider satellite background", () => {
   it("gives the limit when the selection's farms are above it", async () => {
     const { result } = await renderReport();

@@ -24,12 +24,25 @@ from app.modules.layer_analysis.helpers import (
 )
 from app.modules.maps.helpers import get_all_maps, get_map_by_id
 
+# The index fields every entry needs to be listed (`index_fields_problem`).
+VALID_FIELDS = {
+    "pixel_size": 30,
+    "attributes_filename": "map.json",
+    "considerations_filename": "map.md",
+}
+
 
 def test_get_all_maps(maps_root):
     maps_root.write_index(
         [
-            {"id": 1, "name": "Deforestation Map A"},
-            {"id": 2, "name": "Deforestation Map B", "enabled": False, "version": 4},
+            {"id": 1, "name": "Deforestation Map A", **VALID_FIELDS},
+            {
+                "id": 2,
+                "name": "Deforestation Map B",
+                "enabled": False,
+                "version": 4,
+                **VALID_FIELDS,
+            },
         ]
     )
     response = get_all_maps()
@@ -37,6 +50,7 @@ def test_get_all_maps(maps_root):
         {
             "id": 1,
             "name": "Deforestation Map A",
+            **VALID_FIELDS,
             "enabled": True,
             "version": 1,
             "category_id": "deforestation",
@@ -49,6 +63,7 @@ def test_get_all_maps(maps_root):
         {
             "id": 2,
             "name": "Deforestation Map B",
+            **VALID_FIELDS,
             "enabled": False,
             "version": 4,
             "category_id": "deforestation",
