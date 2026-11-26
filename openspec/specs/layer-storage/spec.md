@@ -127,6 +127,11 @@ A raster SHALL never be overwritten in place. Each successful raster ingestion S
 - **WHEN** a hand edit leaves CO's only enabled layer pointing at a raster file that doesn't exist
 - **THEN** `GET /maps?country=CO` returns an empty list and `GET /countries` doesn't offer CO
 
+#### Scenario: Raster removed from the share after a listing
+
+- **WHEN** `GET /maps?country=CO` and `GET /countries` have listed CO's only enabled layer, and its raster file is then removed from the share without any change to CO's index
+- **THEN** the next `GET /maps?country=CO` returns an empty list and the next `GET /countries` doesn't offer CO
+
 #### Scenario: Version exposed
 
 - **WHEN** a client calls `GET /maps`

@@ -1,11 +1,7 @@
 from pydantic import BaseModel
 
-from app.models.farms import FarmPolygonDetailData, InputFarmData
+from app.models.farms import FarmPolygonDetailData
 from app.models.maps import CountryCode
-
-
-class DeforestationUnprocessedFarmData(InputFarmData):
-    pass
 
 
 class AnalyzeBody(BaseModel):
