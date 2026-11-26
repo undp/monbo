@@ -5,8 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 const LOCALE_PREFIX = `(/(?:${i18nConfig.locales.join("|")}))?`;
 
 // `/home` and `/{locale}/home`: the start page shows the three steps now, so the old
-// module cards' route only keeps links working. Redirected here, before the locale
-// router: a redirect in next.config.ts loops in the standalone server.
+// module cards' route only keeps links working. Redirected permanently, like the
+// other retired routes, and here before the locale router: a redirect in
+// next.config.ts loops in the standalone server.
 const HOME = new RegExp(`^${LOCALE_PREFIX}/home/?$`);
 
 // Stage 2 moved from /deforestation-analysis to /territorial-analysis. Old links
@@ -43,7 +44,7 @@ export function proxy(request: NextRequest) {
     // The default locale has no prefix: /es/home goes straight to /.
     url.pathname =
       home[1] && home[1] !== `/${i18nConfig.defaultLocale}` ? home[1] : "/";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
   return i18nRouter(request, i18nConfig);
 }

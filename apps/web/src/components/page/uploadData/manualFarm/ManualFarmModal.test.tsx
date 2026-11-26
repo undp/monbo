@@ -105,6 +105,10 @@ const press = (name: string) =>
 
 const addButton = () => screen.getByRole("button", { name: "Agregar" });
 
+// Measured in `pnpm test` on a loaded host (load average 22): these tests took 0.5-2.0 s
+// alone and up to 7.7 s, past the 5 s default. 3x the slowest run.
+const SLOW_HOST_TIMEOUT = 23_000;
+
 describe("ManualFarmModal", () => {
   it("opens the map on the selected country", async () => {
     await renderModal();
@@ -156,7 +160,7 @@ describe("ManualFarmModal", () => {
       area: null,
       documents: [],
     } satisfies FarmRow);
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("rejects a vertex that makes the edges cross", async () => {
     await renderModal();
@@ -318,7 +322,7 @@ describe("ManualFarmModal", () => {
     expect(field(/^Tipo de cultivo/).getAttribute("aria-invalid")).toBe(
       "false"
     );
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("needs a point's area", async () => {
     const { onSave } = await renderModal();
@@ -552,7 +556,7 @@ describe("ManualFarmModal", () => {
       parts: [{ holes: [expect.any(Array)] }, { exterior: ISLAND, holes: [] }],
       open: null,
     });
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("lists each ring's vertices under its name", async () => {
     await renderModal();
@@ -570,7 +574,7 @@ describe("ManualFarmModal", () => {
       "Parte 1 · Hueco 1",
       "Parte 2",
     ]);
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("deletes a hole and a part, but keeps the last part", async () => {
     await renderModal();
@@ -592,7 +596,7 @@ describe("ManualFarmModal", () => {
     press("Borrar parte");
     expect(screen.getByText(/necesita al menos una parte/)).toBeTruthy();
     expect(map().drawing).toEqual(closed(square));
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("discards the ring being drawn", async () => {
     await renderModal();
