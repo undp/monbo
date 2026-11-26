@@ -34,8 +34,12 @@ const disabledOverlays = () => ({
   removeAt: vi.fn(() => undefined),
 });
 
-/** The overlay for layer 7 of Colombia at `version`, on a map with those overlays. */
-const overlayOn = (overlayMapTypes: object, version: number) => {
+/** A map holding those overlays. Reused across renders so only the layer changes. */
+const mapWith = (overlayMapTypes: object) =>
+  ({ overlayMapTypes }) as unknown as google.maps.Map;
+
+/** The overlay for layer 7 of Colombia at `version`, on `map`. */
+const overlayOn = (map: google.maps.Map, version: number) => {
   const context = makeDataContext({
     selectedCountry: "CO",
     territorialAnalysisParams: {
@@ -43,7 +47,6 @@ const overlayOn = (overlayMapTypes: object, version: number) => {
       selectedMaps: [makeMap({ id: 7, version })],
     },
   });
-  const map = { overlayMapTypes } as unknown as google.maps.Map;
   return (
     <DataContext.Provider value={context}>
       <GoogleMapsContext.Provider value={{ map }}>
@@ -62,7 +65,7 @@ beforeEach(() => {
 describe("LayerTilesOverlay", () => {
   it("adds the layer's tiles on mount and removes them on unmount", () => {
     const { overlays, overlayMapTypes } = workingOverlays();
-    const { unmount } = render(overlayOn(overlayMapTypes, 3));
+    const { unmount } = render(overlayOn(mapWith(overlayMapTypes), 3));
 
     expect(overlays).toHaveLength(1);
     const { getTileUrl } = overlays[0].options;
@@ -79,21 +82,36 @@ describe("LayerTilesOverlay", () => {
 
   it("replaces the overlay when the layer changes", () => {
     const { overlays, overlayMapTypes } = workingOverlays();
-    const { rerender } = render(overlayOn(overlayMapTypes, 3));
+    const map = mapWith(overlayMapTypes);
+    const { rerender } = render(overlayOn(map, 3));
     const first = overlays[0];
 
-    rerender(overlayOn(overlayMapTypes, 4));
+    rerender(overlayOn(map, 4));
 
     expect(overlays).toHaveLength(1);
     expect(overlays[0]).not.toBe(first);
+    expect(
+      overlays[0].options.getTileUrl?.({ x: 1, y: 2 } as google.maps.Point, 12)
+    ).toBe("http://api.test/layer_analysis/tiles/CO/7/dynamic/12/1/2.png?v=4");
   });
 
   it("doesn't throw when unmounted after Google disabled the Maps API", () => {
     // A missing or invalid key: Google turns its methods into no-ops returning undefined
     const overlayMapTypes = disabledOverlays();
-    const { unmount } = render(overlayOn(overlayMapTypes, 3));
+    const { unmount } = render(overlayOn(mapWith(overlayMapTypes), 3));
 
     expect(() => unmount()).not.toThrow();
+    expect(overlayMapTypes.removeAt).not.toHaveBeenCalled();
+  });
+
+  it("doesn't throw when the layer changes after Google disabled the Maps API", () => {
+    const overlayMapTypes = disabledOverlays();
+    const map = mapWith(overlayMapTypes);
+    const { rerender } = render(overlayOn(map, 3));
+
+    expect(() => rerender(overlayOn(map, 4))).not.toThrow();
+    // The effect ran again for the new layer, after its cleanup
+    expect(overlayMapTypes.push).toHaveBeenCalledTimes(2);
     expect(overlayMapTypes.removeAt).not.toHaveBeenCalled();
   });
 });
