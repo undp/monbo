@@ -262,6 +262,11 @@ pnpm test:watch   # re-runs the affected tests on save
   `createTestI18n` for its locales before faking them; the instance is then reused.
 - **Imports:** tests import `describe`, `it`, `expect` and `vi` from `vitest` (no
   globals), and `tsc --noEmit` type-checks them with the rest of the app.
+- **`SAMPLE_REPORTS_API_URL`:** production's API URL, which the sample reports link
+  (`components/page/landing/sampleReports.test.ts`). CI passes it from the repository
+  variable of the same name, and the tests fail in CI without it. Locally, without it,
+  the check against that URL is reported as skipped; to run it, set it with
+  `gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo`.
 
 ### Continuous Integration
 

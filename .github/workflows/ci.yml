@@ -191,6 +191,9 @@ jobs:
       # slowest step, so a failing test stops the job early.
       - name: Test
         run: pnpm test
+        env:
+          # Production's API URL, which the sample reports link (sampleReports.test.ts)
+          SAMPLE_REPORTS_API_URL: ${{ vars.SAMPLE_REPORTS_API_URL }}
 
       - name: Build
         run: pnpm run build

@@ -28,19 +28,22 @@ link at a public API, never at the local one: a reader of the sample has no
 `localhost`. `NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL` overrides only that link; the rest of
 the web keeps using the local API.
 
-That public API is production's
-(`https://monbo-api.orangerock-ea3c2f53.eastus.azurecontainerapps.io`). Its
-`/download-geojson` only returns the JSON it is given, so it serves the links whatever
-version production runs. `src/components/page/landing/sampleReports.test.ts` fails when a
-sample links its GeoJSON anywhere else: if production's API URL changes, update it there
-and here, and regenerate both samples.
+That public API is production's. Its URL is not in the code: it is the GitHub
+repository variable `SAMPLE_REPORTS_API_URL` (Settings → Secrets and variables →
+Actions → Variables). Production's `/download-geojson` only returns the JSON it is
+given, so it serves the links whatever version production runs.
+`src/components/page/landing/sampleReports.test.ts` checks every sample's GeoJSON links
+against that variable, which CI passes to the web tests. If production's API URL
+changes, update the variable and regenerate both samples with it: CI stays red until
+the samples match it.
 
 ```bash
+export SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)"
 # from apps/api
 GCP_MAPS_PLATFORM_API_KEY= GCP_MAPS_PLATFORM_SIGNATURE_SECRET= uv run fastapi dev app/main.py
 # from apps/web (the public API: production's)
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION=1 \
-NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL=https://monbo-api.orangerock-ea3c2f53.eastus.azurecontainerapps.io/download-geojson \
+NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL="$SAMPLE_REPORTS_API_URL/download-geojson" \
 pnpm dev
 ```
 

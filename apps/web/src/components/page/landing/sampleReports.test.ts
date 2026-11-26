@@ -4,10 +4,10 @@ import { readPublicFile } from "@/test/files";
 
 // The sample reports the start page opens (public/files/examples/README.md). A
 // reader of the sample has no local API, so each farm sheet's GeoJSON link must
-// reach production's.
+// reach production's. Its URL is SAMPLE_REPORTS_API_URL: in CI, the repository
+// variable of the same name.
 
-const PRODUCTION_GEOJSON_URL =
-  "https://monbo-api.orangerock-ea3c2f53.eastus.azurecontainerapps.io/download-geojson";
+const PRODUCTION_API_URL = (process.env.SAMPLE_REPORTS_API_URL ?? "").replace(/\/$/, "");
 
 const SAMPLE_REPORTS = {
   es: "files/examples/es/ejemplo-reporte.pdf",
@@ -48,6 +48,13 @@ const linkTargets = (sources: string[]) =>
     )
   );
 
+it.runIf(process.env.CI)("has SAMPLE_REPORTS_API_URL in CI", () => {
+  expect(
+    PRODUCTION_API_URL,
+    "Set the repository variable SAMPLE_REPORTS_API_URL to production's API URL"
+  ).not.toBe("");
+});
+
 describe.each(Object.entries(SAMPLE_REPORTS))("sample report (%s)", (_, path) => {
   const { sources, inflated, flateStreams } = pdfSources(readPublicFile(path));
   const uris = linkTargets(sources);
@@ -58,16 +65,22 @@ describe.each(Object.entries(SAMPLE_REPORTS))("sample report (%s)", (_, path) =>
     expect(inflated).toBe(flateStreams);
   });
 
-  it("links every GeoJSON to the production API", () => {
+  it("links every GeoJSON to one https API", () => {
     expect(geojsonLinks).toHaveLength(SAMPLE_FARM_IDS.length);
+    const origins = new Set(geojsonLinks.map((link) => new URL(link).origin));
+    expect(origins.size).toBe(1);
+    expect([...origins][0]).toMatch(/^https:\/\//);
+  });
+
+  it.skipIf(!PRODUCTION_API_URL)("links every GeoJSON to SAMPLE_REPORTS_API_URL", () => {
     for (const link of geojsonLinks) {
-      expect(link.startsWith(`${PRODUCTION_GEOJSON_URL}?content=`)).toBe(true);
+      expect(link.startsWith(`${PRODUCTION_API_URL}/download-geojson?content=`)).toBe(true);
     }
   });
 
-  it("has no link to a local or non-production API", () => {
+  it("has no link to a local API", () => {
     for (const uri of uris) {
-      expect(uri).not.toMatch(/localhost|127\.0\.0\.1|jollymoss/);
+      expect(uri).not.toMatch(/localhost|127\.0\.0\.1/);
     }
   });
 
