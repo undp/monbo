@@ -303,7 +303,7 @@ pnpm dev                            # → next dev --turbo  (http://localhost:30
 
 Go to **`http://localhost:3000`**. You should see the start page with the three steps and the Colombia, Costa Rica and Ecuador pills; pick one and press "Empezar en …" to open module 1. To exercise the full flow, download the Excel template or one of the example files from module 1's upload step, list it, and press the step's button.
 
-> If the map area in module 2/3 is blank, your `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` is missing or invalid. If module 2 errors out computing deforestation, you probably skipped `git lfs pull` (4.1).
+> If the maps show Google's "Oops! Something went wrong" instead of the base map (and the console logs `InvalidKeyMapError`), your `NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY` is missing or invalid. A missing key is the same case: `config/env.ts` falls back to the `__NEXT_PUBLIC_GCP_MAPS_PLATFORM_API_KEY__` placeholder, which Google rejects. Google then disables its Maps API in that tab, but the rest of the flow keeps working: leaving module 2's map view for the results table, or picking another layer on it, must not take the page down. If module 2 errors out computing deforestation, you probably skipped `git lfs pull` (4.1).
 
 ### 4.5 Suggested reading order
 
