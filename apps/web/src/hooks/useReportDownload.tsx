@@ -8,6 +8,11 @@ import { MapLayerChangedError } from "@/api/layerAnalysis";
 import { ReportPdfWorkerTerminatedError } from "@/workers/reportPdfClient";
 import { sendUsageEvent } from "@/api/usageEvents";
 
+// The same in every UI language (D1 of undp/monbo#172): the report covers every
+// layer category, so the name says Monbo, not deforestation.
+const COMPLETE_REPORT_FILE_NAME = "monbo-report.pdf";
+const REPORTS_ZIP_FILE_NAME = "monbo-reports.zip";
+
 export const useReportDownload = () => {
   const { t } = useTranslation(["territorialAnalysis", "common"]);
   const { openSnackbar } = useContext(SnackbarContext);
@@ -40,8 +45,7 @@ export const useReportDownload = () => {
   const downloadSeparatedReports = useCallback(async () => {
     try {
       const zipBlob = await getSeparatedReports();
-      // TODO: internationalize filename
-      saveAs(zipBlob, "deforestation-reports.zip");
+      saveAs(zipBlob, REPORTS_ZIP_FILE_NAME);
       reportDownload("zip", "ok");
     } catch (error) {
       // The user left the report page: there is nothing to save or to report.
@@ -61,8 +65,7 @@ export const useReportDownload = () => {
   const downloadCompleteReport = useCallback(async () => {
     try {
       const pdfBlob = await getCompleteReport();
-      // TODO: internationalize filename
-      saveAs(pdfBlob, "deforestation-complete-report.pdf");
+      saveAs(pdfBlob, COMPLETE_REPORT_FILE_NAME);
       reportDownload("pdf", "ok");
     } catch (error) {
       if (error instanceof ReportPdfWorkerTerminatedError) return;
@@ -84,8 +87,7 @@ export const useReportDownload = () => {
     ) => {
       try {
         const zipBlob = await buildLargeReportZip(onProgress, signal);
-        // TODO: internationalize filename
-        saveAs(zipBlob, "deforestation-reports.zip");
+        saveAs(zipBlob, REPORTS_ZIP_FILE_NAME);
         reportDownload("zip", "ok");
       } catch (error) {
         // Cancelled by the user, or stopped because the selection changed or the

@@ -162,6 +162,19 @@ and the examples, and the tests upload every example. The list lives in the page
 `utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
 together, in list order, and rejects an ID found in two sources, naming both.
 
+A source's errors (`sourceErrors`) are its whole-file problems plus the problems of
+the rows still listed. An Excel (option 1) and a geo file read from its attributes
+(option 2) keep each row's problems apart, in the same order as their rows
+(`RowProblems`, `utils/rowProblems.ts`): its validation errors, a feature's API
+issues and the mandatory attributes it lacks, and the other-country message when it
+names a country other than the selected one (one message per country). Deleting a
+row (`removedRows`) drops its problems, so deleting the rows with problems clears the
+file's notice and lets it upload, also after the file is read again. A geo file's
+missing data counts only its listed features (`sourceMissing`). Whole-file problems
+(a geo file the API rejected, an Excel without coordinates, an Excel with
+coordinates joined to a geo file) and a geo file joined to an Excel (option 3, whose
+join lists no row when anything fails) stay until the file is removed or fixed.
+
 The user-facing explanation of the four ways, the accepted formats and geometries,
 and a point's area is the documentation page (`/documentation#upload`). Its text is
 in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the
@@ -270,6 +283,19 @@ The registry and each index are parsed once and **cached while the file's
 modification time and size don't change**, so most requests don't open them. An
 unreadable registry keeps the last valid copy, so a bad edit doesn't take the app
 down.
+
+**Whether each layer's raster exists is not cached.** Both listings check every
+layer's raster file on the share on every request (`LayerStore.has_raster`), so a
+raster deleted by hand, or lost in a snapshot restore, stops being listed on the next
+request even though its index didn't change. A cache keyed on the index would keep
+listing that layer, and every farm would then come back as `value: null`. Measured on
+dev in November 2026, the share work of `GET /countries` was about 45 ms at the median,
+of which the raster checks were at most about 20 ms (about 2 ms per uncached `stat`,
+one per layer). The Linux SMB client already serves a `stat` repeated within a second
+from its own cache. Reopen the question with new numbers if the layer count grows a
+lot; any cache must still pass
+`test_a_raster_removed_after_a_listing_is_hidden_on_the_next_one`
+(`apps/api/tests/modules/layers/test_countries_layout.py`).
 
 ### 2. The analysis
 

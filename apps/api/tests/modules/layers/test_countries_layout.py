@@ -316,6 +316,21 @@ def test_a_country_without_enabled_layers_is_not_listed(countries):
     assert codes == ["CO", "EC"]
 
 
+def test_a_raster_removed_after_a_listing_is_hidden_on_the_next_one(country_root):
+    # The raster check must not be cached against the index: the share can lose a
+    # raster (hand edit, snapshot restore) while its index stays the same.
+    country_root.register("CO")
+    country_root.country("CO").write_index([layer(0, "gfw.tif")])
+    raster = country_root.country("CO").write_raster("gfw.tif")
+    assert public("/countries").json() == [{"code": "CO"}]
+    assert [entry["id"] for entry in public("/maps?country=CO").json()] == [0]
+
+    raster.unlink()
+
+    assert public("/countries").json() == []
+    assert public("/maps?country=CO").json() == []
+
+
 def test_countries_on_a_flat_root(maps_root):
     maps_root.write_index(
         [
