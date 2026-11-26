@@ -8,12 +8,12 @@ within the country of the admin's session.
 ## Requirements
 ### Requirement: List all layers for administration
 
-`GET /admin/layers` SHALL return every layer, enabled or disabled, of the country in the admin's session, and no layer of any other country. Each entry SHALL include:
+`GET /admin/layers` SHALL return every layer, enabled or disabled, of the country in the admin's session, and no layer of any other country. A layer whose `id` is not an integer SHALL be left out and logged, because no admin route can address it; one bad layer SHALL NOT make the listing fail. Each entry SHALL include:
 
-- the index fields: `id`, `pixel_size`, `baseline`, `compared_against`, `references`, `enabled`, `version`, `raster_filename`, `category_id` (`deforestation` when the entry has none);
+- the index fields: `id`, `pixel_size`, `baseline`, `compared_against`, `references`, `enabled`, `version`, `raster_filename`, `category_id` (`deforestation` when the entry has none); a field whose stored value is invalid SHALL be shown empty (`null`, or `[]` for `references`), and so SHALL the attributes or considerations of an invalid file name;
 - `category_issue`: `null` when the layer's category resolves in its country, otherwise `unknown_category`, `invalid_category` or `unreadable_categories`;
 - `category_enabled`: whether the layer's category resolves and is enabled;
-- `layer_issue`: `null`, or why the layer can't be public even with a usable category: `years_mismatch` when its years don't fit the category's `temporal`, `missing_raster` when it has no raster;
+- `layer_issue`: `null`, or why the layer can't be public even with a usable category: `invalid_fields` when an index field has an invalid type (see `layer-storage`, "Public listing returns enabled layers with version"), else `years_mismatch` when its years don't fit the category's `temporal`, `missing_raster` when it has no raster;
 - the attributes and considerations in every supported language (`en`, `es`);
 - whether a raster file is currently present.
 
@@ -41,6 +41,16 @@ within the country of the admin's session.
 
 - **WHEN** a hand edit leaves CO's layer 7 with `baseline: "2020a"`
 - **THEN** `GET /admin/layers` answers 200 and shows layer 7 with `baseline: null` and `layer_issue: "years_mismatch"`
+
+#### Scenario: Field of an invalid type
+
+- **WHEN** a hand edit leaves CO's layer 7 with `version: "abc"`, `pixel_size: "abc"`, `references: "x"` or `references: [1, 2]`
+- **THEN** `GET /admin/layers` answers 200 and shows layer 7 with `layer_issue: "invalid_fields"`, and that field as `null` (`version`, `pixel_size`) or `[]` (`references`)
+
+#### Scenario: Id that isn't an integer
+
+- **WHEN** a hand edit leaves a CO layer with `id: "abc"`
+- **THEN** `GET /admin/layers` answers 200 with CO's other layers, and an error is logged
 
 #### Scenario: Legacy layer
 
@@ -142,7 +152,7 @@ within the country of the admin's session.
 
 ### Requirement: Enable and disable layers
 
-`PATCH /admin/layers/{id}` with `{ "enabled": true | false }` SHALL change the layer's visibility in the public listing. Enabling a layer that has no raster file SHALL fail with 409. Enabling a layer whose category doesn't resolve in its country, or is disabled, or whose years don't fit its category (a temporal category needs both years, any other none) SHALL fail with 400. Disabling SHALL always be allowed. Ids that are unknown or that belong to another country SHALL return 404. There SHALL be no endpoint that hard-deletes a layer.
+`PATCH /admin/layers/{id}` with `{ "enabled": true | false }` SHALL change the layer's visibility in the public listing. Enabling a layer that has no raster file SHALL fail with 409. Enabling a layer whose category doesn't resolve in its country, or is disabled, or whose years don't fit its category (a temporal category needs both years, any other none), or whose index fields have an invalid type (`layer_issue: invalid_fields`), SHALL fail with 400. Disabling SHALL always be allowed. Ids that are unknown or that belong to another country SHALL return 404. There SHALL be no endpoint that hard-deletes a layer.
 
 #### Scenario: Disable a layer
 
@@ -169,6 +179,11 @@ within the country of the admin's session.
 - **WHEN** CO's layer 7 has a raster and no years, its category `deforestation` is temporal, and a CO admin enables it
 - **THEN** the response is 400 and the layer stays disabled
 
+#### Scenario: Enable with an index field of an invalid type
+
+- **WHEN** CO's layer 7 has a raster and `version: "abc"`, and a CO admin enables it
+- **THEN** the response is 400 and the layer stays disabled
+
 #### Scenario: Another country's layer
 
 - **WHEN** a CR admin calls `PATCH /admin/layers/3` and only EC has a layer 3
@@ -189,7 +204,7 @@ A layer's period in the layers list SHALL be its baseline and comparison years (
 
 The layer form SHALL require choosing the layer's category: a new layer SHALL start without one, and the choices SHALL be the country's enabled categories plus the layer's current category when it is disabled or doesn't resolve, shown as such. A category that doesn't resolve SHALL NOT be accepted on save. The category of a published layer SHALL NOT be editable, and the form SHALL say to hide the layer first. The baseline and comparison years SHALL be shown, required and sent only when the chosen category is temporal; otherwise the form SHALL send them as `null`.
 
-The layers list and the layer editor SHALL say why a layer that is enabled is not public, and how to fix it: its category doesn't exist, is invalid in the categories file, or the file can't be read (`category_issue`); its category is disabled; its years don't fit the category (`layer_issue: years_mismatch`); or it has no raster (`layer_issue: missing_raster`). When an admin tries to publish a layer that one of these reasons blocks, the UI SHALL show that reason instead of a generic error.
+The layers list and the layer editor SHALL say why a layer that is enabled is not public, and how to fix it: its category doesn't exist, is invalid in the categories file, or the file can't be read (`category_issue`); its category is disabled; an index field has an invalid type, which the operations team fixes in the index (`layer_issue: invalid_fields`); its years don't fit the category (`layer_issue: years_mismatch`); or it has no raster (`layer_issue: missing_raster`). The layers list SHALL show "—" as the version of a layer whose version can't be read, and the layer form SHALL start with an empty, required pixel size when the stored one can't be read. When an admin tries to publish a layer that one of these reasons blocks, the UI SHALL show that reason instead of a generic error.
 
 Every signed-in admin page SHALL show a sidebar at its left with the name of the country the session administers, under "Admin session"; a navigation with three items, "Layers", "Categories" and "Usage", that marks the current one; and "Log out", at the sidebar's bottom. Logging out SHALL end the session and open the admin login. The layer and category pages SHALL show the administered country in their eyebrow, "Admin · {country}", above their title; the usage page covers every country, so its eyebrow SHALL be "Admin" alone. On the admin pages the header SHALL show only the language selector and the "Methodology" link of the site navigation (`site-navigation`). It SHALL NOT show the other public links ("Home", "Analysis"), the country selector, the admin sections or the administered country. Below 900 px wide, the sidebar SHALL be hidden and the header's menu SHALL show the administered country and the three items before "Methodology", and "Log out" after it, so the admin pages fit a 390 px screen without horizontal scrolling. All UI text SHALL be translated in `en` and `es`. The admin pages SHALL NOT be linked from the public home page or header.
 
@@ -227,6 +242,11 @@ Every signed-in admin page SHALL show a sidebar at its left with the name of the
 
 - **WHEN** CO's layer 4 is enabled, has a raster, and its category `frontier` is disabled
 - **THEN** the layers list shows `frontier` in its category column and says that the layer is not public because its category is disabled, and the layer's editor says the same
+
+#### Scenario: Layer with an index field of an invalid type
+
+- **WHEN** CO's layer 7 is enabled and has `layer_issue: "invalid_fields"` and `version: null`
+- **THEN** the layers list shows "—" as its version and says that the layer is not public because its index entry has invalid fields and that the operations team must fix it, and the layer's editor says the same
 
 #### Scenario: Broken category shown
 

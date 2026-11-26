@@ -48,6 +48,14 @@ describe("layerResult", () => {
     });
   });
 
+  it("never reads a finding below the whole farm as 100% in the report and exports", async () => {
+    const t = await tFor("es");
+    expect(layerResult(0.9995, deforestation, t, "es")).toMatchObject({
+      resultClass: "flagged",
+      findingText: "> 99,9%",
+    });
+  });
+
   it("says No data for a null or missing result", async () => {
     const t = await tFor("es");
     for (const value of [null, undefined]) {

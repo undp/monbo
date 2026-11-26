@@ -116,6 +116,21 @@ describe("formatResultPercentage", () => {
     expect(formatResultPercentage(0.104999, "es", rule)).toBe("10,5%");
     expect(formatResultPercentage(0.0283331208, "en", rule)).toBe("2.8%");
   });
+
+  it("never reads a finding below the whole farm as 100%", () => {
+    withThresholds(0);
+    expect(formatResultPercentage(0.9995, "es", rule)).toBe("> 99,9%");
+    expect(formatResultPercentage(0.9995, "en", rule)).toBe("> 99.9%");
+    expect(formatResultPercentage(1, "es", rule)).toBe("100%");
+
+    // required: the finding is 1 − value, 99.96% of the farm outside the layer
+    const required: ClassificationRule = {
+      polarity: "required",
+      thresholdPercentage: 5,
+    };
+    expect(formatResultPercentage(0.0004, "es", required)).toBe("> 99,9%");
+    expect(formatResultPercentage(0, "es", required)).toBe("100%");
+  });
 });
 
 describe("formatFindingPercentage", () => {
@@ -155,6 +170,21 @@ describe("formatFindingPercentage", () => {
     expect(formatFindingPercentage(0.001, 0, "es")).toBe("0,1%");
     expect(formatFindingPercentage(0, 0, "es")).toBe("0%");
   });
+
+  it("never reads a finding below the whole farm as 100%", () => {
+    // 99.95% rounds to 100% with one decimal, 99.996% with two.
+    expect(formatFindingPercentage(0.9995, 5, "es")).toBe("> 99,9%");
+    expect(formatFindingPercentage(0.9995, 5, "en")).toBe("> 99.9%");
+    expect(formatFindingPercentage(0.99996, 2.25, "es")).toBe("> 99,99%");
+    expect(formatFindingPercentage(0.9994, 5, "es")).toBe("99,9%");
+  });
+
+  it("reads the whole farm as 100%, floating-point noise included", () => {
+    // A farm covered entirely comes back from the API up to ~1e-12 below 1.
+    expect(formatFindingPercentage(1, 5, "es")).toBe("100%");
+    expect(formatFindingPercentage(1 - 1e-12, 5, "es")).toBe("100%");
+    expect(formatFindingPercentage(1 - 1e-12, 2.25, "en")).toBe("100%");
+  });
 });
 
 describe("formatOverlapPercentage", () => {
@@ -181,5 +211,15 @@ describe("formatOverlapPercentage", () => {
     expect(formatOverlapPercentage(0, "es")).toBe("0%");
     expect(formatOverlapPercentage(0.0005, "en")).toBe("< 0.1%");
     expect(formatOverlapPercentage(0.8, "es")).toBe("80%");
+  });
+
+  it("never reads an overlap below the whole farm as 100%", () => {
+    for (const overlapThreshold of [0, 1]) {
+      withThresholds(0, overlapThreshold);
+      expect(formatOverlapPercentage(0.9996, "es")).toBe("> 99,9%");
+      expect(formatOverlapPercentage(0.9996, "en")).toBe("> 99.9%");
+      expect(formatOverlapPercentage(1, "es")).toBe("100%");
+      expect(formatOverlapPercentage(1 - 1e-12, "es")).toBe("100%");
+    }
   });
 });

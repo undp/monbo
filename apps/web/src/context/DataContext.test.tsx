@@ -465,6 +465,120 @@ describe("DataProvider on-demand refresh", () => {
   });
 });
 
+describe("DataProvider layer texts across a language change", () => {
+  const layerEs = makeMap({ id: 1, alias: "GFW es", source: "Fuente ES", version: 1 });
+  const layerEn = { ...layerEs, alias: "GFW en", source: "Source EN" };
+  const areasEs = makeMap({ id: 2, alias: "Áreas test", source: "Fuente ES", version: 4 });
+  const areasEn = { ...areasEs, alias: "Test areas", source: "Source EN" };
+
+  /** `/maps` answers each language's list from `lists`; a language not in it fails. */
+  const mapsByLanguage = (lists: Partial<Record<"es" | "en", MapData[]>>) =>
+    vi.mocked(getMaps).mockImplementation(async (language) => {
+      const list = lists[language as "es" | "en"];
+      if (!list) throw new Error("offline");
+      return list;
+    });
+
+  /** CR selected and `maps` analysed in `es`, with results and a report choice. */
+  const analysedInEs = async (maps: MapData[]) => {
+    const provider = await withCountry("CR");
+    const farm = makeFarm();
+    act(() => {
+      const { current } = provider.result;
+      current.setFarmsData([farm]);
+      current.setTerritorialAnalysisParams({ polygonsSubset: "all", selectedMaps: maps });
+      current.setTerritorialAnalysisResults(
+        maps.map(({ id }) => makeMapResults(id, { F01: 0.1 }))
+      );
+      current.setReportGenerationParams({
+        seeded: true,
+        selectedMaps: maps,
+        selectedFarms: [farm],
+        downloadType: "combined",
+      });
+    });
+    await flush();
+    return provider;
+  };
+
+  const englishCalls = () =>
+    vi.mocked(getMaps).mock.calls.filter(([language]) => language === "en");
+
+  it("refreshes the report's layers with the new language, keeping its choice", async () => {
+    mapsByLanguage({ es: [layerEs], en: [layerEn] });
+    const provider = await analysedInEs([layerEs]);
+
+    await provider.remount("en");
+    await flush();
+
+    const { result } = provider;
+    expect(result.current.reportGenerationParams.selectedMaps[0].alias).toBe("GFW en");
+    expect(result.current.reportGenerationParams.seeded).toBe(true);
+    expect(result.current.territorialAnalysisParams.selectedMaps[0].alias).toBe("GFW en");
+  });
+
+  it("shows a hidden layer's texts in the new language, keeping its analysis", async () => {
+    mapsByLanguage({ es: [layerEs, areasEs], en: [layerEn, areasEn] });
+    const provider = await analysedInEs([layerEs, areasEs]);
+    mapsByLanguage({ es: [layerEs], en: [layerEn] });
+    await poll();
+
+    await provider.remount("en");
+    await flush();
+
+    const { result } = provider;
+    const hidden = result.current.territorialAnalysisParams.selectedMaps.find(
+      ({ id }) => id === 2
+    );
+    expect(hidden).toMatchObject({
+      alias: "Test areas",
+      source: "Source EN",
+      version: 4,
+      categoryId: areasEs.categoryId,
+    });
+    expect(result.current.territorialAnalysisResults).toHaveLength(2);
+    expect(result.current.analysisOutdated).toBe(false);
+    expect(
+      result.current.reportGenerationParams.selectedMaps.find(({ id }) => id === 2)?.alias
+    ).toBe("Test areas");
+  });
+
+  it("fetches the other language once while its texts are kept", async () => {
+    mapsByLanguage({ es: [layerEs], en: [layerEn] });
+    const provider = await analysedInEs([layerEs]);
+    expect(englishCalls()).toEqual([["en", "CR"]]);
+
+    await poll();
+    await provider.remount("en");
+    await flush();
+    await provider.remount("es");
+    await flush();
+
+    // Only the provider mounted in `en` asks for its own list.
+    expect(englishCalls()).toEqual([
+      ["en", "CR"],
+      ["en", "CR"],
+    ]);
+  });
+
+  it("keeps a hidden layer's last texts when the other language can't be fetched", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mapsByLanguage({ es: [layerEs, areasEs] });
+    const provider = await analysedInEs([layerEs, areasEs]);
+    mapsByLanguage({ es: [layerEs], en: [layerEn] });
+    await poll();
+
+    await provider.remount("en");
+    await flush();
+
+    const hidden = provider.result.current.territorialAnalysisParams.selectedMaps.find(
+      ({ id }) => id === 2
+    );
+    expect(hidden).toMatchObject({ alias: "Áreas test", source: "Fuente ES" });
+    expect(provider.result.current.territorialAnalysisResults).toHaveLength(2);
+  });
+});
+
 describe("DataProvider analysis flow", () => {
   it("starts over on resetAnalysis", async () => {
     const { result } = await withCountry("CR");

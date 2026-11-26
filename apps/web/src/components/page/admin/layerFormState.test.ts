@@ -78,3 +78,14 @@ describe("layer form years", () => {
     );
   });
 });
+
+describe("layer form pixel size", () => {
+  it("starts a new layer at 30 meters", () => {
+    expect(toFormValues().pixel_size).toBe("30");
+  });
+
+  it("starts an existing layer empty when the index holds no valid pixel size", () => {
+    expect(toFormValues(makeAdminLayer({ pixel_size: null })).pixel_size).toBe("");
+    expect(toFormValues(makeAdminLayer({ pixel_size: 10 })).pixel_size).toBe("10");
+  });
+});
