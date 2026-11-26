@@ -387,6 +387,7 @@
       "loss_years": "The raster has values that look like years ({{values}}). Binarize it against its baseline year before uploading.",
       "conversion_mismatch": "The conversion didn't keep every pixel, so nothing was changed.",
       "layer_not_found": "The layer no longer exists.",
+      "invalid_fields": "The layer's index entry has an invalid “{{field}}”. The operations team must fix it in the index.",
       "interrupted": "The process was interrupted because the server restarted. Upload the file again.",
       "unexpected": "An unexpected error happened while processing the raster.",
       "nodata_ignored": "The file already declares nodata {{declared}}; the value {{requested}} was ignored.",

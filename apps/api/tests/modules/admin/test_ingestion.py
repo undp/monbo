@@ -13,6 +13,7 @@ from app.main import create_app
 from app.modules.admin import ingestion
 from app.modules.admin.ingestion import ingestion_slot, new_job
 from tests.modules.admin.support import COUNTRY_PASSKEYS, bearer, login
+from tests.modules.admin.test_layers import MISSING
 from tests.modules.layers.test_categories import category, write_categories
 
 GFW = {
@@ -941,3 +942,101 @@ def test_messages_describe_a_mask_whatever_the_category(
     for error in (nodata, stray, not_integer):
         for word in ("loss", "deforest"):
             assert word not in error["message"].lower()
+
+
+# --- Invalid index entries -----------------------------------------------------------
+
+
+def set_entry(country, layer_id, field, value):
+    index = json.loads(country.store.index_path.read_text())
+    for item in index:
+        if item["id"] == layer_id:
+            if value is MISSING:
+                del item[field]
+            else:
+                item[field] = value
+    country.write_index(index)
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("version", "abc"),
+        ("version", "3"),
+        ("pixel_size", MISSING),
+        ("raster_filename", 5),
+    ],
+)
+def test_upload_to_a_layer_with_an_invalid_field_is_refused(
+    layers, staging, client, admin_headers, tmp_path, field, value
+):
+    set_entry(layers, 6, field, value)
+    index_before = layers.store.index_path.read_bytes()
+    content = write_tif(tmp_path / "in.tif", binary(), tiled=False)
+
+    response = upload(client, admin_headers, content)
+
+    assert response.status_code == 400
+    assert f"'{field}'" in response.json()["detail"]
+    assert "Layer 6" in response.json()["detail"]
+    assert layers.jobs.list_jobs() == []
+    assert_no_staging_left(layers, staging)
+    assert layers.store.index_path.read_bytes() == index_before
+    assert ingestion_slot.acquire("probe")
+    ingestion_slot.release("probe")
+
+
+def test_upload_skips_an_entry_without_an_id(
+    layers, staging, client, admin_headers, tmp_path
+):
+    without_id = {key: value for key, value in NEW.items() if key != "id"}
+    index = json.loads(layers.store.index_path.read_text())
+    layers.write_index([without_id, *index])
+    content = write_tif(tmp_path / "in.tif", binary(), tiled=False)
+
+    job = job_for(client, admin_headers, upload(client, admin_headers, content))
+
+    assert job["status"] == "succeeded"
+    assert job["rasterFilename"] == "layer-6-v1.tif"
+
+
+def test_activate_refuses_a_layer_whose_version_became_invalid(
+    layers, staging, tmp_path
+):
+    set_entry(layers, 6, "version", "3")
+    index_before = layers.store.index_path.read_bytes()
+    cog = tmp_path / "cog.tif"
+    write_tif(cog, binary())
+    root = ingestion.get_layers_root()
+
+    with pytest.raises(ingestion.IngestionError) as refused:
+        ingestion.activate(
+            root, root.country_store("CO"), 6, cog, "a" * 32, (30.0, 30.0)
+        )
+
+    assert refused.value.code == "invalid_fields"
+    assert refused.value.params["field"] == "version"
+    assert layers.store.index_path.read_bytes() == index_before
+    assert_no_staging_left(layers, staging)
+    assert cog.exists()
+
+
+def test_the_job_fails_with_invalid_fields_when_the_layer_changed_meanwhile(
+    layers, staging, client, admin_headers, tmp_path, monkeypatch
+):
+    real_validate = ingestion.validate_raster
+
+    def validate_then_break(*args, **kwargs):
+        result = real_validate(*args, **kwargs)
+        set_entry(layers, 6, "pixel_size", "abc")
+        return result
+
+    monkeypatch.setattr(ingestion, "validate_raster", validate_then_break)
+    content = write_tif(tmp_path / "in.tif", binary(), tiled=False)
+
+    job = job_for(client, admin_headers, upload(client, admin_headers, content))
+
+    assert job["status"] == "failed"
+    assert job["error"]["code"] == "invalid_fields"
+    assert job["error"]["params"] == {"field": "pixel_size"}
+    assert_no_staging_left(layers, staging)

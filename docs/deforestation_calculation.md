@@ -6,6 +6,8 @@ The code is `get_loss_area_fraction` in `apps/api/app/modules/layer_analysis/hel
 
 The user-facing explanation is the web's methodology page (`/documentation#calculation`). Its text is in `apps/web/src/content/documentation/{es,en}/calculation.md`, with how categories read the percentage in `categories.md`: update them whenever this calculation changes.
 
+The web rounds each percentage, and writes some with a sign instead of the figure so the text never contradicts the farm's classification: "< X%" (at or below the category's threshold X), "> X%" (above it but rounding to it), "< 0.1%" (above a threshold of 0 but rounding to 0) and "> 99.9%" (below 100% but rounding to it). The code is `apps/web/src/utils/numbers.ts`. The methodology page explains these texts to users in the "More detail" block of `calculation.md`: update it whenever the formatting changes.
+
 ## The formula
 
 ```

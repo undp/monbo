@@ -66,6 +66,7 @@ describe("geoFeaturesToFarmRows", () => {
       production: 1250.5,
       region: "Alajuela",
       association: "Coopetarrazú",
+      productionDate: new Date(2024, 10, 25).toISOString(),
     });
 
     const { data, errorMessages } = await toRows([exported(farm)]);
@@ -75,13 +76,13 @@ describe("geoFeaturesToFarmRows", () => {
       {
         id: "F07",
         producerName: "Luis Mora",
-        productionDate: farm.productionDate,
+        productionDate: "2024-11-25",
         // Sent as a number: in Spanish, /farms/parse would read "1250.5" as 12505.
         productionQuantity: 1250.5,
         productionQuantityUnit: "kg",
         cropType: "Café",
-        // The export writes Area "0": the point's default area applies.
-        area: null,
+        // The export writes the farm's hectares.
+        area: 67074.88 / 10000,
         region: "Alajuela",
         association: "Coopetarrazú",
         documents: [],
@@ -90,6 +91,13 @@ describe("geoFeaturesToFarmRows", () => {
         farmCoordinates: POLYGON_WKT,
       },
     ]);
+  });
+
+  it.each(["0", 0])("reads an Area of %j, as old exports wrote it, as missing", async (Area) => {
+    const { data } = await toRows([
+      feature({ ...COMPLETE, Area } as ImportedFeature["properties"]),
+    ]);
+    expect(data[0].area).toBeNull();
   });
 
   it("rejects a Monbo export from another country, like the template's column", async () => {
@@ -214,6 +222,18 @@ describe("geoFeaturesToFarmRows", () => {
 });
 
 describe("geoFeaturesToFarmRows' row problems", () => {
+  it("returns only the rows and their problems", async () => {
+    const { t } = await createTestI18n("es");
+    const result = geoFeaturesToFarmRows(
+      { format: "geojson", features: [feature({ id: "F-1", ...COMPLETE })] },
+      t,
+      "es",
+      "CR"
+    );
+
+    expect(Object.keys(result).sort()).toEqual(["errorMessages", "rowProblems", "rows"]);
+  });
+
   it("keeps each feature's problems on its own row", async () => {
     const { rowProblems } = await toRows([
       feature({ id: "F-1", ...COMPLETE }, { position: 1 }),

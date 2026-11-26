@@ -20,6 +20,12 @@ export const shortFormatDateByLanguage = (
   return format(dateObject, language === "en" ? "yyyy-MM-dd" : "dd-MM-yyyy");
 };
 
+/** A date as the day the app shows for it (yyyy-MM-dd); a date it can't read, as written. */
+export const calendarDay = (date: string): string => {
+  const dateObject = toCalendarDate(date);
+  return isValid(dateObject) ? format(dateObject, "yyyy-MM-dd") : date;
+};
+
 export const longFormatDateByLanguage = (
   date: string | Date,
   language: string = "es"

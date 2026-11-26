@@ -330,6 +330,30 @@ export const sourceListedRows = (source: UploadSource): ListedRow[] => {
     .filter(({ index }) => !removed.includes(index));
 };
 
+/** How the table marks a listed row: its problems and the notice's tone for them. */
+export interface RowMark {
+  messages: string[];
+  tone: "warn" | "bad";
+}
+
+/** The mark of the source's row at `index` (its position among the rows the source
+ * read); null when it has no problems of its own. A drawn farm and the rows of an Excel
+ * joined to a geo file have none: the joined Excel's problems are the file's. */
+export const rowMark = (source: UploadSource, index: number): RowMark | null => {
+  const problems =
+    source.kind === "excel"
+      ? source.rowProblems[index]
+      : source.kind === "geo" && !source.excel
+        ? source.attributeProblems[index]
+        : undefined;
+  if (!problems) return null;
+  const messages = problemMessages([problems]);
+  if (messages.length === 0) return null;
+  const missingOnly =
+    !problems.otherCountry && problems.errors.length === problems.missing.length;
+  return { messages, tone: missingOnly ? "warn" : "bad" };
+};
+
 /** The farms the source contributes, when it can be uploaded. */
 export const sourceRows = (source: UploadSource): FarmRow[] =>
   sourceListedRows(source).map(({ row }) => row);

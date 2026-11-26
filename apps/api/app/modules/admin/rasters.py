@@ -7,10 +7,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 from starlette.concurrency import run_in_threadpool
 
 from app.config import env
+from app.modules.layers.categories import layer_id_of
 from app.modules.layers.store import get_layers_root
 
 from .auth import Session, require_admin
+from .helpers import refuse_invalid_fields
 from .ingestion import (
+    INGESTION_NEEDS,
     ingestion_in_progress,
     ingestion_slot,
     new_job,
@@ -22,11 +25,14 @@ from .models import IngestionJob, JobAccepted, JobCancelled
 router = APIRouter()
 
 
-def _layer_exists(country: str, layer_id: int) -> bool:
+def _check_upload_target(country: str, layer_id: int) -> None:
     index = get_layers_root().country_store(country).read_index()
     if index is None:
         raise HTTPException(status_code=500, detail="Failed to read map data")
-    return any(entry["id"] == layer_id for entry in index)
+    entry = next((e for e in index if layer_id_of(e) == layer_id), None)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Layer not found")
+    refuse_invalid_fields(entry, layer_id, INGESTION_NEEDS, "given a raster")
 
 
 def _too_large() -> HTTPException:
@@ -57,8 +63,7 @@ async def upload_raster(
     if nodata is not None and not nodata.is_integer():
         raise HTTPException(status_code=422, detail="nodata must be a whole number")
     country = session.country
-    if not await run_in_threadpool(_layer_exists, country, layer_id):
-        raise HTTPException(status_code=404, detail="Layer not found")
+    await run_in_threadpool(_check_upload_target, country, layer_id)
 
     limit = env.ADMIN_MAX_UPLOAD_MB * 1024 * 1024
     declared_size = request.headers.get("content-length")

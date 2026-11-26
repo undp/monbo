@@ -205,7 +205,6 @@ interface FarmRowsResult {
   errorMessages: string[];
   /** What is wrong with each feature, in the order of `rows` */
   rowProblems: RowProblems[];
-  missing: MissingAttributes;
 }
 
 /**
@@ -221,8 +220,6 @@ export const geoFeaturesToFarmRows = (
   selectedCountry: string | null
 ): FarmRowsResult => {
   const nameIsId = usesNameAsId(geoFile);
-  const missingAttributes = new Set<GeoAttributeKey>();
-  let featuresMissingData = 0;
   const rowProblems: RowProblems[] = [];
 
   const rows = geoFile.features.map((feature) => {
@@ -234,7 +231,7 @@ export const geoFeaturesToFarmRows = (
     });
     row.productionQuantity = toNumberIfMachineFormatted(row.productionQuantity);
     row.area = toNumberIfMachineFormatted(row.area);
-    // Monbo's GeoJSON download writes "Area": "0" for every farm
+    // Exports made before the area was written carry "Area": "0" for every farm
     if (row.area === 0 || row.area === "0") row.area = null;
 
     const country = geoFeatureCountry(feature.properties);
@@ -243,8 +240,6 @@ export const geoFeaturesToFarmRows = (
     const missingHere = DATA_KEYS.filter(
       (key) => geoAttributeMappings[key].mandatory && row[key] === null
     );
-    if (missingHere.length > 0) featuresMissingData++;
-    missingHere.forEach((key) => missingAttributes.add(key));
     rowProblems.push({
       otherCountry: country
         ? otherCountryError([country], t, language, selectedCountry)
@@ -270,9 +265,5 @@ export const geoFeaturesToFarmRows = (
     } as FarmRow;
   });
 
-  const missing = {
-    attributes: DATA_KEYS.filter((key) => missingAttributes.has(key)),
-    features: featuresMissingData,
-  };
-  return { rows, errorMessages: problemMessages(rowProblems), rowProblems, missing };
+  return { rows, errorMessages: problemMessages(rowProblems), rowProblems };
 };

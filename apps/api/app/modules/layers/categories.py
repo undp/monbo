@@ -250,31 +250,47 @@ def _is_number(value: Any) -> bool:
     return _is_int(value) or isinstance(value, float)
 
 
-def index_fields_problem(entry: dict) -> str | None:
-    """The first index field the listings read whose value has the wrong type (a
-    hand edit), by the rules of creating a layer; None when they all do. Strict on
-    purpose: `"3"` is not a version, since the raster upload does arithmetic on it."""
+def layer_id_of(entry: dict) -> int | None:
+    """The entry's id when it is an integer (not a boolean); None for a hand edit
+    that can't name a layer."""
+    layer_id = entry.get("id")
+    return layer_id if _is_int(layer_id) else None
+
+
+def invalid_index_fields(entry: dict) -> list[str]:
+    """Every index field the listings read whose value has the wrong type (a hand
+    edit), by the rules of creating a layer, in the order they are checked. Strict
+    on purpose: `"3"` is not a version, since the raster upload does arithmetic on
+    it."""
+    problems = []
     if not _is_int(entry.get("id")):
-        return "id"
+        problems.append("id")
     version: Any = entry.get("version")
     if not (_is_int(version) and version >= 0):
-        return "version"
+        problems.append("version")
     pixel_size: Any = entry.get("pixel_size")
     if not (
         _is_number(pixel_size)
         and math.isfinite(pixel_size)
         and 0 < pixel_size <= PIXEL_SIZE_MAX
     ):
-        return "pixel_size"
+        problems.append("pixel_size")
     references = entry.get("references", [])
     if not isinstance(references, list) or not all(
         isinstance(reference, str) for reference in references
     ):
-        return "references"
+        problems.append("references")
     raster_filename = entry.get("raster_filename")
     if raster_filename is not None and not isinstance(raster_filename, str):
-        return "raster_filename"
+        problems.append("raster_filename")
     for filename_field in ("attributes_filename", "considerations_filename"):
         if not isinstance(entry.get(filename_field), str):
-            return filename_field
-    return None
+            problems.append(filename_field)
+    return problems
+
+
+def index_fields_problem(entry: dict) -> str | None:
+    """The first index field the listings read whose value has the wrong type; None
+    when they all do."""
+    problems = invalid_index_fields(entry)
+    return problems[0] if problems else None

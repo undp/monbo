@@ -74,6 +74,16 @@ La precisión llega hasta el píxel. Si una capa marca un píxel, todo el píxel
 Cada capa tiene además sus propias definiciones y fechas, así que una misma finca puede tener porcentajes distintos en capas distintas. Los alcances de cada capa están en [Alcances y límites](#limits).
 :::
 
+:::details[Más detalle: cómo se escriben los porcentajes]
+El informe y las tablas redondean cada porcentaje y, en algunos casos, lo escriben con un signo en lugar de la cifra. Cada texto dice si la finca cuenta como finca con observaciones en esa capa:
+
+- **< X%**, donde X es el umbral de la categoría: la observación está en el umbral o por debajo. La finca cuenta como sin observaciones en esa capa y no se muestra la cifra exacta.
+- **> X%**: la observación supera el umbral, pero al redondear queda en el umbral. Cuenta como observación.
+- **< 0,1%**: el umbral de la categoría es 0 y la observación es mayor que 0, pero al redondear queda en 0. Cuenta como observación.
+- **> 99,9%**: la observación es menor que 100%, pero al redondear queda en 100%.
+- **0%**: nada de la finca es una observación.
+:::
+
 :::details[Más detalle: huecos, varias partes y coordenadas de la capa]
 - Si la finca tiene huecos, lo que la capa marca dentro de un hueco no cuenta. Si tiene varias partes, se suma lo que coincide en todas y se divide por su superficie total. Cada finca recibe un solo porcentaje por capa.
 - Una finca sin resultado no afecta los resultados de las demás.

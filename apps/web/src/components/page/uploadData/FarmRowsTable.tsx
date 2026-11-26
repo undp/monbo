@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
 import { FarmTypeLabel } from "@/components/page/flow/FarmTypeLabel";
@@ -24,7 +26,12 @@ import {
 } from "@/components/page/flow/flowTable";
 import { FarmRow } from "@/interfaces/FarmRow";
 import { formatNumber } from "@/utils/numbers";
-import { ManualSource, UploadSource, sourceListedRows } from "@/utils/uploadSources";
+import {
+  ManualSource,
+  UploadSource,
+  rowMark,
+  sourceListedRows,
+} from "@/utils/uploadSources";
 
 /** "48,5 kg", in the user's language; empty when the row has no quantity. */
 const productionText = (row: FarmRow, language: string): string => {
@@ -139,6 +146,7 @@ export const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
             const { source, row, index } = rows[position];
             const id = row.id ? String(row.id) : null;
             const name = id ?? row.producerName ?? t("common:farmsUpload:manualFarm");
+            const mark = rowMark(source, index);
             return (
               <TableRow
                 key={`${source.key}-${index}`}
@@ -148,8 +156,45 @@ export const FarmRowsTable: React.FC<FarmRowsTableProps> = ({
                 aria-rowindex={virtualize ? position + 2 : undefined}
               >
                 <TableCell>
-                  <Box component="span" sx={FLOW_TABLE_ID}>
-                    {id ?? EMPTY_CELL}
+                  <Box
+                    component="span"
+                    sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+                  >
+                    {mark && (
+                      <Tooltip
+                        title={
+                          <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                            {mark.messages.map((message, at) => (
+                              <li key={at}>{message}</li>
+                            ))}
+                          </Box>
+                        }
+                      >
+                        <Box
+                          component="span"
+                          role="img"
+                          tabIndex={0}
+                          aria-label={t("common:farmsUpload:table:rowProblems", {
+                            name,
+                            problems: mark.messages.join(" "),
+                            interpolation: { escapeValue: false },
+                          })}
+                          sx={{
+                            display: "inline-flex",
+                            color: FLOW_COLORS[mark.tone],
+                          }}
+                        >
+                          {mark.tone === "warn" ? (
+                            <WarningAmberRoundedIcon fontSize="small" aria-hidden />
+                          ) : (
+                            <ErrorOutlineRoundedIcon fontSize="small" aria-hidden />
+                          )}
+                        </Box>
+                      </Tooltip>
+                    )}
+                    <Box component="span" sx={FLOW_TABLE_ID}>
+                      {id ?? EMPTY_CELL}
+                    </Box>
                   </Box>
                 </TableCell>
                 <TableCell>{row.producerName || EMPTY_CELL}</TableCell>

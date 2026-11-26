@@ -179,6 +179,29 @@ const label = (directive: ContainerDirective) => {
     : "";
 };
 
+describe("the calculation section's percentage signs", () => {
+  const detailsText = (markdown: string) => {
+    const { found } = containerDirectives(markdown);
+    const texts: string[] = [];
+    const visit = (node: Root | RootContent) => {
+      if (node.type === "text" || node.type === "inlineCode") texts.push(node.value);
+      if ("children" in node) node.children.forEach(visit);
+    };
+    found.filter(({ name }) => name === "details").forEach(visit);
+    return texts.join(" ");
+  };
+
+  it.each([
+    ["es", ["< 0,1%", "> 99,9%", "< X%", "> X%", "0%"]],
+    ["en", ["< 0.1%", "> 99.9%", "< X%", "> X%", "0%"]],
+  ])("explains each sign inside a details block in %s", async (locale, signs) => {
+    const { calculation } = await readDocumentation(locale);
+    const text = detailsText(calculation);
+
+    for (const sign of signs) expect(text, sign).toContain(sign);
+  });
+});
+
 describe("documentation blocks", () => {
   it("uses only the summary and details blocks", async () => {
     for (const locale of ["es", "en"]) {

@@ -139,6 +139,18 @@ def test_a_country_without_categories_lists_the_built_in_one(
     assert deforestation["publishedLayerCount"] == 1
 
 
+def test_an_entry_without_an_id_does_not_break_the_list_or_count(
+    colombia_layers, client, admin_headers
+):
+    without_id = {key: value for key, value in GFW.items() if key != "id"}
+    index = json.loads(colombia_layers.store.index_path.read_text())
+    colombia_layers.write_index([without_id, *index])
+
+    [deforestation] = admin_categories(client, admin_headers)["categories"]
+
+    assert deforestation["publishedLayerCount"] == 1
+
+
 def test_the_list_only_has_the_session_country(protected_areas, client, admin_headers):
     assert set(by_id(client, admin_headers)) == {"deforestation", "protected_areas"}
     assert set(by_id(client, ecuador_headers(client))) == {"deforestation", "snap_ec"}
@@ -328,6 +340,22 @@ def test_the_same_id_in_another_country(protected_areas, country_root, client):
 WETLANDS = {**GFW, "id": 8, "category_id": "wetlands"}  # a hand edit: no category
 
 
+def test_creating_a_category_over_an_entry_without_an_id_succeeds(
+    colombia_layers, client, admin_headers
+):
+    without_id = {key: value for key, value in WETLANDS.items() if key != "id"}
+    colombia_layers.write_index([GFW, HIDDEN, without_id])
+
+    response = client.post(
+        "/admin/categories",
+        json=category_body("Wetlands", temporal=False),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201
+    assert stored(colombia_layers)[0]["id"] == "wetlands"
+
+
 def test_creating_a_category_doesnt_publish_its_orphan_layers(
     colombia_layers, client, admin_headers
 ):
@@ -478,6 +506,43 @@ def test_temporal_cant_change_with_any_layer(protected_areas, client, admin_head
     )
 
     assert response.status_code == 400
+    assert stored(protected_areas)[0]["temporal"] is False
+
+
+def test_an_entry_without_an_id_doesnt_block_changing_temporal(
+    protected_areas, client, admin_headers
+):
+    client.patch("/admin/layers/6", json={"enabled": False}, headers=admin_headers)
+    without_id = {key: value for key, value in RUNAP.items() if key != "id"}
+    index = json.loads(protected_areas.store.index_path.read_text())
+    protected_areas.write_index([without_id, *[e for e in index if e["id"] != 6]])
+
+    response = client.put(
+        "/admin/categories/protected_areas",
+        json=category_body(temporal=True),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert stored(protected_areas)[0]["temporal"] is True
+
+
+def test_an_entry_without_an_id_isnt_named_when_temporal_is_blocked(
+    protected_areas, client, admin_headers
+):
+    client.patch("/admin/layers/6", json={"enabled": False}, headers=admin_headers)
+    without_id = {key: value for key, value in RUNAP.items() if key != "id"}
+    index = json.loads(protected_areas.store.index_path.read_text())
+    protected_areas.write_index([without_id, *index])
+
+    response = client.put(
+        "/admin/categories/protected_areas",
+        json=category_body(temporal=True),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "(6)" in response.json()["detail"]
     assert stored(protected_areas)[0]["temporal"] is False
 
 
@@ -663,6 +728,23 @@ def test_a_category_with_published_layers_cant_be_disabled(
     assert response.status_code == 400
     assert "(6)" in response.json()["detail"]
     assert stored(protected_areas)[0]["enabled"] is True
+
+
+def test_an_enabled_entry_without_an_id_doesnt_block_disabling(
+    colombia_layers, client, admin_headers
+):
+    without_id = {key: value for key, value in RUNAP.items() if key != "id"}
+    colombia_layers.write_index([GFW, HIDDEN, without_id])
+    write_categories(colombia_layers, [category("protected_areas")])
+
+    response = client.patch(
+        "/admin/categories/protected_areas",
+        json={"enabled": False},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert stored(colombia_layers)[0]["enabled"] is False
 
 
 def test_disable_and_enable_a_category_without_published_layers(

@@ -269,6 +269,7 @@
       "actions": "Actions",
       "drawn": "Drawing",
       "removeRow": "Remove {{name}} from the list",
+      "rowProblems": "Problems in {{name}}: {{problems}}",
       "editRow": "Edit {{name}}"
     },
     "notice": {

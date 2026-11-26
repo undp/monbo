@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { inTimeZone, TIME_ZONES } from "@/test/timeZone";
 import { setRuntimeConfig } from "@/config/runtime";
 import { FarmValidationStatus } from "@/interfaces/PolygonValidation";
 import type { TFunction } from "i18next";
@@ -66,6 +67,40 @@ describe("generateGeoJsonFeature", () => {
       coordinates: "(-84.3,10.1)",
       cropType: "Café",
     });
+  });
+});
+
+describe("the Area of a GeoJSON feature", () => {
+  it("is the farm's hectares as a number, for a point", () => {
+    const farm = makeFarm();
+    farm.polygon.area = 25000;
+    expect(generateGeoJsonFeature(farm).properties.Area).toBe(2.5);
+  });
+
+  it("is the farm's hectares as a number, for a polygon", () => {
+    const { Area } = generateGeoJsonFeature(makePolygonFarm()).properties;
+    expect(typeof Area).toBe("number");
+    expect(Area).toBeCloseTo(6.707488, 6);
+  });
+
+  it.each([-1, null])("is left out when the area is %s", (area) => {
+    const farm = makeFarm();
+    farm.polygon.area = area as number;
+    expect(generateGeoJsonFeature(farm).properties).not.toHaveProperty("Area");
+  });
+});
+
+describe.each(TIME_ZONES)("the productionDate of a GeoJSON feature in %s", (zone) => {
+  inTimeZone(zone);
+
+  it("is the calendar day of the stored date", () => {
+    const farm = makeFarm({ productionDate: new Date(2025, 0, 15).toISOString() });
+    expect(generateGeoJsonFeature(farm).properties.productionDate).toBe("2025-01-15");
+  });
+
+  it("is written as typed when it isn't a date", () => {
+    const farm = makeFarm({ productionDate: "15/01/2025" });
+    expect(generateGeoJsonFeature(farm).properties.productionDate).toBe("15/01/2025");
   });
 });
 

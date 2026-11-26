@@ -20,6 +20,7 @@ import {
   readFileSource,
   readGeoFileWithExcel,
   rereadSources,
+  rowMark,
   sourceErrors,
   sourceListedRows,
   sourceMissing,
@@ -714,5 +715,87 @@ describe("loadExcelFileFarmsData's row problems", () => {
     expect(rowProblems[1].errors).toEqual([]);
     expect(errorMessages[0]).toBe(rowProblems[1].otherCountry);
     expect(errorMessages).toHaveLength(2);
+  });
+});
+
+describe("rowMark", () => {
+  const INVALID = ["GeoJSON", "Polygon", "[[malformed"];
+  const VALID = ["GeoJSON", "Polygon", GEOJSON_POLYGON];
+
+  it("lists an Excel row's other-country message first, then its error, as bad", async () => {
+    const source = await readFileSource(
+      excel(
+        [templateRow("F01", VALID), templateRow("F02", INVALID)],
+        "datos.xlsx",
+        ["CO", "PE"]
+      ),
+      await context("CO")
+    );
+
+    const mark = rowMark(source, 1);
+
+    expect(mark?.tone).toBe("bad");
+    expect(mark?.messages).toHaveLength(2);
+    expect(mark?.messages[0]).toBe(source.kind === "excel" && source.rowProblems[1].otherCountry);
+    expect(mark?.messages[1]).toBe(source.kind === "excel" && source.rowProblems[1].errors[0]);
+    expect(rowMark(source, 0)).toBeNull();
+  });
+
+  it("gives null to an Excel row without problems", async () => {
+    const source = await readFileSource(
+      excel([templateRow("F01", VALID)]),
+      await context()
+    );
+
+    expect(rowMark(source, 0)).toBeNull();
+  });
+
+  it("gives a geo file's feature its own problems, warn when only data is missing", async () => {
+    const source = await readFileSource(
+      geoFile("lotes.geojson", {
+        format: "geojson",
+        features: [
+          feature(1, { id: "G-1", ...COMPLETE }),
+          feature(2, { id: "G-2", ...COMPLETE, producerName: null }),
+          {
+            ...feature(3, { id: "G-3", ...COMPLETE }),
+            geometryType: null,
+            farmCoordinates: null,
+            errors: [
+              {
+                code: "unsupported_geometry",
+                message: "The feature is a LineString",
+                params: { geometryType: "LineString" },
+              },
+            ],
+          },
+        ],
+      }),
+      await context()
+    );
+
+    expect(rowMark(source, 0)).toBeNull();
+    expect(rowMark(source, 1)).toMatchObject({ tone: "warn" });
+    expect(rowMark(source, 1)?.messages).toHaveLength(1);
+    expect(rowMark(source, 2)).toMatchObject({ tone: "bad" });
+  });
+
+  it("gives null to a geo file with a joined Excel and to a manual source", async () => {
+    const withMissing = await readFileSource(
+      geoFile("lotes.geojson", {
+        format: "geojson",
+        features: [feature(1, { id: "G-1", ...COMPLETE, producerName: null })],
+      }),
+      await context()
+    );
+    expect(rowMark(withMissing, 0)).not.toBeNull();
+    if (withMissing.kind !== "geo") throw new Error("expected a geo source");
+    const joined = {
+      ...withMissing,
+      excel: { name: "datos.xlsx", file: toFile(new Uint8Array([1]), "datos.xlsx"), rows: [], errorMessages: [] },
+    } as unknown as GeoSource;
+
+    expect(rowMark(joined, 0)).toBeNull();
+    expect(rowMark(manual("M-1"), 0)).toBeNull();
   });
 });
