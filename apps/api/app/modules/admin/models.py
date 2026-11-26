@@ -19,6 +19,7 @@ from app.models.categories import (
     LocalizedText,
     ResultLabels,
 )
+from app.models.maps import CATEGORY_ID_DESCRIPTION
 from app.modules.layers.categories import (
     CATEGORY_ID_PATTERN,
     COLOR_PATTERN,
@@ -136,7 +137,7 @@ class StoredAttributes(BaseModel):
 
 class AdminLayer(BaseModel):
     id: int
-    category_id: str
+    category_id: str = Field(description=CATEGORY_ID_DESCRIPTION)
     category_issue: CategoryIssue | None = Field(
         description=(
             "Why the layer's category doesn't resolve in its country (the layer is "

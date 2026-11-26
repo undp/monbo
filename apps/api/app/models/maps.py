@@ -1,10 +1,17 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 # An ISO 3166-1 alpha-2 code, uppercase, as the country registry stores them.
 COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 CountryCode = Annotated[str, StringConstraints(pattern=COUNTRY_CODE_PATTERN)]
+
+
+CATEGORY_ID_DESCRIPTION = (
+    "The id of the layer's category in its country (see `GET /categories`). "
+    'A layer whose index entry has no category belongs to the built-in "deforestation", '
+    "which every country has."
+)
 
 
 class BaseMapData(BaseModel):
@@ -28,9 +35,8 @@ class BaseMapData(BaseModel):
     # The layer's country: ids are numbered within each country, so (country, id)
     # identifies it. None in the legacy flat layout, where ids are global.
     country: str | None = None
-    # The id of the layer's category in its country (`GET /categories`). Layers
-    # whose category is disabled or doesn't resolve are not listed.
-    categoryId: str
+    # Layers whose category is disabled or doesn't resolve are not listed.
+    categoryId: str = Field(description=CATEGORY_ID_DESCRIPTION)
     version: int
     pixelSize: float
 

@@ -27,8 +27,8 @@ export const NoObservationsCounterChip: React.FC<
       <Chip
         label={t("territorialAnalysis:noDataShortText")}
         sx={{
-          backgroundColor: "#D5D5D5",
-          color: "#676767",
+          backgroundColor: "result.unknownBackground",
+          color: "result.unknown",
           ...sx,
         }}
         size="small"

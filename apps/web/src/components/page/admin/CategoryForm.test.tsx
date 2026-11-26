@@ -74,6 +74,10 @@ beforeEach(() => {
   );
 });
 
+// Measured in `pnpm test` on a loaded host (load average 22): this test took 1.8 s
+// alone and up to 7.6 s, past the 5 s default. 3x the slowest run.
+const SLOW_HOST_TIMEOUT = 23_000;
+
 describe("CategoryForm", () => {
   it("doesn't save a new category without a polarity", async () => {
     await renderForm(null);
@@ -83,7 +87,7 @@ describe("CategoryForm", () => {
       await screen.findByText("Choose what this category's layers mark.")
     ).toBeTruthy();
     expect(createAdminCategory).not.toHaveBeenCalled();
-  });
+  }, SLOW_HOST_TIMEOUT);
 
   it("creates a category with the global threshold, leaving its id to the API", async () => {
     await renderForm(null);

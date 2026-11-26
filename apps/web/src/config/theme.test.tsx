@@ -33,3 +33,20 @@ describe("theme buttons", () => {
     ).toBe("rgba(0, 0, 0, 0.12)");
   });
 });
+
+describe("theme result colors", () => {
+  it("keep the values the app and the report have always painted", () => {
+    expect(theme.palette.result).toEqual({
+      ok: "#2E7D32",
+      okBackground: "rgba(46, 125, 50, 0.08)",
+      flagged: "#D32F2F",
+      flaggedBackground: "rgba(211, 47, 47, 0.08)",
+      unknown: "#676767",
+      unknownBackground: "#D5D5D5",
+      meterFlagged: "#f2b8b2",
+      meterUnknown: "#c7d3df",
+      neutralBackground: "#eef2f6",
+      layerTile: "#ff0000",
+    });
+  });
+});

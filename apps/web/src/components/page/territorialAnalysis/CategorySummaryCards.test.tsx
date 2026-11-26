@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { ThemeProvider } from "@mui/material/styles";
 import { describe, expect, it } from "vitest";
 import { DataContext } from "@/context/DataContext";
 import {
@@ -10,6 +11,7 @@ import {
   makeMapResults,
 } from "@/test/factories";
 import { createTestI18n } from "@/test/i18n";
+import { SENTINEL_RGB, themeWithResultColor } from "@/test/resultTheme";
 import { makeDataContext } from "@/test/renderWithData";
 import { CategorySummaryCards } from "./CategorySummaryCards";
 
@@ -59,5 +61,37 @@ describe("CategorySummaryCards", () => {
     expect(
       within(frontierCard).getByText("1 con observaciones · 0 sin dato")
     ).toBeTruthy();
+  });
+
+  it("paints the meter's flagged and no-data segments with the theme's result colors", async () => {
+    const i18n = await createTestI18n("es");
+    render(
+      <I18nextProvider i18n={i18n}>
+        <ThemeProvider
+          theme={themeWithResultColor("meterFlagged")}
+        >
+          <DataContext.Provider
+            value={makeDataContext({
+              farmsData: [makeFarm({ id: "A" })],
+              territorialAnalysisParams: {
+                polygonsSubset: "all",
+                selectedMaps: [makeMap({ id: 1 })],
+              },
+              territorialAnalysisResults: [makeMapResults(1, { A: 0.5 })],
+              availableCategories: [makeCategory({ thresholdPercentage: 2 })],
+            })}
+          >
+            <CategorySummaryCards />
+          </DataContext.Provider>
+        </ThemeProvider>
+      </I18nextProvider>
+    );
+
+    const segment = (resultClass: string) =>
+      getComputedStyle(
+        document.querySelector(`[data-result-class="${resultClass}"]`)!
+      ).backgroundColor;
+    expect(segment("flagged")).toBe(SENTINEL_RGB);
+    expect(segment("unknown")).toBe("rgb(199, 211, 223)");
   });
 });

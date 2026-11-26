@@ -17,9 +17,6 @@ import { LayerCategoryIcon } from "@/components/reusable/LayerCategoryIcon";
 import { FLOW_COLORS } from "@/components/page/flow/flowStyles";
 import { FLOW_RESULT_PILL } from "@/components/page/flow/flowTable";
 
-/** The layer's tiles, painted red whatever the category (the API's tiles). */
-const TILE_COLOR = "#ff0000";
-
 /**
  * The results on the map, for the layer chosen in the section's header: at the
  * left the farms, filtered by their result for that layer (with findings, without,
@@ -198,9 +195,10 @@ export const MapView: React.FC = () => {
 
       <Box
         sx={{
-          flex: 1,
+          flex: { xs: "none", md: 1 },
           minWidth: 0,
-          minHeight: { xs: 360, md: 0 },
+          height: { xs: 360, md: "auto" },
+          minHeight: { md: 0 },
           position: "relative",
         }}
       >
@@ -247,7 +245,8 @@ export const MapView: React.FC = () => {
                 height: 12,
                 flex: "none",
                 borderRadius: "3px",
-                backgroundColor: TILE_COLOR,
+                // The API paints the tiles red whatever the category
+                backgroundColor: "result.layerTile",
               }}
             />
             <Box

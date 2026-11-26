@@ -16,8 +16,8 @@ const METER_ORDER: ResultClass[] = ["ok", "flagged", "unknown"];
 // As the mockup: green for the farms without findings, a soft red for the rest
 const METER_COLORS: Record<ResultClass, string> = {
   ok: FLOW_COLORS.ok,
-  flagged: "#f2b8b2",
-  unknown: "#c7d3df",
+  flagged: "result.meterFlagged",
+  unknown: "result.meterUnknown",
 };
 
 /**
@@ -152,6 +152,7 @@ export const CategorySummaryCards: React.FC = () => {
               {METER_ORDER.map((resultClass) => (
                 <Box
                   key={resultClass}
+                  data-result-class={resultClass}
                   sx={{
                     width: `${total ? (100 * counts[resultClass]) / total : 0}%`,
                     backgroundColor: METER_COLORS[resultClass],

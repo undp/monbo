@@ -105,6 +105,11 @@ const press = (name: string) =>
 
 const addButton = () => screen.getByRole("button", { name: "Agregar" });
 
+// Measured in `pnpm test` on a loaded host (load average 22): these tests took 0.5-2.0 s
+// alone and up to 7.7 s, past the 5 s default. 3x the slowest run, for the whole file.
+// Vitest isolates each file, so this does not leak into other files.
+vi.setConfig({ testTimeout: 23_000 });
+
 describe("ManualFarmModal", () => {
   it("opens the map on the selected country", async () => {
     await renderModal();

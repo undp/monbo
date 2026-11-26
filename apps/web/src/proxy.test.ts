@@ -19,7 +19,7 @@ describe("proxy", () => {
   ])("redirects %s to the start page (%s)", (path, target) => {
     const response = proxy(request(path));
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(308);
     expect(locationOf(response)).toBe(target);
   });
 
