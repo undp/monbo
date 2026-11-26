@@ -162,6 +162,19 @@ and the examples, and the tests upload every example. The list lives in the page
 `utils/uploadSources.ts` keeps each source's rows and errors. It sends every row
 together, in list order, and rejects an ID found in two sources, naming both.
 
+A source's errors (`sourceErrors`) are its whole-file problems plus the problems of
+the rows still listed. An Excel (option 1) and a geo file read from its attributes
+(option 2) keep each row's problems apart, in the same order as their rows
+(`RowProblems`, `utils/rowProblems.ts`): its validation errors, a feature's API
+issues and the mandatory attributes it lacks, and the other-country message when it
+names a country other than the selected one (one message per country). Deleting a
+row (`removedRows`) drops its problems, so deleting the rows with problems clears the
+file's notice and lets it upload, also after the file is read again. A geo file's
+missing data counts only its listed features (`sourceMissing`). Whole-file problems
+(a geo file the API rejected, an Excel without coordinates, an Excel with
+coordinates joined to a geo file) and a geo file joined to an Excel (option 3, whose
+join lists no row when anything fails) stay until the file is removed or fixed.
+
 The user-facing explanation of the four ways, the accepted formats and geometries,
 and a point's area is the documentation page (`/documentation#upload`). Its text is
 in `apps/web/src/content/documentation/{es,en}/upload.md`: update it whenever the

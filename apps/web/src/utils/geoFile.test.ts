@@ -41,13 +41,13 @@ const toRows = async (
   }: { language?: TestLocale; country?: string | null; useNameAsId?: boolean } = {}
 ) => {
   const { t } = await createTestI18n(language);
-  const { rows, errorMessages } = geoFeaturesToFarmRows(
+  const { rows, errorMessages, rowProblems } = geoFeaturesToFarmRows(
     { format: useNameAsId ? "kml" : "geojson", features },
     t,
     language,
     country
   );
-  return { data: rows, errorMessages };
+  return { data: rows, errorMessages, rowProblems };
 };
 
 /** A farm exported by Monbo's GeoJSON download, as /farms/import reads it back. */
@@ -210,6 +210,51 @@ describe("geoFeaturesToFarmRows", () => {
     expect((await toRows([line])).errorMessages).toEqual([
       "Hay un LineString en el elemento 1 (ID F-9): una finca debe ser un polígono o un punto",
     ]);
+  });
+});
+
+describe("geoFeaturesToFarmRows' row problems", () => {
+  it("keeps each feature's problems on its own row", async () => {
+    const { rowProblems } = await toRows([
+      feature({ id: "F-1", ...COMPLETE }, { position: 1 }),
+      feature({ id: "F-2", ...COMPLETE, producerName: null }, { position: 2 }),
+      feature(
+        { id: "F-3", ...COMPLETE },
+        {
+          position: 3,
+          geometryType: null,
+          farmCoordinates: null,
+          errors: [
+            {
+              code: "unsupported_geometry",
+              message: "The feature is a LineString",
+              params: { geometryType: "LineString" },
+            },
+          ],
+        }
+      ),
+    ]);
+
+    expect(rowProblems).toHaveLength(3);
+    expect(rowProblems[0]).toEqual({ otherCountry: null, errors: [], missing: [] });
+    expect(rowProblems[1].missing).toEqual(["producerName"]);
+    expect(rowProblems[1].errors).toHaveLength(1);
+    expect(rowProblems[2].missing).toEqual([]);
+    expect(rowProblems[2].errors).toHaveLength(1);
+    expect(rowProblems[2].errors[0]).toContain("F-3");
+  });
+
+  it("flags the feature that declares another country, one message per row", async () => {
+    const { rowProblems } = await toRows(
+      [
+        feature({ id: "F-1", ...COMPLETE, ProducerCountry: "CO" }),
+        feature({ id: "F-2", ...COMPLETE, ProducerCountry: "CR" }),
+      ],
+      { country: "CR" }
+    );
+
+    expect(rowProblems[0].otherCountry).toContain("Colombia");
+    expect(rowProblems[1].otherCountry).toBeNull();
   });
 });
 
