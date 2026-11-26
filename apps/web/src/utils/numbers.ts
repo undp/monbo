@@ -105,6 +105,31 @@ export const formatPercentage = (
   return formatter.format(value);
 };
 
+// How far below 1 a value can be and still read "100%". A farm covered entirely
+// sums its pixels' slivers and comes back from the API up to ~1e-12 below 1, far
+// more than the classification's few ULPs, so those would read "> 99,9%".
+const NEAR_FULL_TOLERANCE = 1e-10;
+
+// The value as formatPercentage displays it, as a number: 0.9995 → 100.
+const shownPercent = (value: number, decimals: number): number =>
+  Number(formatPercentage(value, decimals, "en").replace(/[%,]/g, ""));
+
+/**
+ * formatPercentage that never reads a value below 1 as "100%": one that rounds to
+ * 100 reads "> 99,9%" (one unit of its last decimal below 100).
+ */
+const formatBelowFull = (
+  value: number,
+  decimals: number,
+  language: string
+): string => {
+  if (1 - value > NEAR_FULL_TOLERANCE && shownPercent(value, decimals) >= 100) {
+    const lastStepBelowFull = 1 - Math.pow(10, -decimals) / 100;
+    return `> ${formatPercentage(lastStepBelowFull, decimals, language)}`;
+  }
+  return formatPercentage(value, decimals, language);
+};
+
 /**
  * Formats the default display threshold as a percentage string with a "less than" symbol.
  *
@@ -133,6 +158,7 @@ const formattedDefaultDisplayThreshold = (language: string): string => {
  *
  * Values of 0 are displayed as "0%".
  * All other values are formatted as percentages with overlapDecimalPlaces decimal places.
+ * A value below 1 that rounds to 100% is displayed as "> 99,9%" (formatBelowFull).
  *
  * @param value - The overlap value to format (between 0 and 1)
  * @returns The formatted percentage string
@@ -147,14 +173,14 @@ export const formatOverlapPercentage = (
   if (getOverlapThreshold() === 0) {
     if (100 * value < DEFAULT_DISPLAY_THRESHOLD)
       return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(value, DEFAULT_DECIMAL_PLACES, language);
+    return formatBelowFull(value, DEFAULT_DECIMAL_PLACES, language);
   }
 
   // Threshold defined by user, so we use it for displaying the overlap
   if (!isOverlapAboveThreshold(value))
     return formattedBelowThreshold(getOverlapThreshold(), language);
 
-  return formatPercentage(value, overlapDecimalPlaces(), language);
+  return formatBelowFull(value, overlapDecimalPlaces(), language);
 };
 
 /**
@@ -164,11 +190,8 @@ export const formatOverlapPercentage = (
  * layer inverted without any error.
  *
  * If the rule has a threshold (> 0), findings at or below it are displayed as
- * "< X%" where X is the threshold. Otherwise, findings below
- * DEFAULT_DISPLAY_THRESHOLD are displayed as "< X%".
- *
- * A finding of 0 is displayed as "0%". All other findings are formatted with the
- * threshold's decimal places (at least DEFAULT_DECIMAL_PLACES).
+ * "< X%" where X is the threshold. Findings above it, and every finding with a
+ * threshold of 0, are formatted by formatFindingPercentage.
  *
  * @param value - The layer result to format (between 0 and 1)
  * @returns The formatted percentage string
@@ -181,12 +204,8 @@ export const formatResultPercentage = (
   const finding = findingRatio(value, rule.polarity);
   if (finding === 0) return "0%";
 
-  // No threshold defined by user, so we use the default threshold for displaying the finding
-  if (rule.thresholdPercentage === 0) {
-    if (100 * finding < DEFAULT_DISPLAY_THRESHOLD)
-      return formattedDefaultDisplayThreshold(language);
-    return formatPercentage(finding, DEFAULT_DECIMAL_PLACES, language);
-  }
+  if (rule.thresholdPercentage === 0)
+    return formatFindingPercentage(finding, 0, language);
 
   // Threshold defined by user, so we use it for displaying the finding
   if (classifyResult(value, rule) === "ok")
@@ -217,6 +236,8 @@ const THRESHOLD_ROUNDING_ULPS = 8;
  *   5, 0.0504 reads "> 5%" and 0.0551 reads "5,5%".
  * - A finding below the threshold that rounds to the threshold or above it reads
  *   "< 5%" (e.g. 0.0496). A finding on the threshold reads "5%".
+ * - A finding below 1 that rounds to 100% reads "> 99,9%" ("> 99,99%" with two
+ *   decimals), never "100%"; within 1e-10 of 1 it reads "100%".
  *
  * Takes the finding, not `value`: for a `required` rule that is `1 − value`
  * (`findingRatio`).
@@ -236,10 +257,7 @@ export const formatFindingPercentage = (
   if (finding > 0 && percent < resolution)
     return `< ${formatPercentage(resolution / 100, decimals, language)}`;
 
-  // The value as displayed, rounded exactly as formatPercentage rounds it.
-  const shown = Number(
-    formatPercentage(finding, decimals, "en").replace(/[%,]/g, "")
-  );
+  const shown = shownPercent(finding, decimals);
   const tolerance =
     THRESHOLD_ROUNDING_ULPS *
     Number.EPSILON *
@@ -250,5 +268,5 @@ export const formatFindingPercentage = (
     return `> ${formatThreshold(thresholdPercentage, language)}`;
   if (below && shown >= thresholdPercentage)
     return `< ${formatThreshold(thresholdPercentage, language)}`;
-  return formatPercentage(finding, decimals, language);
+  return formatBelowFull(finding, decimals, language);
 };

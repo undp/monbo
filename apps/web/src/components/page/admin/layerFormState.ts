@@ -46,7 +46,7 @@ export const toFormValues = (layer?: AdminLayer): LayerFormValues => {
   }
   return {
     category_id: layer?.category_id ?? "",
-    pixel_size: layer ? String(layer.pixel_size) : "30",
+    pixel_size: layer ? (layer.pixel_size === null ? "" : String(layer.pixel_size)) : "30",
     // New layers start at 2020, the baseline most layers use
     baseline: layer?.baseline != null ? String(layer.baseline) : "2020",
     compared_against:
