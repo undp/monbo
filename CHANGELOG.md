@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-26
+
+### Fixed
+
+- `GET /health` reports the API's version (it always said `0.1.0`). It reads the FastAPI app's version, which every release bumps with the version files
+
+### Changed
+
+- Production pulls its images with its managed identity (`monbo-prod-pull`, which holds AcrPull on `monboprodacr`): `registry_admin_enabled` is off in `prod`, so the registry's admin user is turned off
+
 ## [2.0.0] - 2026-11-25
 
 ### Added

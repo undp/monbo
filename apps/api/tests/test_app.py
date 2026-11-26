@@ -1,3 +1,6 @@
+import tomllib
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,6 +8,13 @@ from app.main import MissingLayersError, app, create_app
 from app.modules.layers.store import LayersRoot, set_layers_root
 
 client = TestClient(app)
+
+PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
+
+
+def released_version() -> str:
+    with PYPROJECT.open("rb") as file:
+        return tomllib.load(file)["project"]["version"]
 
 
 def test_health_check():
@@ -23,10 +33,15 @@ def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     body = response.json()
-    assert body["version"] == "0.1.0"
+    assert body["version"] == released_version()
     assert body["status"] == "OK"
     assert body["mapsRoot"].endswith("app/maps")
     assert isinstance(body["mapsRootWritable"], bool)
+
+
+def test_app_version_matches_the_released_version():
+    """A release bumps the FastAPI app with the version files; /health reports it."""
+    assert create_app().version == released_version()
 
 
 def test_liveness_does_not_touch_the_maps_root(monkeypatch):

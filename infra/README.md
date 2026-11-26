@@ -198,7 +198,7 @@ assignment:
 | `platform` variable | `dev` | `prod` | What it does |
 |---|---|---|---|
 | `resource_group_name` | `monbo-dev` | the group UNDP granted | Every resource goes in that group, in `location`. Read only: never modified or locked. Set as `TF_VAR_resource_group_name` in `infra/envs/<env>.secrets.env` and the GitHub Environment, never committed (prod's is UNDP's) |
-| `registry_admin_enabled` | `true` | `true` | The apps pull with the registry's admin user. Set to `false` once the pull identity holds AcrPull |
+| `registry_admin_enabled` | `false` | `false` | `false`: the apps pull with the pull identity, which holds AcrPull. Set to `true` only while it lacks AcrPull (the apps then pull with the registry's admin user) |
 | `share_backup_enabled` | `false` | `false` | The daily Azure Backup. Needs more than Contributor to configure |
 
 An administrator grants the roles once: Contributor on the group to the deploy
