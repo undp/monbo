@@ -61,10 +61,11 @@ Every control that shows only an icon SHALL have an accessible name in the user'
 
 ### Requirement: Result colors come from the theme
 
-The colors the web uses to paint a result (ok, flagged and no data, as text and background), the
-summary meter's segments, the neutral chip and the layer's swatch in the map legend SHALL be
-defined once, in the theme's `result` palette, and components SHALL read them from there. The PDF
-report SHALL use the same values.
+The result-class colors of `utils/styling.ts` (ok, flagged and no data, as text and background),
+the flagged and no-data segments of the summary meter, the no-data chip, the background of the
+neutral chip and the layer's swatch in the map legend SHALL be defined once, in the theme's
+`result` palette, and components SHALL read them from there. The PDF report SHALL use the same
+values.
 
 #### Scenario: A no-data chip
 

@@ -16,6 +16,11 @@ import { createTestI18n } from "@/test/i18n";
 import { router } from "@/test/navigation";
 import { AdminCategoryEditorPageContent } from "./AdminCategoryEditorPageContent";
 
+// Measured in `pnpm test` on a loaded host: these tests take about 2 s alone and one took
+// 5.6 s, past the 5 s default. 3x the slowest run, for the whole file. Vitest isolates
+// each file, so this does not leak into other files.
+vi.setConfig({ testTimeout: 17_000 });
+
 vi.mock("@/api/adminCategories", () => ({
   createAdminCategory: vi.fn(),
   listAdminCategories: vi.fn(),
