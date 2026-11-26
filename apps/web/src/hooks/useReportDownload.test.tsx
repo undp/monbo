@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
+import { saveAs } from "file-saver";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DataContext } from "@/context/DataContext";
@@ -14,6 +15,7 @@ import { makeFarm } from "@/test/factories";
 import { useReportDownload } from "./useReportDownload";
 
 vi.mock("@/api/usageEvents", () => ({ sendUsageEvent: vi.fn() }));
+vi.mock("file-saver", () => ({ saveAs: vi.fn() }));
 
 type ReportContextValue = React.ContextType<typeof ReportContext>;
 
@@ -24,8 +26,8 @@ const report = {
   buildLargeReportZip: vi.fn(),
 };
 
-const renderDownload = async () => {
-  const i18n = await createTestI18n("en");
+const renderDownload = async (language: "es" | "en" = "en") => {
+  const i18n = await createTestI18n(language);
   const data = makeDataContext({
     selectedCountry: "CR",
     reportGenerationParams: {
@@ -54,10 +56,36 @@ const downloaded = (format: "pdf" | "zip", outcome: "ok" | "error") => [
   "CR",
 ];
 
+const pdfBlob = new Blob(["pdf"]);
+const zipBlob = new Blob(["zip"]);
+
 beforeEach(() => {
-  report.getCompleteReport.mockResolvedValue(new Blob(["pdf"]));
-  report.getSeparatedReports.mockResolvedValue(new Blob(["zip"]));
-  report.buildLargeReportZip.mockResolvedValue(new Blob(["zip"]));
+  report.getCompleteReport.mockResolvedValue(pdfBlob);
+  report.getSeparatedReports.mockResolvedValue(zipBlob);
+  report.buildLargeReportZip.mockResolvedValue(zipBlob);
+});
+
+describe("useReportDownload file names", () => {
+  it.each(["es", "en"] as const)(
+    "saves the complete report as monbo-report.pdf in %s",
+    async (language) => {
+      const { result } = await renderDownload(language);
+      await act(() => result.current.downloadCompleteReport());
+      expect(saveAs).toHaveBeenCalledExactlyOnceWith(pdfBlob, "monbo-report.pdf");
+    }
+  );
+
+  it("saves the separated reports as monbo-reports.zip", async () => {
+    const { result } = await renderDownload();
+    await act(() => result.current.downloadSeparatedReports());
+    expect(saveAs).toHaveBeenCalledExactlyOnceWith(zipBlob, "monbo-reports.zip");
+  });
+
+  it("saves the large report as monbo-reports.zip", async () => {
+    const { result } = await renderDownload();
+    await act(() => result.current.downloadLargeReport(vi.fn()));
+    expect(saveAs).toHaveBeenCalledExactlyOnceWith(zipBlob, "monbo-reports.zip");
+  });
 });
 
 describe("useReportDownload usage events", () => {

@@ -173,21 +173,21 @@ export const CoverPage = ({
     <Page size="A4" style={styles.coverPage}>
       <View style={styles.coverPageBackgroundImageContainer}>
         <ImagePDF
-          src={assetUrl("/images/deforestationReportCoverBackground.png")}
+          src={assetUrl("/images/reportCoverBackground.png")}
           style={styles.coverPageBackgroundImage}
         />
       </View>
 
       <View style={styles.coverPageBackgroundWhiteImageContainer}>
         <ImagePDF
-          src={assetUrl("/images/deforestationReportCoverBackgroundWhite.png")}
+          src={assetUrl("/images/reportCoverBackgroundWhite.png")}
           style={styles.coverPageBackgroundWhiteImage}
         />
       </View>
 
       <View style={styles.coverPageBackgroundLeafImageContainer}>
         <ImagePDF
-          src={assetUrl("/images/deforestationReportCoverBackgroundLeaf.png")}
+          src={assetUrl("/images/reportCoverBackgroundLeaf.png")}
           style={styles.coverPageBackgroundLeafImage}
         />
       </View>
