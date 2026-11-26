@@ -1,9 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import { resultClassBackgroundColor, resultClassColor } from "@/utils/styling";
 
-// A neutral chip (a category's threshold).
-const NEUTRAL_CHIP_BACKGROUND = "#eef2f6";
-
 /**
  * A category's threshold (neutral) or one of its results, in the result colors of
  * D23: "ok" green and "flagged" red whatever the category color (methodology and admin).
@@ -15,7 +12,7 @@ export const ResultChip: React.FC<{ kind: "ok" | "flagged" | "neutral"; children
   const colors = useTheme().palette.landing;
   const palette =
     kind === "neutral"
-      ? { color: colors.inkSecondary, background: NEUTRAL_CHIP_BACKGROUND }
+      ? { color: colors.inkSecondary, background: "result.neutralBackground" }
       : { color: resultClassColor(kind), background: resultClassBackgroundColor(kind) };
   return (
     <Box

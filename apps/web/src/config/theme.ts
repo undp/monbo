@@ -1,5 +1,5 @@
 "use client";
-import { createTheme } from "@mui/material/styles";
+import { alpha, createTheme } from "@mui/material/styles";
 
 interface CategoryColors {
   main: string;
@@ -36,12 +36,44 @@ interface LandingPalette {
   };
 }
 
+interface ResultPalette {
+  ok: string;
+  okBackground: string;
+  flagged: string;
+  flaggedBackground: string;
+  unknown: string;
+  unknownBackground: string;
+  meterFlagged: string;
+  meterUnknown: string;
+  neutralBackground: string;
+  layerTile: string;
+}
+
+/**
+ * Every color a result is painted with. A plain constant as well as a theme group
+ * because the PDF report has no theme context.
+ */
+export const RESULT_COLORS: ResultPalette = {
+  ok: "#2E7D32",
+  okBackground: alpha("#2E7D32", 0.08),
+  flagged: "#D32F2F",
+  flaggedBackground: alpha("#D32F2F", 0.08),
+  unknown: "#676767",
+  unknownBackground: "#D5D5D5",
+  meterFlagged: "#f2b8b2",
+  meterUnknown: "#c7d3df",
+  neutralBackground: "#eef2f6",
+  layerTile: "#ff0000",
+};
+
 declare module "@mui/material/styles" {
   interface Palette {
     landing: LandingPalette;
+    result: ResultPalette;
   }
   interface PaletteOptions {
     landing?: LandingPalette;
+    result?: ResultPalette;
   }
 }
 
@@ -57,6 +89,7 @@ const theme = createTheme({
       primary: "#3A3541",
       secondary: "#667085",
     },
+    result: RESULT_COLORS,
     landing: {
       navy: "#0a2440",
       // The hero gradient's middle stop, between navy and forest

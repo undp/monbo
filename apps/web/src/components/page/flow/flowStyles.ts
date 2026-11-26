@@ -6,8 +6,13 @@ export const FLOW_COLORS = {
   /** Light green: completed stages and bars, on the dark header. */
   leaf: "#5cc08a",
   leafInk: "#06301f",
-  /** Dark green: eyebrows and section icons, on light backgrounds. */
+  /** Dark green: section icons, on light backgrounds (they need 3:1). */
   leafDark: "#2f8f5e",
+  /**
+   * The page eyebrow's 12 px text: 5.27:1 on white, 5.01:1 on the page background,
+   * 4.98:1 on `blue25` and 4.82:1 on mint.
+   */
+  eyebrow: "#267a50",
   mint: "#eef7f1",
   forestInk: "#0e3b30",
   white: "#ffffff",

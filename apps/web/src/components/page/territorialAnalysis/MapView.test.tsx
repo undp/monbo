@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { ThemeProvider } from "@mui/material/styles";
+import theme from "@/config/theme";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setRuntimeConfig } from "@/config/runtime";
 import { DataContext } from "@/context/DataContext";
@@ -13,6 +15,7 @@ import {
 import { createTestI18n } from "@/test/i18n";
 import { setSearchParams } from "@/test/navigation";
 import { makeDataContext } from "@/test/renderWithData";
+import { SENTINEL_RGB, themeWithResultColor } from "@/test/resultTheme";
 import { MapView } from "./MapView";
 
 // Leaflet doesn't run in jsdom; the groups and their counts are what's under test.
@@ -52,14 +55,16 @@ const context = makeDataContext({
   ],
 });
 
-const renderMapView = async () => {
+const renderMapView = async (appTheme = theme) => {
   const i18n = await createTestI18n("es");
   // A new element each time: re-rendering the same one would let React skip MapView.
   const ui = () => (
     <I18nextProvider i18n={i18n}>
-      <DataContext.Provider value={context}>
-        <MapView />
-      </DataContext.Provider>
+      <ThemeProvider theme={appTheme}>
+        <DataContext.Provider value={context}>
+          <MapView />
+        </DataContext.Provider>
+      </ThemeProvider>
     </I18nextProvider>
   );
   const rendered = render(ui());
@@ -171,5 +176,21 @@ describe("MapView", () => {
     fireEvent.keyDown(list, { key: "ArrowUp" });
     expect(rows[0].getAttribute("aria-checked")).toBe("true");
     expect(document.activeElement).toBe(rows[0]);
+  });
+
+  it("paints the legend's swatch with the theme's layer tile color", async () => {
+    setSearchParams({ selectedMap: "5" });
+    await renderMapView(themeWithResultColor("layerTile"));
+
+    const swatch = screen.getByText("Frontera agrícola").previousElementSibling!;
+    expect(getComputedStyle(swatch).backgroundColor).toBe(SENTINEL_RGB);
+  });
+
+  it("keeps the legend's swatch red", async () => {
+    setSearchParams({ selectedMap: "5" });
+    await renderMapView();
+
+    const swatch = screen.getByText("Frontera agrícola").previousElementSibling!;
+    expect(getComputedStyle(swatch).backgroundColor).toBe("rgb(255, 0, 0)");
   });
 });

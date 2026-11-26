@@ -12,7 +12,7 @@ export const PageEyebrow: React.FC<{ children: React.ReactNode }> = ({ children 
       lineHeight: 1,
       letterSpacing: "0.16em",
       textTransform: "uppercase",
-      color: FLOW_COLORS.leafDark,
+      color: FLOW_COLORS.eyebrow,
       marginBottom: 1,
     }}
   >

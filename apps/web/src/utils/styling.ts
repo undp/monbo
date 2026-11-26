@@ -1,4 +1,4 @@
-import { alpha } from "@mui/material/styles";
+import { RESULT_COLORS } from "@/config/theme";
 import {
   classifyResult,
   type ClassificationRule,
@@ -6,15 +6,15 @@ import {
 } from "./layerResults";
 
 const RESULT_CLASS_COLORS: Record<ResultClass, string> = {
-  ok: "#2E7D32",
-  flagged: "#D32F2F",
-  unknown: "#676767",
+  ok: RESULT_COLORS.ok,
+  flagged: RESULT_COLORS.flagged,
+  unknown: RESULT_COLORS.unknown,
 };
 
 const RESULT_CLASS_BACKGROUND_COLORS: Record<ResultClass, string> = {
-  ok: alpha("#2E7D32", 0.08),
-  flagged: alpha("#D32F2F", 0.08),
-  unknown: "#D5D5D5",
+  ok: RESULT_COLORS.okBackground,
+  flagged: RESULT_COLORS.flaggedBackground,
+  unknown: RESULT_COLORS.unknownBackground,
 };
 
 export const resultClassColor = (resultClass: ResultClass) =>
