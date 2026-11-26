@@ -26,7 +26,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import env
-from app.modules.layers.categories import is_temporal
+from app.modules.layers.categories import (
+    invalid_index_fields,
+    is_temporal,
+    layer_id_of,
+)
 from app.modules.layers.processing import (
     IngestionError,
     check_pixel_size,
@@ -216,6 +220,25 @@ def ingestion_in_progress(store: LayerStore) -> bool:
 
 # --- Activation --------------------------------------------------------------------
 
+# The index fields the upload and the job read from the layer.
+INGESTION_NEEDS = ("version", "pixel_size", "raster_filename")
+
+
+def _ingestion_entry(index: list[dict] | None, layer_id: int) -> dict:
+    entry = next((e for e in index or [] if layer_id_of(e) == layer_id), None)
+    if entry is None:
+        raise IngestionError("layer_not_found", "The layer no longer exists")
+    stale_fields = [
+        field for field in invalid_index_fields(entry) if field in INGESTION_NEEDS
+    ]
+    if stale_fields:
+        raise IngestionError(
+            "invalid_fields",
+            f"The layer's index field '{stale_fields[0]}' is invalid",
+            field=stale_fields[0],
+        )
+    return entry
+
 
 def _raster_stem(entry: dict) -> str:
     filename = entry.get("raster_filename")
@@ -240,10 +263,8 @@ def activate(
     shutil.copyfile(cog, share_staging)
     try:
         with store.locked():
-            index = store.read_index()
-            entry = next((e for e in index or [] if e["id"] == layer_id), None)
-            if index is None or entry is None:
-                raise IngestionError("layer_not_found", "The layer no longer exists")
+            index = store.read_index() or []
+            entry = _ingestion_entry(index, layer_id)
             # An admin may have edited pixel_size while the COG was converting.
             check_pixel_size(entry["pixel_size"], pixel_size)
             version = entry["version"] + 1
@@ -282,7 +303,9 @@ def _layer_is_temporal(store: LayerStore, layer_id: int) -> bool:
     """Whether the layer's category is temporal, which only decides how year-like
     values are reported. A missing layer is not: the job fails on it after
     validation anyway."""
-    entry = next((e for e in store.read_index() or [] if e["id"] == layer_id), None)
+    entry = next(
+        (e for e in store.read_index() or [] if layer_id_of(e) == layer_id), None
+    )
     return entry is not None and is_temporal(
         entry["category_id"], store.read_categories()
     )
@@ -349,9 +372,7 @@ def run_ingestion(
             progress=None,
         )
         index = country_store.read_index()
-        entry = next((e for e in index or [] if e["id"] == layer_id), None)
-        if entry is None:
-            raise IngestionError("layer_not_found", "The layer no longer exists")
+        entry = _ingestion_entry(index, layer_id)
         pixel_size = validation.pixel_size_range_m
         check_pixel_size(entry["pixel_size"], pixel_size)
         if validation.nodata is not None and validation.needs_nodata:

@@ -16,6 +16,7 @@ from app.modules.layer_analysis.helpers import (
     get_loss_area_fraction,
     get_tile,
 )
+from app.modules.layers.categories import invalid_index_fields, layer_id_of
 from app.modules.layers.store import is_layer
 from app.modules.maps.helpers import get_country_maps, get_map_by_id, require_country
 from app.modules.usage.tracking import note_usage
@@ -40,7 +41,7 @@ def analyze(body: AnalyzeBody, request: Request):
     requested_maps = [
         map
         for map in maps
-        if map["id"] in body.maps and is_layer(map, body.country, map["id"])
+        if layer_id_of(map) in body.maps and is_layer(map, body.country, map["id"])
     ]
     unknown = sorted(set(body.maps) - {map["id"] for map in requested_maps})
     if unknown:
@@ -48,6 +49,15 @@ def analyze(body: AnalyzeBody, request: Request):
         raise HTTPException(
             status_code=400,
             detail=f"Unknown layers for {body.country or 'the request'}: {unknown}",
+        )
+    invalid_version = [
+        map["id"] for map in requested_maps if "version" in invalid_index_fields(map)
+    ]
+    if invalid_version:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Layers {invalid_version} of {body.country or 'the request'} can't "
+            "be analyzed: their index field 'version' is invalid",
         )
     results = []
 

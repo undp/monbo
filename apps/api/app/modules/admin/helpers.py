@@ -9,6 +9,8 @@ from app.modules.layers.categories import (
     CategoriesFile,
     CategoryIssue,
     effective_categories,
+    invalid_index_fields,
+    layer_id_of,
     resolve_category,
     years_fit,
 )
@@ -60,7 +62,11 @@ def layers_in(index: list[dict], category_id: str) -> list[dict]:
 
 
 def published_ids(layers: list[dict]) -> list[int]:
-    return [entry["id"] for entry in layers if is_enabled(entry)]
+    return [
+        entry["id"]
+        for entry in layers
+        if is_enabled(entry) and layer_id_of(entry) is not None
+    ]
 
 
 def describe_ids(ids: list[int]) -> str:
@@ -70,4 +76,21 @@ def describe_ids(ids: list[int]) -> str:
 def years_mismatch(layers: list[dict], temporal: bool) -> list[int]:
     """Ids of the layers whose years don't fit a category that is (or isn't)
     temporal."""
-    return [entry["id"] for entry in layers if not years_fit(entry, temporal)]
+    return [
+        entry["id"]
+        for entry in layers
+        if layer_id_of(entry) is not None and not years_fit(entry, temporal)
+    ]
+
+
+def refuse_invalid_fields(
+    entry: dict, layer_id: int, needed: tuple[str, ...], action: str
+) -> None:
+    """400 naming the first field `needed` that is invalid in the entry."""
+    refused = [field for field in invalid_index_fields(entry) if field in needed]
+    if refused:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Layer {layer_id} can't be {action}: its index field "
+            f"'{refused[0]}' is invalid; the operations team must fix it in the index",
+        )

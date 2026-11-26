@@ -21,6 +21,7 @@ from rasterio.errors import RasterioIOError
 from app.modules.layers.categories import (
     LayerIssue,
     index_fields_problem,
+    layer_id_of,
     stored_year,
     years_fit,
 )
@@ -37,15 +38,18 @@ from .helpers import (
     country_store,
     index_or_500,
     read_country_categories,
+    refuse_invalid_fields,
 )
 from .models import AdminLayer, EnabledInput, LayerInput, StoredAttributes
 
 router = APIRouter()
 
+PUT_NEEDS = ("attributes_filename", "considerations_filename", "raster_filename")
+
 
 def _position(index: list[dict], layer_id: int) -> int:
     for position, entry in enumerate(index):
-        if entry["id"] == layer_id:
+        if layer_id_of(entry) == layer_id:
             return position
     raise HTTPException(status_code=404, detail="Layer not found")
 
@@ -255,7 +259,7 @@ def _free_metadata_stem(store: LayerStore, index: list[dict], layer_id: int) -> 
         Path(entry[key]).stem
         for entry in index
         for key in ("attributes_filename", "considerations_filename")
-        if entry.get(key)
+        if isinstance(entry.get(key), str)
     }
 
     def taken(stem: str) -> bool:
@@ -289,6 +293,20 @@ def create_layer(body: LayerInput, session: Session = Depends(require_admin)):
         index = index_or_500(store)
         categories = read_country_categories(store)
         _check_category(categories, body, session.country)
+        unaddressable = [
+            (position, entry)
+            for position, entry in enumerate(index)
+            if layer_id_of(entry) is None
+        ]
+        if unaddressable:
+            position, entry = unaddressable[0]
+            shown = repr(entry["id"]) if "id" in entry else "missing"
+            raise HTTPException(
+                status_code=400,
+                detail=f"Can't create a layer in {session.country}: the index entry "
+                f"at position {position} has an invalid 'id' ({shown}); fix it in "
+                "the index first",
+            )
         layer_id = max((entry["id"] for entry in index), default=-1) + 1
         stem = _free_metadata_stem(store, index, layer_id)
         entry = {
@@ -320,15 +338,17 @@ def update_layer(
     # and every tile and image request waits on that lock.
     current = index_or_500(store)
     checked = current[_position(current, layer_id)]
-    if body.pixel_size != checked["pixel_size"]:
+    refuse_invalid_fields(checked, layer_id, PUT_NEEDS, "edited")
+    if body.pixel_size != checked.get("pixel_size"):
         _check_existing_raster_pixel_size(store, checked, body.pixel_size)
     with store.locked():
         index = index_or_500(store)
         position = _position(index, layer_id)
+        refuse_invalid_fields(index[position], layer_id, PUT_NEEDS, "edited")
         categories = read_country_categories(store)
         _check_category(categories, body, session.country, index[position])
         # A new raster was activated meanwhile: check against that one instead.
-        if body.pixel_size != index[position]["pixel_size"] and index[position].get(
+        if body.pixel_size != index[position].get("pixel_size") and index[position].get(
             "raster_filename"
         ) != checked.get("raster_filename"):
             _check_existing_raster_pixel_size(store, index[position], body.pixel_size)

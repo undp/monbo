@@ -48,6 +48,7 @@ from app.modules.layers.categories import (
     StoredCategory,
     effective_categories,
     index_fields_problem,
+    layer_id_of,
     parse_categories,
     resolve_category,
     years_fit,
@@ -524,7 +525,7 @@ def is_layer(entry: dict, country: str | None, layer_id: int) -> bool:
     """Whether a layer from `LayersRoot.layers()` is `layer_id` of `country`. Ids
     are numbered within each country; in the flat layout they are unique on their
     own, and a given country must be one the layer lists."""
-    if entry["id"] != layer_id:
+    if layer_id_of(entry) != layer_id:
         return False
     if entry.get("country") is not None and entry["country"] != country:
         return False

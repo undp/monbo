@@ -949,3 +949,102 @@ def test_a_layer_with_an_invalid_field_can_be_hidden(layers, client, admin_heade
     assert response.status_code == 200
     assert response.json()["enabled"] is False
     assert response.json()["layer_issue"] == "invalid_fields"
+
+
+# --- Invalid index entries on writes and lookups --------------------------------------
+
+
+def with_entry_first(country, field, value):
+    index = json.loads(country.store.index_path.read_text())
+    entry = {**GFW, "id": 7, field: value}
+    if value is MISSING:
+        del entry[field]
+    country.write_index([entry, *index])
+
+
+def files_under(country):
+    return {
+        path: path.read_bytes()
+        for path in sorted(country.root.rglob("*"))
+        if path.is_file()
+    }
+
+
+@pytest.mark.parametrize(
+    "value, shown", [("abc", "'abc'"), ([7], "[7]"), (MISSING, "missing")]
+)
+def test_create_is_refused_while_an_entry_has_an_invalid_id(
+    layers, client, admin_headers, value, shown
+):
+    with_bad_layer(layers, "id", value)
+    before = files_under(layers)
+
+    response = client.post("/admin/layers", json=layer_body(), headers=admin_headers)
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "position 2" in detail and shown in detail
+    assert files_under(layers) == before
+
+
+def test_create_ignores_another_layers_non_string_file_name(
+    layers, client, admin_headers
+):
+    with_bad_layer(layers, "attributes_filename", 5)
+
+    response = client.post("/admin/layers", json=layer_body(), headers=admin_headers)
+
+    assert response.status_code == 201
+    assert response.json()["id"] == 8
+
+
+@pytest.mark.parametrize("method", ["put", "patch"])
+def test_edit_and_publish_skip_an_entry_without_an_id(
+    layers, client, admin_headers, method
+):
+    with_entry_first(layers, "id", MISSING)
+    body = layer_body() if method == "put" else {"enabled": False}
+
+    response = getattr(client, method)(
+        "/admin/layers/0", json=body, headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "field, extra",
+    [
+        ("attributes_filename", {}),
+        ("considerations_filename", {}),
+        ("raster_filename", {"pixel_size": 31}),
+    ],
+)
+def test_edit_is_refused_when_a_needed_field_is_invalid(
+    layers, client, admin_headers, field, extra
+):
+    own_files = {"attributes_filename": "l7.json", "considerations_filename": "l7.md"}
+    index = json.loads(layers.store.index_path.read_text())
+    layers.write_index([*index, {**GFW, "id": 7, **own_files, field: 5}])
+    before = files_under(layers)
+
+    response = client.put(
+        "/admin/layers/7", json=layer_body(**extra), headers=admin_headers
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "Layer 7" in detail and f"'{field}'" in detail
+    assert files_under(layers) == before
+
+
+def test_edit_repairs_a_missing_pixel_size(layers, client, admin_headers):
+    with_bad_layer(layers, "pixel_size", MISSING, raster_filename=None)
+
+    response = client.put(
+        "/admin/layers/7", json=layer_body(pixel_size=31), headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    stored = {e["id"]: e for e in json.loads(layers.store.index_path.read_text())}
+    assert stored[7]["pixel_size"] == 31

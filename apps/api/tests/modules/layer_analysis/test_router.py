@@ -671,3 +671,77 @@ def test_generate_image_for_a_farm_with_parts_and_a_hole(maps_root):
     assert response.status_code == 200, response.text
     image = Image.open(BytesIO(response.content))
     assert image.size == (640, 420)
+
+
+# --- Invalid index entries --------------------------------------------------------
+
+
+def _write_country_loss_layer(country_root, *before, **layer):
+    """CO's layer 0 (the loss layer), preceded by `before` (hand-edited entries)."""
+    country_root.register("CO")
+    rasters = country_root.store("CO").rasters_dir
+    rasters.mkdir(parents=True, exist_ok=True)
+    data = np.zeros((100, 100), dtype=np.uint8)
+    data[:, :50] = 1
+    with rasterio.open(
+        rasters / "loss.tif",
+        "w",
+        driver="GTiff",
+        width=100,
+        height=100,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_bounds(*LOSS_BOUNDS, 100, 100),
+    ) as dst:
+        dst.write(data, 1)
+    entry = {"id": 0, "raster_filename": "loss.tif", "pixel_size": 30, "version": 1}
+    country_root.country("CO").write_index([*before, {**entry, **layer}])
+
+
+def _analyze_country(maps):
+    farm = _polygon_farm("f1", SQUARE_ON_LOSS)
+    return client.post(
+        "/layer_analysis/analyze", json={"country": "CO", "maps": maps, "farms": [farm]}
+    )
+
+
+def test_analyze_skips_an_entry_without_an_id(country_root):
+    _write_country_loss_layer(country_root, {"raster_filename": "x.tif"})
+
+    response = _analyze_country([0])
+
+    assert response.status_code == 200
+    [result] = response.json()
+    assert result["mapId"] == 0
+    assert result["farmResults"] == [{"farmId": "f1", "value": 1.0}]
+
+
+@patch("app.modules.layer_analysis.router.get_tile")
+def test_tiles_skip_an_entry_without_an_id(mock_get_tile, country_root):
+    _write_country_loss_layer(country_root, {"raster_filename": "x.tif"})
+    mock_get_tile.side_effect = lambda *_: Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+
+    response = client.get("/layer_analysis/tiles/CO/0/dynamic/12/1/1.png")
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
+
+
+def test_a_boolean_id_is_not_a_layer(country_root):
+    _write_country_loss_layer(country_root, {"id": True, "raster_filename": "x.tif"})
+
+    response = _analyze_country([1])
+
+    assert response.status_code == 400
+    assert "Unknown layers" in response.json()["detail"]
+
+
+def test_analyze_refuses_a_layer_whose_version_is_invalid(country_root):
+    _write_country_loss_layer(country_root, version="abc")
+
+    response = _analyze_country([0])
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "[0]" in detail and "'version'" in detail

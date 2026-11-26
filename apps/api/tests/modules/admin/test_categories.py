@@ -139,6 +139,18 @@ def test_a_country_without_categories_lists_the_built_in_one(
     assert deforestation["publishedLayerCount"] == 1
 
 
+def test_an_entry_without_an_id_does_not_break_the_list_or_count(
+    colombia_layers, client, admin_headers
+):
+    without_id = {key: value for key, value in GFW.items() if key != "id"}
+    index = json.loads(colombia_layers.store.index_path.read_text())
+    colombia_layers.write_index([without_id, *index])
+
+    [deforestation] = admin_categories(client, admin_headers)["categories"]
+
+    assert deforestation["publishedLayerCount"] == 1
+
+
 def test_the_list_only_has_the_session_country(protected_areas, client, admin_headers):
     assert set(by_id(client, admin_headers)) == {"deforestation", "protected_areas"}
     assert set(by_id(client, ecuador_headers(client))) == {"deforestation", "snap_ec"}

@@ -72,6 +72,10 @@ const issueText = (t: TFunction, issue: JobIssue) =>
 
 const uploadErrorText = (t: TFunction, error: unknown) => {
   const status = error instanceof AdminApiError ? error.status : 0;
+  if (status === 400) {
+    const reason = apiRefusalReason(error);
+    if (reason) return t("admin:layers:refused", { detail: reason, ...AS_TEXT });
+  }
   return t(
     status === 413
       ? "admin:raster:uploadErrors:tooLarge"
