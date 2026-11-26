@@ -222,6 +222,18 @@ describe("geoFeaturesToFarmRows", () => {
 });
 
 describe("geoFeaturesToFarmRows' row problems", () => {
+  it("returns only the rows and their problems", async () => {
+    const { t } = await createTestI18n("es");
+    const result = geoFeaturesToFarmRows(
+      { format: "geojson", features: [feature({ id: "F-1", ...COMPLETE })] },
+      t,
+      "es",
+      "CR"
+    );
+
+    expect(Object.keys(result).sort()).toEqual(["errorMessages", "rowProblems", "rows"]);
+  });
+
   it("keeps each feature's problems on its own row", async () => {
     const { rowProblems } = await toRows([
       feature({ id: "F-1", ...COMPLETE }, { position: 1 }),

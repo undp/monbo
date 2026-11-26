@@ -74,6 +74,16 @@ The precision stops at the pixel. If a layer marks a pixel, the whole pixel coun
 Each layer also has its own definitions and dates, so the same farm can have different percentages on different layers. Each layer's scope is in [Scope and limits](#limits).
 :::
 
+:::details[More detail: how the percentages are written]
+The report and the tables round each percentage and, in some cases, write it with a sign instead of the figure. Each text says whether the farm counts as having findings on that layer:
+
+- **< X%**, where X is the category's threshold: the finding is at the threshold or below it. The farm counts as without findings on that layer and the exact figure is not shown.
+- **> X%**: the finding is above the threshold but rounds to it. It counts as a finding.
+- **< 0.1%**: the category's threshold is 0 and the finding is above 0 but rounds to 0. It counts as a finding.
+- **> 99.9%**: the finding is below 100% but rounds to 100%.
+- **0%**: nothing of the farm is a finding.
+:::
+
 :::details[More detail: holes, several parts and the layer's coordinates]
 - If the farm has holes, what the layer marks inside a hole doesn't count. If it has several parts, what coincides in all of them is added up and divided by their total area. Each farm gets a single percentage per layer.
 - A farm with no result doesn't affect the others' results.
