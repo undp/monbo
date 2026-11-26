@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { TFunction } from "i18next";
 import { uniq } from "lodash";
 import { getCountryName } from "@/utils/countries";
+import { RowProblems, problemMessages } from "@/utils/rowProblems";
 
 // TODO: refactor to use only the exceljs library
 
@@ -774,7 +775,7 @@ interface ValidateDataParams {
  * @param {Array<string>} params.mandatoryHeaders - The list of mandatory headers that must be present and non-empty in each row.
  * @param {Function} params.t - Translation function for error messages.
  * @param {string} params.language - The language code ('en' or 'es') to be used for validation messages.
- * @returns {string[]} Array of error messages found during validation.
+ * @returns {string[][]} The error messages found in each row, in the order of `data`.
  *
  * @remarks
  * This function performs the following validations:
@@ -783,15 +784,14 @@ interface ValidateDataParams {
  *
  * Row numbers in error messages account for the 3 header rows in the template.
  */
-export const validateData = ({
+export const validateRows = ({
   data,
   mandatoryHeaders,
   t,
   language,
-}: ValidateDataParams): string[] => {
-  const errorMessages: string[] = [];
-
-  data.forEach((row, idx) => {
+}: ValidateDataParams): string[][] =>
+  data.map((row, idx) => {
+    const errorMessages: string[] = [];
     const rowIdx = idx + 4; // The template has 3 rows of headers, so we need to add 3 to the index for proper row numbering
     // Check if all mandatory headers are present in each row
     mandatoryHeaders.forEach((header) => {
@@ -863,10 +863,11 @@ export const validateData = ({
         errorMessages.push(errorMsg);
       }
     }
+    return errorMessages;
   });
 
-  return errorMessages;
-};
+export const validateData = (params: ValidateDataParams): string[] =>
+  validateRows(params).flat();
 
 /**
  * Parses an Excel worksheet to extract headers and data.
@@ -913,6 +914,8 @@ type MappedData = Record<string, unknown> & {
 interface LoadExcelFileReturn {
   data: MappedData[];
   errorMessages: string[];
+  /** What is wrong with each row of `data`, in the same order */
+  rowProblems: RowProblems[];
   /** Rows with their coordinates filled in, even when the column is ignored */
   rowsWithCoordinates: number;
 }
@@ -937,6 +940,7 @@ interface LoadExcelFileOptions {
  * @returns {Promise<LoadExcelFileReturn>} Object containing:
  *   - data: Array of processed farm records with consolidated document data
  *   - errorMessages: Array of validation error messages
+ *   - rowProblems: The problems of each row, in the order of data
  *   - rowsWithCoordinates: How many rows have their coordinates filled in
  *
  * @remarks
@@ -948,9 +952,10 @@ interface LoadExcelFileOptions {
  *   - Converts numeric IDs to strings
  *   - Converts production dates to ISO strings
  *   - Consolidates document fields into a documents array
- * - Rejects an older template whose country column names another country than
- *   the selected one
- * - Validates mandatory fields and returns any validation errors
+ * - Flags each row of an older template whose country column names another
+ *   country than the selected one
+ * - Validates mandatory fields of every row and returns any validation errors,
+ *   by row
  *
  * @example
  * const result = await loadExcelFileFarmsData(file, t, 'en', 'CO');
@@ -1056,38 +1061,38 @@ export const loadExcelFileFarmsData = async (
 
   // An older template's country column must agree with the selected country,
   // which every farm gets: otherwise the report would state the wrong country.
-  const otherCountries = uniq(
-    mappedData
-      .map((row) => (row.country as string | null | undefined)?.toUpperCase())
-      .filter((code): code is string => !!code && code !== selectedCountry)
-  );
+  const countryName = (code: string) =>
+    getCountryName(code, language === "en" ? "en" : "es") ?? code;
+  const otherCountries = mappedData.map((row) => {
+    const code = (row.country as string | null | undefined)?.toUpperCase();
+    return code && code !== selectedCountry ? code : null;
+  });
   mappedData.forEach((row) => delete row.country);
-  if (otherCountries.length > 0) {
-    const name = (code: string) =>
-      getCountryName(code, language === "en" ? "en" : "es") ?? code;
-    return {
-      data: mappedData,
-      errorMessages: [
-        t("common:parseFileError:otherCountry", {
-          countries: otherCountries.map(name).join(", "),
-          country: selectedCountry ? name(selectedCountry) : "",
-        }),
-      ],
-      rowsWithCoordinates,
-    };
-  }
 
-  // Validate data
-  const errorMessages = validateData({
+  const validationErrors = validateRows({
     data: mappedData as Record<string, string | number | null>[],
     mandatoryHeaders,
     t,
     language,
   });
+  const rowProblems: RowProblems[] = mappedData.map((_, index) => {
+    const code = otherCountries[index];
+    return {
+      otherCountry: code
+        ? t("common:parseFileError:otherCountry", {
+            countries: countryName(code),
+            country: selectedCountry ? countryName(selectedCountry) : "",
+          })
+        : null,
+      errors: validationErrors[index],
+      missing: [],
+    };
+  });
 
   return {
     data: mappedData,
-    errorMessages,
+    errorMessages: problemMessages(rowProblems),
+    rowProblems,
     rowsWithCoordinates,
   };
 };

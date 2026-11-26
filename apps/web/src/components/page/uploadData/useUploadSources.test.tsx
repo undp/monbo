@@ -113,6 +113,26 @@ const productionExcel = () => {
   return toFile(XLSX.write(workbook, { type: "array", bookType: "xlsx" }), "datos.xlsx");
 };
 
+/** An Excel of two farms: the first has malformed coordinates, the second is valid. */
+const invalidThenValidExcel = () => {
+  const bytes = readPublicFile(getUploadFileTemplatePath("es").replace(/^\//, ""));
+  const workbook = XLSX.read(bytes, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const row = (id: string, coordinates: string) => [
+    id, "Ana Pérez", new Date(2024, 10, 25), 48.5, "kg", "Alajuela",
+    "GeoJSON", "Polygon", coordinates, 6.71, "Café",
+  ];
+  XLSX.utils.sheet_add_aoa(
+    sheet,
+    [
+      row("F-1", "[[malformed"),
+      row("F-2", "[[[-84.37,10.14],[-84.36,10.14],[-84.36,10.15],[-84.37,10.14]]]"),
+    ],
+    { origin: "A4", cellDates: true }
+  );
+  return workbook;
+};
+
 const OTHER_COUNTRY =
   "Este archivo tiene fincas en Colombia. Monbo analiza un país a la vez: sube solo las fincas de Costa Rica, o elige otro país.";
 
@@ -202,6 +222,27 @@ describe("useUploadSources", () => {
     expect(sourceErrors(joined)).toEqual([OTHER_COUNTRY]);
   });
 
+  it("makes a file uploadable once the row that caused its error is deleted", async () => {
+    const { result } = await renderUpload("CR");
+    await act(() =>
+      result.current.addExcelFiles([
+        toFile(
+          XLSX.write(invalidThenValidExcel(), { type: "array", bookType: "xlsx" }),
+          "datos.xlsx"
+        ),
+      ])
+    );
+    const [source] = result.current.sources;
+    expect(sourceErrors(source)).toHaveLength(1);
+    expect(isUploadable(source)).toBe(false);
+
+    act(() => result.current.removeRow(source, 0));
+
+    const [left] = result.current.sources;
+    expect(sourceErrors(left)).toEqual([]);
+    expect(isUploadable(left)).toBe(true);
+  });
+
   it("keeps an Excel detached while its geo file is being read again", async () => {
     vi.mocked(importGeoFile).mockResolvedValue(COLOMBIAN_PLACEMARK);
     const { result, rerender } = await renderUpload("CO");
@@ -228,7 +269,13 @@ describe("useUploadSources", () => {
     expect(canAttachExcel(source) && source.excel).toBeNull();
     // Without its Excel, and checked against Costa Rica
     expect(isUploadable(source)).toBe(false);
-    expect(sourceErrors(source)).toEqual([OTHER_COUNTRY]);
+    // The country first, then the placemark's missing attributes
+    const errors = sourceErrors(source);
+    expect(errors[0]).toBe(OTHER_COUNTRY);
+    expect(errors.slice(1)).toHaveLength(5);
+    expect(
+      errors.slice(1).every((message) => message.includes("Falta dato obligatorio"))
+    ).toBe(true);
   });
 
   it("keeps a manual farm saved while the files are being read again", async () => {

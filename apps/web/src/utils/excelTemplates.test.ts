@@ -62,6 +62,7 @@ describe.each(LOCALES)("the %s upload template", (locale) => {
     expect(await load(file, locale)).toEqual({
       data: [],
       errorMessages: [],
+      rowProblems: [],
       rowsWithCoordinates: 0,
     });
   });

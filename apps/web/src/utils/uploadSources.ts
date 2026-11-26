@@ -9,6 +9,7 @@ import {
 } from "@/utils/excel";
 import {
   AS_TEXT,
+  DATA_KEYS,
   MissingAttributes,
   geoFeaturesToFarmRows,
   geoIssueText,
@@ -16,6 +17,11 @@ import {
   normalizeFarmId,
 } from "@/utils/geoFile";
 import { joinRowsWithGeoFeatures } from "@/utils/geoFileJoin";
+import {
+  NO_ROW_PROBLEMS,
+  RowProblems,
+  problemMessages,
+} from "@/utils/rowProblems";
 
 // The upload step builds one list of farms from several sources: Excel files, geo
 // files (each one with or without an Excel joined to it by ID) and farms added
@@ -40,7 +46,10 @@ export interface ExcelSource extends SourceBase {
    * was read. The step reads the file again when it isn't the selected one. */
   readFor: string | null;
   rows: FarmRow[];
+  /** The whole file's problems; each row's are in `rowProblems` */
   errorMessages: string[];
+  /** What is wrong with each of `rows`, in the same order */
+  rowProblems: RowProblems[];
   /** No row has coordinates: it belongs with a geo file (option 3) */
   withoutCoordinates: boolean;
 }
@@ -58,8 +67,11 @@ export interface GeoSource extends SourceBase {
   geoFile: ImportedFile | null;
   /** Without an Excel, the farms read from the features' attributes */
   attributeRows: FarmRow[];
+  /** The API's rejection of the whole file; each feature's problems are in
+   * `attributeProblems` */
   attributeErrors: string[];
-  attributeMissing: MissingAttributes;
+  /** What is wrong with each of `attributeRows`, in the same order */
+  attributeProblems: RowProblems[];
   /** An Excel joined by ID: then the farms' data comes from it */
   excel: {
     name: string;
@@ -93,7 +105,7 @@ export const readExcelSource = async (
   file: File,
   { t, language, selectedCountry }: ReadContext
 ): Promise<ExcelSource> => {
-  const { data, errorMessages } = await loadExcelFileFarmsData(
+  const { data, rowProblems } = await loadExcelFileFarmsData(
     file,
     t,
     language,
@@ -111,7 +123,8 @@ export const readExcelSource = async (
     rows: data,
     errorMessages: hasNoCoordinates
       ? [t("common:farmsUpload:excelWithoutCoordinates")]
-      : errorMessages,
+      : [],
+    rowProblems: hasNoCoordinates ? data.map(() => NO_ROW_PROBLEMS) : rowProblems,
     withoutCoordinates: hasNoCoordinates,
   };
 };
@@ -131,7 +144,7 @@ export const readGeoSource = async (
     geoFile: null,
     attributeRows: [],
     attributeErrors: [],
-    attributeMissing: { attributes: [], features: 0 },
+    attributeProblems: [],
     excel: null,
   };
   try {
@@ -155,7 +168,7 @@ const withAttributeRows = (
   { t, language, selectedCountry }: ReadContext
 ): GeoSource => {
   if (!source.geoFile) return source;
-  const { rows, errorMessages, missing } = geoFeaturesToFarmRows(
+  const { rows, rowProblems } = geoFeaturesToFarmRows(
     source.geoFile,
     t,
     language,
@@ -165,8 +178,8 @@ const withAttributeRows = (
     ...source,
     readFor: selectedCountry,
     attributeRows: rows,
-    attributeErrors: errorMessages,
-    attributeMissing: missing,
+    attributeErrors: [],
+    attributeProblems: rowProblems,
   };
 };
 
@@ -352,13 +365,38 @@ export const sourceOrigin = (source: UploadSource): FarmOrigin => {
   }
 };
 
+/** The problems of the rows left in the list. */
+const listedProblems = (removedRows: number[], problems: RowProblems[]) =>
+  problems.filter((_, index) => !removedRows.includes(index));
+
+/** What the geo file's features still in the list miss. */
+export const sourceMissing = (source: GeoSource): MissingAttributes => {
+  const listed = listedProblems(source.removedRows, source.attributeProblems);
+  return {
+    attributes: DATA_KEYS.filter((key) =>
+      listed.some(({ missing }) => missing.includes(key))
+    ),
+    features: listed.filter(({ missing }) => missing.length > 0).length,
+  };
+};
+
 /** Why the source can't be uploaded, if it can't. */
 export const sourceErrors = (source: UploadSource): string[] => {
   switch (source.kind) {
     case "excel":
-      return source.errorMessages;
+      return [
+        ...source.errorMessages,
+        ...problemMessages(listedProblems(source.removedRows, source.rowProblems)),
+      ];
     case "geo":
-      return source.excel ? source.excel.errorMessages : source.attributeErrors;
+      return source.excel
+        ? source.excel.errorMessages
+        : [
+            ...source.attributeErrors,
+            ...problemMessages(
+              listedProblems(source.removedRows, source.attributeProblems)
+            ),
+          ];
     case "manual":
       return [];
   }
@@ -395,7 +433,7 @@ export const isMissingData = (source: UploadSource): boolean =>
   source.kind === "geo" &&
   source.geoFile !== null &&
   !source.excel &&
-  source.attributeMissing.features > 0;
+  sourceMissing(source).features > 0;
 
 /**
  * The source's problem, saying what to do about it: what a geo file misses and
@@ -409,7 +447,7 @@ export const sourceProblem = (
   const errors = sourceErrors(source);
   if (errors.length === 0) return null;
   if (source.kind === "geo" && isMissingData(source)) {
-    const { attributes, features } = source.attributeMissing;
+    const { attributes, features } = sourceMissing(source);
     return t("common:farmsUpload:problems:missingData", {
       fields: attributes
         .map((key) => t(`common:geoFile:help:fields:${key}`).toLowerCase())
