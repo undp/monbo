@@ -20,7 +20,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path
 
 from app.models.categories import LocalizedText, ResultLabels
-from app.modules.layers.categories import CATEGORY_ID_PATTERN, DEFAULT_CATEGORY_ID
+from app.modules.layers.categories import (
+    CATEGORY_ID_PATTERN,
+    DEFAULT_CATEGORY_ID,
+    layer_id_of,
+)
 from app.modules.layers.store import CategoriesUnreadable, LayerStore
 
 from .auth import Session, logger, require_admin
@@ -259,11 +263,12 @@ def update_category(
                     f"({describe_ids(published)}): hide them before changing its "
                     "polarity",
                 )
-            if body.temporal != current["temporal"] and layers:
+            nameable = [entry for entry in layers if layer_id_of(entry) is not None]
+            if body.temporal != current["temporal"] and nameable:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Category '{category_id}' has layers "
-                    f"({describe_ids([entry['id'] for entry in layers])}): "
+                    f"({describe_ids([entry['id'] for entry in nameable])}): "
                     "whether it is temporal can't change",
                 )
         # `enabled` changes only through PATCH: a repaired entry keeps its own.

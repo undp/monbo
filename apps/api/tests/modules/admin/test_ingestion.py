@@ -960,7 +960,12 @@ def set_entry(country, layer_id, field, value):
 
 @pytest.mark.parametrize(
     "field, value",
-    [("version", "abc"), ("version", "3"), ("pixel_size", MISSING)],
+    [
+        ("version", "abc"),
+        ("version", "3"),
+        ("pixel_size", MISSING),
+        ("raster_filename", 5),
+    ],
 )
 def test_upload_to_a_layer_with_an_invalid_field_is_refused(
     layers, staging, client, admin_headers, tmp_path, field, value
