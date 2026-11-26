@@ -29,7 +29,10 @@ export const LayerTilesOverlay = () => {
     map.overlayMapTypes.push(overlay);
 
     return () => {
-      const idx = map.overlayMapTypes.getArray().indexOf(overlay);
+      // Google disables its API when it rejects the key: getArray() then returns undefined
+      const overlays: google.maps.MapType[] | undefined =
+        map.overlayMapTypes.getArray();
+      const idx = overlays?.indexOf(overlay) ?? -1;
       if (idx > -1) {
         map.overlayMapTypes.removeAt(idx);
       }
