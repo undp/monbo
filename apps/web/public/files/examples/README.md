@@ -38,12 +38,13 @@ changes, update the variable and regenerate both samples with it: CI stays red u
 the samples match it.
 
 ```bash
-export SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)"
 # from apps/api
 GCP_MAPS_PLATFORM_API_KEY= GCP_MAPS_PLATFORM_SIGNATURE_SECRET= uv run fastapi dev app/main.py
-# from apps/web (the public API: production's)
+# from apps/web, in another terminal (the public API: production's). Step 8 below
+# runs in this same terminal, so the test checks the links against the variable.
+export SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)"
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION=1 \
-NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL="$SAMPLE_REPORTS_API_URL/download-geojson" \
+NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL="${SAMPLE_REPORTS_API_URL:?}/download-geojson" \
 pnpm dev
 ```
 
