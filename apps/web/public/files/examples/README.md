@@ -28,16 +28,22 @@ link at a public API, never at the local one: a reader of the sample has no
 `localhost`. `NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL` overrides only that link; the rest of
 the web keeps using the local API.
 
-Today that is the dev environment's API, the only stable public one: if that
-environment is recreated, the samples' GeoJSON links stop working. Once production has
-a stable API URL, regenerate both samples with it (follow-up of #116).
+That public API is production's. Its URL is not in the code: it is the GitHub
+repository variable `SAMPLE_REPORTS_API_URL` (Settings → Secrets and variables →
+Actions → Variables). Production's `/download-geojson` only returns the JSON it is
+given, so it serves the links whatever version production runs.
+`src/components/page/landing/sampleReports.test.ts` checks every sample's GeoJSON links
+against that variable, which CI passes to the web tests. If production's API URL
+changes, update the variable and regenerate both samples with it: CI stays red until
+the samples match it.
 
 ```bash
 # from apps/api
 GCP_MAPS_PLATFORM_API_KEY= GCP_MAPS_PLATFORM_SIGNATURE_SECRET= uv run fastapi dev app/main.py
-# from apps/web (the public API: today, the dev environment's)
+# from apps/web, in another terminal (the public API: production's)
+export SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)"
 NEXT_PUBLIC_MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION=1 \
-NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL=https://monbo-api.jollymoss-3d07235c.eastus2.azurecontainerapps.io/download-geojson \
+NEXT_PUBLIC_DOWNLOAD_GEOJSON_URL="${SAMPLE_REPORTS_API_URL:?}/download-geojson" \
 pnpm dev
 ```
 
@@ -49,12 +55,21 @@ Then, for each language:
    in the Excel option and validate the polygons.
 3. Press "Continuar" to go to stage 2, tick every layer (GFW, TMF and MOCUPP) and press
    "Analizar".
-4. Press "Continuar" in the next-stage card, keep every polygon, select every layer and
-   continue.
-5. Press "Generar reporte", then "Descargar" and choose one PDF with every polygon.
+4. Press "Continuar" in the next-stage card. The report page starts with every polygon
+   and every layer selected: keep them.
+5. Press "Generar vista previa", then "Descargar", choose "Un PDF con todo" and press
+   "Descargar PDF".
 6. Save the file as `es/ejemplo-reporte.pdf` (or `en/example-report.pdf`).
 7. Check that no farm map has a satellite photo behind it (they show a plain dark
    green background) and that no page mentions Google Maps: the satellite caption is
    printed only when the maps have the satellite background.
-8. Check that no link in the PDF points to `localhost` (open "Descargar GeoJSON" /
-   "Download GeoJSON" on a farm sheet: it downloads that farm's GeoJSON).
+8. From `apps/web`, check the links against the variable (without it, that check is
+   skipped):
+
+   ```bash
+   SAMPLE_REPORTS_API_URL="$(gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo)" \
+   pnpm exec vitest run src/components/page/landing/sampleReports.test.ts
+   ```
+
+   Then open "Descargar GeoJSON" / "Download GeoJSON" on a farm sheet: it downloads that
+   farm's GeoJSON from production's API.
