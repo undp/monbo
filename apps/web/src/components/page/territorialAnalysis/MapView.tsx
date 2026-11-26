@@ -195,9 +195,10 @@ export const MapView: React.FC = () => {
 
       <Box
         sx={{
-          flex: 1,
+          flex: { xs: "none", md: 1 },
           minWidth: 0,
-          minHeight: { xs: 360, md: 0 },
+          height: { xs: 360, md: "auto" },
+          minHeight: { md: 0 },
           position: "relative",
         }}
       >

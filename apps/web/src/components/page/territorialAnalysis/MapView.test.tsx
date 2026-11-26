@@ -193,4 +193,21 @@ describe("MapView", () => {
     const swatch = screen.getByText("Frontera agrícola").previousElementSibling!;
     expect(getComputedStyle(swatch).backgroundColor).toBe("rgb(255, 0, 0)");
   });
+
+  it("gives the map a definite height below md so it isn't blank", async () => {
+    await renderMapView();
+
+    const mapBox = screen.getByRole("note", { name: "Leyenda de la capa" }).parentElement!;
+    // jsdom evaluates @media against a 1024px window, so read the xs (base) rule itself.
+    const baseRules = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .filter(
+        (rule): rule is CSSMediaRule =>
+          rule instanceof CSSMediaRule && rule.conditionText === "(min-width:0px)"
+      )
+      .flatMap((rule) => Array.from(rule.cssRules) as CSSStyleRule[])
+      .filter((rule) => mapBox.matches(rule.selectorText));
+    expect(baseRules.map((rule) => rule.style.height)).toContain("360px");
+    expect(baseRules.map((rule) => rule.style.flexGrow)).toContain("0");
+  });
 });
