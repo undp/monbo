@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TFunction } from "i18next";
 import { setRuntimeConfig } from "@/config/runtime";
@@ -152,6 +154,21 @@ describe("the report's cover", () => {
     const ids = findAll(tree, "VIEW").map(({ props }) => props.id);
     for (const anchor of Object.values(REPORT_ANCHORS))
       expect(ids.filter((id) => id === anchor)).toHaveLength(1);
+  });
+
+  it("draws its images from files that exist under public/", async () => {
+    const [cover] = findAll(pdfTree(await renderReport()), "PAGE");
+    const images = findAll(cover.children, "IMAGE").map(
+      ({ props }) => new URL(props.src as string).pathname
+    );
+    expect(images).toEqual([
+      "/images/reportCoverBackground.png",
+      "/images/reportCoverBackgroundWhite.png",
+      "/images/reportCoverBackgroundLeaf.png",
+      "/images/Logo.png",
+    ]);
+    for (const image of images)
+      expect(existsSync(path.join(process.cwd(), "public", image))).toBe(true);
   });
 });
 
