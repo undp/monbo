@@ -127,3 +127,13 @@ def test_job_saved_by_an_earlier_release_still_validates():
         }
     )
     assert job.phase is None and job.progress is None and job.warnings == []
+
+
+def test_category_fields_name_the_default_category():
+    schemas = json.loads(openapi.render())["components"]["schemas"]
+    descriptions = [
+        schemas["BaseMapData"]["properties"]["categoryId"]["description"],
+        schemas["AdminLayer"]["properties"]["category_id"]["description"],
+    ]
+    for description in descriptions:
+        assert 'built-in "deforestation"' in description

@@ -593,7 +593,8 @@ export interface paths {
          *           ISO 3166-1 alpha-2 codes (in the legacy flat layout, every country the
          *           layer lists)
          *         - categoryId: The id of the layer's category in its country (see
-         *           `GET /categories`)
+         *           `GET /categories`). A layer whose index entry has no category belongs
+         *           to the built-in "deforestation", which every country has.
          *         - version: Raster version, incremented on every raster replacement (the
          *           frontend appends it to tile URLs to bypass cached tiles)
          *         - pixelSize: Nominal pixel size in meters, used by the analysis formula
@@ -725,7 +726,10 @@ export interface components {
              * @description Whether the layer's category resolves and is enabled
              */
             category_enabled: boolean;
-            /** Category Id */
+            /**
+             * Category Id
+             * @description The id of the layer's category in its country (see `GET /categories`). A layer whose index entry has no category belongs to the built-in "deforestation", which every country has.
+             */
             category_id: string;
             /**
              * Category Issue
@@ -791,7 +795,10 @@ export interface components {
             availableCountriesCodes: string[];
             /** Baseline */
             baseline: number | null;
-            /** Categoryid */
+            /**
+             * Categoryid
+             * @description The id of the layer's category in its country (see `GET /categories`). A layer whose index entry has no category belongs to the built-in "deforestation", which every country has.
+             */
             categoryId: string;
             /** Comparedagainst */
             comparedAgainst: number | null;
