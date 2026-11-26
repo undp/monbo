@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import unquote
 
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
@@ -62,12 +62,12 @@ async def root():
 
 
 @router.get("/health")
-def health_check():
+def health_check(request: Request):
     # Sync on purpose: checking the maps root may touch a network share (Azure
     # Files), so it runs in the threadpool instead of blocking the event loop.
     root = get_layers_root()
     return {
-        "version": "0.1.0",
+        "version": request.app.version,
         "status": "OK",
         "mapsRoot": str(root.root.resolve()),
         "mapsRootWritable": root.is_writable(),
@@ -176,7 +176,7 @@ def create_app(include_admin: bool | None = None) -> FastAPI:
     get_layers_root().is_per_country()
     # The API is not installed as a package (`tool.uv.package = false`), so
     # importlib.metadata.version("monbo-api") is unavailable in production.
-    app = FastAPI(title="Monbo API", version="2.0.0", lifespan=lifespan)
+    app = FastAPI(title="Monbo API", version="2.0.1", lifespan=lifespan)
     # Records the usage events of uploads, validations and analyses, and caps
     # POST /events bodies. Added before CORS, so CORS wraps its responses too.
     app.add_middleware(UsageMiddleware)

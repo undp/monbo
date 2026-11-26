@@ -6,8 +6,8 @@ env = "prod"
 location = "eastus"
 # unique_suffix = ""  # only if monboproddata / monboprodacr are ever taken
 
-# Set to false once monbo-prod-pull holds AcrPull, then apply this stack and deploy.
-registry_admin_enabled = true
+# monbo-prod-pull holds AcrPull (granted 2026-11-25): the apps pull by identity.
+registry_admin_enabled = false
 # Set to true once the operator can configure Azure Files backup on monboproddata
 # (Storage Account Backup Contributor), then apply this stack.
 share_backup_enabled = false
