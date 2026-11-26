@@ -309,15 +309,29 @@ switched to the new check name right before it merges
 
 **The sample reports depend on production's API URL.** The two sample PDFs the start
 page opens (`apps/web/public/files/examples/`) are static files, and each farm sheet
-links its GeoJSON to production's `/download-geojson`, today
-`https://monbo-api.orangerock-ea3c2f53.eastus.azurecontainerapps.io`. That URL is the
-Container Apps environment's default domain, so it changes when the API moves to
-another environment: a destroyed and recreated `apps` stack, or the retirement of the
-deployment that serves it today. When it changes, the samples' links break even though
-the app works. Update the URL in `apps/web/src/components/page/landing/sampleReports.test.ts`
-and in the examples' `README.md`, and regenerate both PDFs with the procedure in that
-README. The test fails on any sample that links its GeoJSON elsewhere, but it can't
-notice that the URL it pins stopped answering.
+links its GeoJSON to production's `/download-geojson`. That URL is the Container Apps
+environment's default domain, so it changes when the API moves to another environment:
+a destroyed and recreated `apps` stack, or the retirement of the deployment that serves
+it today. When it changes, the samples' links break even though the app works.
+
+- **Where the URL lives.** Not in the code: in the repository variable
+  `SAMPLE_REPORTS_API_URL` (*Settings → Secrets and variables → Actions → Variables*),
+  the API's base URL without `/download-geojson`. CI passes it to the web job's *Test*
+  step, and `apps/web/src/components/page/landing/sampleReports.test.ts` checks every
+  sample's GeoJSON links against it. In CI the tests fail if the variable is missing or
+  empty; locally, without it, that one check is reported as skipped
+  (`gh variable get SAMPLE_REPORTS_API_URL -R undp/monbo` gives its value).
+- **When production's URL changes:** update the variable, then regenerate both PDFs
+  with it, following `apps/web/public/files/examples/README.md`. From the moment the
+  variable changes, the web job is red on every branch until the regenerated PDFs
+  merge, so do both in one go.
+- **What the check can't see:** that the URL stopped answering. It compares the
+  samples with the variable, not with the live API.
+- **Open: Dependabot pull requests.** It is not confirmed that workflows run for
+  Dependabot pull requests receive repository variables. If they don't, a Dependabot
+  pull request that runs the web job fails on the test
+  `has SAMPLE_REPORTS_API_URL in CI`. The next Dependabot pull request on `apps/web`
+  settles it; until then, read that failure as this gap, not as a broken bump.
 
 ## Layer storage
 
