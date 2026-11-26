@@ -83,11 +83,11 @@ those globally unique names. Both environments run in East US (`eastus`).
 |---|---|---|
 | Storage account `monbodevtfstate` | `infra/bootstrap.sh` | The Terraform state of both stacks. Read with its account key (operators may not get a data role on it); versioning and 30-day soft delete. |
 | Storage account `monbodevdata` and share `maps` | platform | 10 GiB SMB share, TLS 1.2+, soft delete for 14 days, `prevent_destroy`. Holds the per-country layout ([maps.md](maps.md#per-country-layout)). |
-| Container Registry `monbodevacr` (Basic) | platform | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. Its admin user is on only until the pull identity holds AcrPull. |
+| Container Registry `monbodevacr` (Basic) | platform | Holds the `monbo-api` and `monbo-front` images, tagged with the Git commit. Its admin user is off in both environments (`registry_admin_enabled = false`). It is turned on only while the pull identity lacks AcrPull, for example after the `apps` stack is recreated. |
 | Log Analytics workspace `monbo-dev-logs` | platform | The apps' logs, kept 30 days. |
 | Managed identity `monbo-dev-deploy` | platform | What GitHub Actions deploys as (OIDC, no secret). Contributor on the group, granted by an administrator. |
 | Container Apps environment `monbo-dev-env` | apps | Shared network for both apps; sends their logs to Log Analytics. It also registers the share as environment storage `maps`, which the API's volume refers to. |
-| Managed identity `monbo-dev-pull` | apps | Both apps pull their images with it, once an administrator grants it AcrPull. |
+| Managed identity `monbo-dev-pull` | apps | Both apps pull their images with it. It holds AcrPull on the registry, granted once by an administrator. |
 | Container App `monbo-api` | apps | 1 CPU / 2 GiB, external HTTPS ingress to port 8000, **exactly one replica**. Startup and readiness probes on `/health`, liveness on `/health/live`. Mounts the share at `/mnt/maps` and sets `MAPS_ROOT` to it. |
 | Container App `monbo-front` | apps | 0.5 CPU / 1 GiB, external HTTPS ingress to port 3000, one replica, startup probe on `/api/health`. |
 
@@ -253,7 +253,7 @@ then gets the default 1 ha; a polygon's area is always computed).
 | Flat (legacy): one `index.json` at the root | Locally the default (`app/maps`, tracked in Git with LFS). The API image carries no layers | Public app only, read-only; the admin routes are not registered |
 
 A root holding both layouts is refused at startup, and so is one holding neither (an
-empty or missing `MAPS_ROOT`). `GET /health` reports the root in
+empty or missing `MAPS_ROOT`). `GET /health` reports the API's version, the root in
 use and whether it is writable.
 
 All file access goes through `app/modules/layers/store.py`:

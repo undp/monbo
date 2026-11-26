@@ -135,8 +135,10 @@ never renumber or reuse one.
 
 - Code, comments, commits, PR titles and bodies, and OpenSpec artifacts are written in English.
 - The version lives in four files that must match: the root `package.json`,
-  `apps/api/package.json`, `apps/web/package.json` and `apps/api/pyproject.toml`. A release adds
-  a `CHANGELOG.md` entry.
+  `apps/api/package.json`, `apps/web/package.json` and `apps/api/pyproject.toml`. The API's
+  `FastAPI(..., version=...)` in `app/main.py` must match them too: `GET /health` reports it,
+  and `tests/test_app.py` fails when it differs from `pyproject.toml`. A release also refreshes
+  `uv.lock` and `openapi.json` (`pnpm contracts`) and adds a `CHANGELOG.md` entry.
 - Runtime versions stay aligned across Dockerfiles, `engines`, `.python-version` and CI: Node 24
   and Python 3.13. The uv version (`0.11.21`) appears in both API Dockerfiles and in `ci.yml`.
 

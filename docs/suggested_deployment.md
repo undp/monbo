@@ -193,7 +193,10 @@ Optional, each restoring a protection the layers had before
   apply `platform`.
 
 If the `apps` stack is ever destroyed, its pull identity is recreated and loses its
-AcrPull: set `registry_admin_enabled = true` again until it is re-granted.
+AcrPull: set `registry_admin_enabled = true` again, apply `platform`, then deploy, and
+keep it on until the role is re-granted. The order matters both ways: `apps` reads the
+setting from `platform`'s state, so `platform` is applied first, and turning the admin
+user off before the apps pull by identity leaves a new revision unable to pull.
 
 ## Continuous deployment
 
@@ -292,6 +295,12 @@ with `prod` (prod's own Maps keys and a new admin secret in
    principal ids. Then `registry_admin_enabled = false`, apply `platform`, deploy.
 7. The `prod` GitHub Environment's secrets, then `DEPLOY_PROD` = `true`. A manual run
    of *Deploy* on `main` (or the next release) must deploy `prod` and show its URLs.
+
+`prod` has been through every step: it deploys from `main` through CI, and since 2.0.1
+its apps pull by identity (`registry_admin_enabled = false` in
+`platform/envs/prod.tfvars`), so its registry's admin user is off, as in `dev`. After
+a deploy or a rollback, `GET /health` on the API reports the version it runs: it reads
+the FastAPI app's version, which every release bumps with the version files.
 
 The first release into `main` after the web check rename needs `main`'s ruleset
 switched to the new check name right before it merges

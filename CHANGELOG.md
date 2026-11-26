@@ -26,6 +26,16 @@
 - The analysis map no longer lists a farm with no result (N/A: invalid polygon, outside the layer's coverage, unreadable layer) as deforestation-free: it goes to its own "No data" tab, shown when there is one. Every view now decides "deforestation-free" with one rule (a result at or below the deforestation threshold), so a farm with `0 < value ≤ threshold` is deforestation-free in the results table, its counter, the map and the PDF. The table cell and its counter used `value === 0` and the PDF used `value > 0`, so the free counter now includes those farms and they read "Def. Free" instead of "< 2% Def."
 - The testing-environment notice is shown in the flow header and on the start page, instead of the bottom bars, which the redesign removed
 
+## [2.0.1] - 2026-11-26
+
+### Fixed
+
+- `GET /health` reports the API's version (it always said `0.1.0`). It reads the FastAPI app's version, which every release bumps with the version files
+
+### Changed
+
+- Production pulls its images with its managed identity (`monbo-prod-pull`, which holds AcrPull on `monboprodacr`): `registry_admin_enabled` is off in `prod`, so the registry's admin user is turned off
+
 ## [2.0.0] - 2026-11-25
 
 ### Added
