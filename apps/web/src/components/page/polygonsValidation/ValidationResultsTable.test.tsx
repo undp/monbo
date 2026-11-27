@@ -54,7 +54,12 @@ const FARMS: FarmData[] = [
   makeFarm({
     id: "CO-008",
     producer: "Rosa León",
-    polygon: { type: "point", area: 35.93, details: { center: { lat: 0, lng: 0 }, radius: 3 } },
+    polygon: {
+      type: "point",
+      area: 35.93,
+      areaAssumed: false,
+      details: { center: { lat: 0, lng: 0 }, radius: 3 },
+    },
   }),
   makeFarm({
     id: "CO-009",
@@ -93,12 +98,20 @@ const FLOW_LIST: UploadSource[] = [
 /** The flow's upload list: kept, emptied after the farms were parsed from it, or none. */
 type ListState = "kept" | "emptied" | "none";
 
-const Harness = ({ list }: { list: ListState }) => {
-  const [results, setResults] = useState<ValidateFarmsResponse | null>(RESULTS);
+const Harness = ({
+  list,
+  farms = FARMS,
+  initialResults = RESULTS,
+}: {
+  list: ListState;
+  farms?: FarmData[];
+  initialResults?: ValidateFarmsResponse;
+}) => {
+  const [results, setResults] = useState<ValidateFarmsResponse | null>(initialResults);
   return (
     <DataContext.Provider
       value={makeDataContext({
-        farmsData: FARMS,
+        farmsData: farms,
         polygonsValidationResults: results,
         setPolygonsValidationResults: setResults,
         uploadSources: list === "kept" ? FLOW_LIST : [],
@@ -110,11 +123,15 @@ const Harness = ({ list }: { list: ListState }) => {
   );
 };
 
-const renderTable = async ({ list = "kept" as ListState } = {}) => {
+const renderTable = async ({
+  list = "kept" as ListState,
+  farms,
+  results,
+}: { list?: ListState; farms?: FarmData[]; results?: ValidateFarmsResponse } = {}) => {
   const i18n = await createTestI18n("es");
   render(
     <I18nextProvider i18n={i18n}>
-      <Harness list={list} />
+      <Harness list={list} farms={farms} initialResults={results} />
     </I18nextProvider>
   );
 };
@@ -180,6 +197,44 @@ describe("ValidationResultsTable", () => {
     fireEvent.click(screen.getByRole("button", { name: "Revisar CO-005" }));
 
     const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByRole("checkbox")).toBeNull();
+  });
+
+  it("asks for a polygon when a point is over 4 ha, with no manual validation", async () => {
+    await renderTable({
+      farms: [
+        makeFarm({
+          id: "CO-010",
+          polygon: {
+            type: "point",
+            area: 50000,
+            areaAssumed: false,
+            details: { center: { lat: 0, lng: 0 }, radius: 126.16 },
+          },
+        }),
+      ],
+      results: {
+        farmResults: [{ farmId: "CO-010", status: "NOT_VALID" }],
+        inconsistencies: [
+          {
+            type: "point_area_over_limit",
+            farmIds: ["CO-010"],
+            data: { areaHectares: 5, maxAreaHectares: 4 },
+          },
+        ],
+      },
+    });
+
+    expect(
+      within(rowOf("CO-010")).getByText("Punto de 5 ha: más de 4 ha se declara como polígono")
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Revisar CO-010" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/Este punto declara 5 ha\. Una parcela de más de 4 ha/)
+    ).toBeTruthy();
     expect(within(dialog).queryByRole("checkbox")).toBeNull();
   });
 

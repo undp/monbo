@@ -24,7 +24,7 @@ The Excel exports of "Polygon validation" and "Deforestation analysis" SHALL sta
 
 ### Requirement: Excel exports can be uploaded again
 
-An Excel export SHALL be readable as a farms file in the same language: uploading it SHALL give back the same farms, with the same ID, producer, production date, quantity, unit, region, crop, association, documents and geometry. A point's area SHALL come back as it was, not rounded: an upload takes a zero area as missing and gives the point the default 1 ha. Production quantity and area SHALL be written as numeric cells, so they don't depend on the language's decimal separator.
+An Excel export SHALL be readable as a farms file in the same language: uploading it SHALL give back the same farms, with the same ID, producer, production date, quantity, unit, region, crop, association, documents and geometry. A point's declared area SHALL come back as it was, not rounded: an upload takes a missing or zero area as undeclared and gives the point the default 4 ha. A point whose area was assumed (`areaAssumed` true) SHALL be written with an empty area, so it comes back as undeclared, with the 4 ha default and `areaAssumed` true again. Production quantity and area SHALL be written as numeric cells, so they don't depend on the language's decimal separator.
 
 #### Scenario: Spanish export uploaded again
 
@@ -35,6 +35,11 @@ An Excel export SHALL be readable as a farms file in the same language: uploadin
 
 - **WHEN** the same farms are exported and uploaded in English
 - **THEN** they parse with no errors and the same values
+
+#### Scenario: A point with an assumed area
+
+- **WHEN** a point farm whose area was assumed is exported
+- **THEN** its area cell is empty
 
 ### Requirement: Layer results are exported by category and layer
 
@@ -75,8 +80,10 @@ The Excel export of the layer analysis SHALL write, after the template's columns
 Each feature of a GeoJSON export SHALL carry `Area` as a JSON number: the farm's area in
 hectares (its area in m² divided by 10,000), not rounded, for points and polygons alike. When
 the area could not be computed (`null` or `-1`), the feature SHALL NOT have an `Area` property.
-`Area` SHALL never be written as a string. Uploading a GeoJSON whose `Area` is `0` or `"0"`, as
-exports made before this rule wrote, SHALL still read it as a missing area.
+When the farm is a point whose area was assumed (`areaAssumed` true), the feature SHALL NOT have
+an `Area` property either: TRACES then assigns the point its own default, the same 4 ha Monbo
+analysed. `Area` SHALL never be written as a string. Uploading a GeoJSON whose `Area` is `0` or
+`"0"`, as exports made before this rule wrote, SHALL still read it as a missing area.
 
 #### Scenario: Point farm
 
@@ -91,6 +98,11 @@ exports made before this rule wrote, SHALL still read it as a missing area.
 #### Scenario: Area not computed
 
 - **WHEN** a farm whose area is `-1` is exported to GeoJSON
+- **THEN** its feature has no `Area` property
+
+#### Scenario: Point with an assumed area
+
+- **WHEN** a point farm whose area was assumed is exported to GeoJSON
 - **THEN** its feature has no `Area` property
 
 #### Scenario: An old export uploaded again

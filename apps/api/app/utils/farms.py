@@ -9,6 +9,7 @@ from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.base import BaseGeometry
 
+from app.config.constants import FarmDefaults
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.farms import (
     FarmData,
@@ -207,7 +208,13 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
     try:
         geometry = farm.farmCoordinates
         if isinstance(geometry, ShapelyPoint):
-            area, radius = get_point_area_and_radius(float(farm.area))
+            assumed = farm.area is None
+            hectares = (
+                FarmDefaults.DEFAULT_POINT_AREA_HECTARES
+                if farm.area is None
+                else farm.area
+            )
+            area, radius = get_point_area_and_radius(hectares)
             summary = PointSummary(
                 type="point",
                 details=PointDetails(
@@ -215,6 +222,7 @@ def parse_base_information(farm: PreProcessedFarmData) -> FarmData:
                     radius=radius,
                 ),
                 area=area,
+                areaAssumed=assumed,
             )
         else:
             details = None

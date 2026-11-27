@@ -83,6 +83,7 @@ const POINT_FARM: FarmData = {
     type: "point",
     details: { center: { lng: -84.1, lat: 10.1 }, radius: 89.2 },
     area: 25_000,
+    areaAssumed: false,
   },
 };
 
@@ -105,6 +106,7 @@ const SMALL_POINT_FARM: FarmData = {
     type: "point",
     details: { center: { lng: -84.12, lat: 10.11 }, radius: 3.57 },
     area: 40,
+    areaAssumed: false,
   },
 };
 
@@ -293,6 +295,22 @@ describe.each(LOCALES)("the %s Excel exports", (locale) => {
       rowProblems: UPLOADED.map(() => NO_ROW_PROBLEMS),
       rowsWithCoordinates: UPLOADED.length,
     });
+  });
+
+  it("leaves the area cell empty for a point whose area was assumed", () => {
+    const assumed = makeFarm({
+      polygon: {
+        type: "point",
+        area: 40000,
+        areaAssumed: true,
+        details: { center: { lat: 10.1, lng: -84.3 }, radius: 112.84 },
+      },
+    });
+    const declared = makeFarm();
+    const areaIndex = TEMPLATE_COLUMNS.indexOf("area");
+    expect(areaIndex).toBeGreaterThanOrEqual(0);
+    expect(farmToTemplateRow(assumed)[areaIndex]).toBe("");
+    expect(farmToTemplateRow(declared)[areaIndex]).toBe(1);
   });
 
   it("writes each value under its header", async () => {

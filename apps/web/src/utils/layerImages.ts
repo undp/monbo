@@ -39,6 +39,10 @@ export const includesSatelliteBackground = (farmsWithImages: number) =>
   farmsWithImages <=
     MAX_REQUESTS_FOR_SATELLITE_BACKGROUND_AT_DEFORESTATION_IMAGE_GENERATION;
 
+/** The radius the analysis used for a point farm, which its image must draw. */
+export const pointRadiusMeters = (farm: FarmData) =>
+  farm.polygon.type === "point" ? farm.polygon.details.radius : undefined;
+
 /** The maps a farm has a result on, which are the images its report needs. */
 export const mapsWithResults = (
   farm: FarmData,
@@ -137,7 +141,8 @@ export const fetchFarmImages = ({
             includeSatelliteBackground,
             // The image must come from the raster the results were computed on.
             mapResults.version,
-            signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal
+            signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal,
+            pointRadiusMeters(farm)
           ).finally(() => clearTimeout(timer));
         }, signal)
       ).then((blob) => ({ mapId: mapResults.mapId, farmId: farm.id, blob }))
@@ -169,6 +174,7 @@ export const fetchLayerImages = async (
                 version: mapResults.version,
                 farmId: farm.id,
                 farmGeoJson: generateGeoJsonFeature(farm),
+                pointRadiusMeters: pointRadiusMeters(farm),
               };
             return null;
           })
@@ -191,7 +197,9 @@ export const fetchLayerImages = async (
         payload.mapId,
         payload.farmGeoJson,
         includeSatelitalBackground,
-        payload.version
+        payload.version,
+        undefined,
+        payload.pointRadiusMeters
       ).then((blob) => ({
         mapId: payload.mapId,
         farmId: payload.farmId,

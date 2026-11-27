@@ -3,7 +3,7 @@ import type { components } from "@/api/schema";
 // Generated from the API's OpenAPI (`pnpm contracts`); don't edit the shapes here.
 export type OverlapData = components["schemas"]["OverlapData"];
 export type ValidateFarmsResponse = components["schemas"]["PolygonInconsistenciesResponse"];
-// Discriminated on `type`: overlap, invalid_geometry or empty_polygon
+// Discriminated on `type`: overlap, invalid_geometry, empty_polygon or point_area_over_limit
 export type InconsistentPolygonData = ValidateFarmsResponse["inconsistencies"][number];
 
 export type FarmValidationStatus = components["schemas"]["FarmResult"]["status"];

@@ -636,7 +636,8 @@ export interface paths {
          *     1. Converts the input FarmPolygons into Shapely geometry objects
          *     2. Checks for overlapping polygons between farms
          *     3. Validates the geometry of each polygon (e.g. self-intersections)
-         *     4. Marks farms as "NOT_VALID" if they are involved in any inconsistency
+         *     4. Flags points whose area is over 4 ha, which must be declared as polygons
+         *     5. Marks farms as "NOT_VALID" if they are involved in any inconsistency
          */
         post: operations["Validate_Polygons_polygons_validation_validate_post"];
         delete?: never;
@@ -1145,6 +1146,8 @@ export interface components {
             };
             /** Mapid */
             mapId: number;
+            /** Pointradiusmeters */
+            pointRadiusMeters?: number | null;
             /** Version */
             version?: number | null;
         };
@@ -1484,6 +1487,24 @@ export interface components {
              */
             type: "overlap";
         };
+        /** PointAreaOverLimitData */
+        PointAreaOverLimitData: {
+            /** Areahectares */
+            areaHectares: number;
+            /** Maxareahectares */
+            maxAreaHectares: number;
+        };
+        /** PointAreaOverLimitInconsistency */
+        PointAreaOverLimitInconsistency: {
+            data: components["schemas"]["PointAreaOverLimitData"];
+            /** Farmids */
+            farmIds: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "point_area_over_limit";
+        };
         /** PointDetails */
         PointDetails: {
             center: components["schemas"]["Coordinates"];
@@ -1497,6 +1518,8 @@ export interface components {
         PointSummary: {
             /** Area */
             area: number;
+            /** Areaassumed */
+            areaAssumed: boolean;
             details: components["schemas"]["PointDetails"];
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1515,7 +1538,7 @@ export interface components {
             /** Farmresults */
             farmResults: components["schemas"]["FarmResult"][];
             /** Inconsistencies */
-            inconsistencies: (components["schemas"]["OverlapInconsistency"] | components["schemas"]["InvalidGeometryInconsistency"] | components["schemas"]["EmptyPolygonInconsistency"])[];
+            inconsistencies: (components["schemas"]["OverlapInconsistency"] | components["schemas"]["InvalidGeometryInconsistency"] | components["schemas"]["EmptyPolygonInconsistency"] | components["schemas"]["PointAreaOverLimitInconsistency"])[];
         };
         /**
          * PolygonPart

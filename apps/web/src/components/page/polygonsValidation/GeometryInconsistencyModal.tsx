@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 import { DataContext } from "@/context/DataContext";
 import { FarmData } from "@/interfaces/Farm";
+import { formatNumber } from "@/utils/numbers";
 import { PolygonTypeIcon } from "@/components/reusable/PolygonTypeIcon";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 
@@ -302,10 +303,18 @@ export const GeometryInconsistencyModal: React.FC<Props> = ({
         <Text variant="body2">
           {t(`polygonValidation:inconsistenciesTypes:${row?.data?.type}`)}
         </Text>
-        {!!row?.data?.data?.reason && (
+        {row?.data?.type === "point_area_over_limit" && (
+          <Text variant="body2">
+            {t("polygonValidation:geometryInconsistencyModal.pointAreaOverLimit", {
+              area: formatNumber(row.data.data.areaHectares, 2, i18n.language),
+              max: formatNumber(row.data.data.maxAreaHectares, 2, i18n.language),
+            })}
+          </Text>
+        )}
+        {row?.data?.type === "invalid_geometry" && !!row.data.data.reason && (
           <Text variant="body2">
             {t("polygonValidation:geometryInconsistencyModal.systemFeedback")}:{" "}
-            {row?.data?.data?.reason}
+            {row.data.data.reason}
           </Text>
         )}
       </Box>

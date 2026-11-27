@@ -1386,6 +1386,19 @@
             "title": "Mapid",
             "type": "integer"
           },
+          "pointRadiusMeters": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 10000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pointradiusmeters"
+          },
           "version": {
             "anyOf": [
               {
@@ -2376,6 +2389,50 @@
         "title": "OverlapInconsistency",
         "type": "object"
       },
+      "PointAreaOverLimitData": {
+        "properties": {
+          "areaHectares": {
+            "title": "Areahectares",
+            "type": "number"
+          },
+          "maxAreaHectares": {
+            "title": "Maxareahectares",
+            "type": "number"
+          }
+        },
+        "required": [
+          "areaHectares",
+          "maxAreaHectares"
+        ],
+        "title": "PointAreaOverLimitData",
+        "type": "object"
+      },
+      "PointAreaOverLimitInconsistency": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PointAreaOverLimitData"
+          },
+          "farmIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Farmids",
+            "type": "array"
+          },
+          "type": {
+            "const": "point_area_over_limit",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "farmIds",
+          "data"
+        ],
+        "title": "PointAreaOverLimitInconsistency",
+        "type": "object"
+      },
       "PointDetails": {
         "properties": {
           "center": {
@@ -2400,6 +2457,10 @@
             "title": "Area",
             "type": "number"
           },
+          "areaAssumed": {
+            "title": "Areaassumed",
+            "type": "boolean"
+          },
           "details": {
             "$ref": "#/components/schemas/PointDetails"
           },
@@ -2412,7 +2473,8 @@
         "required": [
           "type",
           "details",
-          "area"
+          "area",
+          "areaAssumed"
         ],
         "title": "PointSummary",
         "type": "object"
@@ -2452,7 +2514,8 @@
                 "mapping": {
                   "empty_polygon": "#/components/schemas/EmptyPolygonInconsistency",
                   "invalid_geometry": "#/components/schemas/InvalidGeometryInconsistency",
-                  "overlap": "#/components/schemas/OverlapInconsistency"
+                  "overlap": "#/components/schemas/OverlapInconsistency",
+                  "point_area_over_limit": "#/components/schemas/PointAreaOverLimitInconsistency"
                 },
                 "propertyName": "type"
               },
@@ -2465,6 +2528,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/EmptyPolygonInconsistency"
+                },
+                {
+                  "$ref": "#/components/schemas/PointAreaOverLimitInconsistency"
                 }
               ]
             },
@@ -4369,7 +4435,7 @@
     },
     "/polygons_validation/validate": {
       "post": {
-        "description": "Validates a list of farm polygons by checking for overlaps and geometry\ninconsistencies.\n\nArgs:\n    body (list[FarmPolygon]): List of farm polygons to validate.\n\nReturns:\n    PolygonInconsistenciesResponse: A response object containing:\n        - farmResults (list[FarmResult]): A list of validation results\n          for each farm, with status either \"VALID\" or \"NOT_VALID\"\n        - inconsistencies (list[PolygonInconsistency]): A list of detected\n          inconsistencies, which can be overlaps or geometry issues\n\nThe function performs the following validations:\n1. Converts the input FarmPolygons into Shapely geometry objects\n2. Checks for overlapping polygons between farms\n3. Validates the geometry of each polygon (e.g. self-intersections)\n4. Marks farms as \"NOT_VALID\" if they are involved in any inconsistency",
+        "description": "Validates a list of farm polygons by checking for overlaps and geometry\ninconsistencies.\n\nArgs:\n    body (list[FarmPolygon]): List of farm polygons to validate.\n\nReturns:\n    PolygonInconsistenciesResponse: A response object containing:\n        - farmResults (list[FarmResult]): A list of validation results\n          for each farm, with status either \"VALID\" or \"NOT_VALID\"\n        - inconsistencies (list[PolygonInconsistency]): A list of detected\n          inconsistencies, which can be overlaps or geometry issues\n\nThe function performs the following validations:\n1. Converts the input FarmPolygons into Shapely geometry objects\n2. Checks for overlapping polygons between farms\n3. Validates the geometry of each polygon (e.g. self-intersections)\n4. Flags points whose area is over 4 ha, which must be declared as polygons\n5. Marks farms as \"NOT_VALID\" if they are involved in any inconsistency",
         "operationId": "Validate_Polygons_polygons_validation_validate_post",
         "requestBody": {
           "content": {

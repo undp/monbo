@@ -81,7 +81,8 @@ export const generateLayerImage = async (
   feature: GeoJsonFeature,
   includeSatelitalBackground: boolean = true,
   version?: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  pointRadiusMeters?: number
 ): Promise<Blob> => {
   const url = `${LAYER_ANALYSIS_IMAGE_GENERATION_URL}?include_satelital_background=${includeSatelitalBackground}`;
   const body: components["schemas"]["GenerateImageBody"] = {
@@ -89,6 +90,7 @@ export const generateLayerImage = async (
     mapId,
     feature,
     version,
+    pointRadiusMeters,
   };
   const response = await fetch(url, {
     method: "POST",

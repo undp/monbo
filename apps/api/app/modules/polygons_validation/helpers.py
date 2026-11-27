@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 from shapely import STRtree
@@ -5,10 +6,12 @@ from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.validation import explain_validity
 
+from app.config.constants import FarmDefaults
 from app.config.env import OVERLAP_THRESHOLD_PERCENTAGE
 from app.helpers.GeometryCalculator import GeometryCalculator
 from app.models.farms import FarmPolygonDetailDataWithPolygon
-from app.utils.polygons import geometry_to_parts
+from app.models.polygons import PointDetails
+from app.utils.polygons import geometry_to_parts, get_point_area_and_radius
 
 
 def detect_overlaps(polygons: List[Polygon]):
@@ -171,6 +174,42 @@ def get_geometry_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
                     "farmIds": [farm.id],
                     "data": {
                         "reason": explain_validity(polygon),
+                    },
+                }
+            )
+
+    return inconsistencies
+
+
+def get_point_area_inconsistencies(farms: list[FarmPolygonDetailDataWithPolygon]):
+    """
+    Report the point farms whose area is over the limit for a point.
+
+    The area is judged from the radius, against the radius of a circle of the
+    limit area as the API rounds it, so a point of exactly the limit is not flagged.
+
+    Args:
+        farms (list[FarmWithPolygon]): List of farms with polygon data
+
+    Returns:
+        list: List of `point_area_over_limit` inconsistency dictionaries
+    """
+    max_hectares = FarmDefaults.MAX_POINT_AREA_HECTARES
+    _, max_radius = get_point_area_and_radius(max_hectares)
+    inconsistencies: list[dict] = []
+
+    for farm in farms:
+        if farm.type != "point" or not isinstance(farm.details, PointDetails):
+            continue
+        radius = farm.details.radius
+        if radius > max_radius:
+            inconsistencies.append(
+                {
+                    "type": "point_area_over_limit",
+                    "farmIds": [farm.id],
+                    "data": {
+                        "areaHectares": round(math.pi * radius**2 / 10_000, 2),
+                        "maxAreaHectares": max_hectares,
                     },
                 }
             )

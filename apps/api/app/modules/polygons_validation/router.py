@@ -10,6 +10,7 @@ from app.utils.farms import FarmDetailsMismatchError, build_farm_geometry
 from .helpers import (
     get_geometry_inconsistencies,
     get_overlap_inconsistencies,
+    get_point_area_inconsistencies,
 )
 from .models import PolygonInconsistenciesResponse
 
@@ -43,7 +44,8 @@ def get_polygon_inconsistencies(
     1. Converts the input FarmPolygons into Shapely geometry objects
     2. Checks for overlapping polygons between farms
     3. Validates the geometry of each polygon (e.g. self-intersections)
-    4. Marks farms as "NOT_VALID" if they are involved in any inconsistency
+    4. Flags points whose area is over 4 ha, which must be declared as polygons
+    5. Marks farms as "NOT_VALID" if they are involved in any inconsistency
     """
     farms_polygons = []
     # Farms whose polygon can't even be built (a ring of 1 or 2 vertices). They are
@@ -83,9 +85,13 @@ def get_polygon_inconsistencies(
     # Get inconsistencies
     overlap_inconsistencies = get_overlap_inconsistencies(farms_polygons)
     geometry_inconsistencies = get_geometry_inconsistencies(farms_polygons)
+    point_area_inconsistencies = get_point_area_inconsistencies(farms_polygons)
 
     all_inconsistencies = (
-        overlap_inconsistencies + geometry_inconsistencies + unbuildable_inconsistencies
+        overlap_inconsistencies
+        + geometry_inconsistencies
+        + point_area_inconsistencies
+        + unbuildable_inconsistencies
     )
 
     # Create a set of farm IDs involved in inconsistencies for O(1) lookup

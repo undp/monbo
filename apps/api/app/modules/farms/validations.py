@@ -8,7 +8,6 @@ from fastapi import HTTPException
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry import Point as ShapelyPoint
 
-from app.config.constants import FarmDefaults
 from app.models.farms import (
     Document,
     InputFarmData,
@@ -196,7 +195,7 @@ def validate_farm_coordinates(
         )
 
 
-def validate_area(area: str | int | float | None, locale: str) -> float:
+def validate_area(area: str | int | float | None, locale: str) -> float | None:
     """
     Validates and parses farm area value based on locale.
 
@@ -205,22 +204,23 @@ def validate_area(area: str | int | float | None, locale: str) -> float:
         locale: Locale string for number parsing (e.g. 'en', 'es')
 
     Returns:
-        float: Parsed area value in hectares. If area is None or empty, returns default
-        point area
+        float | None: Parsed area value in hectares, or None when the area is
+        missing, blank or zero (a point then gets the default point area)
 
     Raises:
         HTTPException: If area value cannot be parsed as a valid number for the given
         locale
     """
-    if not area:
-        return FarmDefaults.DEFAULT_POINT_AREA_HECTARES
+    if area is None or area == "":
+        return None
     try:
-        return parse_float_string(area, locale)
+        parsed = parse_float_string(area, locale)
     except ValueError as e:
         raise HTTPException(
             status_code=400,
             detail=f"Area must be a valid number: {e}",
-        )
+        ) from e
+    return parsed if parsed != 0 else None
 
 
 def validate_documents(documents: list[Document]) -> list[Document]:

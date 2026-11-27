@@ -1,8 +1,8 @@
 import pLimit from "p-limit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MapLayerChangedError } from "@/api/layerAnalysis";
-import { makeFarm, makeMap, makeMapResults } from "@/test/factories";
-import { fetchFarmImages } from "./layerImages";
+import { makeFarm, makeMap, makeMapResults, makePolygonFarm } from "@/test/factories";
+import { fetchFarmImages, fetchLayerImages } from "./layerImages";
 
 const farm = makeFarm({ id: "F01" });
 const maps = [makeMap({ id: 1 }), makeMap({ id: 2 }), makeMap({ id: 3 })];
@@ -49,6 +49,35 @@ describe("fetchFarmImages", () => {
       { country: "EC", mapId: 1, version: 4 },
       { country: "EC", mapId: 2, version: 1 },
     ]);
+  });
+
+  it("sends a point's analysed radius, and none for a polygon", async () => {
+    fetchMock.mockImplementation(async () => image());
+    const point = makeFarm({ id: "F01" });
+    const polygon = makePolygonFarm({ id: "F01" });
+
+    await fetchFarmImages({
+      country: "EC",
+      farm: point,
+      maps,
+      results,
+      includeSatelliteBackground: false,
+      limit: pLimit(20),
+    });
+    expect(bodies()).toHaveLength(2);
+    for (const body of bodies()) expect(body.pointRadiusMeters).toBe(56.42);
+
+    fetchMock.mockClear();
+    await fetchFarmImages({
+      country: "EC",
+      farm: polygon,
+      maps,
+      results,
+      includeSatelliteBackground: false,
+      limit: pLimit(20),
+    });
+    expect(bodies()).toHaveLength(2);
+    for (const body of bodies()) expect(body).not.toHaveProperty("pointRadiusMeters");
   });
 
   it("retries a request that failed transiently", async () => {
@@ -121,5 +150,24 @@ describe("fetchFarmImages timeouts", () => {
 
     expect(images).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("fetchLayerImages", () => {
+  it("sends a point's analysed radius, and none for a polygon", async () => {
+    fetchMock.mockImplementation(async () => image());
+    const point = makeFarm({ id: "F01" });
+    const polygon = makePolygonFarm({ id: "F02" });
+
+    await fetchLayerImages(
+      "EC",
+      [maps[0]],
+      [point, polygon],
+      [makeMapResults(1, { F01: 0.1, F02: 0.2 })]
+    );
+
+    const [pointBody, polygonBody] = bodies();
+    expect(pointBody.pointRadiusMeters).toBe(56.42);
+    expect(polygonBody).not.toHaveProperty("pointRadiusMeters");
   });
 });

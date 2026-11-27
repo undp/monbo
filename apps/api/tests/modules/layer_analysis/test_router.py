@@ -194,6 +194,7 @@ def test_parse_farms():
                     "radius": expected_radius,
                 },
                 "area": expected_area,
+                "areaAssumed": True,
             },
             "origin": None,
         }
@@ -387,6 +388,69 @@ def test_generate_image_checks_the_analysed_version(
     # Clients that don't send a version keep working.
     response = client.post(url, json={"mapId": 1, "feature": GENERATE_IMAGE_FEATURE})
     assert response.status_code == 200
+
+
+POINT_FEATURE = {
+    "type": "Feature",
+    "geometry": {"type": "Point", "coordinates": [-84.0, 10.0]},
+    "properties": {},
+}
+IMAGE_URL = "/layer_analysis/generate-image?include_satelital_background=false"
+
+
+@pytest.fixture
+def image_generate():
+    with (
+        patch("app.modules.layer_analysis.router.get_map_by_id") as get_map,
+        patch("app.modules.layer_analysis.router.get_map_raster_path") as raster,
+        patch("app.modules.layer_analysis.router.MapImageGenerator.generate") as gen,
+    ):
+        get_map.return_value = {"id": 1, "raster_filename": "a.tif", "version": 1}
+        raster.return_value = "dummy/path.tif"
+        gen.return_value = Image.new("RGBA", (64, 42), (0, 64, 0, 255))
+        yield gen
+
+
+def test_generate_image_draws_the_analysed_radius_of_a_point(image_generate):
+    response = client.post(
+        IMAGE_URL,
+        json={"mapId": 1, "feature": POINT_FEATURE, "pointRadiusMeters": 112.84},
+    )
+
+    assert response.status_code == 200
+    assert image_generate.call_args.args[2] == 112.84
+
+
+def test_generate_image_requires_a_radius_for_a_point(image_generate):
+    response = client.post(IMAGE_URL, json={"mapId": 1, "feature": POINT_FEATURE})
+
+    assert response.status_code == 400
+    image_generate.assert_not_called()
+
+
+@pytest.mark.parametrize("radius", [0, -1, 10_001])
+def test_generate_image_rejects_a_radius_out_of_range(image_generate, radius):
+    response = client.post(
+        IMAGE_URL,
+        json={"mapId": 1, "feature": POINT_FEATURE, "pointRadiusMeters": radius},
+    )
+
+    assert response.status_code == 422
+    image_generate.assert_not_called()
+
+
+def test_generate_image_ignores_the_radius_for_a_polygon(image_generate):
+    response = client.post(
+        IMAGE_URL,
+        json={
+            "mapId": 1,
+            "feature": GENERATE_IMAGE_FEATURE,
+            "pointRadiusMeters": 112.84,
+        },
+    )
+
+    assert response.status_code == 200
+    assert len(image_generate.call_args.args) == 2
 
 
 @patch(

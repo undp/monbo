@@ -569,3 +569,41 @@ language, and SHALL NOT name a single layer category.
 - **WHEN** the UI is in English and the user downloads the complete report
 - **THEN** the file is saved as `monbo-report.pdf`
 
+### Requirement: The farm sheet says when a point's area was assumed
+
+On a farm's sheet of the report, "Superficie total (ha)" SHALL show the area the analysis used. When the farm is a point whose `polygon.areaAssumed` is true, the sheet SHALL add, below that value, "Área supuesta: 4 ha, no declarada" in Spanish and "Assumed area: 4 ha, not declared" in English, with the number taken from the farm's area. A point with a declared area, and a polygon farm, SHALL NOT show that line.
+
+#### Scenario: Point without a declared area
+
+- **WHEN** the report includes a point farm with `area` 40,000 m² and `areaAssumed` true, in Spanish
+- **THEN** its sheet shows "4,00" under "Superficie total (ha)" and the line "Área supuesta: 4 ha, no declarada"
+
+#### Scenario: Point with a declared area
+
+- **WHEN** the report includes a point farm of 2.5 ha with `areaAssumed` false
+- **THEN** its sheet shows "2,50" and no assumed-area line
+
+#### Scenario: In English
+
+- **WHEN** the same assumed point is in an English report
+- **THEN** the line reads "Assumed area: 4 ha, not declared"
+
+### Requirement: A point's image draws the circle that was analysed
+
+`POST /layer_analysis/generate-image` SHALL accept `pointRadiusMeters`, a number of meters greater than 0 and at most 10,000. When the feature is a point, it SHALL draw the point as the circle of that radius, and SHALL answer 400 when `pointRadiusMeters` is missing. A value out of range SHALL be rejected with 422. For a polygon, `pointRadiusMeters` SHALL be ignored. The web SHALL send, for every image of a point farm, the farm's `polygon.details.radius`: the same radius the analysis measured.
+
+#### Scenario: A point without a declared area
+
+- **WHEN** the report asks for the image of a point farm analysed as 4 ha
+- **THEN** the request carries `pointRadiusMeters` 112.84, and the image draws a circle of 112.84 m around the point
+
+#### Scenario: A point without a radius
+
+- **WHEN** `generate-image` receives a point feature without `pointRadiusMeters`
+- **THEN** it answers 400 and generates no image
+
+#### Scenario: A polygon
+
+- **WHEN** `generate-image` receives a polygon feature, with or without `pointRadiusMeters`
+- **THEN** it draws the polygon as today
+

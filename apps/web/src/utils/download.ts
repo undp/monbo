@@ -17,9 +17,16 @@ export const getCoordinates = (farm: FarmData): string[] => {
   return coordinates;
 };
 
-/** The farm's area in hectares, not rounded; null when the API couldn't compute it. */
-export const areaHectares = (farm: FarmData): number | null =>
-  farm.polygon.area && farm.polygon.area > 0 ? farm.polygon.area / 10000 : null;
+/**
+ * The farm's area in hectares, not rounded; null when the API couldn't compute it
+ * and for a point whose area was assumed, which the user never declared.
+ */
+export const areaHectares = (farm: FarmData): number | null => {
+  if (farm.polygon.type === "point" && farm.polygon.areaAssumed) return null;
+  return farm.polygon.area && farm.polygon.area > 0
+    ? farm.polygon.area / 10000
+    : null;
+};
 
 /*
 This EUDR document is intended for users (Economic Operators) of the European Commission’s EUDR

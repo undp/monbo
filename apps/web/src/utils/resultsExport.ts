@@ -68,8 +68,8 @@ export const farmToTemplateRow = (farm: FarmData): Cell[] => {
     geometryType,
     farmCoordinates: coordinates,
     // In hectares, not rounded: an upload takes 0 as a missing area and gives
-    // the point 1 ha, so a small point must keep its exact area. Empty when the
-    // API could not compute it (null or -1).
+    // the point 4 ha, so a small point must keep its exact area. Empty when the
+    // API could not compute it (null or -1) and when the point's area was assumed.
     area: areaHectares(farm) ?? "",
     cropType: farm.cropType,
     association: farm.association || "",

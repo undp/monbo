@@ -281,6 +281,15 @@ describe("ManualFarmModal", () => {
     ]);
   });
 
+  it("draws a point as the 4 ha circle until it has an area", async () => {
+    await renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "Punto" }));
+    act(() => map().onMapClick(p(-84.0023, 9.8783)));
+
+    // r = sqrt(40,000 m² / π)
+    expect(map().radius).toBe(112.84);
+  });
+
   it("adds a point with its area, and draws the circle of that area", async () => {
     const { onSave } = await renderModal();
     fireEvent.click(screen.getByRole("button", { name: "Punto" }));

@@ -3,7 +3,8 @@
   "inconsistenciesTypes": {
     "overlap": "Overlap",
     "empty_polygon": "Empty Polygon",
-    "invalid_geometry": "Invalid Geometry"
+    "invalid_geometry": "Invalid Geometry",
+    "point_area_over_limit": "Point over 4 ha"
   },
   "inconsistentPolygonsFound": {
     "singular": "{{count}} inconsistent polygon was found",
@@ -43,7 +44,8 @@
     "tableTitle": "Polygon Information",
     "contentTitle": "Inconsistency Information",
     "systemFeedback": "System feedback",
-    "farmDetails": "Details of farm {{id}}"
+    "farmDetails": "Details of farm {{id}}",
+    "pointAreaOverLimit": "This point declares {{area}} ha. A plot of more than {{max}} ha must be declared as a polygon (Regulation (EU) 2023/1115, art. 2(28))."
   },
   "subtitle": "We checked your polygons and points. Fix the ones with issues or continue with the ones that are ready.",
   "kpis": {
@@ -80,7 +82,8 @@
       "selfIntersection": "The polygon crosses itself",
       "tooFewPoints": "The polygon has fewer than 3 vertices",
       "holeOutside": "A hole lies outside the polygon",
-      "invalidGeometry": "The geometry is not valid"
+      "invalidGeometry": "The geometry is not valid",
+      "pointAreaOverLimit": "{{area}} ha point: over 4 ha must be declared as a polygon"
     }
   },
   "farmOverlapsModal": {

@@ -36,9 +36,23 @@ class EmptyPolygonInconsistency(BaseModel):
     data: None
 
 
+class PointAreaOverLimitData(BaseModel):
+    areaHectares: float
+    maxAreaHectares: float
+
+
+class PointAreaOverLimitInconsistency(BaseModel):
+    type: Literal["point_area_over_limit"]
+    farmIds: list[str]
+    data: PointAreaOverLimitData
+
+
 # Discriminated on `type`, so the generated frontend type narrows `data` by kind.
 PolygonInconsistency = Annotated[
-    OverlapInconsistency | InvalidGeometryInconsistency | EmptyPolygonInconsistency,
+    OverlapInconsistency
+    | InvalidGeometryInconsistency
+    | EmptyPolygonInconsistency
+    | PointAreaOverLimitInconsistency,
     Field(discriminator="type"),
 ]
 
