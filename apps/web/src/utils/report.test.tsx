@@ -11,6 +11,7 @@ import {
   makeFrontierCategory,
   makeMap,
   makeMapResults,
+  makePolygonFarm,
 } from "@/test/factories";
 import {
   findAll,
@@ -207,6 +208,37 @@ describe("a farm's sheet", () => {
     expect(sheet).toContain("Superficie total (ha) N/D");
     // No map page for it
     expect(pages.filter((page) => page.includes("n°F03"))).toHaveLength(1);
+  });
+
+  it("says when a point's area was assumed, in each language", async () => {
+    const farms = [
+      makeFarm({
+        id: "P01",
+        polygon: {
+          type: "point",
+          area: 40000,
+          areaAssumed: true,
+          details: { center: { lat: 10.1, lng: -84.3 }, radius: 112.84 },
+        },
+      }),
+    ];
+    const es = sheetOf(pagesText(await renderReport({ farms })), "P01");
+    expect(es).toContain("Superficie total (ha) 4");
+    expect(es).toContain("Área supuesta: 4 ha, no declarada");
+
+    const en = pagesText(await renderReport({ farms, locale: "en" })).find(
+      (page) => page.includes("n°P01")
+    )!;
+    expect(en).toContain("Assumed area: 4 ha, not declared");
+  });
+
+  it("shows no assumed-area line for a declared point or a polygon", async () => {
+    const farms = [
+      makeFarm({ id: "P02" }),
+      makePolygonFarm({ id: "P03" }),
+    ];
+    const text = pagesText(await renderReport({ farms })).join("\n");
+    expect(text).not.toContain("Área supuesta");
   });
 
   it("reads in English with the categories' English labels", async () => {

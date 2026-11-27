@@ -18,7 +18,7 @@ import { TFunction } from "i18next";
 import { generateGeoJsonFarmsDataWithLayerAnalysis } from "../geojson";
 import { parseAreaToHectares } from "../polygons";
 import { longFormatDateByLanguage, shortFormatDateByLanguage } from "../dates";
-import { formatThreshold } from "../numbers";
+import { formatNumber, formatThreshold } from "../numbers";
 import { layerResult, type LayerResult } from "../layerCategories";
 import {
   classifyFarmInCategory,
@@ -262,10 +262,19 @@ export const CoverPage = ({
   );
 };
 
-const DataItem = ({ label, value }: { label: string; value: string }) => (
+const DataItem = ({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) => (
   <View style={styles.dataItem}>
     <Text style={styles.lightText}>{label}</Text>
     <Text style={styles.boldText}>{value}</Text>
+    {note && <Text style={styles.smallLightText}>{note}</Text>}
   </View>
 );
 
@@ -395,6 +404,13 @@ export const FarmSheetPage = ({
           <DataItem
             label={t("reportGeneration:attributes:totalArea")}
             value={farmArea(farm, t, language)}
+            note={
+              farm.polygon.type === "point" && farm.polygon.areaAssumed
+                ? t("reportGeneration:farmSheet:assumedArea", {
+                    area: formatNumber(farm.polygon.area / 10000, 2, language),
+                  })
+                : undefined
+            }
           />
         </View>
       </View>

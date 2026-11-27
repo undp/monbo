@@ -109,7 +109,9 @@
     "finding": "Hallazgo",
     "categoriesWithoutFindings_one": "{{ok}} de {{count}} categoría sin observaciones",
     "categoriesWithoutFindings_other": "{{ok}} de {{count}} categorías sin observaciones",
-    "document": "Documento {{number}}"
+    "document": "Documento {{number}}",
+
+    "assumedArea": "Área supuesta: {{area}} ha, no declarada"
   },
   "mapPage": {
     "eyebrow": "Mapa de la capa",

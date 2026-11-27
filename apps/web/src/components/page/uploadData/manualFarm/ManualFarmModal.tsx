@@ -49,9 +49,9 @@ interface ManualFarmModalProps {
   onSave: (row: FarmRow) => void;
 }
 
-// The API's area for a point without one: the circle shows it until the field has a
-// valid area
-const DEFAULT_POINT_AREA_HECTARES = 1;
+// The API's default for a point without an area (FarmDefaults.DEFAULT_POINT_AREA_HECTARES):
+// the circle shows it until the field has a valid area
+const DEFAULT_POINT_AREA_HECTARES = 4;
 
 /**
  * Adds a farm by drawing it on a satellite map (a polygon, with holes and several

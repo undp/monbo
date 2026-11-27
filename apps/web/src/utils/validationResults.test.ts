@@ -112,6 +112,7 @@ describe("reconcileManualValidations", () => {
       polygon: {
         type: "point",
         area: 10000,
+        areaAssumed: false,
         details: { center: { lat: polygon.charCodeAt(0), lng: 0 }, radius: 56 },
       },
     });

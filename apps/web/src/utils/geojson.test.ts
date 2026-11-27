@@ -70,6 +70,16 @@ describe("generateGeoJsonFeature", () => {
   });
 });
 
+const makePointFarm = (area: number, areaAssumed: boolean) =>
+  makeFarm({
+    polygon: {
+      type: "point",
+      area,
+      areaAssumed,
+      details: { center: { lat: 10.1, lng: -84.3 }, radius: 56.42 },
+    },
+  });
+
 describe("the Area of a GeoJSON feature", () => {
   it("is the farm's hectares as a number, for a point", () => {
     const farm = makeFarm();
@@ -81,6 +91,16 @@ describe("the Area of a GeoJSON feature", () => {
     const { Area } = generateGeoJsonFeature(makePolygonFarm()).properties;
     expect(typeof Area).toBe("number");
     expect(Area).toBeCloseTo(6.707488, 6);
+  });
+
+  it("is left out for a point whose area was assumed", () => {
+    const farm = makePointFarm(40000, true);
+    expect(generateGeoJsonFeature(farm).properties).not.toHaveProperty("Area");
+  });
+
+  it("is the declared hectares for a point whose area was not assumed", () => {
+    const farm = makePointFarm(25000, false);
+    expect(generateGeoJsonFeature(farm).properties.Area).toBe(2.5);
   });
 
   it.each([-1, null])("is left out when the area is %s", (area) => {

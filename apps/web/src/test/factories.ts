@@ -29,6 +29,7 @@ export const makeFarm = (overrides: Partial<FarmData> = {}): FarmData => ({
   polygon: {
     type: "point",
     area: 10000,
+    areaAssumed: false,
     details: { center: { lat: 10.1, lng: -84.3 }, radius: 56.42 },
   },
   ...overrides,

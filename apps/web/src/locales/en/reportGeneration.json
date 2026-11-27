@@ -109,7 +109,9 @@
     "finding": "Finding",
     "categoriesWithoutFindings_one": "{{ok}} of {{count}} category without findings",
     "categoriesWithoutFindings_other": "{{ok}} of {{count}} categories without findings",
-    "document": "Document {{number}}"
+    "document": "Document {{number}}",
+
+    "assumedArea": "Assumed area: {{area}} ha, not declared"
   },
   "mapPage": {
     "eyebrow": "Layer map",

@@ -54,7 +54,12 @@ const FARMS: FarmData[] = [
   makeFarm({
     id: "CO-008",
     producer: "Rosa León",
-    polygon: { type: "point", area: 35.93, details: { center: { lat: 0, lng: 0 }, radius: 3 } },
+    polygon: {
+      type: "point",
+      area: 35.93,
+      areaAssumed: false,
+      details: { center: { lat: 0, lng: 0 }, radius: 3 },
+    },
   }),
   makeFarm({
     id: "CO-009",

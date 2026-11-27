@@ -40,6 +40,7 @@ const farm = (id: string) =>
     polygon: {
       type: "point",
       area: 10000,
+      areaAssumed: false,
       details: { center: { lat: id.charCodeAt(0), lng: 0 }, radius: 56 },
     },
   });
