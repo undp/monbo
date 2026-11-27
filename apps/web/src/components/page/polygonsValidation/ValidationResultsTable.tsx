@@ -51,10 +51,15 @@ const SEARCH_KEYS = ["farm.id", "farm.producer", "farm.cropType"];
 /** What a geometry error means, in words: the API's reason is GEOS's text. */
 const geometryErrorText = (
   inconsistency: GeometryInconsistency,
-  t: TFunction<"translation", undefined>
+  t: TFunction<"translation", undefined>,
+  language: string
 ) => {
   if (inconsistency.type === "empty_polygon")
     return t("polygonValidation:results:status:emptyPolygon");
+  if (inconsistency.type === "point_area_over_limit")
+    return t("polygonValidation:results:status:pointAreaOverLimit", {
+      area: formatNumber(inconsistency.data.areaHectares, 2, language),
+    });
   const reason = inconsistency.data.reason.toLowerCase();
   if (reason.includes("self-intersection"))
     return t("polygonValidation:results:status:selfIntersection");
@@ -68,11 +73,12 @@ const geometryErrorText = (
 /** The farm's status in words, as its row shows it. */
 export const statusText = (
   view: FarmValidationView,
-  t: TFunction<"translation", undefined>
+  t: TFunction<"translation", undefined>,
+  language: string
 ): string => {
   switch (view.kind) {
     case "geometryError":
-      return geometryErrorText(view.geometryInconsistency!, t);
+      return geometryErrorText(view.geometryInconsistency!, t, language);
     case "validatedManually":
       return t("polygonValidation:results:status:validatedManually");
     case "overlap":
@@ -120,7 +126,7 @@ const StatusCell: React.FC<{
   view: FarmValidationView;
   onReview: () => void;
 }> = ({ view, onReview }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { color, background, Icon } = STATUS_STYLE[view.kind];
   return (
     <Box
@@ -149,7 +155,7 @@ const StatusCell: React.FC<{
         }}
       >
         <Icon aria-hidden sx={{ fontSize: 16 }} />
-        {statusText(view, t)}
+        {statusText(view, t, i18n.language)}
       </Box>
       {view.kind !== "ready" && (
         <Button

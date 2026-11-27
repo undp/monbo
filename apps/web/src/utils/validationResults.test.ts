@@ -67,6 +67,22 @@ describe("farmValidationViews", () => {
     ]);
   });
 
+  it("treats a point over 4 ha as a geometry error", () => {
+    const [view] = farmValidationViews(
+      [makeFarm({ id: "A" })],
+      results({ A: "NOT_VALID" }, [
+        {
+          type: "point_area_over_limit",
+          farmIds: ["A"],
+          data: { areaHectares: 5, maxAreaHectares: 4 },
+        },
+      ])
+    );
+
+    expect(view.kind).toBe("geometryError");
+    expect(matchesResultsFilter(view, "error")).toBe(true);
+  });
+
   it("lists every overlap of a farm, seen from that farm", () => {
     const views = farmValidationViews(
       ["A", "B", "C"].map((id) => makeFarm({ id })),

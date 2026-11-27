@@ -3,7 +3,8 @@
   "inconsistenciesTypes": {
     "overlap": "Traslape",
     "empty_polygon": "Polígono vacío",
-    "invalid_geometry": "Geometría inválida"
+    "invalid_geometry": "Geometría inválida",
+    "point_area_over_limit": "Punto de más de 4 ha"
   },
   "inconsistentPolygonsFound": {
     "singular": "Se encontró {{count}} polígono inconsistente",
@@ -43,7 +44,8 @@
     "tableTitle": "Información del polígono",
     "contentTitle": "Información de la inconsistencia",
     "systemFeedback": "Mensaje del sistema",
-    "farmDetails": "Detalles de la finca {{id}}"
+    "farmDetails": "Detalles de la finca {{id}}",
+    "pointAreaOverLimit": "Este punto declara {{area}} ha. Una parcela de más de {{max}} ha debe declararse como polígono (Reglamento (UE) 2023/1115, art. 2(28))."
   },
   "subtitle": "Revisamos tus polígonos y puntos. Corrige los que tienen observaciones o continúa con los que están listos.",
   "kpis": {
@@ -80,7 +82,8 @@
       "selfIntersection": "El polígono se cruza consigo mismo",
       "tooFewPoints": "El polígono tiene menos de 3 vértices",
       "holeOutside": "Un hueco queda fuera del polígono",
-      "invalidGeometry": "La geometría no es válida"
+      "invalidGeometry": "La geometría no es válida",
+      "pointAreaOverLimit": "Punto de {{area}} ha: más de 4 ha se declara como polígono"
     }
   },
   "farmOverlapsModal": {

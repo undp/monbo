@@ -67,7 +67,12 @@ def test_polygon_inconsistency_is_discriminated_by_type():
     schemas = json.loads(openapi.render())["components"]["schemas"]
     items = schemas["PolygonInconsistenciesResponse"]["properties"]["inconsistencies"]
     mapping = items["items"]["discriminator"]["mapping"]
-    assert set(mapping) == {"overlap", "invalid_geometry", "empty_polygon"}
+    assert set(mapping) == {
+        "overlap",
+        "invalid_geometry",
+        "empty_polygon",
+        "point_area_over_limit",
+    }
 
 
 def _schema_refs(node, found):

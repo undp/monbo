@@ -866,3 +866,48 @@ def test_overlap_symmetric_about_the_equator_is_reported():
     [overlap] = _overlaps(inconsistencies)
     assert overlap["data"]["percentage"] == pytest.approx(0.5, abs=1e-3)
     assert statuses == {"a": "NOT_VALID", "b": "NOT_VALID"}
+
+
+# --- /validate: a point over 4 ha must be a polygon -----------------------------
+
+
+def _point(farm_id, radius, lng=0.0, lat=0.0):
+    return {
+        "id": farm_id,
+        "type": "point",
+        "details": {"center": {"lng": lng, "lat": lat}, "radius": radius},
+    }
+
+
+def _point_area_over_limit(inconsistencies):
+    return [i for i in inconsistencies if i["type"] == "point_area_over_limit"]
+
+
+def test_point_over_4_ha_is_reported():
+    statuses, inconsistencies = _validate(_point("big", 126.16))
+    [inconsistency] = _point_area_over_limit(inconsistencies)
+    assert inconsistency["farmIds"] == ["big"]
+    assert inconsistency["data"] == {"areaHectares": 5.0, "maxAreaHectares": 4.0}
+    assert statuses == {"big": "NOT_VALID"}
+
+
+def test_point_of_exactly_4_ha_is_not_reported():
+    statuses, inconsistencies = _validate(_point("four", 112.84))
+    assert _point_area_over_limit(inconsistencies) == []
+    assert statuses == {"four": "VALID"}
+
+
+def test_large_polygon_is_not_reported_as_a_point():
+    _, inconsistencies = _validate(_farm("poly", _box(0, 0, 70, 70)))
+    assert _point_area_over_limit(inconsistencies) == []
+
+
+@pytest.mark.usefixtures("overlap_threshold_1")
+def test_point_over_4_ha_still_takes_part_in_the_overlap_check():
+    statuses, inconsistencies = _validate(
+        _point("big", 126.16, lng=0.005, lat=0.005),
+        _farm("poly", _box(0, 0, 10, 10)),
+    )
+    assert len(_overlaps(inconsistencies)) == 1
+    assert len(_point_area_over_limit(inconsistencies)) == 1
+    assert statuses == {"big": "NOT_VALID", "poly": "NOT_VALID"}
