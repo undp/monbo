@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from rasterio import open as rasterio_open
 from shapely.geometry import shape
 from starlette.concurrency import run_in_threadpool
@@ -155,6 +155,9 @@ class GenerateImageBody(BaseModel):
     # The layer version the analysis used (from /analyze). When given and the layer
     # has a newer raster, the image would not match the results: 409.
     version: int | None = None
+    # The radius the analysis used for a point (required for one, ignored for a
+    # polygon). The cap bounds the raster window a public request can ask for.
+    pointRadiusMeters: float | None = Field(default=None, gt=0, le=10_000)
 
 
 @router.post("/generate-image")
@@ -164,6 +167,13 @@ async def generate_image(
         True, description="Whether to include satellite imagery as background"
     ),
 ):
+    if (
+        body.feature.get("geometry", {}).get("type") == "Point"
+        and body.pointRadiusMeters is None
+    ):
+        raise HTTPException(
+            status_code=400, detail="pointRadiusMeters is required for a point"
+        )
     # In the threadpool, like serve_tile: the layer store may block.
     map_data = await run_in_threadpool(get_map_by_id, body.mapId, body.country)
     if map_data is None:
@@ -180,13 +190,12 @@ async def generate_image(
 
     try:
         geom = shape(body.feature["geometry"])
-        # Check geometry type and pass point_radius_meters only for Point geometries
+        # Pass the radius only for Point geometries
         if geom.geom_type == "Point":
-            point_radius_meters = 50  # TODO: get from body when new excel is ready
             img = await MapImageGenerator.generate(
                 geom,
                 raster_path,
-                point_radius_meters,
+                body.pointRadiusMeters,
                 include_satelital_background=include_satelital_background,
             )
         else:  # For Polygon or other geometries

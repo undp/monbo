@@ -1146,6 +1146,8 @@ export interface components {
             };
             /** Mapid */
             mapId: number;
+            /** Pointradiusmeters */
+            pointRadiusMeters?: number | null;
             /** Version */
             version?: number | null;
         };

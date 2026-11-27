@@ -1386,6 +1386,19 @@
             "title": "Mapid",
             "type": "integer"
           },
+          "pointRadiusMeters": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 10000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pointradiusmeters"
+          },
           "version": {
             "anyOf": [
               {
