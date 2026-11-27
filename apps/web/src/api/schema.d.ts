@@ -1497,6 +1497,8 @@ export interface components {
         PointSummary: {
             /** Area */
             area: number;
+            /** Areaassumed */
+            areaAssumed: boolean;
             details: components["schemas"]["PointDetails"];
             /**
              * @description discriminator enum property added by openapi-typescript

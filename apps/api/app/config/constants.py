@@ -1,6 +1,6 @@
 class FarmDefaults:
     """Default values used for farm data processing."""
 
-    # Default area in hectares assigned when no area is provided in the input data.
-    # This is used particularly for point-type farm locations.
-    DEFAULT_POINT_AREA_HECTARES = 1.0
+    # Area in hectares of a point farm without one: the area TRACES assigns to it
+    # (decision D6 of undp/monbo#192).
+    DEFAULT_POINT_AREA_HECTARES = 4.0

@@ -94,6 +94,7 @@ def test_parse_response_keeps_the_full_farm_shape():
                     "radius": 112.84,
                 },
                 "area": 40000.0,
+                "areaAssumed": False,
             },
             "origin": None,
         }

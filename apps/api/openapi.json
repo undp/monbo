@@ -2400,6 +2400,10 @@
             "title": "Area",
             "type": "number"
           },
+          "areaAssumed": {
+            "title": "Areaassumed",
+            "type": "boolean"
+          },
           "details": {
             "$ref": "#/components/schemas/PointDetails"
           },
@@ -2412,7 +2416,8 @@
         "required": [
           "type",
           "details",
-          "area"
+          "area",
+          "areaAssumed"
         ],
         "title": "PointSummary",
         "type": "object"

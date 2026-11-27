@@ -194,6 +194,7 @@ def test_parse_farms():
                     "radius": expected_radius,
                 },
                 "area": expected_area,
+                "areaAssumed": True,
             },
             "origin": None,
         }

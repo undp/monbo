@@ -12,6 +12,8 @@ class PointSummary(BaseModel):
     type: Literal["point"]
     details: PointDetails
     area: float
+    # True when the API supplied the default area because the farm declared none
+    areaAssumed: bool
 
 
 class PolygonShapeSummary(BaseModel):
@@ -100,7 +102,7 @@ class PreProcessedFarmData(BaseModel):
     farmCoordinates: Point | Polygon | MultiPolygon
     cropType: str
     association: Optional[str] = None
-    area: float
+    area: Optional[float] = None
     documents: list[Document]
     origin: Optional[FarmOrigin] = None
 

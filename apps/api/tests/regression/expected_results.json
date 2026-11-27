@@ -22,7 +22,7 @@
       },
       "F05": {
         "type": "point",
-        "area_m2": 10000.0
+        "area_m2": 40000.0
       },
       "F06": {
         "type": "polygon",
@@ -84,7 +84,7 @@
         "2": null,
         "3": null,
         "4": null,
-        "5": 0.14296071296027515
+        "5": 0.08608394147759635
       },
       "F06": {
         "0": 0.0,
@@ -147,9 +147,19 @@
             "F05",
             "F06"
           ],
-          "percentage": 0.6126396795816079,
+          "percentage": 0.5319852231793166,
           "criticality": "MEDIUM",
-          "area": 5992.97
+          "area": 20815.97
+        },
+        {
+          "type": "overlap",
+          "farmIds": [
+            "F05",
+            "F07"
+          ],
+          "percentage": 1.0,
+          "criticality": "HIGH",
+          "area": 35.93
         },
         {
           "type": "overlap",
